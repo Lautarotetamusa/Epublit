@@ -42,7 +42,7 @@ services:
     environment:
       - PORT=$FRONT_PORT
       - REACT_APP_API_PORT=$BACK_PORT
-      - REACT_APP_HOST=$HOST
+      - REACT_APP_HOST=$SERVER_HOST
     command: npm start #serve -s build -l $FRONT_PORT
     ports:
       - 80:$FRONT_PORT
