@@ -1,0 +1,756 @@
+[
+    {
+        "titulo": "¿Qué es? ¿Dónde está?  Nakatsuka",
+        "isbn": "9789874704115",
+        "autores": [
+            {
+                "nombre": "Alicia Nakatsuka",
+                "dni": 11
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Alicia Nakatsuka",
+                "dni": 11
+            }
+        ],
+        "fecha_edicion": "2018-08-01",
+        "precio": 0
+    },
+    {
+        "titulo": "¿Qué es? ¿Dónde está? Oriato",
+        "isbn": "9789873397899",
+        "autores": [
+            {
+                "nombre": "Laura Oriato",
+                "dni": 1
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Laura Oriato",
+                "dni": 1
+            }
+        ],
+        "fecha_edicion": "2016-08-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Los Tunos, los Tarkos y los Tercos",
+        "isbn": "9789874765116 ",
+        "autores": [
+            {
+                "nombre": "Laura Rossi",
+                "dni": 21
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Malén Lecuona",
+                "dni": 52
+            }
+        ],
+        "fecha_edicion": "2020-09-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Platillos volantes",
+        "isbn": "9789874704153",
+        "autores": [
+            {
+                "nombre": "Diego Colomba",
+                "dni": 3
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Meli Lovera",
+                "dni": 51
+            }
+        ],
+        "fecha_edicion": "2019-08-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Niño Escafandra",
+        "isbn": "9789874864604 ",
+        "autores": [],
+        "ilustradores": [],
+        "fecha_edicion": "2022-07-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Cuentos rayados",
+        "isbn": "9789874765109",
+        "autores": [
+            {
+                "nombre": "Laura Vilche",
+                "dni": 28
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Miguel Mazza",
+                "dni": 9
+            }
+        ],
+        "fecha_edicion": "2021-05-15",
+        "precio": 0
+    },
+    {
+        "titulo": "¿Qué es? ¿Dónde está? Zeta",
+        "isbn": "9789874245113",
+        "autores": [
+            {
+                "nombre": "María Zeta",
+                "dni": 53
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "María Zeta",
+                "dni": 53
+            }
+        ],
+        "fecha_edicion": "2017-02-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Jotolepo Frukachú - La evidencia extraterrestre",
+        "isbn": "9789874798176",
+        "autores": [
+            {
+                "nombre": "Maricel Palomeque",
+                "dni": 36
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Ozkar",
+                "dni": 46
+            }
+        ],
+        "fecha_edicion": "2021-10-01",
+        "precio": 0
+    },
+    {
+        "titulo": "El Señor López",
+        "isbn": "9789874798107",
+        "autores": [
+            {
+                "nombre": "Maia Morosano",
+                "dni": 12
+            },
+            {
+                "nombre": "Martín Tranier",
+                "dni": 18
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Paula Scaglione",
+                "dni": 15
+            }
+        ],
+        "fecha_edicion": "2021-04-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Gerarda, la mutante",
+        "isbn": "9789874704146",
+        "autores": [
+            {
+                "nombre": "Cristian Molina",
+                "dni": 47
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Diego Rolle",
+                "dni": 41
+            }
+        ],
+        "fecha_edicion": "2019-06-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Lobo",
+        "isbn": "9789874704108",
+        "autores": [
+            {
+                "nombre": "Lila Gianelloni",
+                "dni": 55
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Cris Rosenberg",
+                "dni": 44
+            }
+        ],
+        "fecha_edicion": "2018-12-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Gato enojado no caza ratones",
+        "isbn": "9789874704122",
+        "autores": [
+            {
+                "nombre": "Laura Vilche",
+                "dni": 28
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Josefina Preumayr",
+                "dni": 40
+            }
+        ],
+        "fecha_edicion": "2019-07-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Canciones faunas",
+        "isbn": "9789874765161",
+        "autores": [
+            {
+                "nombre": "Analía Giordanino",
+                "dni": 20
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "María Zeta",
+                "dni": 53
+            }
+        ],
+        "fecha_edicion": "2021-02-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Los Raros",
+        "isbn": "9789874659309",
+        "autores": [
+            {
+                "nombre": "Marcelo Ajubita",
+                "dni": 58
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Gonzalo Rimoldi",
+                "dni": 25
+            }
+        ],
+        "fecha_edicion": "2017-08-15",
+        "precio": 0
+    },
+    {
+        "titulo": "¿Qué es? ¿Dónde está? Rosenberg",
+        "isbn": "9789874245106",
+        "autores": [
+            {
+                "nombre": "Cris Rosenberg",
+                "dni": 44
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Cris Rosenberg",
+                "dni": 44
+            }
+        ],
+        "fecha_edicion": "2016-12-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Paren de pisar a ese gato",
+        "isbn": "9789874659378",
+        "autores": [
+            {
+                "nombre": "Verónica Laurino",
+                "dni": 54
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Cris Rosenberg",
+                "dni": 44
+            }
+        ],
+        "fecha_edicion": "2016-02-15",
+        "precio": 0
+    },
+    {
+        "titulo": "El Carromato filarmónico",
+        "isbn": "9789874201096",
+        "autores": [
+            {
+                "nombre": "Daniel Moyano",
+                "dni": 2
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Laura Klatt",
+                "dni": 4
+            }
+        ],
+        "fecha_edicion": "2016-07-15",
+        "precio": 0
+    },
+    {
+        "titulo": "El señor Waldemar",
+        "isbn": "9789874864635",
+        "autores": [
+            {
+                "nombre": "Horacio Cavallo",
+                "dni": 57
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "María José de Tellería",
+                "dni": 13
+            }
+        ],
+        "fecha_edicion": "2023-01-12",
+        "precio": 0
+    },
+    {
+        "titulo": "Los Raros VOL II",
+        "isbn": "9789874704177",
+        "autores": [
+            {
+                "nombre": "Marcelo Ajubita",
+                "dni": 58
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Gonzalo Rimoldi",
+                "dni": 25
+            }
+        ],
+        "fecha_edicion": "2020-05-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Chispero",
+        "isbn": "9789784765178",
+        "autores": [
+            {
+                "nombre": "Diego Colomba",
+                "dni": 3
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Laura Oriato",
+                "dni": 1
+            }
+        ],
+        "fecha_edicion": "2021-02-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Diccionario enciclopédico de las cosas que nos gustan",
+        "isbn": "9789874864628 ",
+        "autores": [
+            {
+                "nombre": "AAVV",
+                "dni": 17
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Manuela Colomba",
+                "dni": 24
+            }
+        ],
+        "fecha_edicion": "2022-09-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Una vida casi redonda",
+        "isbn": "9789874765192",
+        "autores": [
+            {
+                "nombre": "Agostina Iuorno",
+                "dni": 7
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Claudio Bonarrigo",
+                "dni": 34
+            }
+        ],
+        "fecha_edicion": "2021-05-15",
+        "precio": 0
+    },
+    {
+        "titulo": "MALDELMEIL",
+        "isbn": "9789874704139",
+        "autores": [
+            {
+                "nombre": "David Wapner",
+                "dni": 30
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Tati Babini",
+                "dni": 33
+            }
+        ],
+        "fecha_edicion": "2020-09-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Dama de corazones",
+        "isbn": "9789874798183",
+        "autores": [
+            {
+                "nombre": "Luisa Futoransky",
+                "dni": 35
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Paula Schenone",
+                "dni": 49
+            }
+        ],
+        "fecha_edicion": "2022-01-15",
+        "precio": 0
+    },
+    {
+        "titulo": "¿Qué es la poesía?",
+        "isbn": "9789874659347",
+        "autores": [
+            {
+                "nombre": "Lisandro González",
+                "dni": 6
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "María Victoria Rodríguez",
+                "dni": 31
+            }
+        ],
+        "fecha_edicion": "2018-04-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Una máquina de hacer tonterías",
+        "isbn": "9789874798152",
+        "autores": [
+            {
+                "nombre": "Gonzalo Ruzafa",
+                "dni": 50
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Pilar Moreno",
+                "dni": 39
+            }
+        ],
+        "fecha_edicion": "2021-08-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Cabeza de flor",
+        "isbn": "9789874659361",
+        "autores": [
+            {
+                "nombre": "Carolina Musa",
+                "dni": 5
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Laura Klatt",
+                "dni": 4
+            }
+        ],
+        "fecha_edicion": "2016-07-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Los gatos de la luna",
+        "isbn": "9789874864642 ",
+        "autores": [
+            {
+                "nombre": "Cecilia Moscovich",
+                "dni": 32
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Lorena Méndez",
+                "dni": 8
+            }
+        ],
+        "fecha_edicion": "2022-11-30",
+        "precio": 0
+    },
+    {
+        "titulo": "Caserío",
+        "isbn": "9789874659385",
+        "autores": [
+            {
+                "nombre": "Laura Oriato",
+                "dni": 1
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Laura Oriato",
+                "dni": 1
+            }
+        ],
+        "fecha_edicion": "2014-07-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Bajó un pajarito rojo",
+        "isbn": "9789874765130",
+        "autores": [
+            {
+                "nombre": "Enrique Banchs",
+                "dni": 23
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Alicia Nakatsuka",
+                "dni": 11
+            }
+        ],
+        "fecha_edicion": "2018-07-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Fábrica de escalofríos",
+        "isbn": "9789874704184",
+        "autores": [
+            {
+                "nombre": "Horacio Cavallo",
+                "dni": 57
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Tati Babini",
+                "dni": 33
+            }
+        ],
+        "fecha_edicion": "2021-04-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Alimañas en la casa nueva",
+        "isbn": "9789874659392",
+        "autores": [
+            {
+                "nombre": "Verónica Laurino",
+                "dni": 54
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Pilar Moreno",
+                "dni": 39
+            }
+        ],
+        "fecha_edicion": "2018-12-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Un hechizo pluripotente",
+        "isbn": "97898747765185",
+        "autores": [
+            {
+                "nombre": "Virginia Giacosa",
+                "dni": 56
+            },
+            {
+                "nombre": "Virginia Luco",
+                "dni": 29
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Flopa",
+                "dni": 14
+            }
+        ],
+        "fecha_edicion": "2021-01-15",
+        "precio": 0
+    },
+    {
+        "titulo": "El Amarillo",
+        "isbn": "9789874704160",
+        "autores": [
+            {
+                "nombre": "Carolina Musa",
+                "dni": 5
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Rouse de Zavaleta",
+                "dni": 26
+            }
+        ],
+        "fecha_edicion": "2020-09-15",
+        "precio": 0
+    },
+    {
+        "titulo": "¿Qué es? ¿Dónde está?  Greiner",
+        "isbn": "9789874659323",
+        "autores": [
+            {
+                "nombre": "Martha Greiner",
+                "dni": 37
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Martha Greiner",
+                "dni": 37
+            }
+        ],
+        "fecha_edicion": "2017-09-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Canción para gorilas",
+        "isbn": "9789874222992",
+        "autores": [
+            {
+                "nombre": "Nicolás Doffo",
+                "dni": 38
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Malén Lecuona",
+                "dni": 52
+            }
+        ],
+        "fecha_edicion": "2016-12-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Latitas",
+        "isbn": "9789874659313",
+        "autores": [
+            {
+                "nombre": "Federico Tinivella",
+                "dni": 16
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Paula Schenone",
+                "dni": 49
+            }
+        ],
+        "fecha_edicion": "2017-08-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Circo",
+        "isbn": "9789874798190",
+        "autores": [
+            {
+                "nombre": "Rafael Urretabizkaya",
+                "dni": 22
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Lali Ruggeri",
+                "dni": 19
+            }
+        ],
+        "fecha_edicion": "2022-03-01",
+        "precio": 0
+    },
+    {
+        "titulo": "Monte",
+        "isbn": "9789874765147",
+        "autores": [
+            {
+                "nombre": "Ciro Korol",
+                "dni": 43
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "María Victoria Rodríguez",
+                "dni": 31
+            }
+        ],
+        "fecha_edicion": "2020-09-21",
+        "precio": 0
+    },
+    {
+        "titulo": "Breviario",
+        "isbn": "9789874798169",
+        "autores": [
+            {
+                "nombre": "Silvina Rocha",
+                "dni": 42
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Max Cachimba",
+                "dni": 27
+            }
+        ],
+        "fecha_edicion": "2022-01-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Mi gato interior",
+        "isbn": "9789874798138",
+        "autores": [
+            {
+                "nombre": "Beatriz Vignoli",
+                "dni": 45
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Hernán Camoletto",
+                "dni": 10
+            }
+        ],
+        "fecha_edicion": "2021-09-15",
+        "precio": 0
+    },
+    {
+        "titulo": "Bajo una nube azul",
+        "isbn": "9789874704191",
+        "autores": [
+            {
+                "nombre": "Nancy Bacelo",
+                "dni": 48
+            }
+        ],
+        "ilustradores": [
+            {
+                "nombre": "Lali Ruggeri",
+                "dni": 19
+            }
+        ],
+        "fecha_edicion": "2021-03-01",
+        "precio": 0
+    }
+]

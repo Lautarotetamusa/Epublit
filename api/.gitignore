@@ -1,0 +1,7 @@
+#Modulos node
+node_modules/
+package-lock.json
+
+#Tokens de afip
+src/afip/Claves/*
+src/afip/ClavesLibrosSilvestres/*

@@ -1,0 +1,89 @@
+[
+    {
+        "title": "Autor no encontrado",
+        "data": {
+            "isbn": "11111111",
+            "titulo": "Caserio",
+            "fecha_edicion": "2020-02-17",
+            "precio": 2500.0,
+            "autores":[
+                {
+                    "id": -1
+                }
+            ],
+            "ilustradores": [
+            ]
+        },
+        "code": 404
+    },
+    {
+        "title": "Ilustrador no encontrado",
+        "data": {
+            "isbn": "11111111",
+            "titulo": "Caserio",
+            "fecha_edicion": "2020-02-17",
+            "precio": 2500.0,
+            "autores":[
+            ],
+            "ilustradores": [
+                {
+                    "id": -1
+                }
+            ]
+        },
+        "code": 404
+    },
+    {
+        "title": "Persona sin nombre",
+        "data": {
+            "isbn": "11111111",
+            "fecha_edicion": "2020-02-17",
+            "precio": 2500.0,
+            "titulo": "Caserio",
+            "autores": [
+            ],
+            "ilustradores": [
+              {
+                "email": "caro@gmail.com"
+              }
+            ]
+          },
+        "code": 400
+    },
+    {
+        "title": "Sin precio",
+        "data": {
+            "isbn": "11111111",
+            "fecha_edicion": "2020-02-17",
+            "titulo": "Caserio"
+        },
+        "code": 400
+    },
+    {
+        "title": "Sin titulo",
+        "data": {
+            "isbn": "11111111",
+            "fecha_edicion": "2020-02-17",
+            "precio": 2500
+        },
+        "code": 400
+    },
+    {
+        "title": "Sin fecha edicion",
+        "data": {
+            "isbn": "11111111",
+            "titulo": "Caserio",
+            "precio": 2500
+        },
+        "code": 400
+    },
+    {
+        "title": "Sin isbn",
+        "data": {
+            "fecha_edicion": "2020-02-17",
+            "titulo": "Caserio",
+            "precio": 2500
+        },
+        "code": 400
+    }
+]

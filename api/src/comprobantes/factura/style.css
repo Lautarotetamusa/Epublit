@@ -1,0 +1,178 @@
+:root{
+  --WIDHT: 991px;
+  --HEIGTH: 1403px;
+
+  --wHoja: calc(var(--WIDHT) - 3em);
+  --hHoja: calc(var(--HEIGTH) - 3em)
+}
+
+body{
+  margin: 0;
+  padding: 1.5em;
+  font-family: sans-serif;
+  font-size: 10pt;
+  background-color: #FAFAFA;
+  width: calc(var(--WIDHT) - 3em);
+  height: calc(var(--HEIGTH) - 3em);
+  margin: auto;
+}
+
+.tipo_factura{
+  display: block;
+  position:absolute;
+  text-align: center;
+  height: 5em;
+  width: 5em;
+
+  left: calc(50% - (2.5em + 2px));
+  background-color: white;
+}
+.tipo_factura :first-child{
+  font-size: 28pt;
+}
+
+
+.bordered {
+  border: 1px solid black;
+}
+.center{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.referencia{
+  display: flex;
+  margin-top: 3px;
+  padding: 0.5em;
+  align-items: center;
+}
+
+.flex{
+  display: flex;
+}
+.column{
+  flex: 50%;
+  padding: 0.5em;
+}
+.columna_der{
+  padding-left: 4em;
+}
+.columna_izq{
+  padding-right: 3em;
+  text-align: center;
+}
+
+.header{
+  height: 3em;
+  border-bottom: 1px solid black;
+}
+
+.datos_cliente{
+  margin-top: 1em;
+  height: 8em;
+}
+
+.bold{
+  font-weight: bold;
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 3px;
+  margin-bottom: auto;
+}
+
+thead{
+  background-color: #cccccc;
+}
+
+th{
+  border: 1px solid black;
+  padding: 0.25em 0.5em 0.25em 0.5em;
+}
+
+td{
+  padding:0.5em;
+  text-align: right;
+  font-size: small;
+}
+
+table.otros_tributos>thead>tr>th{
+  text-align: left;
+  font-weight: normal;
+  padding-left: 1em;
+  padding-right: 1em;
+}
+table.otros_tributos>thead>tr :last-child{
+  text-align: right;
+}
+table.otros_tributos>tbody>tr>td{
+  padding: 2px;
+  text-align: left;
+}
+table.otros_tributos>tbody>tr :last-child{
+  text-align: right;
+}
+
+.tipo_moneda{
+  text-decoration: underline;
+  text-align: right;
+  margin-bottom: 3em;
+}
+
+.importes{
+  font-size: small;
+  text-align: right;
+  padding: 0;
+}
+.importes>span{
+  display:block;
+  font-weight: bold;
+  margin-top: 1em;
+  margin-bottom: 1em;
+  margin-right: 0.5em;
+}
+.tributos{
+  margin-top: 2em;
+  padding: 1em;
+}
+
+.footer{
+  margin-top: 1em;
+  padding: 1em;
+}
+.footer_flex{
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+}
+.qr{
+  display: inline-block;
+  height: 160px;
+  width: 160px;
+}
+
+.logo{
+  width: 155px;
+  height: 40px;
+  margin-left: 0.5em;
+}
+
+#comprobante_autorizado{
+  display: block; 
+  font-style: oblique;
+  font-size:  large;
+}
+.cae_container{
+  display: flex;
+  margin-left: auto;
+}
+.cae_container>*{
+  padding: 0;
+}
+.row {
+  display: flex;
+  margin-left: 2em;
+  margin-top:1em;
+}

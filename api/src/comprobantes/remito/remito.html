@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <link rel="stylesheet" href="style.css">
+        <style></style>
+    </head>
+    <body>
+        <div class="box flex">
+            <div id="logo">
+                {{logo}}
+            </div>
+            <div class="col_der">
+                <span>María Carolina Musa</span><br>
+                <span>CUIT 27-24980402-4</span><br>
+                <span>IVA EXENTO</span><br>
+                <span>Urquiza 1159 4-4 Rosario(2000)</span><br>
+                <span>info@librosilvestres.com</span><br>
+               <br>
+            </div>
+        </div>
+        <div class="box">
+            <span class="bold">REMITO Nro: 1</span>
+        </div>
+        <div class="box flex">
+            <div class="col_izq">
+                <span class="bold">Fecha: {{fecha}}</span><br>
+                <span class="bold">Cliente: {{cliente.razon_social}}</span><br>
+                <span class="bold">CUIT: {{cliente.cuit}}</span><br>
+                <span class="bold">Domicilio: {{cliente.domicilio}}</span><br>
+                <br>
+            </div>
+        </div>
+        <div class="box">
+            <span class="bold">EJEMPLARES EN CONSIGNACION: </span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 25%">Título</th>
+                    <th style="width: 20%">Autor/a</th>
+                    <th style="width: 10%">ISBN</th>
+                    <th style="width: 5%">Cantidad</th>
+                    <th style="width: 10%">PVP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{LIBROS}}
+            </tbody>
+        </table>
+    </body>
+</html>

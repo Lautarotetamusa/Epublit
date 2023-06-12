@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <link rel="stylesheet" href="viewer.css">
+        <style></style>
+    </head>
+    <body>
+        <div name="recuadro_superior" class="bordered">
+            <div class="center header">
+                <h2 class="bold">ORIGINAL</h2>
+            </div>
+            <div class="flex">
+                <div class="column" style="border-right: 1px solid black">
+                    <div class="columna_izq">
+                        <h1>MUSA MARIA CAROLINA</h1>
+                    </div>
+                    <span class="bold">Razón social:    </span><span>MUSA MARIA CAROLINA</span><br>
+                    <br>
+                    <span class="bold">Domicilio Comercial:</span><span>Urquiza 1159 Piso:4 Dpto:4 - Rosario Norte, Santa Fe</span><br>
+                    <br>
+                    <span class="bold">Condición frente al IVA:&emsp;IVA Sujeto Exento</span>
+                </div>
+                <div class="column">
+                    <div class="columna_der">
+                        <h1>FACTURA</h1>
+                        <span class="bold">Punto de venta:  {{punto_venta}}</span>&emsp;&emsp;<span class="bold">Comp.Nro:    {{nro_comprobante}}</span><br>
+                        <span class="bold">Fecha de Emisión:&emsp;{{fecha_emision}}</span><br>
+                        <br>
+                        <span class="bold">CUIT:&emsp;</span><span>27249804024</span><br>
+                        <span class="bold">Ingresos Brutos: </span><span>CM 27249804024 (exento)</span><br>
+                        <span class="bold">Fecha de Inicio de Actividades:&ensp;</span><span>01/10/2011</span><br>
+                    </div>
+                </div>
+                <div class="tipo_factura bordered">
+                    <span class="bold">{{tipo_factura}}</span><br>
+                    <span class="bold">COD. {{cod_factura}}</span>
+                </div>
+            </div>
+        </div>
+        <div class="datos_cliente bordered flex">
+            <div class="column">
+                <span class="bold">CUIT:</span>&emsp;<span>{{cliente_cuit}}</span><br>
+                <br>
+                <span class="bold">Condición frente al IVA:</span>&emsp;<span>{{cliente_cond}}</span><br>
+                <br>
+                <span class="bold">Condición de venta:</span>&emsp;<span>{{cond_venta}}</span><br>
+                <br>
+            </div>
+            <div class="column">
+                <span class="bold">Apellido y Nombre / Razón Social</span>&emsp;<span>{{cliente_nombre}}</span><br>
+                <br>
+                <span class="bold">Domicilio Comercial:</span>&emsp;<span>{{cliente_domicilio}}</span><br>
+            </div>
+        </div>
+        <div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:5%">ISBN</th>
+                        <th style="text-align:left; width: 25%">Título</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unit.</th>
+                        <th>% Bonif</th>
+                        <th>Imp. Bonif.</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{LIBROS}}
+                </tbody>
+            </table>
+        </div>
+        <div class="tributos bordered">
+            <div class="flex">
+                <div class="flex" style="margin-left: auto; width:100%">
+                    <div class="column importes" style="flex:100%">
+                        <span class="block">Subtotal: </span>
+                        <span class="block">Importe Otros Tributos: </span>
+                        <span class="block" style="font-size: medium;">Importe Total: </span>
+                    </div>
+                    <div class="column importes" style="flex:auto; width:15%">
+                        <span class="block">{{TOTAL}}</span>
+                        <span class="block">0,00</span>
+                        <span class="block" style="font-size: medium;">{{TOTAL}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--<div class="bordered">
+            <div class="flex">
+                <div class="column" style="flex: 60%">
+                    <span class="bold">Otros Tributos</span>
+                    <table class="otros_tributos">
+                        <thead>
+                            <tr>
+                                <th style="width:45%">Descripción</th>
+                                <th style="width:20%">Detalle</th>
+                                <th>Alíc. %</th>
+                                <th style="width:5%">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Per./Ret. de Impuesto a las Ganancias</td>
+                                <td></td>
+                                <td></td>
+                                <td>0,00</td>
+                            </tr>
+                            <tr>
+                                <td>Per./Ret. de IVA</td>
+                                <td></td>
+                                <td></td>
+                                <td>0,00</td>
+                            </tr>
+                            <tr>
+                                <td>Per./Ret. Ingresos Brutos</td>
+                                <td></td>
+                                <td></td>
+                                <td>0,00</td>
+                            </tr>
+                            <tr>
+                                <td>Impuestos Internos</td>
+                                <td></td>
+                                <td></td>
+                                <td>0,00</td>
+                            </tr>
+                            <tr>
+                                <td>Impuestos Municipales</td>
+                                <td></td>
+                                <td></td>
+                                <td>0,00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="column" style="flex: 40%">
+                    <div class="bold tipo_moneda">Moneda: PES - Pesos Argentinos</div>
+                    <div class="flex">
+                        <div class="column importes" style="flex:70%">
+                            <span>Importe Neto Gravado: </span>PES<br>
+                            <span>IVA 27%: </span>PES<br>
+                            <span>IVA 21%: </span>PES<br>
+                            <span>IVA 10.5%: </span>PES<br>
+                            <span>IVA 5%: </span>PES<br>
+                            <span>IVA 2.5%: </span>PES<br>
+                            <span>IVA 0%: </span>PES<br>
+                            <span>Importe Otros Tributos: </span>PES<br>
+                            <span  style="font-size: medium;">Importe Total: </span>PES<br>
+                        </div>
+                        <div class="column importes">
+                            <span class="block">10000,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block">2100,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block">0,00</span>
+                            <span class="block" style="font-size: medium;">0,00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>-->
+        <div class="footer" style="">
+            <span style="text-align: center;" class="bold center">Pág. 1/1</span>
+            <div class="flex">
+                <div class="qr">
+                    <img class="qr" src="">
+                </div>
+                <div style="flex-grow: 1">
+                    <div class="row">
+                        {{logo}}
+                        <div class="cae_container">
+                            <div class="column" style="flex:100%; text-align: right;">
+                                <span class="bold">CAE N°:&emsp;</span><br>
+                                <span class="bold">Fecha de Vto. de CAE:&emsp;</span><br>
+                            </div>
+                            <div class="column" style="text-align: left;">
+                                <span>{{cae}}</span><br> 
+                                <span>{{fecha_vto}}</span><br>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <span class="bold" id="comprobante_autorizado">Comprobante Autorizado</span>
+                        <div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <span class="bold" id="comprobante_autorizado" style="font-size: small; /*! margin-top: 0 */">Esta Administración Federal no se responsabiliza por los datos ingresados en el detalle de la operación</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
