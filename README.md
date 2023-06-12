@@ -7,11 +7,17 @@
 Instalar docker
 `sudo apt install docker`
 
+Agregar docker a sudo
+`sudo usermod -aG docker $USER`
+
+Buildear los contenedores
+`docker compose build`
+
 Correr el servicio
 `sudo systemctl start docker`
 
 Ejecutar el server
-`sudo docker-compose up`
+`docker compose up`
 
 # Instalacion manual
 
