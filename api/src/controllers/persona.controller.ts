@@ -1,7 +1,7 @@
-import { Persona } from "../models/persona.model.js";
+import { Persona } from "../models/persona.model.ts";
 import { parse_error } from '../models/errors.js'
 
-export const PersonaController = {};
+export const PersonaController:any = {};
 
 
 PersonaController.create = async (req, res) => {

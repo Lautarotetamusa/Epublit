@@ -3,7 +3,7 @@ import { Libro } from "../models/libro.model.js";
 import { parse_error } from "../models/errors.js"
 import { facturar } from "../afip/Afip.js";
 
-export const VentaController = {};
+export const VentaController:any = {};
 
 VentaController.vender = async(req, res) => {
     let body = req.body;

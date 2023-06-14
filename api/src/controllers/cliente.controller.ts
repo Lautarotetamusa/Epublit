@@ -1,7 +1,7 @@
 import { Cliente } from "../models/cliente.model.js";
 import {parse_error} from '../models/errors.js';
 
-export const ClienteController = {};
+export const ClienteController:any = {};
 
 /*
     Request example

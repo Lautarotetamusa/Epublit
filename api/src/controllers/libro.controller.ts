@@ -29,7 +29,7 @@ function parse_req(body){
     }
 }
 
-export const LibroController = {};
+export const LibroController:any = {};
 
 LibroController.create = async (req, res) => {
     console.log(req.body);

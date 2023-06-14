@@ -1,5 +1,5 @@
 import {conn} from "../db.js"
-import {Persona} from "./persona.model.js"
+import {Persona} from "./persona.model.ts"
 import {ValidationError, NotFound, Duplicated, NothingChanged} from './errors.js'
 
 const table_name = "libros"

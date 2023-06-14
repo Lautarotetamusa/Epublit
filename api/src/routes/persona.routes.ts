@@ -1,6 +1,6 @@
 import express from "express"
 
-import {PersonaController} from "../controllers/persona.controller.js"
+import {PersonaController} from "../controllers/persona.controller"
 //import {Persona} from "../models/persona.model.js"
 
 const router = express.Router();

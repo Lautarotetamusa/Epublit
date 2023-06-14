@@ -1,16 +1,16 @@
-import express from "express"
+import express, {Request, Response} from "express"
 
 import dotenv from 'dotenv'
 
-import personaRouter from "./routes/persona.routes.js"
-import libroRouter from "./routes/libro.routes.js"
-import ClienteRouter from "./routes/cliente.routes.js"
-import VentaRouter from "./routes/venta.routes.js"
-import ConsignacionRouter from "./routes/consignacion.routes.js"
+//import personaRouter from "./routes/persona.routes";
+import libroRouter from "./routes/libro.routes";
+//import ClienteRouter from "./routes/cliente.routes";
+//import VentaRouter from "./routes/venta.routes";
+//import ConsignacionRouter from "./routes/consignacion.routes";
 
 dotenv.config();
-export const app = express()
-const port = process.env.BACK_PORT;
+export const app = express();
+const port: number = Number(process.env.BACK_PORT);
 
 //Necesesario para que no tire error de   CORS
 app.use((req, res, next) => {
@@ -24,15 +24,15 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({extended: true,}));
 
-app.use('/persona', personaRouter);
+//app.use('/persona', personaRouter);
 
 app.use('/libro', libroRouter);
 
-app.use('/cliente', ClienteRouter);
+//app.use('/cliente', ClienteRouter);
 
-app.use('/venta', VentaRouter);
+//app.use('/venta', VentaRouter);
 
-app.use('/consignacion', ConsignacionRouter);
+//app.use('/consignacion', ConsignacionRouter);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({
@@ -42,7 +42,7 @@ app.use('*', (req, res) => res.status(404).json({
 
 app.listen(port, () => console.log(`Libros Silvestres start in port ${port}!`))
 
-app.use(function(err, req, res, next) {
+app.use(function(err: Error, req: Request, res: Response, next: any) {
     console.error("app use:", err.stack);
     res.status(500).json({
         success: false,
