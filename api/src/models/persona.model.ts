@@ -1,42 +1,61 @@
-import {conn} from "../db.js"
-import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors.js'
-import { Libro } from "./libro.model.js";
-
+import {conn} from "../db";
+import { OkPacket, RowDataPacket } from "mysql2/promise";
+import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors'
+import { ILibro } from "./libro.model";
 
 const table_name = "personas";
 const visible_fields = "id, dni, nombre, email";
 
+export interface IPersona extends RowDataPacket{
+    nombre: string;
+    email: string;
+    dni: string;
+    id?: number;
+    tipo?: TipoPersona;
+}
+
+export enum TipoPersona {
+    autor = 0,
+    ilustrador
+}
+export type TipoPersonaString = keyof typeof TipoPersona;
+
 //TODO: porcentaje de la persona
-export class Persona {
+export class Persona{
+    nombre: string;
+    email: string;
+    dni: string;
+    id?: number;
+    tipo?: TipoPersona;
+
     //Validamos al momento de crear un objeto
-    constructor(persona) {
+    constructor(persona: IPersona) {
         this.nombre = persona.nombre;
         this.email  = persona.email;
 
-        if ('dni' in persona)
-            this.dni = persona.dni;
+        if (!('dni'in persona))
+            throw new ValidationError("El dni es obligatorio");
+        this.dni = persona.dni;
         
         if ('id' in persona)
             this.id = Number(persona.id);
     }
     
-    static validate(request) {
+    static validate(request: IPersona) {
         if (!request.nombre)
             throw new ValidationError("El nombre es obligatorio");
-
-        if (!request.email)
-            this.email = ""
 
         if (!request.dni)
             throw new ValidationError("El dni es obligatorio");
     }
 
-    static async exists(dni){
-        let res =  (await conn.query(`
+    static async exists(dni: string): Promise<boolean>{
+        let res: number =  (await conn.query<RowDataPacket[]>(`
             SELECT COUNT(id) as count from ${table_name}
-            WHERE dni = ${dni}
+            WHERE dni = ?
             AND is_deleted = 0
-        `))[0][0].count;
+        `, [dni]))[0][0].count;
+
         return res > 0;
     }
 
@@ -45,14 +64,14 @@ export class Persona {
             throw new Duplicated(`La persona con dni ${this.dni} ya se encuentra cargada`);
         }
 
-        let res = (await conn.query(`
+        let res = (await conn.query<OkPacket>(`
             INSERT INTO ${table_name} SET ?`
         , this))[0];
 
         this.id = res.insertId;
     }
 
-    async update(req) {
+    async update(req: IPersona) {
         if (req.dni && req.dni != this.dni){
             if (await Persona.exists(req.dni))
                 throw new Duplicated(`La persona con dni ${req.dni} ya se encuentra cargada`);
@@ -62,11 +81,12 @@ export class Persona {
         this.email  = req.email  || this.email;
         this.dni    = req.dni    || this.dni;
 
-        let res = (await conn.query(`
+        const query = `
             UPDATE ${table_name} SET ?
-            WHERE id=${this.id}
-            AND is_deleted = 0`
-        , this))[0];
+            WHERE id = ?
+            AND is_deleted = 0`;
+
+        let res = (await conn.query<OkPacket>(query, [this, this.id]))[0];
 
         if (res.affectedRows == 0)
             throw new NotFound(`No se encuentra la persona con id ${this.id}`);
@@ -75,7 +95,7 @@ export class Persona {
             throw new NothingChanged('Ningun valor es distinto a lo que ya existia en la base de datos');
     }
 
-    static async delete(id){
+    static async delete(id: number){
         /*await conn.query(`
             DELETE FROM libros_personas
             WHERE id_persona = ${id}
@@ -86,18 +106,19 @@ export class Persona {
             WHERE id=${id}`
         ))[0];*/
 
-        let res = (await conn.query(`
+        const query = `
             UPDATE ${table_name}
             SET is_deleted = 1
-            WHERE id=${id}`
-        ))[0];
+            WHERE id = ?`;
+
+        let res = (await conn.query<OkPacket>(query, [id]))[0];
 
         if (res.affectedRows == 0)
             throw new NotFound(`No se encuentra la persona con id ${id}`);
     }
 
-    static async get_all() {
-        let personas = (await conn.query(`
+    static async get_all(): Promise<IPersona[]> {
+        let personas = (await conn.query<IPersona[]>(`
             SELECT ${visible_fields} FROM ${table_name} 
             WHERE is_deleted = 0
         `))[0];
@@ -105,56 +126,44 @@ export class Persona {
         return personas;
     }
 
-    static async get_all_by_tipo(tipo) {
-        let personas = (await conn.query(`
+    static async get_all_by_tipo(tipo: TipoPersona): Promise<IPersona[]> {
+        const query = `
             SELECT ${visible_fields} FROM ${table_name} 
             INNER JOIN libros_personas
                 ON id_persona=id
             WHERE is_deleted = 0
-            AND libros_personas.tipo = ${tipo}
-            GROUP BY id
-        `))[0];
-            
-        return personas;
+            AND libros_personas.tipo = ?
+            GROUP BY id`
+
+        return (await conn.query<IPersona[]>(query, [tipo]))[0];
     }
 
-    static async get_by_id(id) {
-        let response = (await conn.query(`
+    static async get_by_id(id: number): Promise<IPersona> {
+        const query = `
             SELECT ${visible_fields} FROM ${table_name} 
-            WHERE id=${id}
-            AND is_deleted = 0
-        `))[0];
+            WHERE id = ?
+            AND is_deleted = 0`
 
-        if (!response.length)
+        let personas = (await conn.query<IPersona[]>(query, [id]))[0];
+
+        if (!personas.length)
             throw new NotFound(`La persona con id ${id} no se encontro`);
 
-        return response[0];
+        return personas[0];
     }
 
-    static async get_libros(id){
-        let libros = (await conn.query(`
+    static async get_libros(id: number): Promise<ILibro[]>{
+        const query = `
             SELECT libros.*, libros_personas.tipo 
             FROM libros
             INNER JOIN libros_personas
-                ON libros_personas.id_persona=${id}
+                ON libros_personas.id_persona = ?
             INNER JOIN ${table_name}
                 ON libros.isbn = libros_personas.isbn
-            WHERE personas.id=${id}
+            WHERE personas.id = ?
             AND personas.is_deleted = 0
-        `))[0];
+        `
 
-        return libros;
+        return (await conn.query<ILibro[]>(query, [id, id]))[0];
     }
 }
-
-Persona.tipos = {
-    autor: 0,
-    ilustrador: 1
-}
-Persona.str_tipos = Object.keys(Persona.tipos);
-
-
-
-
-
-

@@ -1,7 +1,6 @@
 import express from "express"
 
-import {PersonaController} from "../controllers/persona.controller"
-//import {Persona} from "../models/persona.model.js"
+import PersonaController from "../controllers/persona.controller"
 
 const router = express.Router();
 
@@ -13,10 +12,6 @@ router.get('/:id', PersonaController.get_one);
 
 router.put('/:id', PersonaController.update)
 
-router.delete('/:id', PersonaController.delete);
-
-/*router.get('/tipos', (req, res) => {
-    return res.json(Persona.tipos);
-})*/
+router.delete('/:id', PersonaController.remove);
 
 export default router;

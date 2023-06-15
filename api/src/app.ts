@@ -1,9 +1,9 @@
-import express, {Request, Response} from "express"
+import express, {NextFunction, Request, Response} from "express"
 
-import dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
 
-//import personaRouter from "./routes/persona.routes";
-import libroRouter from "./routes/libro.routes";
+import personaRouter from "./routes/persona.routes";
+//import libroRouter from "./routes/libro.routes";
 //import ClienteRouter from "./routes/cliente.routes";
 //import VentaRouter from "./routes/venta.routes";
 //import ConsignacionRouter from "./routes/consignacion.routes";
@@ -24,9 +24,9 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({extended: true,}));
 
-//app.use('/persona', personaRouter);
+app.use('/persona', personaRouter);
 
-app.use('/libro', libroRouter);
+//app.use('/libro', libroRouter);
 
 //app.use('/cliente', ClienteRouter);
 
@@ -42,7 +42,7 @@ app.use('*', (req, res) => res.status(404).json({
 
 app.listen(port, () => console.log(`Libros Silvestres start in port ${port}!`))
 
-app.use(function(err: Error, req: Request, res: Response, next: any) {
+app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
     console.error("app use:", err.stack);
     res.status(500).json({
         success: false,

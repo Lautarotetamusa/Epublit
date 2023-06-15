@@ -22,11 +22,10 @@
   "name": "nodeapp",
   "version": "1.0.0",
   "main": "src/app.js",
-  "type": "module",
   "scripts": {
     "dev": "nodemon src/app.js",
     "typescript": "tsc && node dist/app.js",
-    "compile": "tsc app.js --outDir dist",
+    "compile": "tsc src/app.ts --outDir dist --esModuleInterop",
     "test_libro": "mocha tests/libro.test.js",
     "test_persona": "mocha tests/persona.test.js",
     "test_consignacion": "mocha tests/consignacion.test.js",

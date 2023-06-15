@@ -26,9 +26,9 @@ services:
       - $BACK_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    command: npm run dev
+    #command: npm run dev
+    command: node src/app.js
     volumes:
-     - ./api/src:/app/src
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
 

@@ -1,32 +1,51 @@
-import { Persona } from "../models/persona.model.ts";
-import { parse_error } from '../models/errors.js'
+import {Request, Response} from "express"
+import { Persona, TipoPersona, IPersona, TipoPersonaString } from "../models/persona.model";
+import { parse_error } from '../models/errors'
 
-export const PersonaController:any = {};
+interface ApiResponse{
+    data?: Object;
+}
+interface ApiResponseSuccess extends ApiResponse{
+    success: true;
+    message: string;
+    error?: never;
+}
+interface ApiResponseError extends ApiResponse{
+    success: false;
+    message?: never;
+    error: string;
+}
 
-
-PersonaController.create = async (req, res) => {
+const create = async (req: Request, res: Response): Promise<Response> => {
      try {
-        Persona.validate(req.body);
+        let body: IPersona = req.body;
 
-        const persona = new Persona(req.body);
+        Persona.validate(body);
 
-        await persona.insert(req.body);
+        const persona = new Persona(body);
 
-        return res.status(201).json({
+        await persona.insert();
+
+        let response: ApiResponseSuccess = {
             success: true,
             message: "Persona creada correctamente",
             data: persona
-        });
+        }
 
-    } catch (error) {
+        return res.status(201).json(response);
+
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-PersonaController.update = async (req, res) => {
+const update = async (req: Request, res: Response): Promise<Response> => {
+    const body: IPersona = req.body;
+    const id = Number(req.params.id);
+
     try {
-        const persona = new Persona(await Persona.get_by_id(req.params.id));
-    
+        const persona = new Persona(await Persona.get_by_id(id));
+        
         if (Object.keys(persona).length === 0 && persona.constructor === Object) //Si persona es un objeto vacio
             return res.status(204).json({
                 success:true,
@@ -35,56 +54,62 @@ PersonaController.update = async (req, res) => {
 
         await persona.update(req.body);
 
-        return res.status(201).json({
-            success:true,
-            message: "Persona actualizada correctamente",
+        let response: ApiResponseSuccess = {
+            success: true,
+            message: "Persona creada correctamente",
             data: persona
-        })
+        }
 
-    } catch (error) {
+        return res.status(201).json(response);
+
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-PersonaController.delete = async (req, res) => {
+const remove = async (req: Request, res: Response): Promise<Response>  => {
     try {
-        await Persona.delete(req.params.id)
+        await Persona.delete(Number(req.params.id))
 
-        return res.json({
+        let response: ApiResponseSuccess = {
             success: true,
             message: `Persona con id ${req.params.id} eliminada correctamente`
-        })
+        }
 
-    } catch (error) {
+        return res.json(response);
+
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-PersonaController.get_all = async (req, res) => {
+const get_all = async (req: Request, res: Response): Promise<Response>  => {
     let params = req.query;
-    let personas;
+    let personas: IPersona[];
 
     try {
-
         if ('tipo' in params){
-            if(!(params.tipo in Persona.tipos)) return res.status(400).json({
-                success: false,
-                message: `El tipo pasado no es correcto (${Persona.str_tipos})`
-            })
+            let tipo: TipoPersonaString = <TipoPersonaString>String(req.query.tipo);
 
-            personas = await Persona.get_all_by_tipo(Persona.tipos[params.tipo])
+            if( !(Object.values(TipoPersona).includes(tipo)) )
+                return res.status(400).json({
+                    success: false,
+                    message: `El tipo pasado no es correcto (${TipoPersona})`
+                })
+
+            personas = await Persona.get_all_by_tipo(TipoPersona[tipo])
         }else {
             personas = await Persona.get_all()
         }
 
         return res.json(personas);
 
-    } catch (error) {
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-PersonaController.get_one = async (req, res) => {
+const get_one = async (req: Request, res: Response)  => {
     let params = req.params;
 
     if (!params.id) return res.status(400).json({
@@ -93,12 +118,20 @@ PersonaController.get_one = async (req, res) => {
     });
 
     try {
-        const persona  = await Persona.get_by_id(params.id);
+        const persona  = await Persona.get_by_id(Number(params.id));
         
-        persona.libros = await Persona.get_libros(params.id)
+        persona.libros = await Persona.get_libros(Number(params.id))
 
         res.json(persona);
-    } catch (error) {
+    } catch (error: any) {
         return parse_error(res, error);
     }
+}
+
+export default {
+    create,
+    update,
+    remove,
+    get_all,
+    get_one
 }
