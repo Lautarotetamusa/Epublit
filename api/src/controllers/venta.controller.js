@@ -24,6 +24,8 @@ VentaController.vender = async(req, res) => {
         }
         
         await venta.insert();
+
+        console.log(venta);
     
         await facturar(venta);
     

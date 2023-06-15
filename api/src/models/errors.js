@@ -46,7 +46,7 @@ export function parse_error(res, error){
         })
     }
         
-    console.log("parse_error:", error);
+    //console.log("parse_error:", error);
     return res.status(500).json({
         success:false, 
         error: error.message
