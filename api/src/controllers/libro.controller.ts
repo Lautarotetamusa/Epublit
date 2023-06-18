@@ -1,12 +1,12 @@
 import {Request, Response} from "express";
 
-import { Persona } from "../models/persona.model.js";
-import { Libro } from "../models/libro.model.js";
+import { Persona, TipoPersona } from "../models/persona.model.js";
+import { Libro, ILibro } from "../models/libro.model.js";
 import { parse_error } from "../models/errors.js"
 
-function parse_req(body){
+function parse_req(body: ILibro): {indb: Persona[], not_indb: Persona[]}{
     //Persona.tipos agregando 'es' al final: [autores, ilustradores]
-    let tipos_keys = Object.keys(Persona.tipos).map(k => k+"es");
+    let tipos_keys = Object.keys(TipoPersona).map(k => k+"es");
 
     tipos_keys.forEach(tipo => {
         //Validamos que "autores" o "ilustradores" exista, si no existe le asignamos una lista vacia
@@ -19,8 +19,9 @@ function parse_req(body){
             a.tipo = tipos_keys.indexOf(tipo)
         });
     });
+
     //Concatenamos las dos listas y las devolvemos
-    let personas = body.autores.concat(body.ilustradores);
+    let personas: IPersona[] = body.autores.concat(body.ilustradores);
 
     //Separamos los objetos que hay que crear(not_in_db) de los objetos que ya se encuentran en la DB(in_db)
     return {
@@ -29,9 +30,7 @@ function parse_req(body){
     }
 }
 
-export const LibroController:any = {};
-
-LibroController.create = async (req: Request, res: Response) => {
+const create = async (req: Request, res: Response) => {
     console.log(req.body);
 
     try {
@@ -89,7 +88,7 @@ LibroController.create = async (req: Request, res: Response) => {
     }
 }
 
-LibroController.delete = async(req: Request, res: Response) => {
+const remove = async(req: Request, res: Response) => {
     try {
         await Libro.delete(req.params.isbn)
 
@@ -102,7 +101,7 @@ LibroController.delete = async(req: Request, res: Response) => {
     }
 }
 
-LibroController.update = async(req: Request, res: Response) => {
+const update = async(req: Request, res: Response) => {
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
         await libro.update(req.body);
@@ -117,7 +116,7 @@ LibroController.update = async(req: Request, res: Response) => {
     }
 }
 
-LibroController.manage_personas = async(req: Request, res: Response) => {
+const manage_personas = async(req: Request, res: Response) => {
     let personas = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
 
     let code = 201
@@ -159,7 +158,7 @@ LibroController.manage_personas = async(req: Request, res: Response) => {
     }
 }
 
-LibroController.get_ventas = async(req: Request, res: Response) => {
+const get_ventas = async(req: Request, res: Response) => {
     try {
         let ventas = await Libro.get_ventas(req.params.isbn);
         return res.json(ventas);
@@ -168,7 +167,7 @@ LibroController.get_ventas = async(req: Request, res: Response) => {
     }
 }
 
-LibroController.get_one = async(req: Request, res: Response) => {
+const get_one = async(req: Request, res: Response) => {
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn)
         await libro.get_personas();
@@ -178,7 +177,7 @@ LibroController.get_one = async(req: Request, res: Response) => {
     }
 }
 
-LibroController.get_all = async(req: Request, res: Response) => {
+const get_all = async(req: Request, res: Response) => {
     try {
         let libros = [];
         if ("page" in req.query){

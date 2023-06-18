@@ -2,6 +2,8 @@ import {Request, Response} from "express"
 import { Persona, TipoPersona, IPersona, TipoPersonaString } from "../models/persona.model";
 import { parse_error } from '../models/errors'
 
+import {z} from "zod";
+
 interface ApiResponse{
     data?: Object;
 }
@@ -16,9 +18,15 @@ interface ApiResponseError extends ApiResponse{
     error: string;
 }
 
+const createRequest = z.object({
+    nombre: z.string({required_error: "El nombre es necesario"}),
+    dni: z.string({required_error: "El dni es necesesario"}),
+    email: z.string()
+})
+
 const create = async (req: Request, res: Response): Promise<Response> => {
      try {
-        let body: IPersona = req.body;
+        const body: IPersona = createRequest.parse(req.body);
 
         Persona.validate(body);
 
@@ -48,11 +56,11 @@ const update = async (req: Request, res: Response): Promise<Response> => {
         
         if (Object.keys(persona).length === 0 && persona.constructor === Object) //Si persona es un objeto vacio
             return res.status(204).json({
-                success:true,
+                success: true,
                 message: "No hay ningun campo para actualizar",
             })
 
-        await persona.update(req.body);
+        await persona.update(body);
 
         let response: ApiResponseSuccess = {
             success: true,

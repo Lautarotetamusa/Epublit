@@ -65,12 +65,12 @@ export async function facturar(venta){
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
 		'CbteTipo' 	: venta.tipo_cbte,  					//Tipo de comprobante (ver tipos disponibles) 
 		'Concepto' 	: 1,  									//Concepto del Comprobante: (1)Productos, (2)Servicios, (3)Productos y Servicios
-		'DocTipo' 	: venta.cliente.cuit == "0" ? 99 : 80, 	//Tipo de documento del comprador (99 consumidor final, 80 cuit)
-		'DocNro' 	: venta.cliente.cuit,  					//Número de documento del comprador (0 consumidor final)
+		'DocTipo' 	: venta.cliente.cuit ? 80 : 99, 		//Tipo de documento del comprador (99 consumidor final, 80 cuit)
+		'DocNro' 	: venta.cliente.cuit || 0,  			//Número de documento del comprador (0 consumidor final)
 		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	//(Opcional) Fecha del comprobante (yyyymmdd) o fecha actual si es nulo
-		'ImpTotal' 	: venta.total, 								//Importe total del comprobante
+		'ImpTotal' 	: venta.total, 							//Importe total del comprobante
 		'ImpTotConc': 0,   									//Importe neto no gravado2
-		'ImpNeto' 	: venta.total, 								//Importe neto gravado
+		'ImpNeto' 	: venta.total, 							//Importe neto gravado
 		'ImpOpEx' 	: 0,   									//Importe exento de IVA
 		'ImpIVA' 	: 0,  									//Importe total de IVA
 		'ImpTrib' 	: 0,   									//Importe total de tributos

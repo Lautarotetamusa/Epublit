@@ -12,6 +12,8 @@ export interface ILibro extends RowDataPacket{
     fecha_edicion: Date;
     precio: number;
     stock: number;
+    autores?: IPersona[];
+    ilustradores?: IPersona[];
 }
 
 export interface ILibro_Persona{
@@ -89,6 +91,7 @@ export class Libro{
         this.fecha_edicion = req.fecha_edicion || this.fecha_edicion;
         if ('stock' in req)
             this.stock = req.stock;
+
         console.log("libro stock", this.stock);
 
         let res = (await conn.query<OkPacket>(`
