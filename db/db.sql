@@ -33,6 +33,7 @@ CREATE TABLE libros_personas(
     tipo TINYINT DEFAULT 0 NOT NULL,
     porcentaje FLOAT DEFAULT 0,
 
+    PRIMARY KEY (isbn, id_persona, tipo),
     FOREIGN KEY (isbn) REFERENCES libros(isbn),
     FOREIGN KEY (id_persona) REFERENCES personas(id)
 );
@@ -105,8 +106,20 @@ CREATE TABLE libros_ventas(
     cantidad INT NOT NULL,
     precio_venta FLOAT NOT NULL,
 
+    PRIMARY KEY (isbn, id_venta),
     FOREIGN KEY (isbn) REFERENCES libros(isbn),
     FOREIGN KEY (id_venta) REFERENCES ventas(id)
+);
+
+CREATE TABLE liquidacion_persona(
+    isbn VARCHAR(13) NOT NULL,
+    id_persona INT(11) NOT NULL,
+    tipo_persona TINYINT DEFAULT 0 NOT NULL,
+    total_liquidado FLOAT DEFAULT 0,
+
+    PRIMARY KEY (isbn, id_persona, tipo_persona),
+    FOREIGN KEY (isbn, id_persona, tipo_persona) 
+        REFERENCES libros_personas(isbn, id_persona, tipo) 
 );
 
 /*Cliente Consumidor final*/

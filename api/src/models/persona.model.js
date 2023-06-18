@@ -2,7 +2,6 @@ import {conn} from "../db.js"
 import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors.js'
 import { Libro } from "./libro.model.js";
 
-
 const table_name = "personas";
 const visible_fields = "id, dni, nombre, email";
 
@@ -64,9 +63,9 @@ export class Persona {
 
         let res = (await conn.query(`
             UPDATE ${table_name} SET ?
-            WHERE id=${this.id}
+            WHERE id=?
             AND is_deleted = 0`
-        , this))[0];
+        , [this.id, this]))[0];
 
         if (res.affectedRows == 0)
             throw new NotFound(`No se encuentra la persona con id ${this.id}`);
@@ -89,7 +88,8 @@ export class Persona {
         let res = (await conn.query(`
             UPDATE ${table_name}
             SET is_deleted = 1
-            WHERE id=${id}`
+            WHERE id=?`,
+            [id]
         ))[0];
 
         if (res.affectedRows == 0)
@@ -111,9 +111,10 @@ export class Persona {
             INNER JOIN libros_personas
                 ON id_persona=id
             WHERE is_deleted = 0
-            AND libros_personas.tipo = ${tipo}
-            GROUP BY id
-        `))[0];
+            AND libros_personas.tipo = ?
+            GROUP BY id`,
+            [tipo]
+        ))[0];
             
         return personas;
     }
@@ -121,9 +122,10 @@ export class Persona {
     static async get_by_id(id) {
         let response = (await conn.query(`
             SELECT ${visible_fields} FROM ${table_name} 
-            WHERE id=${id}
-            AND is_deleted = 0
-        `))[0];
+            WHERE id=?
+            AND is_deleted = 0`,
+            [id]
+        ))[0];
 
         if (!response.length)
             throw new NotFound(`La persona con id ${id} no se encontro`);
@@ -136,12 +138,13 @@ export class Persona {
             SELECT libros.*, libros_personas.tipo 
             FROM libros
             INNER JOIN libros_personas
-                ON libros_personas.id_persona=${id}
+                ON libros_personas.id_persona=?
             INNER JOIN ${table_name}
                 ON libros.isbn = libros_personas.isbn
-            WHERE personas.id=${id}
-            AND personas.is_deleted = 0
-        `))[0];
+            WHERE personas.id=?
+            AND personas.is_deleted = 0`,
+            [id, id]
+        ))[0];
 
         return libros;
     }
@@ -152,9 +155,3 @@ Persona.tipos = {
     ilustrador: 1
 }
 Persona.str_tipos = Object.keys(Persona.tipos);
-
-
-
-
-
-
