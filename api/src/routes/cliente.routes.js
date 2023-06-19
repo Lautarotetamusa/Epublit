@@ -1,7 +1,7 @@
-import express from "express"
+import express from "express";
 
-import {ClienteController} from "../controllers/cliente.controller.js"
-import {ConsignacionController} from "../controllers/consignacion.controller.js"
+import {ClienteController} from "../controllers/cliente.controller.js";
+import {ConsignacionController} from "../controllers/consignacion.controller.js";
 
 const router = express.Router();
 

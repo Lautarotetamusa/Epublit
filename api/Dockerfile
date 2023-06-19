@@ -15,4 +15,4 @@ RUN apt-get update && apt-get install curl gnupg -y \
 WORKDIR app/
 COPY ./api/package.json .
 RUN npm install
-COPY ./api/src src/
+COPY ./api/dist src/
