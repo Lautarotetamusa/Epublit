@@ -5,7 +5,7 @@ import { Venta } from "../models/venta.model.js";
 import { parse_error } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
-export const ConsignacionController:any = {};
+export const ConsignacionController = {};
 
 ConsignacionController.consignar = async(req, res) => {
     let body = req.body;

@@ -186,8 +186,17 @@ const get_all = async(req: Request, res: Response) => {
             libros = await Libro.get_all();
         }
         res.json(libros);
-    } catch (error) {
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
+export default{
+    get_all,
+    get_one,
+    get_ventas,
+    manage_personas,
+    create,
+    remove,
+    update
+}

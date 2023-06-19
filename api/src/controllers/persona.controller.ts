@@ -2,8 +2,6 @@ import {Request, Response} from "express"
 import { Persona, TipoPersona, IPersona, TipoPersonaString } from "../models/persona.model";
 import { parse_error } from '../models/errors'
 
-import {z} from "zod";
-
 interface ApiResponse{
     data?: Object;
 }
@@ -18,19 +16,11 @@ interface ApiResponseError extends ApiResponse{
     error: string;
 }
 
-const createRequest = z.object({
-    nombre: z.string({required_error: "El nombre es necesario"}),
-    dni: z.string({required_error: "El dni es necesesario"}),
-    email: z.string()
-})
-
 const create = async (req: Request, res: Response): Promise<Response> => {
      try {
-        const body: IPersona = createRequest.parse(req.body);
+        Persona.validate(req.body);
 
-        Persona.validate(body);
-
-        const persona = new Persona(body);
+        const persona = new Persona(req.body);
 
         await persona.insert();
 
@@ -128,7 +118,7 @@ const get_one = async (req: Request, res: Response)  => {
     try {
         const persona  = await Persona.get_by_id(Number(params.id));
         
-        persona.libros = await Persona.get_libros(Number(params.id))
+        persona.libros = await Persona.get_libros(Number(params.id));
 
         res.json(persona);
     } catch (error: any) {

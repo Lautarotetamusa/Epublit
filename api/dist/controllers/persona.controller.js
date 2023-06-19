@@ -39,14 +39,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var persona_model_1 = require("../models/persona.model");
 var errors_1 = require("../models/errors");
 var create = function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-    var body, persona, response, error_1;
+    var persona, response, error_1;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
                 _a.trys.push([0, 2, , 3]);
-                body = req.body;
-                persona_model_1.Persona.validate(body);
-                persona = new persona_model_1.Persona(body);
+                persona = new persona_model_1.Persona(req.body);
                 return [4 /*yield*/, persona.insert()];
             case 1:
                 _a.sent();
@@ -82,7 +80,7 @@ var update = function (req, res) { return __awaiter(void 0, void 0, void 0, func
                             success: true,
                             message: "No hay ningun campo para actualizar",
                         })];
-                return [4 /*yield*/, persona.update(req.body)];
+                return [4 /*yield*/, persona.update(body)];
             case 3:
                 _b.sent();
                 response = {

@@ -1,7 +1,9 @@
 import {conn} from "../db";
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors'
+import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors'
 import { ILibro } from "./libro.model";
+
+import {z} from "zod";
 
 const table_name = "personas";
 const visible_fields = "id, dni, nombre, email";
@@ -14,6 +16,21 @@ export interface IPersona extends RowDataPacket{
     tipo?: TipoPersona;
 }
 
+//CRUD, create, retrieve, update, delete
+const createRequest = z.object({
+    nombre: z.string({required_error: "El nombre es necesario"}),
+    dni: z.string({required_error: "El dni es necesesario"}),
+    email: z.string()
+})
+const retriveRequest = z.object({
+    id: z.number(),
+    nombre: z.string({required_error: "El nombre es obligatorio"}),
+    dni: z.string({required_error: "El dni es obligatorio"}),
+    email: z.string()
+})
+type cPersona = z.infer<typeof createRequest>;
+type rPersona = z.infer<typeof retriveRequest>;
+
 export enum TipoPersona {
     autor = 0,
     ilustrador
@@ -25,20 +42,15 @@ export class Persona{
     nombre: string;
     email: string;
     dni: string;
-    id?: number;
+    id: number;
     tipo?: TipoPersona;
 
     //Validamos al momento de crear un objeto
     constructor(persona: IPersona) {
         this.nombre = persona.nombre;
         this.email  = persona.email;
-
-        if (!('dni'in persona))
-            throw new ValidationError("El dni es obligatorio");
         this.dni = persona.dni;
-        
-        if ('id' in persona)
-            this.id = Number(persona.id);
+        this.id = Number(persona.id);
     }
     
     static validate(request: IPersona) {
@@ -50,7 +62,7 @@ export class Persona{
     }
 
     static async exists(dni: string): Promise<boolean>{
-        let res: number =  (await conn.query<RowDataPacket[]>(`
+        let res: number = (await conn.query<RowDataPacket[]>(`
             SELECT COUNT(id) as count from ${table_name}
             WHERE dni = ?
             AND is_deleted = 0
@@ -59,16 +71,18 @@ export class Persona{
         return res > 0;
     }
 
-    async insert() {
-        if (await Persona.exists(this.dni)){
-            throw new Duplicated(`La persona con dni ${this.dni} ya se encuentra cargada`);
+    static async insert(persona: IPersona) {
+        Persona.validate(persona);
+
+        if (await Persona.exists(persona.dni)){
+            throw new Duplicated(`La persona con dni ${persona.dni} ya se encuentra cargada`);
         }
 
         let res = (await conn.query<OkPacket>(`
             INSERT INTO ${table_name} SET ?`
         , this))[0];
 
-        this.id = res.insertId;
+        return new Persona({...persona, id:res.insertId});
     }
 
     async update(req: IPersona) {

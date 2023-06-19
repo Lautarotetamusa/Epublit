@@ -39,8 +39,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Persona = exports.TipoPersona = void 0;
 var db_1 = require("../db");
 var errors_1 = require("./errors");
+var zod_1 = require("zod");
 var table_name = "personas";
 var visible_fields = "id, dni, nombre, email";
+//CRUD, create, retrieve, update, delete
+var createRequest = zod_1.z.object({
+    nombre: zod_1.z.string({ required_error: "El nombre es necesario" }),
+    dni: zod_1.z.string({ required_error: "El dni es necesesario" }),
+    email: zod_1.z.string()
+});
+var retriveRequest = zod_1.z.object({
+    id: zod_1.z.number(),
+    nombre: zod_1.z.string({ required_error: "El nombre es obligatorio" }),
+    dni: zod_1.z.string({ required_error: "El dni es obligatorio" }),
+    email: zod_1.z.string()
+});
 var TipoPersona;
 (function (TipoPersona) {
     TipoPersona[TipoPersona["autor"] = 0] = "autor";
@@ -49,21 +62,14 @@ var TipoPersona;
 //TODO: porcentaje de la persona
 var Persona = /** @class */ (function () {
     //Validamos al momento de crear un objeto
-    function Persona(persona) {
+    function Persona(_persona) {
+        var persona = createRequest.parse(_persona);
         this.nombre = persona.nombre;
         this.email = persona.email;
-        if (!('dni' in persona))
-            throw new errors_1.ValidationError("El dni es obligatorio");
         this.dni = persona.dni;
         if ('id' in persona)
             this.id = Number(persona.id);
     }
-    Persona.validate = function (request) {
-        if (!request.nombre)
-            throw new errors_1.ValidationError("El nombre es obligatorio");
-        if (!request.dni)
-            throw new errors_1.ValidationError("El dni es obligatorio");
-    };
     Persona.exists = function (dni) {
         return __awaiter(this, void 0, void 0, function () {
             var res;
