@@ -21,14 +21,15 @@
     "supertest": "^6.3.3"
   },
   "name": "nodeapp",
+  "type": "commonjs",
   "version": "1.0.0",
   "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",
     "typescript": "tsc && node dist/app.js",
-    "compile": "tsc src/app.ts --outDir dist --esModuleInterop",
-    "test_libro": "mocha tests/libro.test.js",
-    "test_persona": "mocha tests/persona.test.js",
+    "compile": "tsc --project .",
+    "test_libro": "mocha dist/tests/libro.test.js",
+    "test_persona": "mocha dist/tests/persona.test.js",
     "test_consignacion": "mocha tests/consignacion.test.js",
     "test_cliente": "mocha --timeout 4000 tests/cliente.test.js",
     "test_venta": "mocha --timeout 4000 tests/venta.test.js",

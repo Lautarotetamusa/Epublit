@@ -1,6 +1,8 @@
 import {conn} from "../db"
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import {Persona, TipoPersona, IPersona} from "./persona.model"
+import {Persona, IPersona} from "./persona.model"
+import {createLibro, createPersonaLibroInDB, createPersonaLibroNOTInDB, retrieveLibro} from "../schemas/libros.schema";
+import {TipoPersona} from "../schemas/persona.schema";
 import {ValidationError, NotFound, Duplicated, NothingChanged} from './errors'
 
 const table_name = "libros"
@@ -16,12 +18,6 @@ export interface ILibro extends RowDataPacket{
     ilustradores?: IPersona[];
 }
 
-export interface ILibro_Persona{
-    porcentaje: number;
-    id_persona: number;
-    tipo: TipoPersona;
-}
-
 export class Libro{
     titulo: string;
     isbn: string;
@@ -31,12 +27,12 @@ export class Libro{
     autores?: IPersona[];
     ilustradores?: IPersona[];
 
-    constructor(request: ILibro) {
+    constructor(request: retrieveLibro) {
         this.titulo = request.titulo;
         this.isbn   = request.isbn;
         this.fecha_edicion = request.fecha_edicion;
         this.precio = request.precio;
-        this.stock  = request.stock || 0;
+        this.stock  = request.stock || 0
     }
 
     //Validate the request
@@ -78,9 +74,8 @@ export class Libro{
             throw new Duplicated(`El libro con isbn ${isbn} ya existe`);
     }
 
-    async insert(personas: ILibro_Persona[]) {
+    async insert() {
         await conn.query("INSERT INTO libros SET ?", this);
-        await this.add_personas(personas);
     }
     
     async update(req: ILibro){
@@ -117,7 +112,7 @@ export class Libro{
         `, [this.stock+stock, this.isbn]);
     }
 
-    static async delete(isbn: number){
+    static async delete(isbn: string){
         await conn.query(`
             DELETE FROM libros_personas
             WHERE isbn = ?
@@ -135,7 +130,7 @@ export class Libro{
             throw new NotFound(`No se encuentra el libro con isbn ${isbn}`);   
     }
 
-    static async get_by_isbn(isbn: number): Promise<Libro> {
+    static async get_by_isbn(isbn: string): Promise<Libro> {
         const query = `
             SELECT * FROM ${table_name} 
             WHERE ${table_name}.isbn = ?`
@@ -152,22 +147,22 @@ export class Libro{
     }
 
     async get_personas(){
-        let personas = (await conn.query<IPersona[]>(`
+        const personas = (await conn.query<IPersona[]>(`
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
             INNER JOIN libros_personas
             INNER JOIN ${table_name}
                 ON personas.id  = libros_personas.id_persona
             AND ${table_name}.isbn = libros_personas.isbn
-            WHERE ${table_name}.isbn = ${this.isbn}
-            AND ${table_name}.is_deleted = 0
-        `))[0];
+            WHERE ${table_name}.isbn = ?
+            AND ${table_name}.is_deleted = 0`,
+            [this.isbn]))[0];
 
         this.autores      = personas.filter(p => p.tipo == TipoPersona.autor);
         this.ilustradores = personas.filter(p => p.tipo == TipoPersona.ilustrador);
     }
 
-    /*static async get_ventas(isbn: string): Venta[]{
+    static async get_ventas(isbn: string){
         let ventas = (await conn.query(`
             SELECT  
                 ventas.id as id_venta, fecha, medio_pago, total, file_path,
@@ -179,7 +174,7 @@ export class Libro{
         `))[0];
 
         return ventas;
-    }*/
+    }
 
     //TODO: Se hace una consulta a la DB por libro, no se si hay otra manera más rápida de hacerlo
     static async get_all(): Promise<ILibro[]>{        
@@ -195,7 +190,7 @@ export class Libro{
     static async get_paginated(page = 0): Promise<ILibro[]>{
         let libros_per_page = 10;
 
-        let libros = (await conn.query<ILibro[]>(`
+        const libros = (await conn.query<ILibro[]>(`
             SELECT ${visible_fields}
             FROM ${table_name}
             WHERE is_deleted = 0
@@ -206,7 +201,7 @@ export class Libro{
         return libros;
     }
 
-    async add_personas(personas: ILibro_Persona[]){
+    async add_personas(personas: createPersonaLibroInDB[]){
         for (let persona of personas) {
 
             const query = `
@@ -214,24 +209,24 @@ export class Libro{
                 FROM libros_personas 
                 WHERE (isbn, id_persona, tipo) in ((?, ?, ?))`
 
-            let res = (<RowDataPacket> await conn.query(query, [this.isbn, persona.id_persona, persona.tipo]))[0]
-            
-            console.log("res:", res.length);
+            let res = (<RowDataPacket> await conn.query(query, [this.isbn, persona.id, persona.tipo]))[0]
 
             if (res.length > 0)
-                console.log("duplicated");//throw new Duplicated(`La persona ${persona.id} ya es un ${Persona.str_tipos[persona.tipo]} del libro ${this.isbn}`);
-            else
-                await conn.query(`
-                    INSERT INTO libros_personas 
-                    SET id_persona=${persona.id_persona},
-                    porcentaje=${persona.porcentaje || 0},
-                    tipo=${persona.tipo},
-                    isbn=${this.isbn}
-                `);
+                throw new Duplicated(`La persona ${persona.id} ya es un ${TipoPersona[persona.tipo]} del libro ${this.isbn}`);
+        }
+
+        for (let persona of personas){
+            await conn.query(`
+                INSERT INTO libros_personas 
+                SET id_persona=${persona.id},
+                porcentaje=${persona.porcentaje || 0},
+                tipo=${persona.tipo},
+                isbn=${this.isbn}
+            `);
         }
     }
 
-    async update_personas(personas: ILibro_Persona[]){
+    async update_personas(personas: createPersonaLibroInDB[]){
         for (let persona of personas) {
             if (persona.porcentaje){
                 const query: string = `
@@ -241,20 +236,20 @@ export class Libro{
                     AND id_persona = ?
                     AND tipo = ?`
 
-                await conn.query<OkPacket>(query, [persona.porcentaje, persona.id_persona, persona.tipo])
+                await conn.query<OkPacket>(query, [persona.porcentaje, this.isbn ,persona.id, persona.tipo])
             }
         }
     }
     
-    async remove_personas(personas: ILibro_Persona[]){
-        let persona_libro = personas.map(p => `('${this.isbn}', ${p.id_persona}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
+    async remove_personas(personas: createPersonaLibroInDB[]){
+        let persona_libro = personas.map(p => `('${this.isbn}', ${p.id}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
 
         const query = `
             DELETE FROM libros_personas
-            WHERE (isbn, id_persona, tipo) in (?)`;
+            WHERE (isbn, id_persona, tipo) in (${persona_libro})`;
 
         if (personas.length > 0){
-            let res = (await conn.query<OkPacket>(query, [persona_libro]))[0];
+            let res = (await conn.query<OkPacket>(query))[0];
 
             if (res.affectedRows == 0)
                 throw new NotFound(`Ninguna persona pasada trabaja en este libro con el tipo pasado`)

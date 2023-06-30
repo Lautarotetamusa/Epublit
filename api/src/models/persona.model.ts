@@ -2,40 +2,18 @@ import {conn} from "../db";
 import { OkPacket, RowDataPacket } from "mysql2/promise";
 import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors'
 import { ILibro } from "./libro.model";
-
-import {z} from "zod";
+import { createPersona, retrievePersona, TipoPersona } from "../schemas/persona.schema";
 
 const table_name = "personas";
 const visible_fields = "id, dni, nombre, email";
 
 export interface IPersona extends RowDataPacket{
     nombre: string;
-    email: string;
+    email?: string;
     dni: string;
     id?: number;
     tipo?: TipoPersona;
 }
-
-//CRUD, create, retrieve, update, delete
-const createRequest = z.object({
-    nombre: z.string({required_error: "El nombre es necesario"}),
-    dni: z.string({required_error: "El dni es necesesario"}),
-    email: z.string()
-})
-const retriveRequest = z.object({
-    id: z.number(),
-    nombre: z.string({required_error: "El nombre es obligatorio"}),
-    dni: z.string({required_error: "El dni es obligatorio"}),
-    email: z.string()
-})
-type cPersona = z.infer<typeof createRequest>;
-type rPersona = z.infer<typeof retriveRequest>;
-
-export enum TipoPersona {
-    autor = 0,
-    ilustrador
-}
-export type TipoPersonaString = keyof typeof TipoPersona;
 
 //TODO: porcentaje de la persona
 export class Persona{
@@ -44,11 +22,12 @@ export class Persona{
     dni: string;
     id: number;
     tipo?: TipoPersona;
+    libros?: ILibro[];
 
     //Validamos al momento de crear un objeto
-    constructor(persona: IPersona) {
+    constructor(persona: retrievePersona) {
         this.nombre = persona.nombre;
-        this.email  = persona.email;
+        this.email  = persona.email || "";
         this.dni = persona.dni;
         this.id = Number(persona.id);
     }
@@ -71,18 +50,22 @@ export class Persona{
         return res > 0;
     }
 
-    static async insert(persona: IPersona) {
-        Persona.validate(persona);
+    static async insert(p: createPersona) {
+        let _persona: createPersona = {
+            nombre: p.nombre,
+            dni: p.dni,
+            email: p.email || ""
+        }
 
-        if (await Persona.exists(persona.dni)){
-            throw new Duplicated(`La persona con dni ${persona.dni} ya se encuentra cargada`);
+        if (await Persona.exists(_persona.dni)){
+            throw new Duplicated(`La persona con dni ${_persona.dni} ya se encuentra cargada`);
         }
 
         let res = (await conn.query<OkPacket>(`
             INSERT INTO ${table_name} SET ?`
-        , this))[0];
+        , _persona))[0];
 
-        return new Persona({...persona, id:res.insertId});
+        return new Persona({..._persona, id: res.insertId})
     }
 
     async update(req: IPersona) {
@@ -152,21 +135,21 @@ export class Persona{
         return (await conn.query<IPersona[]>(query, [tipo]))[0];
     }
 
-    static async get_by_id(id: number): Promise<IPersona> {
+    static async get_by_id(id: number): Promise<Persona> {
         const query = `
             SELECT ${visible_fields} FROM ${table_name} 
             WHERE id = ?
             AND is_deleted = 0`
 
-        let personas = (await conn.query<IPersona[]>(query, [id]))[0];
+        let personas = (await conn.query<RowDataPacket[]>(query, [id]))[0];
 
         if (!personas.length)
             throw new NotFound(`La persona con id ${id} no se encontro`);
 
-        return personas[0];
+        return new Persona(personas[0] as retrievePersona);
     }
 
-    static async get_libros(id: number): Promise<ILibro[]>{
+    async get_libros(){
         const query = `
             SELECT libros.*, libros_personas.tipo 
             FROM libros
@@ -178,6 +161,7 @@ export class Persona{
             AND personas.is_deleted = 0
         `
 
-        return (await conn.query<ILibro[]>(query, [id, id]))[0];
+        this.libros = (await conn.query<ILibro[]>(query, [this.id, this.id]))[0];
     }
 }
+

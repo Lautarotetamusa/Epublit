@@ -2,6 +2,10 @@ import request from 'supertest';
 import chai from 'chai';
 import fs from "fs"
 
+process.env.DB_HOST = "localhost",
+process.env.DB_USER = "teti",
+process.env.DB_PASS = "Lautaro123.",
+process.env.DB_NAME = "librossilvestres"
 import {conn} from '../src/db.js'
 
 import {expect_err_code, expect_success_code} from './util.js';
@@ -19,6 +23,36 @@ let libro = {
     "precio": 10000
 }
 
+before('HARD DELETE', async () => {
+    let res = (await conn.query(`
+        SELECT isbn FROM libros
+        WHERE isbn=${libro.isbn}
+    `))[0];
+
+    if (res.length){
+        let personas = (await conn.query(`
+            SELECT * FROM libros_personas
+            WHERE isbn=${libro.isbn}
+        `))[0];
+
+        await conn.query(`
+            DELETE FROM libros_personas
+            WHERE isbn=${libro.isbn}
+        `);
+
+        await conn.query(`
+            DELETE FROM libros
+            WHERE isbn=${libro.isbn}
+        `);
+    }else{
+        console.log("El libro no estaba cargado");
+    }
+    await conn.query(`
+        DELETE FROM personas
+        WHERE dni=39019203
+    `);
+});
+
 describe('Crear libro POST /libro', function () {
     describe('Bad requests errors', function () {
         tests.forEach(test => {
@@ -27,7 +61,9 @@ describe('Crear libro POST /libro', function () {
                     .post('/libro')
                     .send(test.data)
                     .end((err, res) => {
-                        //console.log(res.body, res.status);
+                        if (res.status != test.code){
+                            console.log(res.body, res.status);
+                        }
                         chai.expect(res.status).to.equal(test.code);
                         chai.expect(res.body).to.be.a('object');
                         chai.expect(res.body).to.have.property('success');
@@ -44,44 +80,55 @@ describe('Crear libro POST /libro', function () {
             .post('/libro/')
             .send(libro);
 
+        expect_err_code(400, res);
+    });
+    
+    it('Insertar Libro', async () => {
+        let personas   = (await request(app).get('/persona/')).body;
+
+        //Autor que agarramos desde la tabla
+        libro.autores = [{
+            id: personas.at(-1).id,
+            porcentaje: 20,
+        }]
+
+        //Creamos un nuevo ilustrador
+        libro.ilustradores = [{
+            nombre: "juancito",
+            dni: "39019203",
+            porcentaje: 25.0
+        }]
+
+        const res = await request(app)
+            .post('/libro/')
+            .send(libro);
+
+        libro.ilustradores[0].id = res.body.data.ilustradores[0].id;
+
         expect_success_code(201, res);
     });
 
-    it('Insertar misma persona dos veces', async () => {
-
-        //Get real persons from the table
-        let personas   = (await request(app).get('/persona/')).body;
-
-        personas = [{
-            id: personas.at(-1).id,
-            porcentaje: 20.1,
-            tipo: 0
-        },
-        {
-            id: personas.at(-1).id,
-            porcentaje: 0,
-            tipo: 0
-        }]
+    it('Insertar la misma persona que antes', async () => {
+        const personas = {...libro.autores[0], tipo: 0};
 
         const res = await request(app)
             .post(`/libro/${libro.isbn}/personas`)
             .send(personas);
 
-        expect_success_code(201, res);
+        expect_err_code(404, res);
     });
 
-    it('Insertar personas', async () => {
-
+    it('Agregar personas', async () => {
         //Get real persons from the table
         let personas   = (await request(app).get('/persona/')).body;
 
         personas = [{
-            id: personas.at(-1).id,
+            id: personas.at(0).id,
             porcentaje: 20.1,
             tipo: 0
         },
         {
-            id: personas.at(-2).id,
+            id: personas.at(1).id,
             porcentaje: 25.5,
             tipo: 1
         }]
@@ -90,30 +137,34 @@ describe('Crear libro POST /libro', function () {
             .post(`/libro/${libro.isbn}/personas`)
             .send(personas);
 
-        //console.log(res.body);
+        expect_success_code(201, res);
         
-        libro.personas = personas;
         libro.autores = res.body.data.autores;
         libro.ilustradores = res.body.data.ilustradores;
-
-        expect_success_code(201, res);
+        libro.personas = libro.autores.concat(libro.ilustradores);
     });
 
-    it('Checkear que los libros tengan las personas cargadas con todos los datos', async() => {
+    it('El libro tiene las personas cargadas con todos los datos', async() => {
         const res = (await request(app).get(`/libro/${libro.isbn}`)).body;
         //console.log(res);
         //console.log(libro);
-        chai.expect(res.autores).to.eql(libro.autores);
-        chai.expect(res.ilustradores).to.eql(libro.ilustradores);
+        chai.expect(res.autores.map(p => p.id)).to.eql(libro.autores.map(p => p.id));
+        chai.expect(res.ilustradores.map(p => p.id)).to.eql(libro.ilustradores.map(p => p.id));
     });
 
     it('Las personas tienen el libro asignado', async () => {
-        let autor       = (await request(app).get('/persona/'+libro.personas[0].id)).body;
-        let ilustrador  = (await request(app).get('/persona/'+libro.personas[1].id)).body;
+        for (let persona of libro.personas){
 
-        //Revisar que los autores e ilustradores tengan ese libro asociado
-        chai.expect(     autor.libros.map(l => l.isbn)).to.deep.include(libro.isbn);
-        chai.expect(ilustrador.libros.map(l => l.isbn)).to.deep.include(libro.isbn);
+            let res = (await request(app).get('/persona/'+persona.id));
+            chai.expect(res.status).to.eql(200);
+
+            chai.expect(res.body).to.have.property('libros');
+
+            const libros = res.body.libros;
+
+            //Revisar que los autores e ilustradores tengan ese libro asociado
+            chai.expect(libros.map(l => l.isbn)).to.deep.include(libro.isbn);
+        }
     });
 });
 
@@ -210,12 +261,6 @@ describe('DELETE /libro', function () {
         chai.expect(ilustrador.libros.map(l => l.isbn)).to.not.deep.include(libro.isbn);
     });
 
-    it('HARD DELETE', async () => {
-        await conn.query(`
-            DELETE FROM libros
-            WHERE isbn=${libro.isbn}
-        `);
-    });
 });
 
 describe('Listar todos los libros GET /libro', function () {

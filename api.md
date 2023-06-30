@@ -12,8 +12,6 @@
 
 #### Lista de autores
 
-`GET /persona/?tipo=autor`
-
 #### Lista de ilustradores
 
 `GET /persona/?tipo=ilustrador`
@@ -29,6 +27,7 @@
   "dni": 43491979
 }
 ```
+
 Consignaciones
 `GET /persona/{id}`
 Si no se encuentra devuelve un error 404 NotFound
@@ -49,11 +48,12 @@ Si no se encuentra devuelve un error 404 NotFound
 
 `DELETE /persona/{id}`
 
-
 #### Liquidar en un periodo
+
 `POST /persona/{id}/liquidar`
 
 Request:
+
 ```json
 {
   "fecha_inicio": "2022-01-02",
@@ -62,6 +62,7 @@ Request:
 ```
 
 Response:
+
 ```json
 {
   "success": true,
@@ -473,16 +474,16 @@ TODO: baja lógica.
 
 ## Ventas
 
-#### 
-
 #### Obtener los medios de pago
 
 `GET /venta/medios_pago`
 
 #### Obtener todas las ventas
+
 `GET /venta`
 
 Response:
+
 ```json
 [
   {
@@ -505,6 +506,7 @@ Response:
 `GET venta/{id}`
 
 Response:
+
 ```json
 {
   "id": 1,
@@ -539,7 +541,6 @@ Response:
   ]
 }
 ```
-
 
 #### Nueva venta
 
@@ -577,6 +578,7 @@ Peticion:
 `GET consignacion/`
 
 Response:
+
 ```json
 [
   {
@@ -588,10 +590,13 @@ Response:
   ...
 ]
 ```
+
 #### Obtener datos de una consignacion
+
 `GET consignacion/{id}`
 
 Response:
+
 ```json
 {
   "id": 4,

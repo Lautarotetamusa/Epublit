@@ -9,12 +9,14 @@ console.log(process.env.DB_PASS);
 console.log(process.env.DB_PORT);
 console.log(process.env.DB_NAME);*/
 
-const options:PoolOptions = {
+const port = process.env.DB_PORT ? process.env.DB_PORT : 3306;
+
+const options = {
     host:       process.env.DB_HOST,
     user:       process.env.DB_USER,
     password:   process.env.DB_PASS,
-    port:       parseInt(process.env.DB_PORT!, 3000), //SI no existe usamos el 3000
+    port:       port, //SI no existe usamos el 3306,
     database:   process.env.DB_NAME
   }
 
-export var conn: Pool = createPool(options);
+export var conn = createPool(options);
