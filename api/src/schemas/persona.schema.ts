@@ -1,3 +1,5 @@
+import {valid_required} from './validate'
+
 export enum TipoPersona {
     autor = 0,
     ilustrador
@@ -21,23 +23,12 @@ export class validatePersona {
     static error: string;
 
     static create(obj: any): obj is createPersona{
-        const required = {
+        let {valid, error} = valid_required({
             'nombre': 'string',
             'dni': 'string',
-        }
-        type keys = keyof typeof required;
+        }, obj)
+        if (!valid) validatePersona.error = error;
 
-        for (let key of Object.keys(required)){
-            if (!(key in obj)){ 
-                validatePersona.error = `El ${key} es obligatorio`;
-                return false;
-            }
-
-            if (typeof obj[key] !== required[key as keys]){
-                validatePersona.error = `${key} debe ser de tipo ${required[key as keys]}`;
-                return false;
-            }
-        }
-        return true
+        return valid;
     }
 }

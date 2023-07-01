@@ -7,6 +7,7 @@ import libroRouter from "./routes/libro.routes";
 import ClienteRouter from "./routes/cliente.routes.js";
 import VentaRouter from "./routes/venta.routes.js";
 import ConsignacionRouter from "./routes/consignacion.routes.js";
+import UserRouter from "./routes/user.routes.js"
 
 dotenv.config();
 export const app = express();
@@ -38,6 +39,8 @@ app.use('/cliente', ClienteRouter);
 app.use('/venta', VentaRouter);
 
 app.use('/consignacion', ConsignacionRouter);
+
+app.use('/user', UserRouter);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({

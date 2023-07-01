@@ -1,4 +1,5 @@
 import {createPersona, TipoPersona, validatePersona} from './persona.schema'
+import {valid_required} from './validate'
 
 export interface createPersonaLibroInDB{
     porcentaje: number;
@@ -10,23 +11,6 @@ export interface createPersonaLibroNOTInDB extends createPersona{
     tipo: TipoPersona;
 }
 type createPersonaLibro = createPersonaLibroInDB | createPersonaLibroNOTInDB;
-
-function valid_required(required: any, obj: any): {valid: boolean, error: string}{
-    type keys = keyof typeof required;
-
-    for (let key of Object.keys(required)){
-        if (!(key in obj)){ 
-            return {valid: false, error: `El ${key} es obligatorio`};
-        }
-        
-        if (required[key as keys] !== "any"){
-            if (typeof obj[key] !== required[key as keys]){
-                return {valid: false, error: `${key} debe ser de tipo ${required[key as keys]}`};
-            }
-        }
-    }
-    return {valid: true, error: ""}
-}
 
 export class validateLibroPersona{
     static error: string;
@@ -101,8 +85,7 @@ export class validateLibro{
             'precio': 'number',
             'fecha_edicion': 'any'
         }, obj)
-        if (!valid)
-            validateLibro.error = error;
+        if (!valid) validateLibro.error = error;
 
         if (!('ilustradores' in obj) && !('autores' in obj)){
             validateLibro.error = "Un libro debe tener al menos un autor o un ilustrador";
