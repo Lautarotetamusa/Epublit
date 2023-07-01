@@ -1,6 +1,8 @@
-import express from "express"
+import express from "express";
 
-import UserController from "../controllers/user.controller"
+import UserController from "../controllers/user.controller";
+
+import {auth} from "../middleware/auth";
 
 const router = express.Router();
 
@@ -8,6 +10,6 @@ router.post('/register', UserController.create);
 
 router.post('/login', UserController.login);
 
-//router.get('/:id', UserController.get_one);
+router.get('/welcome', auth, UserController.welcome);
 
 export default router;

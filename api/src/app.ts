@@ -2,12 +2,14 @@ import express, {NextFunction, Request, Response} from "express"
 
 import * as dotenv from 'dotenv'
 
-import personaRouter from "./routes/persona.routes";
-import libroRouter from "./routes/libro.routes";
+import PersonaRouter from "./routes/persona.routes";
+import LibroRouter from "./routes/libro.routes";
 import ClienteRouter from "./routes/cliente.routes.js";
 import VentaRouter from "./routes/venta.routes.js";
 import ConsignacionRouter from "./routes/consignacion.routes.js";
 import UserRouter from "./routes/user.routes.js"
+
+import {auth} from "./middleware/auth";
 
 dotenv.config();
 export const app = express();
@@ -30,15 +32,15 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({extended: true,}));
 
-app.use('/persona', personaRouter);
+app.use('/persona', auth, PersonaRouter);
 
-app.use('/libro', libroRouter);
+app.use('/libro', auth, LibroRouter);
 
-app.use('/cliente', ClienteRouter);
+app.use('/cliente', auth, ClienteRouter);
 
-app.use('/venta', VentaRouter);
+app.use('/venta', auth, VentaRouter);
 
-app.use('/consignacion', ConsignacionRouter);
+app.use('/consignacion', auth, ConsignacionRouter);
 
 app.use('/user', UserRouter);
 

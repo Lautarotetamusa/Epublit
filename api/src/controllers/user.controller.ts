@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { User } from "../models/user.model";
 import { ValidationError, parse_error } from '../models/errors';
 import { validateUser } from "../schemas/user.schema";
@@ -56,7 +56,15 @@ const login = async (req: Request, res: Response): Promise<Response> => {
     }
 }
 
+const welcome = async (req: Request, res: Response): Promise<Response> => { 
+    return res.status(200).json({
+        success: true,
+        message: "Ingreso correcto",
+    })
+}
+
 export default {
     create,
-    login
+    login,
+    welcome,
 }
