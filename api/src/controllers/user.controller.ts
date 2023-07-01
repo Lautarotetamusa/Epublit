@@ -3,8 +3,9 @@ import { User } from "../models/user.model";
 import { ValidationError, parse_error } from '../models/errors';
 import { validateUser } from "../schemas/user.schema";
 
+import * as dotenv from 'dotenv'
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import jwt, {Secret} from "jsonwebtoken";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     if (!validateUser.create(req.body)){
@@ -44,7 +45,7 @@ const login = async (req: Request, res: Response): Promise<Response> => {
             error: "Contraseña incorrecta"
         })
 
-        const token = jwt.sign(req.body, 'secret', { expiresIn: '1h' });
+        const token = jwt.sign(req.body, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
 
         return res.status(200).json({
             success: true,

@@ -18,6 +18,15 @@ if (!process.env.BACK_PORT){
     console.log("Error: la variable BACK_PORT no está seteada");
     process.exit(1);
 }
+if (!process.env.JWT_EXPIRES_IN){
+    console.log("Error: la variable JWT_EXPIRES_IN no está seteada");
+    process.exit(1);
+}
+if (!process.env.JWT_SECRET){
+    console.log("Error: la variable JWT_SECRET no está seteada");
+    process.exit(1);
+}
+
 const port: number = Number(process.env.BACK_PORT);
 
 //Necesesario para que no tire error de   CORS
