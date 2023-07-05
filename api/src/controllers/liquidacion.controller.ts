@@ -11,30 +11,30 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         LiquidacionValidator.create(req.body);
         let _liq = req.body;
 
-        if (!Liquidacion.check_period(_liq.fecha_inicial, _liq.fecha_final))
+        if (!(await Liquidacion.valid_period(_liq.fecha_inicial, _liq.fecha_final)))
             throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");
 
         const libro = await Libro.get_by_isbn(_liq.isbn);
 
-        const ventas = await Liquidacion.get_ventas(_liq);
-        console.log(ventas);
+        const persona = await Persona.get_by_id(_liq.id_persona);
 
-        let total = 0;
+        const ventas = await Liquidacion.get_ventas(_liq);
+        let total: number = ventas.reduce((total, row) => total + row.cantidad * row.precio_venta, 0);
         let file_path = "TEST";
-        for (let venta of ventas){
-            total += venta.cantidad * venta.precio_venta;
-        }
 
         const liquidacion = await Liquidacion.insert({
             ..._liq,
             total: total, 
-            file_path: file_path
+            file_path: file_path,
         });
 
         return res.status(201).json({
             success: true,
             message: "Liquidacion creada con exito",
-            data: liquidacion
+            data: {
+                ...liquidacion,
+                personas: personas
+            }
         });
 
     } catch (error: any) {
@@ -54,8 +54,8 @@ const get_one = async (req: Request, res: Response): Promise<Response> => {
 
         return res.status(200).json({
             ...liquidacion,
-            ventas: ventas,
-            libro: libro
+            libro: libro,
+            ventas: ventas
         });
 
     }catch (error: any){

@@ -1,6 +1,6 @@
 import {Request, Response} from "express";
 
-import { Persona } from "../models/persona.model.js";
+import { IPersona, Persona } from "../models/persona.model.js";
 import { Libro } from "../models/libro.model.js";
 import { TipoPersona} from "../schemas/persona.schema";
 import { validateLibroPersona, createPersonaLibroInDB, createPersonaLibroNOTInDB, validateLibro  } from "../schemas/libros.schema";
@@ -146,13 +146,10 @@ const manage_personas = async(req: Request, res: Response) => {
                 code = 200
                 break;
         }
-            
-        await libro.get_personas();
 
         return res.status(code).json({
             success: true,
-            message: `Personas ${message} con exito`,
-            data: libro
+            message: `Personas ${message} con exito`
         });
 
     } catch (error: any) {
@@ -172,8 +169,11 @@ const get_ventas = async(req: Request, res: Response) => {
 const get_one = async(req: Request, res: Response) => {
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn)
-        await libro.get_personas();
-        return res.json(libro);
+        const personas = await libro.get_personas();
+        return res.json({
+            ...libro,
+            ...personas
+        });
     } catch (error: any) {
         return parse_error(res, error);
     }

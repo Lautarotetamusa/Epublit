@@ -16,3 +16,7 @@ WORKDIR app/
 COPY ./api/package.json .
 RUN npm install
 COPY ./api/dist/src src/
+COPY ./api/src/afip/Claves src/afip/Claves
+COPY ./api/src/afip/ClavesLibrosSilvestres src/afip/ClavesLibrosSilvestres
+COPY ./api/src/comprobantes/factura src/comprobantes/factura
+COPY ./api/src/comprobantes/remito src/comprobantes/remito

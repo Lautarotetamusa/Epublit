@@ -122,14 +122,19 @@ CREATE TABLE libros_ventas(
 
 CREATE TABLE liquidaciones(
     id INT(11) NOT NULL AUTO_INCREMENT,
+
     isbn VARCHAR(13) NOT NULL,
+    id_persona INT(11) NOT NULL,
+    tipo_persona TINYINT DEFAULT 0 NOT NULL,
+
     fecha_inicial DATE NOT NULL,
     fecha_final DATE NOT NULL,
     total FLOAT NOT NULL,
     file_path VARCHAR(80) NOT NULL,
 
-    PRIMARY KEY (id, isbn),
-    FOREIGN KEY (isbn) REFERENCES libros_ventas(isbn)
+    PRIMARY KEY (id, isbn, id_persona, tipo_persona),
+    FOREIGN KEY (isbn) REFERENCES libros_ventas(isbn),
+    FOREIGN KEY (isbn, id_persona, tipo_persona) REFERENCES libros_personas(isbn, id_persona, tipo)
 );
 
 /*Cliente Consumidor final*/

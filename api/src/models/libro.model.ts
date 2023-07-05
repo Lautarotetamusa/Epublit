@@ -14,8 +14,6 @@ export interface ILibro extends RowDataPacket{
     fecha_edicion: Date;
     precio: number;
     stock: number;
-    autores?: IPersona[];
-    ilustradores?: IPersona[];
 }
 
 export class Libro{
@@ -24,8 +22,6 @@ export class Libro{
     fecha_edicion: Date;
     precio: number;
     stock: number;
-    autores?: IPersona[];
-    ilustradores?: IPersona[];
 
     constructor(request: retrieveLibro) {
         this.titulo = request.titulo;
@@ -146,8 +142,8 @@ export class Libro{
         return new Libro(response[0]);
     }
 
-    async get_personas(){
-        const personas = (await conn.query<IPersona[]>(`
+    async get_personas(): Promise<{autores: IPersona[], ilustradores: IPersona[]}>{
+        const query = `
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
             INNER JOIN libros_personas
@@ -155,11 +151,13 @@ export class Libro{
                 ON personas.id  = libros_personas.id_persona
             AND ${table_name}.isbn = libros_personas.isbn
             WHERE ${table_name}.isbn = ?
-            AND ${table_name}.is_deleted = 0`,
-            [this.isbn]))[0];
+            AND ${table_name}.is_deleted = 0`
 
-        this.autores      = personas.filter(p => p.tipo == TipoPersona.autor);
-        this.ilustradores = personas.filter(p => p.tipo == TipoPersona.ilustrador);
+        const [personas] = await conn.query<IPersona[]>(query, [this.isbn]);
+        return {
+            autores: personas.filter(p => p.tipo == TipoPersona.autor),
+            ilustradores: personas.filter(p => p.tipo == TipoPersona.ilustrador) 
+        };
     }
 
     static async get_ventas(isbn: string){
@@ -176,28 +174,26 @@ export class Libro{
         return ventas;
     }
 
-    //TODO: Se hace una consulta a la DB por libro, no se si hay otra manera más rápida de hacerlo
     static async get_all(): Promise<ILibro[]>{        
-        let libros = (await conn.query<ILibro[]>(`
+        const query = `
             SELECT ${visible_fields}
             FROM ${table_name}
-            WHERE is_deleted = 0
-        `))[0];
+            WHERE is_deleted = 0`
 
+        let [libros] = await conn.query<ILibro[]>(query);
         return libros;
     }
 
     static async get_paginated(page = 0): Promise<ILibro[]>{
         let libros_per_page = 10;
-
-        const libros = (await conn.query<ILibro[]>(`
+        const query = `
             SELECT ${visible_fields}
             FROM ${table_name}
             WHERE is_deleted = 0
             LIMIT ${libros_per_page}
-            OFFSET ${page * libros_per_page}
-        `))[0];
+            OFFSET ${page * libros_per_page}`
 
+        const [libros] = await conn.query<ILibro[]>(query);
         return libros;
     }
 
