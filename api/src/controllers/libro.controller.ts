@@ -69,10 +69,7 @@ const create = async (req: Request, res: Response) => {
 
         console.log("personas_data:", personas_data);
 
-        //Crear el libro
-        const libro = new Libro(body);
-
-        await libro.insert();
+        const libro = await Libro.insert(body);
         await libro.add_personas(personas_data);
 
         return res.status(201).json({
@@ -104,6 +101,11 @@ const remove = async(req: Request, res: Response) => {
 }
 
 const update = async(req: Request, res: Response) => {
+    if(!validateLibro.update(req.body)) return res.status(404).json({
+        success: false,
+        error: validateLibro.error
+    });
+
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
         await libro.update(req.body);

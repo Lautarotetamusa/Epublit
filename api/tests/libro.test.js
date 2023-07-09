@@ -16,6 +16,7 @@ const rawdata = fs.readFileSync("tests/libro.test.json");
 const tests = JSON.parse(rawdata);
 
 
+let token;
 let libro = {
     "isbn": "111111111",
     "titulo": "Test",
@@ -53,12 +54,26 @@ before('HARD DELETE', async () => {
     `);
 });
 
+it('login', async () => {
+    let data = {
+        username: 'teti',
+        password: 'Lautaro123.'
+    }
+    const res = await request(app)
+        .post('/user/login')
+        .send(data)
+
+    expect_success_code(200, res);
+    token = res.body.token;
+});
+
 describe('Crear libro POST /libro', function () {
     describe('Bad requests errors', function () {
         tests.forEach(test => {
             it(test.title, function (done) {
                 request(app)
                     .post('/libro')
+                    .set('Authorization', `Bearer ${token}`)
                     .send(test.data)
                     .end((err, res) => {
                         if (res.status != test.code){
@@ -78,13 +93,17 @@ describe('Crear libro POST /libro', function () {
     it('Crear libro sin personas', async () => {
         const res = await request(app)
             .post('/libro/')
+            .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
         expect_err_code(400, res);
     });
     
     it('Insertar Libro', async () => {
-        let personas   = (await request(app).get('/persona/')).body;
+        let personas   = (await request(app)
+            .get('/persona/')
+            .set('Authorization', `Bearer ${token}`)
+            ).body;
 
         //Autor que agarramos desde la tabla
         libro.autores = [{
@@ -97,11 +116,14 @@ describe('Crear libro POST /libro', function () {
             nombre: "juancito",
             dni: "39019203",
             porcentaje: 25.0
-        }]
+        }];
 
         const res = await request(app)
             .post('/libro/')
+            .set('Authorization', `Bearer ${token}`)
             .send(libro);
+
+        console.log(res.body);
 
         libro.ilustradores[0].id = res.body.data.ilustradores[0].id;
 
@@ -113,6 +135,7 @@ describe('Crear libro POST /libro', function () {
 
         const res = await request(app)
             .post(`/libro/${libro.isbn}/personas`)
+            .set('Authorization', `Bearer ${token}`)
             .send(personas);
 
         expect_err_code(404, res);
@@ -120,7 +143,10 @@ describe('Crear libro POST /libro', function () {
 
     it('Agregar personas', async () => {
         //Get real persons from the table
-        let personas   = (await request(app).get('/persona/')).body;
+        let personas   = (await request(app)
+            .get('/persona/')
+            .set('Authorization', `Bearer ${token}`)
+            ).body;
 
         personas = [{
             id: personas.at(0).id,
@@ -135,6 +161,7 @@ describe('Crear libro POST /libro', function () {
 
         const res = await request(app)
             .post(`/libro/${libro.isbn}/personas`)
+            .set('Authorization', `Bearer ${token}`)
             .send(personas);
 
         expect_success_code(201, res);
@@ -145,7 +172,10 @@ describe('Crear libro POST /libro', function () {
     });
 
     it('El libro tiene las personas cargadas con todos los datos', async() => {
-        const res = (await request(app).get(`/libro/${libro.isbn}`)).body;
+        const res = (await request(app)
+            .get(`/libro/${libro.isbn}`)
+            .set('Authorization', `Bearer ${token}`)
+            ).body;
         //console.log(res);
         //console.log(libro);
         chai.expect(res.autores.map(p => p.id)).to.eql(libro.autores.map(p => p.id));
@@ -155,9 +185,12 @@ describe('Crear libro POST /libro', function () {
     it('Las personas tienen el libro asignado', async () => {
         for (let persona of libro.personas){
 
-            let res = (await request(app).get('/persona/'+persona.id));
-            chai.expect(res.status).to.eql(200);
+            let res = (await request(app)
+                .get('/persona/'+persona.id)
+                .set('Authorization', `Bearer ${token}`)
+                );
 
+            chai.expect(res.status).to.eql(200);
             chai.expect(res.body).to.have.property('libros');
 
             const libros = res.body.libros;
@@ -172,12 +205,14 @@ describe('Obtener libro GET /libro/:isbn', function () {
     it("Libro obtenido", function (done) {
         request(app)
         .get('/libro/'+libro.isbn)
+        .set('Authorization', `Bearer ${token}`)
         .expect(200, done)
     });
 
     it("Intentar obtener libro que no existe", function (done) {
         request(app)
         .get('/libro/'+libro.isbn+1)
+        .set('Authorization', `Bearer ${token}`)
         .expect(404, done)
     });
 });
@@ -186,6 +221,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
     it('Todo es igual', async () => {
         const res = await request(app)
             .put('/libro/'+libro.isbn)
+            .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
         chai.expect(res.status).to.equal(200);
@@ -194,13 +230,19 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
 
     it('Actualizamos precio', async () => {
         libro.precio += 1100;
-        const res = await request(app).put('/libro/'+libro.isbn).send(libro);
+        const res = await request(app)
+            .put('/libro/'+libro.isbn)
+            .set('Authorization', `Bearer ${token}`)
+            .send(libro);
 
         expect_success_code(201, res);
     });
 
     it('Actualizamos una persona', async () => {
-        const res = await request(app).put('/libro/'+libro.isbn+'/personas').send(libro.personas);
+        const res = await request(app)
+            .put('/libro/'+libro.isbn+'/personas')
+            .set('Authorization', `Bearer ${token}`)
+            .send(libro.personas);
 
         expect_success_code(201, res);
     });
@@ -210,6 +252,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
         autor_copy.id = -1;
         const res = await request(app)
             .put('/libro/'+libro.isbn+'/personas')
+            .set('Authorization', `Bearer ${token}`)
             .send(autor_copy);
 
         expect_err_code(404, res);
@@ -220,6 +263,7 @@ describe('DELETE /libro', function () {
     it('Borrar una persona del libro', async () => {
         const res = await request(app)
             .delete(`/libro/${libro.isbn}/personas`)
+            .set('Authorization', `Bearer ${token}`)
             .send([{
                 ...libro.personas[0],
                 tipo: 0,
@@ -231,6 +275,7 @@ describe('DELETE /libro', function () {
     it('Intentar Borrar una persona que no trabaja en el libro', async () => {
         const res = await request(app)
             .delete(`/libro/${libro.isbn}/personas`)
+            .set('Authorization', `Bearer ${token}`)
             .send([{
                 id: -1,
                 tipo: 0,
@@ -240,20 +285,30 @@ describe('DELETE /libro', function () {
     });
 
     it('Borrado', async () => {
-        const res = await request(app).delete('/libro/'+libro.isbn);
+        const res = await request(app)
+            .delete('/libro/'+libro.isbn)
+            .set('Authorization', `Bearer ${token}`);
         expect_success_code(200, res);
     });
 
     it('No se puede obtener el libro', async () => {
-        const res = await request(app).get('/libro/'+libro.isbn);
+        const res = await request(app)
+            .get('/libro/'+libro.isbn)
+            .set('Authorization', `Bearer ${token}`);
         expect_err_code(404, res);
     });
 
     it('Las personas no tienen más el libro asignado', async () => {
 
-        let autor       = (await request(app).get('/persona/'+libro.personas[0].id)).body;
+        let autor       = (await request(app)
+            .get('/persona/'+libro.personas[0].id)
+            .set('Authorization', `Bearer ${token}`)
+            ).body;
         //console.log(autor);
-        let ilustrador  = (await request(app).get('/persona/'+libro.personas[1].id)).body;
+        let ilustrador  = (await request(app)
+            .get('/persona/'+libro.personas[1].id)
+            .set('Authorization', `Bearer ${token}`)
+            ).body;
         //console.log(ilustrador);
 
         //Revisar que los autores e ilustradores tengan ese libro asociado
@@ -267,6 +322,7 @@ describe('Listar todos los libros GET /libro', function () {
     it("Lista obtenida", function (done) {
         request(app)
         .get('/libro')
+        .set('Authorization', `Bearer ${token}`)
         .expect(200, done)
     });
 });

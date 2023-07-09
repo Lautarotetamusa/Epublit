@@ -1,0 +1,38 @@
+import {conn} from '../db.js'
+import { OkPacket, RowDataPacket } from "mysql2/promise";
+import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors.js';
+
+export class BaseModel<retrieve_type>{
+    table_name: string;
+    fields: object;
+
+    constructor(_req: {table_name: string, fields: object}){
+        this.table_name = _req.table_name;
+        this.fields = _req.fields;
+    }
+
+    /*async insert() {
+    }
+
+    async update(data) {
+    }
+
+    static async delete(id){
+    }
+
+    static async get_all() {
+    }*/
+
+    static async get_one<rT>(pk: number): Promise<BaseModel> {
+        const query = `
+            SELECT * FROM ${this.table_name}
+            WHERE id = ?`;
+
+        const [rows] = await conn.query<RowDataPacket[]>(query, [pk]);
+
+        if (rows.length <= 0)
+            throw new NotFound(`No se encontro la ${this.table_name} con id ${pk}id`)
+
+        return new BaseModel(rows[0] as retrieve_type);
+    }
+}

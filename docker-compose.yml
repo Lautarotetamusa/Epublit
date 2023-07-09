@@ -29,7 +29,7 @@ services:
     command: npm run dev
     #command: node src/app.js
     volumes:
-      #- ./api/dist/src:/app/src
+     - ./api/dist/src:/app/src
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
 

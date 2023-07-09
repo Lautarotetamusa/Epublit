@@ -23,7 +23,7 @@ export class LiquidacionValidator{
         let {valid, error} = valid_required({
             'isbn': 'string',
             'id_persona': 'number',
-            'tipo_persona': 'any'
+            'tipo_persona': 'any',
             'fecha_inicial': 'Date',
             'fecha_final': 'Date',
         }, obj)

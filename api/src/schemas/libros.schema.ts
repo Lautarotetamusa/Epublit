@@ -1,5 +1,5 @@
 import {createPersona, TipoPersona, validatePersona} from './persona.schema'
-import {valid_required} from './validate'
+import {valid_required, valid_update} from './validate'
 
 export interface createPersonaLibroInDB{
     porcentaje: number;
@@ -17,36 +17,39 @@ export class validateLibroPersona{
 
     static tipoPersona(obj: any): obj is TipoPersona{
         if (!('tipo' in obj) && Object.values(TipoPersona).includes(obj.tipo)){
-            this.error = "el tipo pasado no es correcto";
+            this.error = "El tipo pasado no es correcto";
             return false
         }
         return true
     }
 
     static indb(obj: any): obj is createPersonaLibroInDB{
-        let {valid, error} = valid_required({
+        const required = {
             'porcentaje': 'number',
             'id': 'number',
-        }, obj);
-        if (!valid)
-            this.error = error;
-            
-        return valid && this.tipoPersona(obj);
+        }
+        let valid_tipo = this.tipoPersona(obj);
+
+        let {valid, error} = valid_required(required, obj);
+        if (!valid) this.error = error;
+        return valid && valid_tipo;
     }
 
     static not_in_db(obj: any): obj is createPersonaLibroNOTInDB{
-        let {valid, error} = valid_required({
+        const required = {
             'porcentaje': 'number',
-        }, obj)
-        if (!valid)
-            this.error = error;
+        }
+        let valid_tipo = this.tipoPersona(obj);
+
+        let {valid, error} = valid_required(required, obj)
+        if (!valid) this.error = error;
 
         if (!validatePersona.create(obj)){
             this.error = validatePersona.error;
             return false
         }
 
-        return valid && this.tipoPersona(obj);
+        return valid && valid_tipo;
     }
 
     static create(obj: any): obj is createPersonaLibro{
@@ -66,25 +69,29 @@ export interface retrieveLibro{
     stock: number
 }
 
-export interface createLibro{
-    titulo: string,
-    isbn: string,
-    precio: number,
-    fecha_edicion: Date,
-    stock: number
+export interface createLibro extends retrieveLibro{
     autores: Array<createPersonaLibro>
     ilustradores: Array<createPersonaLibro>,
 }
+
+export interface updateLibro{
+    titulo?: string,
+    precio?: number,
+    fecha_edicion?: Date,
+    stock?: number
+}
+
 export class validateLibro{
     static error: string;
 
     static create(obj: any): obj is createLibro {
-        let {valid, error} = valid_required({
+        const required = {
             'titulo': 'string',
             'isbn': 'string',
             'precio': 'number',
-            'fecha_edicion': 'any'
-        }, obj)
+            'fecha_edicion': 'Date'
+        }
+        let {valid, error} = valid_required(required, obj);
         if (!valid) validateLibro.error = error;
 
         if (!('ilustradores' in obj) && !('autores' in obj)){
@@ -106,6 +113,19 @@ export class validateLibro{
             }
         }
 
+        return valid;
+    }
+
+    static update(obj: any): obj is updateLibro{
+        const required = {
+            'titulo': 'string',
+            'isbn': 'string',
+            'precio': 'number',
+            'fecha_edicion': 'Date'
+        }
+
+        let {valid, error} = valid_update(required, obj);
+        if (!valid) this.error = error;
         return valid;
     }
 }

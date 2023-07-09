@@ -2,11 +2,11 @@ import {conn} from "../db";
 import { OkPacket, RowDataPacket } from "mysql2/promise";
 import { NotFound } from './errors';
 
+import { BaseModel } from "./base.model";
+
 import { retrieveLiquidacion, createLiquidacion } from "../schemas/liquidacion.schema";
 
-const table_name = "liquidaciones";
-
-export class Liquidacion{
+export class Liquidacion extends BaseModel{
     id: number;
     isbn: string;
     fecha_inicial: Date;
@@ -14,7 +14,12 @@ export class Liquidacion{
     total: number;
     file_path: string;
 
+    static table_name = "liquidaciones";
+    static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
+
     constructor(_liq: retrieveLiquidacion){
+        super();
+        
         this.id = _liq.id;
         this.isbn = _liq.isbn;
         this.fecha_inicial = _liq.fecha_inicial;
@@ -23,21 +28,32 @@ export class Liquidacion{
         this.file_path =  _liq.file_path;
     }
 
+    static async insert(_req: createLiquidacion): Promise<Liquidacion>{
+        return await super._insert<createLiquidacion, Liquidacion>(_req);
+    }
+    static async get_all(){
+        return await super.find_all<retrieveLiquidacion>({is_deleted: false});
+    }
+    static async get_one(id: number): Promise<Liquidacion>{
+        return await super.find_one<retrieveLiquidacion, Liquidacion>({id: id, is_deleted: false})
+    }
+
     static async valid_period(fecha_inicial: Date, fecha_final: Date): Promise<boolean>{
         const query = `
-            SELECT id FROM ${table_name}
+            SELECT id FROM ${this.table_name}
             WHERE 
-                (fecha_inicial < ? AND fecha_inicial > ?)
-                OR 
-                (fecha_final < ? AND fecha_final > ?)`
+                (? > fecha_final)
+                OR
+                (? < fecha_inicial)`
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [fecha_final, fecha_inicial, fecha_final, fecha_inicial]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [fecha_inicial, fecha_final]);
         return rows.length <= 0;
     }
 
     static async get_ventas(_liq: createLiquidacion){
        const query = `
-            SELECT * FROM libros_ventas AS LV
+            SELECT * 
+            FROM libros_ventas AS LV
             INNER JOIN ventas AS V
                 ON V.id = LV.id_venta
             WHERE LV.isbn = ?
@@ -52,41 +68,10 @@ export class Liquidacion{
         return rows;
     }
 
-    static async insert(_liq: retrieveLiquidacion): Promise<Liquidacion>{
-        const query = `INSERT INTO ${table_name} SET ?`;
-
-        const [result] = await conn.query<OkPacket>(query, _liq);
-
-        return new Liquidacion({
-            ..._liq,
-            id: result.insertId            
-        })
-    }
-
-    static async get_all(){
-        const query = `SELECT * FROM ${table_name}`;
-
-        const [rows] = await conn.query<RowDataPacket[]>(query);
-        return rows;
-    }
-
-    static async get_one(id: number): Promise<Liquidacion>{
-        const query = `
-            SELECT * FROM ${table_name}
-            WHERE id = ?`;
-
-        const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
-
-        if (rows.length <= 0)
-            throw new NotFound(`No se encontro la liquidacion con id ${id}`)
-
-        return new Liquidacion(rows[0] as retrieveLiquidacion);
-    }
-
     async get_details(){
         const query = `
             SELECT id_venta, id_cliente, cantidad, precio_venta, V.file_path, fecha, descuento, medio_pago
-            FROM ${table_name} AS Liq
+            FROM ${Liquidacion.table_name} AS Liq
 
             INNER JOIN libros_ventas AS LV
                     ON LV.isbn = ? 

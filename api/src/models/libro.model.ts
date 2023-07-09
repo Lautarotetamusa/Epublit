@@ -1,9 +1,11 @@
 import {conn} from "../db"
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import {Persona, IPersona} from "./persona.model"
-import {createLibro, createPersonaLibroInDB, createPersonaLibroNOTInDB, retrieveLibro} from "../schemas/libros.schema";
-import {TipoPersona} from "../schemas/persona.schema";
-import {ValidationError, NotFound, Duplicated, NothingChanged} from './errors'
+import { Persona, IPersona } from "./persona.model"
+import { createLibro, createPersonaLibroInDB, createPersonaLibroNOTInDB, retrieveLibro, updateLibro } from "../schemas/libros.schema";
+import { TipoPersona } from "../schemas/persona.schema";
+import { ValidationError, NotFound, Duplicated, NothingChanged } from './errors'
+
+import { BaseModel } from "./base.model";
 
 const table_name = "libros"
 const visible_fields = "titulo, isbn, fecha_edicion, precio, stock"
@@ -16,34 +18,24 @@ export interface ILibro extends RowDataPacket{
     stock: number;
 }
 
-export class Libro{
+export class Libro extends BaseModel{
     titulo: string;
     isbn: string;
     fecha_edicion: Date;
     precio: number;
     stock: number;
 
+    static table_name = "libros";
+    static fields = ["titulo", "isbn", "fecha_edicion", "precio", "stock"];
+
     constructor(request: retrieveLibro) {
+        super();
+
         this.titulo = request.titulo;
         this.isbn   = request.isbn;
         this.fecha_edicion = request.fecha_edicion;
         this.precio = request.precio;
         this.stock  = request.stock || 0
-    }
-
-    //Validate the request
-    static validate(request: ILibro) {
-        if (!request.titulo)
-            throw new ValidationError("El titulo es obligatorio")
-
-        if (!request.isbn)
-            throw new ValidationError("El isbn es obligatorio")
-
-        if (!request.fecha_edicion)
-            throw new ValidationError("La fecha de edicion es obligatoria")
-
-        if (!('precio' in request))
-            throw new ValidationError("El precio es obligatorio")
     }
 
     static validate_persona(persona: Persona){
@@ -57,55 +49,34 @@ export class Libro{
             throw new ValidationError("Un tipo pasado no es correcto [0, 1]");
     }
 
-    static async is_duplicated(isbn: string): Promise<void>{
-        let result = await conn.query(`
-            SELECT COUNT(isbn) as count from ${table_name}
-            WHERE ${table_name}.isbn = ?
-            AND is_deleted = 0
-        `, [isbn]);
+    static async get_by_isbn(isbn: string): Promise<Libro> {
+        return await super.find_one<retrieveLibro, Libro>({isbn: isbn, is_deleted: 0})
+    }
+    static async get_all(): Promise<retrieveLibro[]>{        
+        return await super.find_all<retrieveLibro>({is_deleted: 0})
+    }
+    static async insert(_req: createLibro): Promise<Libro> {
+        return await super._insert<createLibro, Libro>(_req)
+    }
 
-        const count = (<RowDataPacket> result)[0][0].count;
-        
-        if (count > 0)
+    static async is_duplicated(isbn: string){
+        const exists = await super._exists({isbn: isbn, is_deleted: 0});
+        if (exists)
             throw new Duplicated(`El libro con isbn ${isbn} ya existe`);
     }
-
-    async insert() {
-        await conn.query("INSERT INTO libros SET ?", this);
-    }
     
-    async update(req: ILibro){
-        console.log("request:", req);
+    async update(_req: updateLibro){
+        await Libro._update(_req, {isbn: this.isbn, is_deleted: 0});
 
-        this.titulo = req.titulo || this.titulo;
-        this.precio = req.precio || this.precio;
-        this.fecha_edicion = req.fecha_edicion || this.fecha_edicion;
-        if ('stock' in req)
-            this.stock = req.stock;
-
-        console.log("libro stock", this.stock);
-
-        let res = (await conn.query<OkPacket>(`
-            UPDATE ${table_name}
-            SET ?
-            WHERE isbn = ?
-            AND is_deleted = 0
-        `, [this, this.isbn]))[0]
-        
-        if (res.affectedRows == 0)
-            throw new NotFound(`No se encuentra el libro con isbn ${this.isbn}`);
-
-        if (res.changedRows == 0)
-            throw new NothingChanged('Ningun valor es distinto a lo que ya existia en la base de datos');
+        for (let i in _req){
+            let value = _req[i as keyof typeof _req];
+            if (value !== undefined)
+                (this as any)[i] = value; 
+        }
     }
 
     async update_stock(stock: number){
-        await conn.query(`
-            UPDATE ${table_name}
-            SET stock  = ?
-            WHERE isbn = ?
-            AND is_deleted = 0
-        `, [this.stock+stock, this.isbn]);
+        await this.update({stock: this.stock+stock})
     }
 
     static async delete(isbn: string){
@@ -114,32 +85,7 @@ export class Libro{
             WHERE isbn = ?
         `, [isbn]);
 
-        const query = `
-            UPDATE ${table_name}
-            SET is_deleted = 1
-            WHERE isbn = ?
-            AND is_deleted = 0`;
-
-        let res = (await conn.query<OkPacket>(query, [isbn]))[0];
-
-        if (res.affectedRows == 0)
-            throw new NotFound(`No se encuentra el libro con isbn ${isbn}`);   
-    }
-
-    static async get_by_isbn(isbn: string): Promise<Libro> {
-        const query = `
-            SELECT * FROM ${table_name} 
-            WHERE ${table_name}.isbn = ?`
-
-        let response = (await conn.query<ILibro[]>(query, [isbn]))[0];
-
-        if (!response.length)
-            throw new NotFound(`El libro con isbn ${isbn} no se encontro`)
-        
-        if(response[0].is_deleted == 1)
-            throw new NotFound(`El libro con isbn ${isbn} esta dado de baja`)
-
-        return new Libro(response[0]);
+        await super._delete({isbn: isbn});
     }
 
     async get_personas(): Promise<{autores: IPersona[], ilustradores: IPersona[]}>{
@@ -172,16 +118,6 @@ export class Libro{
         `))[0];
 
         return ventas;
-    }
-
-    static async get_all(): Promise<ILibro[]>{        
-        const query = `
-            SELECT ${visible_fields}
-            FROM ${table_name}
-            WHERE is_deleted = 0`
-
-        let [libros] = await conn.query<ILibro[]>(query);
-        return libros;
     }
 
     static async get_paginated(page = 0): Promise<ILibro[]>{

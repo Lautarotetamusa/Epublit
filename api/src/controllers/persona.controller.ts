@@ -1,83 +1,74 @@
-import {Request, Response} from "express"
-import { Persona, IPersona } from "../models/persona.model";
-import {  parse_error } from '../models/errors'
+import { Request, Response } from "express"
+import { Persona } from "../models/persona.model";
+import { ValidationError, Duplicated, parse_error } from '../models/errors'
 import { TipoPersona, TipoPersonaString, validatePersona } from "../schemas/persona.schema";
 
-interface ApiResponse{
-    data?: Object;
-}
-interface ApiResponseSuccess extends ApiResponse{
-    success: true;
-    message: string;
-    error?: never;
-}
-interface ApiResponseError extends ApiResponse{
-    success: false;
-    message?: never;
-    error: string;
-}
-
 const create = async (req: Request, res: Response): Promise<Response> => {
-    if (!validatePersona.create(req.body)){
-        return res.status(400).json({
-            success: false,
-            error: validatePersona.error
-        })
-    }
+    if (!validatePersona.create(req.body)) return res.status(400).json({
+        success: false,
+        error: validatePersona.error
+    });
     
     try{
+        if (await Persona.exists(req.body.dni)){
+            throw new Duplicated(`La persona con dni ${req.body.dni} ya se encuentra cargada`);
+        }
+
         const persona = await Persona.insert(req.body);
 
-        let response: ApiResponseSuccess = {
+        return res.status(201).json({
             success: true,
             message: "Persona creada correctamente",
             data: persona
-        }
-
-        return res.status(201).json(response);
+        });
     }catch(error: any){
         return parse_error(res, error)
     }
 }
 
 const update = async (req: Request, res: Response): Promise<Response> => {
-    const body: IPersona = req.body;
+    if (!validatePersona.update(req.body)) return res.status(404).json({
+        success: false,
+        error: validatePersona.error
+    });
     const id = Number(req.params.id);
 
     try {
-        const persona = new Persona(await Persona.get_by_id(id));
-        
-        if (Object.keys(persona).length === 0 && persona.constructor === Object) //Si persona es un objeto vacio
-            return res.status(204).json({
-                success: true,
-                message: "No hay ningun campo para actualizar",
-            })
+        if (!id)
+            throw new ValidationError("El id de la persona debe ser un integer");
 
-        await persona.update(body);
+        const persona = await Persona.get_by_id(id);
 
-        let response: ApiResponseSuccess = {
+        if (req.body.dni && req.body.dni != persona.dni && await Persona.exists(req.body.dni))
+            throw new Duplicated(`La persona con id ${req.body.dni} ya se encuentra cargada`);
+
+        //await Persona.update(req.body, {id: id});
+        await persona.update(req.body);
+        console.log(persona);
+    
+        return res.status(201).json({
             success: true,
-            message: "Persona creada correctamente",
+            message: "Persona actualizada correctamente",
             data: persona
-        }
-
-        return res.status(201).json(response);
-
+        });
     } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-const remove = async (req: Request, res: Response): Promise<Response>  => {
+const remove = async (req: Request, res: Response): Promise<Response> => {
+    const id = Number(req.params.id);
+    
     try {
-        await Persona.delete(Number(req.params.id))
+        if (!id)
+            throw new ValidationError("El id de la persona debe ser un integer");
 
-        let response: ApiResponseSuccess = {
+        await Persona.delete({id: id})
+
+        return res.json({
             success: true,
-            message: `Persona con id ${req.params.id} eliminada correctamente`
-        }
-
-        return res.json(response);
+            message: `Persona con id ${id} eliminada correctamente`
+        });
 
     } catch (error: any) {
         return parse_error(res, error);
@@ -86,7 +77,7 @@ const remove = async (req: Request, res: Response): Promise<Response>  => {
 
 const get_all = async (req: Request, res: Response): Promise<Response>  => {
     let params = req.query;
-    let personas: IPersona[];
+    let personas: any[];
 
     try {
         if ('tipo' in params){
@@ -111,15 +102,13 @@ const get_all = async (req: Request, res: Response): Promise<Response>  => {
 }
 
 const get_one = async (req: Request, res: Response)  => {
-    let params = req.params;
-
-    if (!params.id) return res.status(400).json({
-        success: false,
-        message: "Se nececita pasar un id"
-    });
-
+    const id = Number(req.params.id);
+    
     try {
-        const persona = await Persona.get_by_id(Number(params.id));
+        if (!id)
+            throw new ValidationError("El id de la persona debe ser un integer");
+
+        const persona = await Persona.get_by_id(id);
 
         await persona.get_libros();
 

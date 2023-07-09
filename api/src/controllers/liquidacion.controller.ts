@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { ValidationError, parse_error } from '../models/errors';
 
-import { LiquidacionValidator } from "../schemas/liquidacion.schema";
+import { LiquidacionValidator, retrieveLiquidacion } from "../schemas/liquidacion.schema";
 
 import { Liquidacion } from "../models/liquidacion.model";
 import { Libro } from "../models/libro.model";
+import { Persona } from "../models/persona.model";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -33,7 +34,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
             message: "Liquidacion creada con exito",
             data: {
                 ...liquidacion,
-                personas: personas
+                persona: persona
             }
         });
 

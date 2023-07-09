@@ -22,3 +22,23 @@ export function valid_required(required: any, obj: any): {valid: boolean, error:
     }
     return {valid: true, error: ""}
 }
+
+export function valid_update(required: any, obj: any): {valid: boolean, error: string}{
+    type keys = keyof typeof required;
+
+    for (let key_o of Object.keys(obj)){
+        if (!(key_o in required)){
+            return {valid: false, error: `No se puede actualizar el campo ${key_o}`}
+        }
+    }
+
+    for (let key of Object.keys(required)){
+        if (key in obj){
+            if (typeof obj[key] !== required[key as keys]){
+                return {valid: false, error: `${key} debe ser de tipo ${required[key as keys]}`}
+            }
+        }   
+    }
+
+    return {valid: true, error: ""}
+}
