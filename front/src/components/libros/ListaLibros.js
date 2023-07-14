@@ -243,7 +243,7 @@ const columns = (handleButtonClick) => ([
     {
         name: 'Titulo',
         selector: row => row.titulo,
-        sortable: false,
+        sortable: true,
     },
     {
         name: 'ISBN',
