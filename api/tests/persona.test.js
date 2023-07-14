@@ -3,6 +3,11 @@ import chai from 'chai';
 
 import {expect_err_code, expect_success_code} from './util.js';
 
+process.env.DB_HOST = "localhost",
+process.env.DB_USER = "teti",
+process.env.DB_PASS = "Lautaro123.",
+process.env.DB_NAME = "librossilvestres"
+import {conn} from '../src/db.js'
 import {conn} from '../src/db.js'
 
 
@@ -21,6 +26,14 @@ const app = 'http://localhost:3001'
     - Verificamos que ya no esté en la lista
     - Hard delete de las dos personas para evitar que queden en la DB.
 */
+
+before('HARD DELETE', async () => {
+    await conn.query(`
+        DELETE FROM personas
+        WHERE dni=11111111
+        OR dni=22222222
+    `);
+});
 
 describe('POST persona/', () => {
     it('Sin nombre', async () => {
@@ -135,12 +148,5 @@ describe('DELETE /persona/{id}', () => {
         chai.expect(res.body.map(p => p.id)).to.not.include(persona.id);
     });
 
-    it('HARD DELETE', async () => {
-        await conn.query(`
-            DELETE FROM personas
-            WHERE dni=11111111
-            OR dni=22222222
-        `);
-    });
     
   });

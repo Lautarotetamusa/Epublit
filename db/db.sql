@@ -4,6 +4,15 @@ GRANT ALL PRIVILEGES ON *.* TO 'teti'@'%' WITH GRANT OPTION;
 CREATE DATABASE IF NOT EXISTS librossilvestres;
 USE librossilvestres;
 
+CREATE TABLE users(
+    id INT(11) NOT NULL AUTO_INCREMENT,
+
+    username VARCHAR(25),
+    password BINARY(60),
+
+    PRIMARY KEY (id)
+)
+
 CREATE TABLE libros(
     isbn VARCHAR(13) NOT NULL,
     titulo VARCHAR(60) NOT NULL,

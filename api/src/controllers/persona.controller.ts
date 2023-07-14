@@ -1,6 +1,7 @@
 import {Request, Response} from "express"
-import { Persona, TipoPersona, IPersona, TipoPersonaString } from "../models/persona.model";
-import { parse_error } from '../models/errors'
+import { Persona, IPersona } from "../models/persona.model";
+import {  parse_error } from '../models/errors'
+import { TipoPersona, TipoPersonaString, validatePersona } from "../schemas/persona.schema";
 
 interface ApiResponse{
     data?: Object;
@@ -17,12 +18,15 @@ interface ApiResponseError extends ApiResponse{
 }
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-     try {
-        Persona.validate(req.body);
-
-        const persona = new Persona(req.body);
-
-        await persona.insert();
+    if (!validatePersona.create(req.body)){
+        return res.status(400).json({
+            success: false,
+            error: validatePersona.error
+        })
+    }
+    
+    try{
+        const persona = await Persona.insert(req.body);
 
         let response: ApiResponseSuccess = {
             success: true,
@@ -31,9 +35,8 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         }
 
         return res.status(201).json(response);
-
-    } catch (error: any) {
-        return parse_error(res, error);
+    }catch(error: any){
+        return parse_error(res, error)
     }
 }
 
@@ -116,9 +119,9 @@ const get_one = async (req: Request, res: Response)  => {
     });
 
     try {
-        const persona  = await Persona.get_by_id(Number(params.id));
-        
-        persona.libros = await Persona.get_libros(Number(params.id));
+        const persona = await Persona.get_by_id(Number(params.id));
+
+        await persona.get_libros();
 
         res.json(persona);
     } catch (error: any) {

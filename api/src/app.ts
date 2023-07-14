@@ -3,13 +3,19 @@ import express, {NextFunction, Request, Response} from "express"
 import * as dotenv from 'dotenv'
 
 import personaRouter from "./routes/persona.routes";
-//import libroRouter from "./routes/libro.routes";
-//import ClienteRouter from "./routes/cliente.routes";
-//import VentaRouter from "./routes/venta.routes";
-//import ConsignacionRouter from "./routes/consignacion.routes";
+import libroRouter from "./routes/libro.routes";
+import ClienteRouter from "./routes/cliente.routes.js";
+import VentaRouter from "./routes/venta.routes.js";
+import ConsignacionRouter from "./routes/consignacion.routes.js";
+import UserRouter from "./routes/user.routes.js"
 
 dotenv.config();
 export const app = express();
+
+if (!process.env.BACK_PORT){
+    console.log("Error: la variable BACK_PORT no está seteada");
+    process.exit(1);
+}
 const port: number = Number(process.env.BACK_PORT);
 
 //Necesesario para que no tire error de   CORS
@@ -26,13 +32,15 @@ app.use(express.urlencoded({extended: true,}));
 
 app.use('/persona', personaRouter);
 
-//app.use('/libro', libroRouter);
+app.use('/libro', libroRouter);
 
-//app.use('/cliente', ClienteRouter);
+app.use('/cliente', ClienteRouter);
 
-//app.use('/venta', VentaRouter);
+app.use('/venta', VentaRouter);
 
-//app.use('/consignacion', ConsignacionRouter);
+app.use('/consignacion', ConsignacionRouter);
+
+app.use('/user', UserRouter);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({
@@ -51,5 +59,3 @@ app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
     });
     next();
   });
-
-
