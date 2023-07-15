@@ -8,17 +8,14 @@ import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    if (!validateUser.create(req.body)){
-       return res.status(400).json({
-            success: false,
-            error: validateUser.error
-        }) 
-    }
-
     try {
-        req.body.password = await bcrypt.hash(req.body.password, 10);
+        let valid = validateUser.create(req.body)
+        if (valid.error !== null)
+            throw new ValidationError(valid.error)
 
-        const user = await User.insert(req.body);
+        req.body.password = await bcrypt.hash(valid.obj.password, 10);
+
+        const user = await User.insert(valid.obj);
         return res.status(200).json({
             success: true,
             message: "Usuario creado correctamente",
@@ -31,21 +28,22 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 
 const login = async (req: Request, res: Response): Promise<Response> => {
     try {
-        if (!validateUser.create(req.body))
-            throw new ValidationError(validateUser.error)
+        let is_valid = validateUser.create(req.body);
+        if (is_valid.error !== null)
+            throw new ValidationError(is_valid.error)
 
-        const user = await User.get_one(req.body.username);
+        const user = await User.get_one(is_valid.obj.username);
 
         const string_hash: string = Buffer.from(user.password).toString('ascii');
 
-        const valid = await bcrypt.compare(req.body.password, string_hash); 
+        const valid = await bcrypt.compare(is_valid.obj.password, string_hash); 
 
         if (!valid) return res.status(401).json({
             success: false,
             error: "Contraseña incorrecta"
         })
 
-        const token = jwt.sign(req.body, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
+        const token = jwt.sign(is_valid.obj, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
 
         return res.status(200).json({
             success: true,

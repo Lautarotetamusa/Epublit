@@ -5,6 +5,7 @@ import { createPersonaLibroInDB, updateLibroPersona, removePersonaLibro } from "
 import { BaseModel } from "./base.model";
 import { TipoPersona, retrieveLibroPersona } from "../schemas/libro_persona.schema";
 import { Duplicated, NotFound } from "./errors";
+import { Libro } from "./libro.model";
 
 export class LibroPersona extends BaseModel{
     tipo: TipoPersona;
@@ -25,7 +26,11 @@ export class LibroPersona extends BaseModel{
         this.id = _req.id;
     }
 
-    static async exists(_persona: createPersonaLibroInDB): Promise<boolean>{
+    static async get_one(_req: removePersonaLibro): Promise<LibroPersona>{
+        return super.find_one<removePersonaLibro, LibroPersona>(_req);
+    }
+
+    static async exists(_persona: removePersonaLibro): Promise<boolean>{
         const query = `
             SELECT id_persona, tipo 
             FROM ${this.table_name} 

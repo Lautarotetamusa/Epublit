@@ -1,31 +1,35 @@
-import {validate} from './validate';
+import {retrieve, validate} from './validate';
 import { validateLibroPersona, TipoPersona } from './libro_persona.schema';
 
 export interface createLiquidacion{
     isbn: string;
     id_persona: number;
     tipo_persona: TipoPersona; 
+
     fecha_inicial: Date;
     fecha_final: Date;
 }
 
-export interface retrieveLiquidacion extends createLiquidacion{
-    id: number;
+export interface saveLiquidacion extends createLiquidacion{
     total: number;
     file_path: string;
 }
 
+export interface retrieveLiquidacion extends saveLiquidacion{
+    id: number;
+}
+
 export class LiquidacionValidator{
-    static create(obj: any){
+    static create(obj: any): retrieve<createLiquidacion>{
         const required = {
             'isbn': 'string',
-            'id_persona': 'number',
+            'id_persona': 'number',            
             'tipo_persona': 'any',
             'fecha_inicial': 'Date',
             'fecha_final': 'Date',
         };
 
-        let valid = validate(required, obj)
+        let valid = validate<createLiquidacion>(required, obj)
         if (valid.error !== null) 
             return {error: valid.error, obj: null}
 

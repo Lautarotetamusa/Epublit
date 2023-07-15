@@ -1,9 +1,8 @@
 import {conn} from "../db"
-import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { Persona } from "./persona.model"
-import { createLibro, retrieveLibro, updateLibro } from "../schemas/libros.schema";
+import { RowDataPacket } from "mysql2/promise";
+import { retrieveLibro, saveLibro, updateLibro } from "../schemas/libros.schema";
 import { TipoPersona, createPersonaLibroInDB, removePersonaLibro, updateLibroPersona } from "../schemas/libro_persona.schema";
-import { ValidationError, NotFound, Duplicated } from './errors'
+import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
 import { retrieveLibroPersona } from "../schemas/libro_persona.schema";
@@ -11,14 +10,6 @@ import { LibroPersona } from "./libro_persona.model";
 
 const table_name = "libros"
 const visible_fields = "titulo, isbn, fecha_edicion, precio, stock"
-
-export interface ILibro extends RowDataPacket{
-    titulo: string;
-    isbn: string;
-    fecha_edicion: Date;
-    precio: number;
-    stock: number;
-}
 
 export class Libro extends BaseModel{
     titulo: string;
@@ -40,25 +31,14 @@ export class Libro extends BaseModel{
         this.stock  = request.stock || 0
     }
 
-    static validate_persona(persona: Persona){
-        if (!('tipo' in persona)) 
-            throw new ValidationError("Se debe pasar 'tipo' en todas las personas");
-        
-        if (!('id' in persona))
-            throw new ValidationError("Se debe pasar 'id' en todas las personas");
-        
-        if (!Object.values(TipoPersona).includes(<TipoPersona>persona.tipo))
-            throw new ValidationError("Un tipo pasado no es correcto [0, 1]");
-    }
-
     static async get_by_isbn(isbn: string): Promise<Libro> {
         return await super.find_one<retrieveLibro, Libro>({isbn: isbn, is_deleted: 0})
     }
     static async get_all(): Promise<retrieveLibro[]>{        
         return await super.find_all<retrieveLibro>({is_deleted: 0})
     }
-    static async insert(_req: retrieveLibro): Promise<Libro> {
-        return await super._insert<retrieveLibro, Libro>(_req);
+    static async insert(_req: saveLibro): Promise<Libro> {
+        return await super._insert<saveLibro, Libro>(_req);
     }
 
     static async is_duplicated(isbn: string){
@@ -137,59 +117,13 @@ export class Libro extends BaseModel{
 
     async add_personas(personas: createPersonaLibroInDB[]){
         await LibroPersona.insert(personas);
-        /*for (let persona of personas) {
-            const query = `
-                SELECT id_persona, tipo 
-                FROM libros_personas 
-                WHERE (isbn, id_persona, tipo) in ((?, ?, ?))`
-
-            let res = (<RowDataPacket> await conn.query(query, [this.isbn, persona.id, persona.tipo]))[0]
-
-            if (res.length > 0)
-                throw new Duplicated(`La persona ${persona.id} ya es un ${TipoPersona[persona.tipo]} del libro ${this.isbn}`);
-        }
-
-        for (let persona of personas){
-            await conn.query(`
-                INSERT INTO libros_personas 
-                SET id_persona=${persona.id},
-                porcentaje=${persona.porcentaje || 0},
-                tipo=${persona.tipo},
-                isbn=${this.isbn}
-            `);
-        }*/
     }
 
     async update_personas(personas: updateLibroPersona[]){
         await LibroPersona.update(personas);
-        /*
-        for (let persona of personas) {
-            if (persona.porcentaje){
-                const query: string = `
-                    UPDATE libros_personas 
-                    SET porcentaje = ?
-                    WHERE isbn = ?
-                    AND id_persona = ?
-                    AND tipo = ?`
-
-                await conn.query<OkPacket>(query, [persona.porcentaje, this.isbn ,persona.id, persona.tipo])
-            }
-        }*/
     }
     
     async remove_personas(personas: removePersonaLibro[]){
         await LibroPersona.remove(personas);
-        /*let persona_libro = personas.map(p => `('${this.isbn}', ${p.id}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
-
-        const query = `
-            DELETE FROM libros_personas
-            WHERE (isbn, id_persona, tipo) in (${persona_libro})`;
-
-        if (personas.length > 0){
-            let res = (await conn.query<OkPacket>(query))[0];
-
-            if (res.affectedRows == 0)
-                throw new NotFound(`Ninguna persona pasada trabaja en este libro con el tipo pasado`)
-        }*/
     }
 }

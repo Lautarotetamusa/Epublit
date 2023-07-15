@@ -1,10 +1,10 @@
 import {conn} from "../db";
 import { RowDataPacket } from "mysql2/promise";
-import { ILibro } from "./libro.model";
 import { createPersona, retrievePersona, updatePersona } from "../schemas/persona.schema";
 
 import { BaseModel } from "./base.model";
 import { TipoPersona } from "../schemas/libro_persona.schema";
+import { retrieveLibro } from "../schemas/libros.schema";
 
 export interface IPersona extends RowDataPacket{
     nombre: string;
@@ -19,7 +19,7 @@ export class Persona extends BaseModel{
     email: string;
     dni: string;
     id: number;
-    libros?: ILibro[];
+    libros?: retrieveLibro[];
 
     static table_name: string = "personas";
     static fields = ["id", "dni", "nombre", "email"]
@@ -100,7 +100,7 @@ export class Persona extends BaseModel{
             AND personas.is_deleted = 0`;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, this.id]);
-        this.libros = rows as ILibro[];
+        this.libros = rows as retrieveLibro[];
     }
 }
 

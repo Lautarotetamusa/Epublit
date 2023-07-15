@@ -4,11 +4,15 @@ import { NotFound } from './errors';
 
 import { BaseModel } from "./base.model";
 
-import { retrieveLiquidacion, createLiquidacion } from "../schemas/liquidacion.schema";
+import { retrieveLiquidacion, createLiquidacion, saveLiquidacion } from "../schemas/liquidacion.schema";
+import { TipoPersona } from "../schemas/libro_persona.schema";
 
 export class Liquidacion extends BaseModel{
     id: number;
     isbn: string;
+    id_persona: number;
+    tipo_persona: TipoPersona;
+
     fecha_inicial: Date;
     fecha_final: Date;
     total: number;
@@ -16,26 +20,30 @@ export class Liquidacion extends BaseModel{
 
     static table_name = "liquidaciones";
     static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
+    static pk = ["id", "isbn", "id_persona", "tipo_persona"];
 
     constructor(_liq: retrieveLiquidacion){
         super();
         
         this.id = _liq.id;
         this.isbn = _liq.isbn;
+        this.id_persona = _liq.id_persona;
+        this.tipo_persona = _liq.tipo_persona;
+
         this.fecha_inicial = _liq.fecha_inicial;
         this.fecha_final = _liq.fecha_final;
         this.total = _liq.total;
         this.file_path =  _liq.file_path;
     }
 
-    static async insert(_req: createLiquidacion): Promise<Liquidacion>{
-        return await super._insert<createLiquidacion, Liquidacion>(_req);
+    static async insert(_req: saveLiquidacion): Promise<Liquidacion>{
+        return await super._insert<saveLiquidacion, Liquidacion>(_req);
     }
     static async get_all(){
-        return await super.find_all<retrieveLiquidacion>({is_deleted: false});
+        return await super.find_all<retrieveLiquidacion>();
     }
     static async get_one(id: number): Promise<Liquidacion>{
-        return await super.find_one<retrieveLiquidacion, Liquidacion>({id: id, is_deleted: false})
+        return await super.find_one<retrieveLiquidacion, Liquidacion>({id: id})
     }
 
     static async valid_period(fecha_inicial: Date, fecha_final: Date): Promise<boolean>{

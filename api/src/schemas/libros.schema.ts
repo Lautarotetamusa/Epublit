@@ -9,6 +9,8 @@ export interface retrieveLibro{
     stock: number
 }
 
+export interface saveLibro extends retrieveLibro{};
+
 export interface createLibro extends retrieveLibro{
     autores: Array<createPersonaLibro>
     ilustradores: Array<createPersonaLibro>,
@@ -60,6 +62,17 @@ export class validateLibro{
         }
 
         return valid;
+    }
+
+    static save(_obj: any): retrieve<saveLibro> {
+        const required = {
+            'titulo': 'string',
+            'isbn': 'string',
+            'stock': 'optional?number',
+            'precio': 'number',
+            'fecha_edicion': 'Date',
+        }
+        return validate<saveLibro>(required, _obj);
     }
 
     static update(obj: any): retrieve<updateLibro>{
