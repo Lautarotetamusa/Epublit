@@ -1,11 +1,13 @@
 import {conn} from "../db"
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { Persona, IPersona } from "./persona.model"
-import { createLibro, createPersonaLibroInDB, createPersonaLibroNOTInDB, retrieveLibro, updateLibro } from "../schemas/libros.schema";
-import { TipoPersona } from "../schemas/persona.schema";
-import { ValidationError, NotFound, Duplicated, NothingChanged } from './errors'
+import { Persona } from "./persona.model"
+import { createLibro, retrieveLibro, updateLibro } from "../schemas/libros.schema";
+import { TipoPersona, createPersonaLibroInDB, removePersonaLibro, updateLibroPersona } from "../schemas/libro_persona.schema";
+import { ValidationError, NotFound, Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
+import { retrieveLibroPersona } from "../schemas/libro_persona.schema";
+import { LibroPersona } from "./libro_persona.model";
 
 const table_name = "libros"
 const visible_fields = "titulo, isbn, fecha_edicion, precio, stock"
@@ -55,8 +57,8 @@ export class Libro extends BaseModel{
     static async get_all(): Promise<retrieveLibro[]>{        
         return await super.find_all<retrieveLibro>({is_deleted: 0})
     }
-    static async insert(_req: createLibro): Promise<Libro> {
-        return await super._insert<createLibro, Libro>(_req)
+    static async insert(_req: retrieveLibro): Promise<Libro> {
+        return await super._insert<retrieveLibro, Libro>(_req);
     }
 
     static async is_duplicated(isbn: string){
@@ -88,26 +90,8 @@ export class Libro extends BaseModel{
         await super._delete({isbn: isbn});
     }
 
-    async get_personas(): Promise<{autores: IPersona[], ilustradores: IPersona[]}>{
-        const query = `
-            SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
-            FROM personas 
-            INNER JOIN libros_personas
-            INNER JOIN ${table_name}
-                ON personas.id  = libros_personas.id_persona
-            AND ${table_name}.isbn = libros_personas.isbn
-            WHERE ${table_name}.isbn = ?
-            AND ${table_name}.is_deleted = 0`
-
-        const [personas] = await conn.query<IPersona[]>(query, [this.isbn]);
-        return {
-            autores: personas.filter(p => p.tipo == TipoPersona.autor),
-            ilustradores: personas.filter(p => p.tipo == TipoPersona.ilustrador) 
-        };
-    }
-
-    static async get_ventas(isbn: string){
-        let ventas = (await conn.query(`
+    static async get_ventas(isbn: string): Promise<any>{
+        const [ventas] = await conn.query<RowDataPacket[]>(`
             SELECT  
                 ventas.id as id_venta, fecha, medio_pago, total, file_path,
                 id_cliente
@@ -115,12 +99,12 @@ export class Libro extends BaseModel{
             INNER JOIN ventas
                 ON ventas.id = libros_ventas.id_venta
             WHERE libros_ventas.isbn = ${isbn}
-        `))[0];
+        `);
 
         return ventas;
     }
 
-    static async get_paginated(page = 0): Promise<ILibro[]>{
+    static async get_paginated(page = 0): Promise<retrieveLibro[]>{
         let libros_per_page = 10;
         const query = `
             SELECT ${visible_fields}
@@ -129,13 +113,31 @@ export class Libro extends BaseModel{
             LIMIT ${libros_per_page}
             OFFSET ${page * libros_per_page}`
 
-        const [libros] = await conn.query<ILibro[]>(query);
-        return libros;
+        const [libros] = await conn.query<RowDataPacket[]>(query);
+        return libros as retrieveLibro[];
+    }
+
+    async get_personas(): Promise<{autores: retrieveLibroPersona[], ilustradores: retrieveLibroPersona[]}>{
+        const query = `
+            SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
+            FROM personas 
+            INNER JOIN libros_personas
+            INNER JOIN ${table_name}
+                ON personas.id  = libros_personas.id_persona
+                AND ${table_name}.isbn = libros_personas.isbn
+            WHERE ${table_name}.isbn = ?
+            AND ${table_name}.is_deleted = 0`
+
+        const [personas] = await conn.query<RowDataPacket[]>(query, [this.isbn]);
+        return {
+            autores: personas.filter(p => p.tipo == TipoPersona.autor) as retrieveLibroPersona[],
+            ilustradores: personas.filter(p => p.tipo == TipoPersona.ilustrador) as retrieveLibroPersona[]
+        };
     }
 
     async add_personas(personas: createPersonaLibroInDB[]){
-        for (let persona of personas) {
-
+        await LibroPersona.insert(personas);
+        /*for (let persona of personas) {
             const query = `
                 SELECT id_persona, tipo 
                 FROM libros_personas 
@@ -155,10 +157,12 @@ export class Libro extends BaseModel{
                 tipo=${persona.tipo},
                 isbn=${this.isbn}
             `);
-        }
+        }*/
     }
 
-    async update_personas(personas: createPersonaLibroInDB[]){
+    async update_personas(personas: updateLibroPersona[]){
+        await LibroPersona.update(personas);
+        /*
         for (let persona of personas) {
             if (persona.porcentaje){
                 const query: string = `
@@ -170,11 +174,12 @@ export class Libro extends BaseModel{
 
                 await conn.query<OkPacket>(query, [persona.porcentaje, this.isbn ,persona.id, persona.tipo])
             }
-        }
+        }*/
     }
     
-    async remove_personas(personas: createPersonaLibroInDB[]){
-        let persona_libro = personas.map(p => `('${this.isbn}', ${p.id}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
+    async remove_personas(personas: removePersonaLibro[]){
+        await LibroPersona.remove(personas);
+        /*let persona_libro = personas.map(p => `('${this.isbn}', ${p.id}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
 
         const query = `
             DELETE FROM libros_personas
@@ -185,6 +190,6 @@ export class Libro extends BaseModel{
 
             if (res.affectedRows == 0)
                 throw new NotFound(`Ninguna persona pasada trabaja en este libro con el tipo pasado`)
-        }
+        }*/
     }
 }

@@ -1,11 +1,4 @@
-import { ValidationError } from '../models/errors';
-import {valid_required, valid_update} from './validate'
-
-export enum TipoPersona {
-    autor = 0,
-    ilustrador
-}
-export type TipoPersonaString = keyof typeof TipoPersona;
+import {retrieve, validate} from './validate'
 
 export interface retrievePersona{
     nombre: string;
@@ -27,26 +20,21 @@ export interface updatePersona{
 }
 
 export class validatePersona {
-    static error: string;
-
-    static create(_obj: any): {error: string | null, obj: createPersona}{
+    static create(_obj: any): retrieve<createPersona> {
         const required = {
             'nombre': 'string',
+            'email': 'optional?string',
             'dni': 'string',
         }
-        let {valid, error} = valid_required(required, _obj)
-        if (!valid) error = null;
-        return {error: error, obj: _obj}
+        return validate<createPersona>(required, _obj);
     }
 
-    static update(obj: any): obj is updatePersona{
+    static update(obj: any): retrieve<updatePersona>{
         const required = {
-            'nombre': 'string',
-            'dni': 'string',
-            'email': 'string'
+            'nombre': 'optional?string',
+            'dni': 'optional?string',
+            'email': 'optional?string'
         }
-        let {valid, error} = valid_update(required, obj);
-        if (!valid) this.error = error;
-        return valid;
+        return validate<updatePersona>(required, obj);
     }
 }

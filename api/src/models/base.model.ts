@@ -56,7 +56,7 @@ export class BaseModel{
         const [rows] = await conn.query<RowDataPacket[]>(query, where_list);
 
         if (rows.length <= 0)
-            throw new NotFound(`No se encontro la ${this.table_name}`);
+            throw new NotFound(`No se encontro el item de la tabla ${this.table_name}`);
 
         return new (this as any)(rows[0] as RT) as MT; 
     }
@@ -95,7 +95,7 @@ export class BaseModel{
         const [result] = await conn.query<OkPacket>(query, [_req].concat(where_list));
 
         if (result.affectedRows == 0)
-            throw new NotFound(`No se encontro la ${this.table_name}`);
+            throw new NotFound(`No se encontro el item de la tabla ${this.table_name}`);
 
         if (result.changedRows == 0)
             throw new NothingChanged('Ningun valor es distinto a lo que ya existia en la base de datos');

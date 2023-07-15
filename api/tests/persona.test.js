@@ -143,6 +143,7 @@ describe('PUT persona/{id}', () => {
         delete _persona.id;
         delete _persona.dni;
 
+        console.log(_persona);
         const res = await request(app)
             .put('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`)
@@ -171,7 +172,7 @@ describe('PUT persona/{id}', () => {
             .put('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`)
             .send(data);
-        expect_err_code(404, res);
+        expect_err_code(400, res);
     });
 
     it('Success', async () => {

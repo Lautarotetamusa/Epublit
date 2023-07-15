@@ -1,56 +1,71 @@
 import {Request, Response} from "express";
 
-import { IPersona, Persona } from "../models/persona.model.js";
+import { Persona } from "../models/persona.model.js";
 import { Libro } from "../models/libro.model.js";
-import { TipoPersona} from "../schemas/persona.schema";
-import { validateLibroPersona, createPersonaLibroInDB, createPersonaLibroNOTInDB, validateLibro  } from "../schemas/libros.schema";
+import { validateLibro  } from "../schemas/libros.schema";
+import { TipoPersona, createPersonaLibroInDB, createPersonaLibroNOTInDB, validateLibroPersona} from "../schemas/libro_persona.schema";
 import { parse_error, ValidationError } from "../models/errors.js"
+import { validatePersona } from "../schemas/persona.schema.js";
 
 const create = async (req: Request, res: Response) => {
-    try {
-        if (!validateLibro.create(req.body)){
-            throw new ValidationError(validateLibro.error)
-        }
-    
-        let body = req.body;
+    let tipos_keys: ("autores" | "ilustradores")[] = ["autores", "ilustradores"];
 
+    for (let tipo of tipos_keys) {
+        if (tipo in req.body){
+            for (let _persona of req.body[tipo]) {
+                _persona.tipo = tipo === "autores" ? TipoPersona.autor : TipoPersona.ilustrador;
+            }
+        }
+    }
+    console.log("req.body: ", req.body);
+
+    let valid = validateLibro.create(req.body);
+    if (valid.error !== null) return res.status(400).json({
+        success: false,
+        error: valid.error
+    })
+    const body = valid.obj;
+    console.log("REQUEST: ", body);
+    
+    try {
         let personas_data: Array<createPersonaLibroInDB> = [];  //Lista de personas validas y cargadas
 
-        await Libro.is_duplicated(req.body.isbn);
-
-        let tipos_keys: ("autores" | "ilustradores")[] = ["autores", "ilustradores"];
+        await Libro.is_duplicated(body.isbn);
 
         let new_personas: createPersonaLibroNOTInDB[] = [];
+
         for (let tipo of tipos_keys) { //Para cada tipo (autores, ilustradores)
-            for (let _persona of body[tipo]) { //Para cada persona
-                _persona.tipo = tipo === "autores" ? TipoPersona.autor : TipoPersona.ilustrador;
-
-                if ("id" in _persona){ //Personas ya cargadas en la DB
-                    if (!validateLibroPersona.indb(_persona))
-                        throw new ValidationError(validateLibroPersona.error)
-                    
-                    await Persona.get_by_id(_persona.id)
-                    personas_data.push(_persona);
-
-                }else{ //Personas que todavia no estan cargadas en la DB
-                    if (!validateLibroPersona.not_in_db(_persona))
-                        throw new ValidationError(validateLibroPersona.error)
-
-                    if (await Persona.exists(_persona.dni))
-                        throw new ValidationError(`La persona con dni ${_persona.dni} ya se encuentra cargada`);
-
-                    new_personas.push(_persona);
+            if (tipo in req.body){
+                for (let _persona of body[tipo]) { //Para cada persona
+                    if ("id" in _persona){ //Personas ya cargadas en la DB
+                        await Persona.get_by_id(_persona.id);
+                        console.log("in db:", _persona);
+                        
+                        personas_data.push(_persona);
+    
+                    }else{ //Personas que todavia no estan cargadas en la DB
+                        if (await Persona.exists(_persona.dni))
+                            throw new ValidationError(`La persona con dni ${_persona.dni} ya se encuentra cargada`);
+    
+                        console.log("not in db 1:", _persona);
+                        new_personas.push(_persona);
+                    }
                 }
             }
         };
 
         for (let _persona of new_personas){
-            const persona = await Persona.insert(_persona);
+            let valid = validatePersona.create(Object.assign({}, _persona));
+            if (valid.error !== null) throw new ValidationError("INTERNAL ERROR: El objeto no tiene los parametros necesarios");
+
+            const persona = await Persona.insert(valid.obj);
+            console.log("not in db 2:", _persona);
 
             personas_data.push({
                 porcentaje: _persona.porcentaje, 
                 tipo: _persona.tipo, 
-                id: persona.id
+                id: persona.id,
+                isbn: body.isbn
             });
         }
 
@@ -69,12 +84,18 @@ const create = async (req: Request, res: Response) => {
 
         console.log("personas_data:", personas_data);
 
-        const libro = await Libro.insert(body);
+        const libro = await Libro.insert({
+            isbn: body.isbn,
+            titulo: body.titulo,
+            precio: body.precio,
+            stock: body.stock,
+            fecha_edicion: body.fecha_edicion
+        });
         await libro.add_personas(personas_data);
 
         return res.status(201).json({
             success: true,
-            message: `Libro con isbn ${req.body.isbn} creado correctamente`,
+            message: `Libro con isbn ${body.isbn} creado correctamente`,
             data: {
                 ...libro,
                 autores:      personas_data.filter(p => p.tipo == TipoPersona.autor),
@@ -89,7 +110,7 @@ const create = async (req: Request, res: Response) => {
 
 const remove = async(req: Request, res: Response) => {
     try {
-        await Libro.delete(req.params.isbn)
+        await Libro.delete(req.params.isbn);
 
         return res.json({
             success: true,
@@ -101,14 +122,16 @@ const remove = async(req: Request, res: Response) => {
 }
 
 const update = async(req: Request, res: Response) => {
-    if(!validateLibro.update(req.body)) return res.status(404).json({
+    let valid = validateLibro.update(req.body)
+    if (valid.error !== null) return res.status(404).json({
         success: false,
-        error: validateLibro.error
+        error: valid.error
     });
+    const body = valid.obj;
 
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
-        await libro.update(req.body);
+        await libro.update(body);
 
         return res.status(201).json({
             success: true,
@@ -121,37 +144,72 @@ const update = async(req: Request, res: Response) => {
 }
 
 const manage_personas = async(req: Request, res: Response) => {
-    let personas = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
+    let body = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
 
     let code = 201
-    let message = 'creada'
+    let message = 'creadas'
     
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
 
-        for (let persona of personas) {
-            Libro.validate_persona(persona);
+        for (let persona of body) {
             await Persona.get_by_id(persona.id); //Check if the person exists
         }
 
-        switch (req.method ) {
+        let personas = [];
+        switch (req.method) {
             case "POST":
+                personas = [];
+                for (let persona of body){
+                    persona.isbn = libro.isbn;
+                    let valid = validateLibroPersona.indb(persona);
+                    if (valid.error !== null) 
+                        throw new ValidationError(valid.error)
+                    personas.push(valid.obj);
+                }
+
                 await libro.add_personas(personas);
+
                 break;
             case "PUT":
+                personas = [];
+                for (let persona of body){
+                    persona.isbn = libro.isbn;
+                    let valid = validateLibroPersona.update(persona);
+                    if (valid.error !== null) 
+                        throw new ValidationError(valid.error)
+                    personas.push(valid.obj);
+                }
+
                 await libro.update_personas(personas);
-                message = 'actualizada'
+                message = 'actualizadas'
+
                 break;
             case "DELETE":
+                personas = [];
+                for (let persona of body){
+                    persona.isbn = libro.isbn;
+                    let valid = validateLibroPersona.remove(persona);
+                    if (valid.error !== null) 
+                        throw new ValidationError(valid.error)
+                    personas.push(valid.obj);
+                }
+
                 await libro.remove_personas(personas);
-                message = 'borrada'
+                message = 'borradas'
                 code = 200
+                
                 break;
         }
 
         return res.status(code).json({
             success: true,
-            message: `Personas ${message} con exito`
+            message: `Personas ${message} con exito`,
+            data: {
+                ...libro,
+                personas: personas,
+
+            }
         });
 
     } catch (error: any) {
@@ -171,10 +229,11 @@ const get_ventas = async(req: Request, res: Response) => {
 const get_one = async(req: Request, res: Response) => {
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn)
-        const personas = await libro.get_personas();
+        const {autores, ilustradores} = await libro.get_personas();
         return res.json({
             ...libro,
-            ...personas
+            autores: autores,
+            ilustradores: ilustradores
         });
     } catch (error: any) {
         return parse_error(res, error);

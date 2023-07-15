@@ -166,9 +166,9 @@ describe('Crear libro POST /libro', function () {
 
         expect_success_code(201, res);
         
-        libro.autores = res.body.data.autores;
-        libro.ilustradores = res.body.data.ilustradores;
-        libro.personas = libro.autores.concat(libro.ilustradores);
+        libro.autores      = [personas[0]].concat(libro.autores);
+        libro.ilustradores = [personas[1]].concat(libro.ilustradores);
+        libro.personas = libro.autores.concat(libro.ilustradores)
     });
 
     it('El libro tiene las personas cargadas con todos los datos', async() => {
@@ -176,8 +176,12 @@ describe('Crear libro POST /libro', function () {
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`)
             ).body;
-        //console.log(res);
-        //console.log(libro);
+
+        chai.expect(res).to.have.property("autores");
+        chai.expect(res).to.have.property("ilustradores");
+
+        libro.personas = res.autores.concat(res.ilustradores);
+
         chai.expect(res.autores.map(p => p.id)).to.eql(libro.autores.map(p => p.id));
         chai.expect(res.ilustradores.map(p => p.id)).to.eql(libro.ilustradores.map(p => p.id));
     });
@@ -239,10 +243,22 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
     });
 
     it('Actualizamos una persona', async () => {
+        let data = [
+            {
+                id: 697,
+                tipo: 0,
+                porcentaje: 25
+            },
+            {
+                id: libro.personas[3].id,
+                tipo: libro.personas[3].tipo,
+                porcentaje: 33.0
+            }
+        ]
         const res = await request(app)
             .put('/libro/'+libro.isbn+'/personas')
             .set('Authorization', `Bearer ${token}`)
-            .send(libro.personas);
+            .send(data);
 
         expect_success_code(201, res);
     });

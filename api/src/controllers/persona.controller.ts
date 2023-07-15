@@ -1,20 +1,23 @@
 import { Request, Response } from "express"
 import { Persona } from "../models/persona.model";
-import { ValidationError, Duplicated, parse_error } from '../models/errors'
-import { TipoPersona, TipoPersonaString, validatePersona } from "../schemas/persona.schema";
+import { ValidationError, Duplicated, parse_error } from '../models/errors';
+import { validatePersona } from "../schemas/persona.schema";
+import { TipoPersona, TipoPersonaString } from "../schemas/libro_persona.schema";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    if (!validatePersona.create(req.body)) return res.status(400).json({
+    let valid = validatePersona.create(req.body);
+    if (valid.error !== null) return res.status(400).json({
         success: false,
-        error: validatePersona.error
-    });
+        error: valid.error
+    })
+    const body = valid.obj;
     
     try{
-        if (await Persona.exists(req.body.dni)){
-            throw new Duplicated(`La persona con dni ${req.body.dni} ya se encuentra cargada`);
+        if (await Persona.exists(body.dni)){
+            throw new Duplicated(`La persona con dni ${body.dni} ya se encuentra cargada`);
         }
 
-        const persona = await Persona.insert(req.body);
+        const persona = await Persona.insert(body);
 
         return res.status(201).json({
             success: true,
@@ -27,10 +30,12 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const update = async (req: Request, res: Response): Promise<Response> => {
-    if (!validatePersona.update(req.body)) return res.status(404).json({
+    let valid = validatePersona.update(req.body);
+    if (valid.error !== null) return res.status(400).json({
         success: false,
-        error: validatePersona.error
-    });
+        error: valid.error
+    })
+    const body = valid.obj;
     const id = Number(req.params.id);
 
     try {
@@ -39,11 +44,10 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 
         const persona = await Persona.get_by_id(id);
 
-        if (req.body.dni && req.body.dni != persona.dni && await Persona.exists(req.body.dni))
-            throw new Duplicated(`La persona con id ${req.body.dni} ya se encuentra cargada`);
+        if (body.dni && body.dni != persona.dni && await Persona.exists(body.dni))
+            throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
 
-        //await Persona.update(req.body, {id: id});
-        await persona.update(req.body);
+        await persona.update(body);
         console.log(persona);
     
         return res.status(201).json({

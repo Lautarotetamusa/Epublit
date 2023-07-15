@@ -1,9 +1,10 @@
 import {conn} from "../db";
 import { RowDataPacket } from "mysql2/promise";
 import { ILibro } from "./libro.model";
-import { createPersona, retrievePersona, TipoPersona, updatePersona } from "../schemas/persona.schema";
+import { createPersona, retrievePersona, updatePersona } from "../schemas/persona.schema";
 
 import { BaseModel } from "./base.model";
+import { TipoPersona } from "../schemas/libro_persona.schema";
 
 export interface IPersona extends RowDataPacket{
     nombre: string;

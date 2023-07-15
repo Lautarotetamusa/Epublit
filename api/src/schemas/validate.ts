@@ -3,42 +3,58 @@ function valid_date(date: string) {
   return date.match(regEx) != null;
 }
 
-export function valid_required(required: any, obj: any): {valid: boolean, error: string}{
+type RequiredFields<T> = {
+    [K in keyof T]-?: string;
+};
+
+export type retrieve<T> = {error: string, obj: null} | {error: null, obj: T};
+
+export function validate<T>(required: RequiredFields<T>, obj: any): retrieve<T>{
     type keys = keyof typeof required;
 
+    // Validar que el obj contenga todos los campos requeridos (todos los campos de required) y que sean del mismo tipo
     for (let key of Object.keys(required)){
+        let field_type = required[key as keys] as string;
+        let value = obj[key];
+        let optional = false;
+
+        if (field_type === "ignore")
+            continue
+
+        if (field_type.includes('?')){ //Campo opcional
+            optional = true;
+            [, field_type] = field_type.split('?');
+        } 
+
         if (!(key in obj))
-            return {valid: false, error: `El ${key} es obligatorio`};
-        
-        if (required[key as keys] == "any")
-            return {valid: true, error: ""}
+            if(!optional)
+                return {error: `El campo ${key} es obligatorio`, obj: null};
+            else
+                continue
 
-        if (required[key as keys] == "Date"){
-            if (!valid_date(obj[key]))
-                return {valid: false, error: `El formato de la fecha ${obj[key]} es incorrecto yyyy-mm-dd`}
-        }else if (typeof obj[key] !== required[key as keys]){
-            return {valid: false, error: `${key} debe ser de tipo ${required[key as keys]}`};
-        }
-    }
-    return {valid: true, error: ""}
-}
-
-export function valid_update(required: any, obj: any): {valid: boolean, error: string}{
-    type keys = keyof typeof required;
-
-    for (let key_o of Object.keys(obj)){
-        if (!(key_o in required)){
-            return {valid: false, error: `No se puede actualizar el campo ${key_o}`}
+        switch (field_type) {
+            case "any":
+                break;
+            case "Date":
+                if(!valid_date(value)) 
+                    return {error: `El formato de la fecha ${value} es incorrecto yyyy-mm-dd`, obj: null}
+                break;
+            default:
+                if (typeof value !== field_type)
+                    return {error: `El campo ${key} debe ser de tipo ${field_type}`, obj: null};
+                break;
         }
     }
 
-    for (let key of Object.keys(required)){
-        if (key in obj){
-            if (typeof obj[key] !== required[key as keys]){
-                return {valid: false, error: `${key} debe ser de tipo ${required[key as keys]}`}
-            }
-        }   
+    // Validar que el obj no tenga campos extras que el required no tiene.
+    for (let key of Object.keys(obj)){
+        if (!(key in required)){
+            delete obj[key]; // Eliminamos el campo que no va del obj
+        }
     }
 
-    return {valid: true, error: ""}
+    if (Object.keys(obj).length === 0)
+        return {error: "Ningun campo es valido, obj: null", obj: null}
+
+    return {error: null, obj: obj as T}
 }
