@@ -123,7 +123,8 @@ describe('Crear libro POST /libro', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        console.log(res.body);
+        chai.expect(res.body.data).to.have.property("ilustradores");
+        chai.expect(res.body.data).to.have.property("autores");        
 
         libro.ilustradores[0].id = res.body.data.ilustradores[0].id;
 

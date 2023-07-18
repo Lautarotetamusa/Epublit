@@ -102,6 +102,88 @@ export class BaseModel{
     }
 
     protected static async _delete(_where: object){
-        await this._update({is_deleted: 1}, _where);
+        let {where_query, where_list} = this.format_where(_where);
+
+        const query = `
+            DELETE FROM ${this.table_name}
+            ${where_query}`
+
+        const [result] = await conn.query<OkPacket>(query, where_list);
+        return result;
+        //await this._update({is_deleted: 1}, _where);
+    }
+
+    protected static async _bulk_insert<CT extends {}>(_req: CT[]){
+        if (_req.length == 0) return
+
+        const keys = Object.keys(_req[0]).join(",");
+        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+
+        const query = `
+            INSERT INTO ${this.table_name} (${keys})
+            VALUES ${values}`
+        console.log(query);
+
+        const [result] = await conn.query<OkPacket>(query, _req);
+
+        console.log(result);
+    }
+
+    protected static async _bulk_select<RT extends {}>(_req: RT[]): Promise<RowDataPacket[]>{
+        if (_req.length == 0) return [] as RowDataPacket[];
+
+        const keys = Object.keys(_req[0]).join(",");
+        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+
+        const query = `
+            SELECT ${this.fields ? this.fields.join(',') : "*"} 
+            FROM ${this.table_name} 
+            WHERE (${keys}) IN (${values})`
+
+        const [rows] = await conn.query<RowDataPacket[]>(query, _req);
+        return rows;
+    }
+
+    /**
+     * 
+     * @param _req 
+     * @returns
+     *  return true if all objects exists in the db \
+     *  return false if any object not exists
+     */
+    static async all_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(_req);
+        return rows.length == _req.length;
+            throw new NotFound(`El item de la tabla ${this.table_name} no se encontro`);
+    }
+
+    /**
+     * 
+     * @param _req 
+     * @returns
+     *  return true if any objects exists in the db \
+     *  return false if all the object not exists
+     */
+    static async any_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(_req);
+        console.log("ROWS: ", rows);
+        
+        return rows.length > 0;
+    }
+
+    protected static async _bulk_remove<DT extends {}>(_req: DT[]){
+        if (_req.length == 0) return
+
+        const keys = Object.keys(_req[0]).join(",");
+        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+
+        const query = `
+            DELETE FROM ${this.table_name}
+            WHERE (${keys}) in (${values})`;
+
+        const [rows] = await conn.query<OkPacket>(query);
+
+        if (rows.affectedRows == 0)
+            throw new NotFound(`No se encontró ningun item de la tabla ${this.table_name} para eliminar`);
     }
 }

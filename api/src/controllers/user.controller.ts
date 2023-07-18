@@ -36,9 +36,9 @@ const login = async (req: Request, res: Response): Promise<Response> => {
 
         const string_hash: string = Buffer.from(user.password).toString('ascii');
 
-        const valid = await bcrypt.compare(is_valid.obj.password, string_hash); 
+        //const valid = await bcrypt.compare(is_valid.obj.password, string_hash); 
 
-        if (!valid) return res.status(401).json({
+        if (is_valid.obj.password !== string_hash) return res.status(401).json({
             success: false,
             error: "Contraseña incorrecta"
         })

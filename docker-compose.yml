@@ -50,3 +50,5 @@ services:
     volumes:
       - ./facturas:/app/src/comprobantes/facturas
       - ./remitos:/app/src/comprobantes/remitos
+      - ./front/src:/app/src/
+      - ./front/public:/app/public/

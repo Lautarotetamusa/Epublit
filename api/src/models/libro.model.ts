@@ -1,4 +1,4 @@
-import {conn} from "../db"
+import { conn } from "../db"
 import { RowDataPacket } from "mysql2/promise";
 import { retrieveLibro, saveLibro, updateLibro } from "../schemas/libros.schema";
 import { TipoPersona, createPersonaLibroInDB, removePersonaLibro, updateLibroPersona } from "../schemas/libro_persona.schema";
@@ -7,9 +7,6 @@ import {  Duplicated } from './errors'
 import { BaseModel } from "./base.model";
 import { retrieveLibroPersona } from "../schemas/libro_persona.schema";
 import { LibroPersona } from "./libro_persona.model";
-
-const table_name = "libros"
-const visible_fields = "titulo, isbn, fecha_edicion, precio, stock"
 
 export class Libro extends BaseModel{
     titulo: string;
@@ -20,6 +17,7 @@ export class Libro extends BaseModel{
 
     static table_name = "libros";
     static fields = ["titulo", "isbn", "fecha_edicion", "precio", "stock"];
+    static pk = ["isbn"];
 
     constructor(request: retrieveLibro) {
         super();
@@ -62,12 +60,9 @@ export class Libro extends BaseModel{
     }
 
     static async delete(isbn: string){
-        await conn.query(`
-            DELETE FROM libros_personas
-            WHERE isbn = ?
-        `, [isbn]);
+        await LibroPersona._delete({isbn: isbn});
 
-        await super._delete({isbn: isbn});
+        await super._update({is_deleted: 1}, {isbn: isbn});
     }
 
     static async get_ventas(isbn: string): Promise<any>{
@@ -87,8 +82,8 @@ export class Libro extends BaseModel{
     static async get_paginated(page = 0): Promise<retrieveLibro[]>{
         let libros_per_page = 10;
         const query = `
-            SELECT ${visible_fields}
-            FROM ${table_name}
+            SELECT ${this.fields.join(',')}
+            FROM ${this.table_name}
             WHERE is_deleted = 0
             LIMIT ${libros_per_page}
             OFFSET ${page * libros_per_page}`
@@ -102,11 +97,11 @@ export class Libro extends BaseModel{
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
             INNER JOIN libros_personas
-            INNER JOIN ${table_name}
+            INNER JOIN ${Libro.table_name}
                 ON personas.id  = libros_personas.id_persona
-                AND ${table_name}.isbn = libros_personas.isbn
-            WHERE ${table_name}.isbn = ?
-            AND ${table_name}.is_deleted = 0`
+                AND ${Libro.table_name}.isbn = libros_personas.isbn
+            WHERE ${Libro.table_name}.isbn = ?
+            AND ${Libro.table_name}.is_deleted = 0`
 
         const [personas] = await conn.query<RowDataPacket[]>(query, [this.isbn]);
         return {

@@ -34,10 +34,11 @@
     "compile": "tsc --project .",
     "test_libro": "mocha dist/tests/libro.test.js",
     "test_persona": "mocha dist/tests/persona.test.js",
-    "test_consignacion": "mocha tests/consignacion.test.js",
-    "test_cliente": "mocha --timeout 4000 tests/cliente.test.js",
-    "test_venta": "mocha --timeout 4000 tests/venta.test.js",
-    "test": "find ./tests -name '*.test.js' | xargs mocha -R spec"
+    "test_consignacion": "mocha dist/tests/consignacion.test.js",
+    "test_liquidacion": "mocha dist/tests/liquidacion.test.js",
+    "test_cliente": "mocha --timeout 4000 dist/tests/cliente.test.js",
+    "test_venta": "mocha --timeout 4000 dist/tests/venta.test.js",
+    "test": "find ./dist/tests -name '*.test.js' | xargs mocha -R spec"
   },
   "keywords": [],
   "author": "",

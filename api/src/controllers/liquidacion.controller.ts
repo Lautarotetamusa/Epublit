@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { ValidationError, parse_error } from '../models/errors';
 
-import { LiquidacionValidator, retrieveLiquidacion } from "../schemas/liquidacion.schema";
+import { LiquidacionValidator } from "../schemas/liquidacion.schema";
 
 import { Liquidacion } from "../models/liquidacion.model";
 import { Libro } from "../models/libro.model";

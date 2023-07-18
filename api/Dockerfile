@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install curl gnupg -y \
 
 WORKDIR app/
 COPY ./api/package.json .
+RUN npm install tsc@5.1.3
 RUN npm install
+RUN tsc --proyect .
 COPY ./api/dist/src src/
 COPY ./api/src/afip/Claves src/afip/Claves
 COPY ./api/src/afip/ClavesLibrosSilvestres src/afip/ClavesLibrosSilvestres

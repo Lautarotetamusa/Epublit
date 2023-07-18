@@ -25,7 +25,6 @@ const afip = new Afip({
 	production: false,
 });
 
-
 function qr_url(voucher){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
 

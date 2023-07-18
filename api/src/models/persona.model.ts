@@ -49,7 +49,7 @@ export class Persona extends BaseModel{
     static async insert(p: createPersona) {
         return await super._insert<createPersona, Persona>(p);
     }
-    
+
     static async update(_req: updatePersona, _where: object){
         await this._update<updatePersona>(_req, _where);    
     }
@@ -71,7 +71,7 @@ export class Persona extends BaseModel{
     }
 
     static async delete(_where: object){
-        await this._delete(_where);
+        await this._update({is_deleted: 1}, _where);
     }
 
     static async get_all_by_tipo(tipo: TipoPersona): Promise<RowDataPacket[]> {

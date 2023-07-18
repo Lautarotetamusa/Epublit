@@ -11,7 +11,7 @@ CREATE TABLE users(
     password BINARY(60),
 
     PRIMARY KEY (id)
-)
+);
 
 CREATE TABLE libros(
     isbn VARCHAR(13) NOT NULL,
@@ -144,4 +144,3 @@ cond_fiscal = "CONSUMIDOR FINAL",
 razon_social = "CONSUMIDOR FINAL",
 domicilio = "",
 tipo = 0;
-

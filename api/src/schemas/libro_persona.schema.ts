@@ -1,3 +1,4 @@
+import { ValidationError } from '../models/errors';
 import { createPersona,  validatePersona } from './persona.schema'
 import { retrieve, validate } from './validate'
 
@@ -7,7 +8,7 @@ export enum TipoPersona {
 }
 export type TipoPersonaString = keyof typeof TipoPersona;
 
-type LibroPersonaPK = {
+export type LibroPersonaPK = {
     tipo: TipoPersona;
     id: number;
     isbn: string;
@@ -45,7 +46,7 @@ export class validateLibroPersona{
         if (valid.error !== null)
             return valid
 
-        if(!this.tipoPersona(valid.obj.tipo))
+        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
             return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
 
         return {error: null, obj: valid.obj}
@@ -64,7 +65,7 @@ export class validateLibroPersona{
         if (valid.error !== null)
             return valid
 
-        if(!this.tipoPersona(valid.obj.tipo))
+        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
             return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
         
         let valid_p = validatePersona.create(Object.assign({}, valid.obj));
@@ -76,9 +77,9 @@ export class validateLibroPersona{
 
     static create(obj: any): retrieve<createPersonaLibro>{
         if ("id" in obj){
-            return this.indb(obj);
+            return validateLibroPersona.indb(obj);
         }else{
-            return this.not_in_db(obj);
+            return validateLibroPersona.not_in_db(obj);
         }
     }
 
@@ -93,10 +94,22 @@ export class validateLibroPersona{
         if (valid.error !== null)
             return valid
 
-        if(!this.tipoPersona(valid.obj.tipo))
+        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
             return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
 
         return {error: null, obj: valid.obj}
+    }
+
+    static all<T>(obj: unknown[], validator: Function): T[]{
+        let valid_objs: T[] = [];
+        for (let o of obj){
+            let valid = validator(o);
+            if (valid.error !== null)
+                throw new ValidationError(valid.error);
+
+            valid_objs.push(valid.obj);
+        }
+        return valid_objs;
     }
 
     static remove(obj: unknown): retrieve<removePersonaLibro>{
@@ -109,7 +122,7 @@ export class validateLibroPersona{
         if (valid.error !== null)
             return valid
 
-        if(!this.tipoPersona(valid.obj.tipo))
+        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
             return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
 
         return {error: null, obj: valid.obj}

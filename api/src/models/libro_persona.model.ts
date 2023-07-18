@@ -1,11 +1,9 @@
 import {conn} from "../db";
-import { RowDataPacket, OkPacket } from "mysql2/promise";
+import { RowDataPacket } from "mysql2/promise";
 import { createPersonaLibroInDB, updateLibroPersona, removePersonaLibro } from "../schemas/libro_persona.schema";
 
 import { BaseModel } from "./base.model";
 import { TipoPersona, retrieveLibroPersona } from "../schemas/libro_persona.schema";
-import { Duplicated, NotFound } from "./errors";
-import { Libro } from "./libro.model";
 
 export class LibroPersona extends BaseModel{
     tipo: TipoPersona;
@@ -14,7 +12,8 @@ export class LibroPersona extends BaseModel{
     id: number;
 
     static table_name: string = "libros_personas";
-    static fields = ["tipo", "porcentaje"]
+    static fields = ["tipo", "porcentaje"];
+    static pk = ["tipo", "isbn", "id_persona"];
 
     //Validamos al momento de crear un objeto
     constructor(_req: retrieveLibroPersona) {
@@ -30,32 +29,15 @@ export class LibroPersona extends BaseModel{
         return super.find_one<removePersonaLibro, LibroPersona>(_req);
     }
 
-    static async exists(_persona: removePersonaLibro): Promise<boolean>{
-        const query = `
-            SELECT id_persona, tipo 
-            FROM ${this.table_name} 
-            WHERE (isbn, id_persona, tipo) in ((?, ?, ?))`
-
-        const [rows] = await conn.query<RowDataPacket[]>(query, [_persona.isbn, _persona.id, _persona.tipo]);
-        let res = (<RowDataPacket> await conn.query(query, [_persona.isbn, _persona.id, _persona.tipo]))[0]
-
-        return res.length > 0;
+    static async exists(p: removePersonaLibro): Promise<boolean>{
+        const rows = await super._bulk_select([{id_persona: p.id, tipo: p.tipo, isbn: p.isbn}]);
+        return rows.length > 0;
     }
 
     static async insert(personas: createPersonaLibroInDB[]){
-        for (let persona of personas) {
-            if (await this.exists(persona))
-                throw new Duplicated(`La persona ${persona.id} ya es un ${TipoPersona[persona.tipo]} del libro ${persona.isbn}`);
-        }
-
-        for (let persona of personas){
-            await super._insert({
-                tipo: persona.tipo,
-                porcentaje: persona.porcentaje,
-                isbn: persona.isbn,
-                id_persona: persona.id
-            });
-        }
+        await super._bulk_insert(personas.map(p => ({
+            id_persona: p.id, isbn: p.isbn, tipo: p.tipo, porcentaje: p.porcentaje
+        })));
     }
     
     static async update(personas: updateLibroPersona[]){
@@ -73,18 +55,9 @@ export class LibroPersona extends BaseModel{
     }
 
     static async remove(personas: removePersonaLibro[]){
-        let persona_libro = personas.map(p => `('${p.isbn}', ${p.id}, ${p.tipo})`).join(', ');  //((isbn, id, tipo), (isbn, id, tipo) ...) String
-
-        const query = `
-            DELETE FROM libros_personas
-            WHERE (isbn, id_persona, tipo) in (${persona_libro})`;
-
-        if (personas.length > 0){
-            const [rows] = await conn.query<OkPacket>(query);
-
-            if (rows.affectedRows == 0)
-                throw new NotFound(`Ninguna persona pasada trabaja en este libro con el tipo pasado`)
-        }
+        await super._bulk_remove(personas.map(p => ({
+            id_persona: p.id, isbn: p.isbn, tipo: p.tipo
+        })));
     }
 }
 
