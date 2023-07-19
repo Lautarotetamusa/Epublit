@@ -1,5 +1,3 @@
-import { number, string } from "zod";
-
 type create = {
     cliente: number,
     libros: {

@@ -5,3 +5,6 @@ package-lock.json
 #Tokens de afip
 src/afip/Claves/*
 src/afip/ClavesLibrosSilvestres/*
+
+#Ts build folder
+dist/

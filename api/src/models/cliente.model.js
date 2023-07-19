@@ -1,6 +1,6 @@
-import {conn} from '../db.js'
+import {conn} from '../db.js';
 import {ValidationError, NotFound, NothingChanged, Duplicated} from './errors.js';
-import afip from "../afip/Afip.js"
+import afip from "../afip/Afip.js";
 
 const table_name = "clientes"
 

@@ -1,4 +1,4 @@
-import Afip from '@afipsdk/afip.js';
+import Afip from './afip.js/src/Afip.js';
 
 import QRcode from 'qrcode';
 
