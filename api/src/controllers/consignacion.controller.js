@@ -13,7 +13,7 @@ ConsignacionController.consignar = async(req, res) => {
     try {
         const consignacion = new Consignacion(body);
 
-        await consignacion.set_client(body.cliente)
+        await consignacion.set_client(body.cliente);
         
         await consignacion.set_libros(body.libros);
 

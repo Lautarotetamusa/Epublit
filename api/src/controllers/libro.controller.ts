@@ -2,86 +2,110 @@ import {Request, Response} from "express";
 
 import { Persona } from "../models/persona.model.js";
 import { Libro } from "../models/libro.model.js";
-import { TipoPersona} from "../schemas/persona.schema";
-import { validateLibroPersona, createPersonaLibroInDB, createPersonaLibroNOTInDB, validateLibro  } from "../schemas/libros.schema";
-import { parse_error, ValidationError } from "../models/errors.js"
+import { validateLibro, createLibro  } from "../schemas/libros.schema";
+import { TipoPersona, createPersonaLibro, createPersonaLibroInDB, createPersonaLibroNOTInDB, removePersonaLibro, updateLibroPersona, validateLibroPersona} from "../schemas/libro_persona.schema";
+import { Duplicated, NotFound, parse_error, ValidationError } from "../models/errors.js"
+import { createPersona, validatePersona } from "../schemas/persona.schema.js";
+import { LibroPersona } from "../models/libro_persona.model.js";
 
-const create = async (req: Request, res: Response) => {
-    try {
-        if (!validateLibro.create(req.body)){
-            throw new ValidationError(validateLibro.error)
-        }
-    
-        let body = req.body;
 
-        let personas_data: Array<createPersonaLibroInDB> = [];  //Lista de personas validas y cargadas
+function parse_create_req(body: createLibro){
+    let tipos_keys: ("autores" | "ilustradores")[] = ["autores", "ilustradores"];
 
-        await Libro.is_duplicated(req.body.isbn);
-
-        let tipos_keys: ("autores" | "ilustradores")[] = ["autores", "ilustradores"];
-
-        let new_personas: createPersonaLibroNOTInDB[] = [];
-        for (let tipo of tipos_keys) { //Para cada tipo (autores, ilustradores)
-            for (let _persona of body[tipo]) { //Para cada persona
+    let personas = [];
+    for (let tipo of tipos_keys) {
+        if (tipo in body){
+            for (let _persona of body[tipo]) {
                 _persona.tipo = tipo === "autores" ? TipoPersona.autor : TipoPersona.ilustrador;
-
-                if ("id" in _persona){ //Personas ya cargadas en la DB
-                    if (!validateLibroPersona.indb(_persona))
-                        throw new ValidationError(validateLibroPersona.error)
-                    
-                    await Persona.get_by_id(_persona.id)
-                    personas_data.push(_persona);
-
-                }else{ //Personas que todavia no estan cargadas en la DB
-                    if (!validateLibroPersona.not_in_db(_persona))
-                        throw new ValidationError(validateLibroPersona.error)
-
-                    if (await Persona.exists(_persona.dni))
-                        throw new ValidationError(`La persona con dni ${_persona.dni} ya se encuentra cargada`);
-
-                    new_personas.push(_persona);
-                }
+                personas.push(_persona);
+                
             }
-        };
+        }
+    }
 
-        for (let _persona of new_personas){
-            const persona = await Persona.insert(_persona);
+    return personas;
+}
+function remove_duplicateds(list: any[]) {
+    const uniqueIds: number[] = [];
+    return list.filter(element => {
+        const isDuplicate = uniqueIds.includes(element.id);
+  
+        if (!isDuplicate) {
+          uniqueIds.push(element.id);
+          return true;
+        }
+  
+        return false;
+      });
+}
 
-            personas_data.push({
+const create = async (req: Request, res: Response) => { 
+    let personas = parse_create_req(req.body);
+    console.log(personas);
+    
+    let indb: createPersonaLibroInDB[] = [];
+    let not_indb: createPersonaLibroNOTInDB[] = [];
+
+    let valid = validateLibro.create(req.body);
+    if (valid.error !== null) return res.status(400).json({
+        success: false,
+        error: valid.error
+    });
+    const body = valid.obj;
+
+    for (let _persona of personas){
+        if ("id" in _persona){
+            indb.push(_persona);
+        }else{
+            not_indb.push(_persona);
+        }
+    }
+    
+    console.log(body);
+
+    console.log("indb:", indb);
+    console.log("not indb:", not_indb);
+
+    indb = remove_duplicateds(indb);
+    
+    try {          
+        await Libro.is_duplicated(body.isbn);
+
+        if (!await Persona.all_exists(indb.map(p => ({id: p.id}))))
+            throw new ValidationError("Alguna persona no existe");
+
+        if(await Persona.any_exists(not_indb.map(p => ({dni: p.dni}))))
+            throw new ValidationError("Alguna persona ya se encuentra cargada");
+
+        for (let _persona of not_indb){
+            let valid = validatePersona.create(Object.assign({}, _persona));
+            if (valid.error !== null) 
+                throw new ValidationError(valid.error);
+
+            const persona = await Persona.insert(valid.obj);
+
+            indb.push({
                 porcentaje: _persona.porcentaje, 
                 tipo: _persona.tipo, 
-                id: persona.id
+                id: persona.id,
+                isbn: body.isbn
             });
         }
 
-        //remover duplicados
-        const uniqueIds: number[] = [];
-        personas_data = personas_data.filter(element => {
-          const isDuplicate = uniqueIds.includes(element.id);
+        let valid = validateLibro.save(body);
+        if (valid.error !== null) 
+            throw new ValidationError(valid.error);
 
-          if (!isDuplicate) {
-            uniqueIds.push(element.id);
-            return true;
-          }
-
-          return false;
-        });
-
-        console.log("personas_data:", personas_data);
-
-        //Crear el libro
-        const libro = new Libro(body);
-
-        await libro.insert();
-        await libro.add_personas(personas_data);
+        const libro = await Libro.insert(valid.obj);
+        await libro.add_personas(indb);
 
         return res.status(201).json({
             success: true,
-            message: `Libro con isbn ${req.body.isbn} creado correctamente`,
+            message: `Libro con isbn ${body.isbn} creado correctamente`,
             data: {
                 ...libro,
-                autores:      personas_data.filter(p => p.tipo == TipoPersona.autor),
-                ilustradores: personas_data.filter(p => p.tipo == TipoPersona.ilustrador),
+                autores:      indb.filter(p => p.tipo == TipoPersona.autor),
+                ilustradores: indb.filter(p => p.tipo == TipoPersona.ilustrador),
             }
         })
 
@@ -92,7 +116,7 @@ const create = async (req: Request, res: Response) => {
 
 const remove = async(req: Request, res: Response) => {
     try {
-        await Libro.delete(req.params.isbn)
+        await Libro.delete(req.params.isbn);
 
         return res.json({
             success: true,
@@ -104,9 +128,16 @@ const remove = async(req: Request, res: Response) => {
 }
 
 const update = async(req: Request, res: Response) => {
+    let valid = validateLibro.update(req.body)
+    if (valid.error !== null) return res.status(404).json({
+        success: false,
+        error: valid.error
+    });
+    const body = valid.obj;
+
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
-        await libro.update(req.body);
+        await libro.update(body);
 
         return res.status(201).json({
             success: true,
@@ -119,40 +150,65 @@ const update = async(req: Request, res: Response) => {
 }
 
 const manage_personas = async(req: Request, res: Response) => {
-    let personas = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
+    let body = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
 
-    let code = 201
-    let message = 'creada'
-    
+    let code = 201;
+    let message = 'creadas';
+
+    let personas: any[] = [];
+        
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn);
 
-        for (let persona of personas) {
-            Libro.validate_persona(persona);
-            await Persona.get_by_id(persona.id); //Check if the person exists
-        }
+        if (!await Persona.all_exists(body.map(p => ({id: p.id}))))
+            throw new NotFound("Alguna persona no existe");
 
-        switch (req.method ) {
+        body = body.map(p => ({...p, isbn: libro.isbn}));
+
+        switch (req.method) {
             case "POST":
-                await libro.add_personas(personas);
+                let personas_i = validateLibroPersona.all<createPersonaLibroInDB>(body, validateLibroPersona.indb);
+                personas = personas_i;
+
+                if (await LibroPersona.any_exists(personas_i.map(p => ({tipo: p.tipo, isbn: p.isbn, id_persona: p.id}))))
+                    throw new Duplicated("Alguna persona ya trabaja en ese libro");
+                    
+                await libro.add_personas(personas_i);
+
                 break;
             case "PUT":
-                await libro.update_personas(personas);
-                message = 'actualizada'
+                let personas_u = validateLibroPersona.all<updateLibroPersona>(body, validateLibroPersona.update);
+                personas = personas_u;
+
+                if (!await LibroPersona.all_exists(personas_u.map(p => ({tipo: p.tipo, isbn: p.isbn, id_persona: p.id}))))
+                    throw new NotFound("Alguna persona no trabaja en este libro");
+
+                await libro.update_personas(personas_u);
+                message = 'actualizadas'
+
                 break;
             case "DELETE":
-                await libro.remove_personas(personas);
-                message = 'borrada'
+                let personas_d = validateLibroPersona.all<removePersonaLibro>(body, validateLibroPersona.remove);
+                personas = personas_d;
+
+                if (!await LibroPersona.any_exists(personas_d.map(p => ({tipo: p.tipo, isbn: p.isbn, id_persona: p.id}))))
+                    throw new Duplicated("Alguna persona ya trabaja en ese libro");
+
+                await libro.remove_personas(personas_d);
+                message = 'borradas'
                 code = 200
+                
                 break;
         }
-            
-        await libro.get_personas();
 
         return res.status(code).json({
             success: true,
             message: `Personas ${message} con exito`,
-            data: libro
+            data: {
+                ...libro,
+                personas: personas,
+
+            }
         });
 
     } catch (error: any) {
@@ -172,8 +228,12 @@ const get_ventas = async(req: Request, res: Response) => {
 const get_one = async(req: Request, res: Response) => {
     try {
         let libro = await Libro.get_by_isbn(req.params.isbn)
-        await libro.get_personas();
-        return res.json(libro);
+        const {autores, ilustradores} = await libro.get_personas();
+        return res.json({
+            ...libro,
+            autores: autores,
+            ilustradores: ilustradores
+        });
     } catch (error: any) {
         return parse_error(res, error);
     }

@@ -4,11 +4,6 @@ import jwt, { Secret } from "jsonwebtoken";
 import * as dotenv from 'dotenv'
 dotenv.config();
 
-if (!process.env.JWT_SECRET){
-    console.log("Error: la variable JWT_SECRET no está seteada");
-    process.exit(1);
-}
-
 export const auth = async (req: Request, res: Response, next: NextFunction) => { 
     const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
 

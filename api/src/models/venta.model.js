@@ -99,7 +99,6 @@ export class Venta{
         this.id = venta.insertId;
 
         let libros_venta = this.libros.map(l => [venta.insertId, l.cantidad, l.isbn, l.precio]);
-        console.log(libros_venta);
 
         await conn.query(`
             INSERT INTO libros_ventas
@@ -136,9 +135,6 @@ export class Venta{
                 ON ventas.id_cliente = clientes.id
             WHERE ventas.id = ${id}
         `))[0];
-
-        console.log(libros);
-        console.log(clientes);
 
         venta.libros = libros;
         venta.clientes = clientes;

@@ -1,4 +1,4 @@
-import Afip from '@afipsdk/afip.js';
+import Afip from './afip.js/src/Afip.js';
 
 import QRcode from 'qrcode';
 
@@ -24,7 +24,6 @@ const afip = new Afip({
 	cert: 'cert.pem',
 	production: false,
 });
-
 
 function qr_url(voucher){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';

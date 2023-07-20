@@ -8,6 +8,7 @@ import ClienteRouter from "./routes/cliente.routes.js";
 import VentaRouter from "./routes/venta.routes.js";
 import ConsignacionRouter from "./routes/consignacion.routes.js";
 import UserRouter from "./routes/user.routes.js"
+import LiquidacionRouter from "./routes/liquidacion.routes"
 
 import {auth} from "./middleware/auth";
 
@@ -52,6 +53,8 @@ app.use('/venta', auth, VentaRouter);
 app.use('/consignacion', auth, ConsignacionRouter);
 
 app.use('/user', UserRouter);
+
+app.use('/liquidacion', LiquidacionRouter);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({

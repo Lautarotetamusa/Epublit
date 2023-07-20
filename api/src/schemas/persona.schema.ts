@@ -1,10 +1,4 @@
-import {valid_required} from './validate'
-
-export enum TipoPersona {
-    autor = 0,
-    ilustrador
-}
-export type TipoPersonaString = keyof typeof TipoPersona;
+import {retrieve, validate} from './validate'
 
 export interface retrievePersona{
     nombre: string;
@@ -19,16 +13,28 @@ export interface createPersona{
     dni: string;
 }
 
+export interface updatePersona{
+    nombre?: string;
+    email?: string;
+    dni?: string;
+}
+
 export class validatePersona {
-    static error: string;
-
-    static create(obj: any): obj is createPersona{
-        let {valid, error} = valid_required({
+    static create(_obj: any): retrieve<createPersona> {
+        const required = {
             'nombre': 'string',
+            'email': 'optional?string',
             'dni': 'string',
-        }, obj)
-        if (!valid) validatePersona.error = error;
+        }
+        return validate<createPersona>(required, _obj);
+    }
 
-        return valid;
+    static update(obj: any): retrieve<updatePersona>{
+        const required = {
+            'nombre': 'optional?string',
+            'dni': 'optional?string',
+            'email': 'optional?string'
+        }
+        return validate<updatePersona>(required, obj);
     }
 }

@@ -1,11 +1,10 @@
 import {conn} from "../db";
-import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors'
-import { ILibro } from "./libro.model";
-import { createPersona, retrievePersona, TipoPersona } from "../schemas/persona.schema";
+import { RowDataPacket } from "mysql2/promise";
+import { createPersona, retrievePersona, updatePersona } from "../schemas/persona.schema";
 
-const table_name = "personas";
-const visible_fields = "id, dni, nombre, email";
+import { BaseModel } from "./base.model";
+import { TipoPersona } from "../schemas/libro_persona.schema";
+import { retrieveLibro } from "../schemas/libros.schema";
 
 export interface IPersona extends RowDataPacket{
     nombre: string;
@@ -15,139 +14,79 @@ export interface IPersona extends RowDataPacket{
     tipo?: TipoPersona;
 }
 
-//TODO: porcentaje de la persona
-export class Persona{
+export class Persona extends BaseModel{
     nombre: string;
     email: string;
     dni: string;
     id: number;
-    tipo?: TipoPersona;
-    libros?: ILibro[];
+    libros?: retrieveLibro[];
+
+    static table_name: string = "personas";
+    static fields = ["id", "dni", "nombre", "email"]
 
     //Validamos al momento de crear un objeto
     constructor(persona: retrievePersona) {
+        super();
+
         this.nombre = persona.nombre;
         this.email  = persona.email || "";
         this.dni = persona.dni;
         this.id = Number(persona.id);
     }
-    
-    static validate(request: IPersona) {
-        if (!request.nombre)
-            throw new ValidationError("El nombre es obligatorio");
 
-        if (!request.dni)
-            throw new ValidationError("El dni es obligatorio");
+    static async get_by_id(id: number): Promise<Persona> {
+        return await super.find_one<retrievePersona, Persona>({id: id, is_deleted: 0});
     }
 
+    static async get_all(): Promise<retrievePersona[]> {
+        return await super.find_all<retrievePersona>({is_deleted: 0});
+    }
+    
     static async exists(dni: string): Promise<boolean>{
-        let res: number = (await conn.query<RowDataPacket[]>(`
-            SELECT COUNT(id) as count from ${table_name}
-            WHERE dni = ?
-            AND is_deleted = 0
-        `, [dni]))[0][0].count;
-
-        return res > 0;
+        return await super._exists({dni: dni, is_deleted: 0});
     }
 
     static async insert(p: createPersona) {
-        let _persona: createPersona = {
-            nombre: p.nombre,
-            dni: p.dni,
-            email: p.email || ""
+        return await super._insert<createPersona, Persona>(p);
+    }
+
+    static async update(_req: updatePersona, _where: object){
+        await this._update<updatePersona>(_req, _where);    
+    }
+
+    /**
+     * const p = Persona.get_one({id: 1}); \
+     * p.update({nombre: "Lautaro"})
+     * @param _req 
+     * @param _where 
+     */
+    async update(_req: updatePersona){
+        await Persona._update<updatePersona>(_req, {id: this.id, is_deleted: 0});    
+
+        for (let i in _req){
+            let value = _req[i as keyof typeof _req];
+            if (value !== undefined)
+                this[i as keyof updatePersona] = value; 
         }
-
-        if (await Persona.exists(_persona.dni)){
-            throw new Duplicated(`La persona con dni ${_persona.dni} ya se encuentra cargada`);
-        }
-
-        let res = (await conn.query<OkPacket>(`
-            INSERT INTO ${table_name} SET ?`
-        , _persona))[0];
-
-        return new Persona({..._persona, id: res.insertId})
     }
 
-    async update(req: IPersona) {
-        if (req.dni && req.dni != this.dni){
-            if (await Persona.exists(req.dni))
-                throw new Duplicated(`La persona con dni ${req.dni} ya se encuentra cargada`);
-        }
+    static async delete(_where: object){
+        await this._update({is_deleted: 1}, _where);
+    }
 
-        this.nombre = req.nombre || this.nombre;
-        this.email  = req.email  || this.email;
-        this.dni    = req.dni    || this.dni;
-
+    static async get_all_by_tipo(tipo: TipoPersona): Promise<RowDataPacket[]> {
         const query = `
-            UPDATE ${table_name} SET ?
-            WHERE id = ?
-            AND is_deleted = 0`;
-
-        let res = (await conn.query<OkPacket>(query, [this, this.id]))[0];
-
-        if (res.affectedRows == 0)
-            throw new NotFound(`No se encuentra la persona con id ${this.id}`);
-
-        if (res.changedRows == 0)
-            throw new NothingChanged('Ningun valor es distinto a lo que ya existia en la base de datos');
-    }
-
-    static async delete(id: number){
-        /*await conn.query(`
-            DELETE FROM libros_personas
-            WHERE id_persona = ${id}
-        `);*/
-
-        /*let res = (await conn.query(`
-            DELETE FROM ${table_name}
-            WHERE id=${id}`
-        ))[0];*/
-
-        const query = `
-            UPDATE ${table_name}
-            SET is_deleted = 1
-            WHERE id = ?`;
-
-        let res = (await conn.query<OkPacket>(query, [id]))[0];
-
-        if (res.affectedRows == 0)
-            throw new NotFound(`No se encuentra la persona con id ${id}`);
-    }
-
-    static async get_all(): Promise<IPersona[]> {
-        let personas = (await conn.query<IPersona[]>(`
-            SELECT ${visible_fields} FROM ${table_name} 
-            WHERE is_deleted = 0
-        `))[0];
-            
-        return personas;
-    }
-
-    static async get_all_by_tipo(tipo: TipoPersona): Promise<IPersona[]> {
-        const query = `
-            SELECT ${visible_fields} FROM ${table_name} 
+            SELECT ${this.fields.join(', ')} 
+            FROM ${this.table_name} 
             INNER JOIN libros_personas
                 ON id_persona=id
             WHERE is_deleted = 0
             AND libros_personas.tipo = ?
-            GROUP BY id`
+            GROUP BY id`;
 
-        return (await conn.query<IPersona[]>(query, [tipo]))[0];
-    }
-
-    static async get_by_id(id: number): Promise<Persona> {
-        const query = `
-            SELECT ${visible_fields} FROM ${table_name} 
-            WHERE id = ?
-            AND is_deleted = 0`
-
-        let personas = (await conn.query<RowDataPacket[]>(query, [id]))[0];
-
-        if (!personas.length)
-            throw new NotFound(`La persona con id ${id} no se encontro`);
-
-        return new Persona(personas[0] as retrievePersona);
-    }
+        const [rows] = await conn.query<RowDataPacket[]>(query, [tipo]);
+        return rows;
+    }    
 
     async get_libros(){
         const query = `
@@ -155,13 +94,13 @@ export class Persona{
             FROM libros
             INNER JOIN libros_personas
                 ON libros_personas.id_persona = ?
-            INNER JOIN ${table_name}
+            INNER JOIN ${Persona.table_name}
                 ON libros.isbn = libros_personas.isbn
             WHERE personas.id = ?
-            AND personas.is_deleted = 0
-        `
+            AND personas.is_deleted = 0`;
 
-        this.libros = (await conn.query<ILibro[]>(query, [this.id, this.id]))[0];
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, this.id]);
+        this.libros = rows as retrieveLibro[];
     }
 }
 
