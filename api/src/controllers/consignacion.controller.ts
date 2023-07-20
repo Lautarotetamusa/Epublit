@@ -1,3 +1,4 @@
+import {Request, Response} from "express";
 import { Consignacion } from "../models/consignacion.model.js";
 import { Cliente } from "../models/cliente.model.js";
 import { Libro } from "../models/libro.model.js";
@@ -6,9 +7,8 @@ import { parse_error } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
 import { validateConsignacion } from "../schemas/consignaciones.schema.js";
-export const ConsignacionController = {};
 
-ConsignacionController.consignar = async(req, res) => {
+const consignar = async(req: Request, res: Response): Promise<Response> => {
     try {
         let body = validateConsignacion.create(req.body);
 
@@ -22,18 +22,18 @@ ConsignacionController.consignar = async(req, res) => {
 
         await emitir_comprobante(consignacion, "remito");
 
-        res.status(201).json({
+        return res.status(201).json({
             success: true,
             message: "Consignacion cargada correctamente",
             ...consignacion
         });
 
-    } catch (error) {
+    } catch (error: any) {
         return parse_error(res, error);
     }
 }
 
-ConsignacionController.liquidar = async(req, res) => {
+const liquidar = async(req: Request, res: Response): Promise<Response> => {
     let libros = [];
 
     try {
@@ -62,9 +62,14 @@ ConsignacionController.liquidar = async(req, res) => {
 
         const venta = new Venta(req.body);
 
-        res.status(201).json(venta);
+        return res.status(201).json(venta);
 
-    } catch (error) {
+    } catch (error: any) {
         return parse_error(res, error);
     }
+}
+
+export {
+    consignar,
+    liquidar
 }

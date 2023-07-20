@@ -4,7 +4,7 @@ import { Libro } from './libro.model.js'
 
 import { NotFound, ValidationError } from './errors.js';
 import { retrieveLibro } from '../schemas/libros.schema.js';
-import {  buildConsignacion, saveConsignacion } from '../schemas/consignaciones.schema.js';
+import {  buildConsignacion, createConsignacion, saveConsignacion } from '../schemas/consignaciones.schema.js';
 import { BaseModel } from './base.model.js';
 import { retrieveLibroPersona } from '../schemas/libro_persona.schema.js';
 
@@ -42,7 +42,7 @@ export class LibroConsignacion extends Libro {
 }
 
 export class Consignacion extends BaseModel{
-    id: number;
+    id?: number;
     file_path: string;
     libros: LibroConsignacion[];
     cliente: Cliente;
@@ -55,10 +55,6 @@ export class Consignacion extends BaseModel{
         this.file_path = req.file_path;
         this.libros = req.libros;
         this.cliente = req.cliente;
-        if ('id' in req)
-            this.id = req.id
-        else
-            this.id = 0;
     }
 
     static async set_client(id_cliente: number): Promise<Cliente>{
@@ -96,12 +92,8 @@ export class Consignacion extends BaseModel{
         return libros;        
     }
 
-    static async build(req: buildConsignacion): Promise<Consignacion>{
-        let cons = new Consignacion({
-            ...req,
-            libros: await this.set_libros(req.libros),
-            cliente: await this.set_client(req.cliente)
-        }); 
+    static async build(req: createConsignacion): Promise<Consignacion>{
+        let cliente = await this.set_client(req.cliente);
 
         let date = new Date().toISOString()
             .replace(/\..+/, '')     // delete the . and everything after;
@@ -109,9 +101,12 @@ export class Consignacion extends BaseModel{
             .replace('/-/g', '_')
             .replace('/:/g', '');
 
-        cons.file_path = cons.cliente.razon_social.replaceAll(' ', '')+'_'+date+'.pdf'; 
-
-        return cons;
+        return new Consignacion({
+            ...req,
+            libros: await this.set_libros(req.libros),
+            cliente: cliente,
+            file_path: cliente.razon_social.replaceAll(' ', '')+'_'+date+'.pdf'
+        }); 
     }
     
     async save(){

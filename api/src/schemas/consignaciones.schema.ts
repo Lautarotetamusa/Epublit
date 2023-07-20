@@ -1,12 +1,10 @@
-import { retrieveLibroPersona } from "./libro_persona.schema";
-import { retrieveLibro } from "./libros.schema";
-import { Libro } from "../models/libro.model";
 import { LibroConsignacion } from "../models/consignacion.model";
 import { validate, retrieve } from "./validate";
 import { ValidationError } from "../models/errors";
+import { scheduler } from "timers/promises";
+import { SchemaElement } from "soap/lib/wsdl/elements";
 
 export type buildConsignacion = {
-    id: number;
     cliente: any,
     libros: LibroConsignacion[];
     file_path: string;
@@ -24,27 +22,6 @@ export type createConsignacion = {
         isbn: string
     }[]
 }
-
-// GET /consignaciones
-type getAll = [
-    {
-        id: number,
-        nombre_cliente: string,
-        cuit_cliente: string
-    }
-]
-
-// GET /consignaciones/{id}
-type getOne = {
-    libros:{
-        cantidad: number,
-        isbn: string,
-        titulo: string
-    }[],
-    file_path: string,
-    fecha: Date
-}
-
 export class validateConsignacion{
     static libroConsignacion(_obj: any): {isbn: string, cantidad: number}{
         const required = {
