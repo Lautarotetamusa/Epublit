@@ -20,6 +20,7 @@ let libro = {
     "precio": 10000
 }
 
+
 it('HARD DELETE', async () => {
     let res = (await conn.query(`
         SELECT isbn FROM libros

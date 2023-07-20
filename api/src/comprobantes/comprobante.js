@@ -98,14 +98,26 @@ function remito(html, consignacion){
     var table = '';
 
     for (let libro of consignacion.libros) {
-        table += 
-            `<tr>
-            <td>${libro.titulo}</td>
-            <td>${libro.autores[0].nombre}</td>
-            <td>${libro.isbn}</td>
-            <td>${libro.cantidad}</td>
-            <td>${libro.precio}</td>
-            </tr>`;
+        console.log(libro);
+        if (libro.autores.length > 0){
+            table += 
+                `<tr>
+                <td>${libro.titulo}</td>
+                <td>${libro.autores[0].nombre}</td>
+                <td>${libro.isbn}</td>
+                <td>${libro.cantidad}</td>
+                <td>${libro.precio}</td>
+                </tr>`;
+        }else{
+            table += 
+                `<tr>
+                <td>${libro.titulo}</td>
+                <td> - </td>
+                <td>${libro.isbn}</td>
+                <td>${libro.cantidad}</td>
+                <td>${libro.precio}</td>
+                </tr>`;
+        }   
     }
 
     html = html.replace('{{LIBROS}}', table);

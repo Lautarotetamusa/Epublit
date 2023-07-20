@@ -1,6 +1,7 @@
 #!/bin/bash
 
-rm -rf dist/ 
+#rm -rf dist/src
+#rm -rf dist/tests
 tsc --project .
 
 cp -r ./src/afip/Claves ./dist/src/afip/Claves

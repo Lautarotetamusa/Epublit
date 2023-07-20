@@ -16,7 +16,3 @@ WORKDIR app/
 COPY ./api/package.json .
 RUN npm install
 COPY ./api/dist/src src/
-
-#Copiar los archivos necesarios para facturar y emitir comprobantes
-COPY api/afip afip
-COPY api/comprobantes comprobantes

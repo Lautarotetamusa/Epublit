@@ -32,7 +32,6 @@ let token;
 */
 
 it('HARD DELETE', async () => {
-    console.log("AAAAAAAA");
     await conn.query(`
         DELETE FROM personas
         WHERE dni=11111111
@@ -43,7 +42,7 @@ it('HARD DELETE', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: 'Lautaro123.'
+        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
     }
     const res = await request(app)
         .post('/user/login')
@@ -93,7 +92,6 @@ describe('POST persona/', () => {
         expect_success_code(201, res);
         
         persona.dni = '11111111';
-        console.log(token);
         persona.id = res.body.data.id;
     });
 
@@ -143,13 +141,11 @@ describe('PUT persona/{id}', () => {
         delete _persona.id;
         delete _persona.dni;
 
-        console.log(_persona);
         const res = await request(app)
             .put('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`)
             .send(_persona);
 
-        console.log(res.body);
         chai.expect(res.status).to.equal(200);
     });
 

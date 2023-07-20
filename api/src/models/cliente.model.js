@@ -52,9 +52,14 @@ export class Cliente{
         else if(afip_data.datosMonotributo)
             impuestos = afip_data.datosMonotributo.impuesto
 
-        var iva = impuestos.find(i => i.idImpuesto == 32);
-        if (iva)
-            this.cond_fiscal = iva.descripcionImpuesto;
+        if (impuestos){
+            var iva = impuestos.find(i => i.idImpuesto == 32);
+            if (iva)
+                this.cond_fiscal = iva.descripcionImpuesto;
+        }else{
+            this.cond_fiscal = " - ";
+        }
+        
 
         if (afip_data.datosGenerales.tipoPersona == 'JURIDICA')
             this.razon_social = afip_data.datosGenerales.razonSocial;

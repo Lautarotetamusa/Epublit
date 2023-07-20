@@ -24,7 +24,7 @@ let libro = {
     "precio": 10000
 }
 
-before('HARD DELETE', async () => {
+it('HARD DELETE', async () => {
     let res = (await conn.query(`
         SELECT isbn FROM libros
         WHERE isbn=${libro.isbn}
@@ -57,7 +57,7 @@ before('HARD DELETE', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: 'Lautaro123.'
+        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
     }
     const res = await request(app)
         .post('/user/login')
@@ -216,7 +216,7 @@ describe('Obtener libro GET /libro/:isbn', function () {
 
     it("Intentar obtener libro que no existe", function (done) {
         request(app)
-        .get('/libro/'+libro.isbn+1)
+        .get('/libro/'+libro.isbn+19999)
         .set('Authorization', `Bearer ${token}`)
         .expect(404, done)
     });
