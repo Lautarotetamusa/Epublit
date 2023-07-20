@@ -33,9 +33,7 @@
   "main": "src/app.js",
   "scripts": {
     "dev": "nodemon src/app.js",
-
     "compile": "/bin/bash compile.sh",
-
     "test_libro": "mocha dist/tests/libro.test.js",
     "test_persona": "mocha dist/tests/persona.test.js",
     "test_consignacion": "mocha --timeout 10000 dist/tests/consignacion.test.js",

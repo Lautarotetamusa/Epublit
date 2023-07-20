@@ -155,16 +155,13 @@ describe('CONSIGNACION', () => {
     describe('POST /consignacion', () => {
         describe('Bad request', () => {
             it('Consignacion no tiene cliente', async () => {
-                let aux_cliente = consignacion.cliente;
-                delete consignacion.cliente;
+                let _req = {libros: consignacion.libros};
 
                 const res = await request(app)
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send(consignacion);
-                expect_err_code(404, res);
-
-                consignacion.cliente = aux_cliente;
+                    .send(_req);
+                expect_err_code(400, res);
             });
             it('Un libro no tiene suficiente stock', async () => {
                 consignacion.libros[2].cantidad = 5;
@@ -180,7 +177,9 @@ describe('CONSIGNACION', () => {
         });
 
         describe('consignacion exitosa', () => {
+            
             it('Consignar', async () => {
+                //console.log("consignacion: ", consignacion);
                 const res = await request(app)
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)

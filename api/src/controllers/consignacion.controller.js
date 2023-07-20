@@ -5,21 +5,18 @@ import { Venta } from "../models/venta.model.js";
 import { parse_error } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
+import { validateConsignacion } from "../schemas/consignaciones.schema.js";
 export const ConsignacionController = {};
 
 ConsignacionController.consignar = async(req, res) => {
-    let body = req.body;
-
     try {
-        const consignacion = new Consignacion(body);
+        let body = validateConsignacion.create(req.body);
 
-        await consignacion.set_client(body.cliente);
-        
-        await consignacion.set_libros(body.libros);
+        const consignacion = await Consignacion.build(body);
+
+        await consignacion.save();
 
         await consignacion.cliente.update_stock(body.libros);
-
-        await consignacion.insert();
 
         console.log("consignacion:", consignacion);
 
@@ -38,7 +35,6 @@ ConsignacionController.consignar = async(req, res) => {
 
 ConsignacionController.liquidar = async(req, res) => {
     let libros = [];
-    let cliente;
 
     try {
         req.body.cliente = await Cliente.get_by_id(req.params.id);

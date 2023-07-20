@@ -1,4 +1,23 @@
-type create = {
+import { retrieveLibroPersona } from "./libro_persona.schema";
+import { retrieveLibro } from "./libros.schema";
+import { Libro } from "../models/libro.model";
+import { LibroConsignacion } from "../models/consignacion.model";
+import { validate, retrieve } from "./validate";
+import { ValidationError } from "../models/errors";
+
+export type buildConsignacion = {
+    id: number;
+    cliente: any,
+    libros: LibroConsignacion[];
+    file_path: string;
+}
+
+export type saveConsignacion = {
+    remito_path: string;
+    id_cliente: number;
+}
+
+export type createConsignacion = {
     cliente: number,
     libros: {
         cantidad: number,
@@ -24,4 +43,36 @@ type getOne = {
     }[],
     file_path: string,
     fecha: Date
+}
+
+export class validateConsignacion{
+    static libroConsignacion(_obj: any): {isbn: string, cantidad: number}{
+        const required = {
+            'isbn': 'string',
+            'cantidad': 'number'
+        }
+        let valid = validate<{isbn: string, cantidad: number}>(required, _obj);
+        if (valid.error !== null)
+            throw new ValidationError(valid.error);
+
+        return valid.obj;
+    }
+
+    static create(_obj: any): createConsignacion {
+        const required = {
+            'cliente': 'number',
+            'libros': 'ignore'
+        }
+        let valid = validate<createConsignacion>(required, _obj);
+        if (valid.error !== null)
+            throw new ValidationError(valid.error);
+
+        if (!('libros' in _obj))
+            throw new ValidationError("Una consignacion necesita al menos un libro");
+
+        for (let l of _obj.libros){
+            l = this.libroConsignacion(l);
+        }    
+        return _obj;
+    }
 }
