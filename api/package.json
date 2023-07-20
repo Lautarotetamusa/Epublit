@@ -34,7 +34,7 @@
   "scripts": {
     "dev": "nodemon src/app.js",
 
-    "compile": "/bin/bash compile.sh",
+    "compile": "tsc --project .",
 
     "test_libro": "mocha dist/tests/libro.test.js",
     "test_persona": "mocha dist/tests/persona.test.js",
