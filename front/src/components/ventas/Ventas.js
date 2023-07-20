@@ -1,4 +1,4 @@
-import {Button, Col, Row, Form,Table,InputGroup} from 'react-bootstrap';
+import {Button, Col, Row, Form,Table,InputGroup, Spinner} from 'react-bootstrap';
 import React from 'react';
 import { PostVenta,GetVentaById} from '../ApiHandler';
 import { formatDate } from '../libros/ListaLibros';
@@ -263,7 +263,11 @@ const ExpandedComponent = ({ data }) => {
 
   
   if(loading){
-      return <p>Loading...</p>
+    return (
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    );
   }
   else{
   return (

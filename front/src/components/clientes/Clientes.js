@@ -1,7 +1,7 @@
 import React from "react";
 import DataTable from 'react-data-table-component';
 import { DeleteCliente, PutCliente, PostCliente,GetVentas,GetVentaById,GetStockById} from '../ApiHandler';
-import { Modal, Button, Form , InputGroup,Row,Col,Table} from 'react-bootstrap';
+import { Modal, Button, Form , InputGroup,Row,Col,Table, Spinner} from 'react-bootstrap';
 import { formatDate } from "../libros/ListaLibros";
 
 
@@ -235,7 +235,6 @@ const ExpandedComponent = ({ data }) => {
             const results = await Promise.all(promises);
             const response = await GetStockById(data.id);   
             setStock(response);
-            getPath(response);
             setVentas(results);
             setLoading(false);
             
@@ -245,21 +244,14 @@ const ExpandedComponent = ({ data }) => {
         }
     };
 
-    const getPath = (venta)=> {
-    
-        if(venta != null){
-          try{
-            setPath(require(`../../comprobantes/remitos/${venta.path}`));
-          }catch{
-            console.log("no hay archivo");
-          }
-        } 
-        
-      }
 
 
     if(loading){
-        return <p>Loading...</p>
+        return (
+            <Spinner animation="border" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </Spinner>
+          );
     }
     else{
     return (
@@ -308,7 +300,7 @@ const ExpandedComponent = ({ data }) => {
 
         </tbody>
         </Table>
-        <h4>Consignaciones</h4>
+        <h4>Stock Consignado</h4>
         <Table striped bordered hover size="sm">
         <thead>
             <tr>
@@ -329,7 +321,6 @@ const ExpandedComponent = ({ data }) => {
             
         </tbody>
         </Table>
-        <Button variant="success" onClick={() => window.open(path, '_blank')}>Remito</Button>
         </div>
     );
     }
