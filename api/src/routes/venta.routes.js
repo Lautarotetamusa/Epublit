@@ -1,7 +1,7 @@
 import express from "express"
 
-import {VentaController} from "../controllers/venta.controller.js"
-import {Venta} from "../models/venta.model.js"
+import {VentaController} from "../controllers/venta.controller"
+import {Venta} from "../models/venta.model"
 
 const router = express.Router();
 

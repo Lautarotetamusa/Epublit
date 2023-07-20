@@ -12,7 +12,6 @@ services:
       - $DB_PORT:$DB_PORT
     volumes:
       - ./db:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
-      #- /var/lib/mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
       - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
   
   app:
@@ -27,8 +26,9 @@ services:
     environment:
       - DB_HOST=mysqldb
     command: npm run dev
+    #command: node src/app.js
     volumes:
-     - ./api/src:/app/src
+     - ./api/dist/src:/app/src  #Solamete en dev, mantener archivos con lo compilado en dist/
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
 
@@ -49,3 +49,5 @@ services:
     volumes:
       - ./facturas:/app/src/comprobantes/facturas
       - ./remitos:/app/src/comprobantes/remitos
+      - ./front/src:/app/src/
+      - ./front/public:/app/public/

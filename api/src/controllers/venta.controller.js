@@ -24,6 +24,8 @@ VentaController.vender = async(req, res) => {
         }
         
         await venta.insert();
+
+        console.log(venta);
     
         await facturar(venta);
     
@@ -39,11 +41,15 @@ VentaController.vender = async(req, res) => {
 }
 
 VentaController.get_factura = async(req, res) => {
-    const venta = await Venta.get_by_id(req.params.id);
+    try {
+        const venta = await Venta.get_by_id(req.params.id);
 
-    console.log(venta.file_path);
+        console.log(venta.file_path);
 
-    res.download('facturas/'+venta.file_path);
+        res.download('facturas/'+venta.file_path);
+    } catch (error) {
+        return parse_error(res, error);   
+    }
 }
 
 VentaController.get_one = async(req, res) => {

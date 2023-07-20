@@ -5,7 +5,7 @@
 
 # Instalacion con docker
 Instalar docker
-`sudo apt install docker`
+![Ubuntu] (https://docs.docker.com/engine/install/ubuntu/)
 
 Agregar docker a sudo
 `sudo usermod -aG docker $USER`

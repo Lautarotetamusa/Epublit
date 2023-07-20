@@ -44,7 +44,10 @@ export class Consignacion{
         this.libros = [];
         for (let i in req) {
             this.libros[i] = await Libro.get_by_isbn(req[i].isbn);
-            await this.libros[i].get_personas();
+            let {autores, ilustradores} = await this.libros[i].get_personas();
+            this.libros[i].autores = autores;
+            this.libros[i].ilustradores = ilustradores;
+
             this.libros[i].cantidad = req[i].cantidad;
 
             if (this.libros[i].stock < req[i].cantidad)

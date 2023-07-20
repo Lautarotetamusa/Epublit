@@ -4,6 +4,15 @@ GRANT ALL PRIVILEGES ON *.* TO 'teti'@'%' WITH GRANT OPTION;
 CREATE DATABASE IF NOT EXISTS librossilvestres;
 USE librossilvestres;
 
+CREATE TABLE users(
+    id INT(11) NOT NULL AUTO_INCREMENT,
+
+    username VARCHAR(25),
+    password BINARY(60),
+
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE libros(
     isbn VARCHAR(13) NOT NULL,
     titulo VARCHAR(60) NOT NULL,
@@ -33,6 +42,7 @@ CREATE TABLE libros_personas(
     tipo TINYINT DEFAULT 0 NOT NULL,
     porcentaje FLOAT DEFAULT 0,
 
+    PRIMARY KEY (isbn, id_persona, tipo),
     FOREIGN KEY (isbn) REFERENCES libros(isbn),
     FOREIGN KEY (id_persona) REFERENCES personas(id)
 );
@@ -105,8 +115,26 @@ CREATE TABLE libros_ventas(
     cantidad INT NOT NULL,
     precio_venta FLOAT NOT NULL,
 
+    PRIMARY KEY (isbn, id_venta),
     FOREIGN KEY (isbn) REFERENCES libros(isbn),
     FOREIGN KEY (id_venta) REFERENCES ventas(id)
+);
+
+CREATE TABLE liquidaciones(
+    id INT(11) NOT NULL AUTO_INCREMENT,
+
+    isbn VARCHAR(13) NOT NULL,
+    id_persona INT(11) NOT NULL,
+    tipo_persona TINYINT DEFAULT 0 NOT NULL,
+
+    fecha_inicial DATE NOT NULL,
+    fecha_final DATE NOT NULL,
+    total FLOAT NOT NULL,
+    file_path VARCHAR(80) NOT NULL,
+
+    PRIMARY KEY (id, isbn, id_persona, tipo_persona),
+    FOREIGN KEY (isbn) REFERENCES libros_ventas(isbn),
+    FOREIGN KEY (isbn, id_persona, tipo_persona) REFERENCES libros_personas(isbn, id_persona, tipo)
 );
 
 /*Cliente Consumidor final*/
@@ -116,4 +144,3 @@ cond_fiscal = "CONSUMIDOR FINAL",
 razon_social = "CONSUMIDOR FINAL",
 domicilio = "",
 tipo = 0;
-

@@ -1,5 +1,9 @@
+import {Response} from "express"
+
 export class ValidationError extends Error {
-    constructor(message){
+    status: number;
+
+    constructor(message: string){
         super(message);
         this.name = "ValidationError";
         this.status = 400;
@@ -7,7 +11,9 @@ export class ValidationError extends Error {
 }
 
 export class NotFound extends Error {
-    constructor(message){
+    status: number;
+
+    constructor(message: string){
         super(message);
         this.name = "NotFound";
         this.status = 404;
@@ -15,7 +21,9 @@ export class NotFound extends Error {
 }
 
 export class NothingChanged extends Error {
-    constructor(message){
+    status: number;
+
+    constructor(message: string){
         super(message);
         this.name = "NothingChanged";
         this.status = 200;
@@ -23,7 +31,9 @@ export class NothingChanged extends Error {
 }
 
 export class Duplicated extends Error {
-    constructor(message){
+    status: number;
+
+    constructor(message: string){
         super(message);
         this.name = "Duplicated";
         this.status = 404;
@@ -31,7 +41,7 @@ export class Duplicated extends Error {
 }
 
 
-export function parse_error(res, error){
+export function parse_error(res: Response, error: Error){
     console.log(error);
     if (error instanceof ValidationError || error instanceof NotFound || error instanceof NothingChanged || error instanceof Duplicated)
         return res.status(error.status).json({
@@ -46,7 +56,7 @@ export function parse_error(res, error){
         })
     }
         
-    console.log("parse_error:", error);
+    //console.log("parse_error:", error);
     return res.status(500).json({
         success:false, 
         error: error.message
