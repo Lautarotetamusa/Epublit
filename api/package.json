@@ -32,7 +32,7 @@
   "version": "1.0.0",
   "main": "src/app.js",
   "scripts": {
-    "dev": "nodemon src/app.js",
+    "dev": "nodemon dist/app.js",
 
     "compile": "/bin/bash compile.sh",
 
