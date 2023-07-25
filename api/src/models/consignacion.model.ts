@@ -4,9 +4,10 @@ import { Libro } from './libro.model.js'
 
 import { NotFound, ValidationError } from './errors.js';
 import { retrieveLibro } from '../schemas/libros.schema.js';
-import {  buildConsignacion, createConsignacion, saveConsignacion } from '../schemas/consignaciones.schema.js';
+import {  buildConsignacion, createConsignacion, saveConsignacion, createLibroConsignacion } from '../schemas/consignaciones.schema.js';
 import { BaseModel } from './base.model.js';
 import { retrieveLibroPersona } from '../schemas/libro_persona.schema.js';
+import { TipoCliente } from '../schemas/cliente.schema.js';
 
 /*
     crear consignacion
@@ -34,7 +35,7 @@ export class LibroConsignacion extends Libro {
         this.ilustradores = req.ilustradores;
     }
 
-    static async insert_i(_req: buildConsignacion){
+    static async insert_i(_req: createLibroConsignacion){
         await super._bulk_insert(_req.libros.map(l => ({
             id_consignacion: _req.id, isbn: l.isbn, stock: l.cantidad, 
         })));
@@ -49,12 +50,14 @@ export class Consignacion extends BaseModel{
 
     static table_name = "consignaciones";
 
-    constructor(req: buildConsignacion){
+    constructor(req: buildConsignacion & {id?: number}){
         super();
 
         this.file_path = req.file_path;
         this.libros = req.libros;
         this.cliente = req.cliente;
+        if ('id' in req)
+            this.id = req.id;
     }
 
     static async set_client(id_cliente: number): Promise<Cliente>{
@@ -62,7 +65,7 @@ export class Consignacion extends BaseModel{
 
         let cliente = await Cliente.get_by_id(id_cliente);
 
-        if (cliente.tipo == Cliente.particular){
+        if (cliente.tipo == TipoCliente.particular){
             throw new ValidationError("No se puede hacer una consignacion a un cliente CONSUMIDOR FINAL");
         }
         return cliente;
@@ -105,7 +108,7 @@ export class Consignacion extends BaseModel{
             ...req,
             libros: await this.set_libros(req.libros),
             cliente: cliente,
-            file_path: cliente.razon_social.replaceAll(' ', '')+'_'+date+'.pdf'
+            file_path: cliente.razon_social.replace('/-/g', '')+'_'+date+'.pdf'
         }); 
     }
     
@@ -118,8 +121,8 @@ export class Consignacion extends BaseModel{
 
         console.log("cons:", this);
         
-        await LibroConsignacion.insert_i(this);
-
+        await LibroConsignacion.insert_i(this as createLibroConsignacion);
+        
         for (const libro of this.libros) {
             await libro.update_stock(-libro.cantidad);
         }

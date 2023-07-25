@@ -1,13 +1,20 @@
 import { LibroConsignacion } from "../models/consignacion.model";
 import { validate, retrieve } from "./validate";
 import { ValidationError } from "../models/errors";
-import { scheduler } from "timers/promises";
-import { SchemaElement } from "soap/lib/wsdl/elements";
 
 export type buildConsignacion = {
     cliente: any,
     libros: LibroConsignacion[];
     file_path: string;
+}
+
+export type createLibroConsignacion = {
+    cliente: any,
+    id: number,
+    libros: {
+        cantidad: number,
+        isbn: string
+    }[]
 }
 
 export type saveConsignacion = {

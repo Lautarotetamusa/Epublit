@@ -41,6 +41,8 @@ export class BaseModel{
             FROM ${this.table_name}
             ${where_query}`;
 
+        console.log(query);
+
         const [rows] = await conn.query<RowDataPacket[]>(query, where_list);
         return rows[0].count > 0;
     }

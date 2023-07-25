@@ -1,7 +1,7 @@
 import express from "express";
 
-import {ClienteController} from "../controllers/cliente.controller";
-import {ConsignacionController} from "../controllers/consignacion.controller";
+import ClienteController from "../controllers/cliente.controller";
+import ConsignacionController from "../controllers/consignacion.controller";
 
 const router = express.Router();
 
@@ -15,9 +15,10 @@ router.get('/:id/ventas', ClienteController.get_ventas);
 router.post('/:id/liquidacion', ConsignacionController.liquidar);
 
 router.get('/:id', ClienteController.get_one);
+router.get('/consumidor_final', ClienteController.get_one);
 
-router.put('/:id', ClienteController.update)
+router.put('/:id', ClienteController.update);
 
-router.delete('/:id', ClienteController.delet)
+router.delete('/:id', ClienteController.delet);
 
 export default router;

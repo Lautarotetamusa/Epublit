@@ -3,10 +3,11 @@ import { Consignacion } from "../models/consignacion.model.js";
 import { Cliente } from "../models/cliente.model.js";
 import { Libro } from "../models/libro.model.js";
 import { Venta } from "../models/venta.model.js";
-import { parse_error } from "../models/errors.js"
+import { ValidationError, parse_error } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
 import { validateConsignacion } from "../schemas/consignaciones.schema.js";
+import { TipoCliente } from "../schemas/cliente.schema.js";
 
 const consignar = async(req: Request, res: Response): Promise<Response> => {
     try {
@@ -34,12 +35,18 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
 }
 
 const liquidar = async(req: Request, res: Response): Promise<Response> => {
-    let libros = [];
+    const id = Number(req.params.id);
+    let libros: Libro[] = [];
+    let cliente: Cliente;
 
     try {
-        req.body.cliente = await Cliente.get_by_id(req.params.id);
+        if (!id) throw new ValidationError("El id debe ser un numero");
 
-        if(req.body.cliente.tipo == Cliente.particular){
+        let body = validateConsignacion.create(req.body);
+
+        cliente = await Cliente.get_by_id(id);
+
+        if(cliente.tipo == TipoCliente.particular){
             return res.status(400).json({
                 success: false,
                 error: "No se puede hacer una liquidacion a un cliente CONSUMIDOR FINAL"
@@ -47,20 +54,26 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         }
   
         //Validar que los libros existan
-        for (let i in req.body.libros) {
-            libros[i] = await Libro.get_by_isbn(req.body.libros[i].isbn);
+        for (let i in body.libros) {
+            let libro = await Libro.get_by_isbn(body.libros[i].isbn);
+            //libros.push(libro);
 
-            await libros[i].update_stock(req.body.libros[i].cantidad);
+            await libro.update_stock(body.libros[i].cantidad);
         }
 
-        await req.body.cliente.have_stock(req.body.libros);
+        await cliente.have_stock(body.libros);
 
         //Actualizar el stock del cliente
-        let substacted_stock = req.body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
+        let substacted_stock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
         console.log(substacted_stock);
-        await req.body.cliente.update_stock(substacted_stock);
+        await cliente.update_stock(substacted_stock);
 
-        const venta = new Venta(req.body);
+        const venta = new Venta({
+            cliente: body.cliente,
+            libros: body.libros,
+            descuento: 0,
+            medio_pago: "debito"
+        });
 
         return res.status(201).json(venta);
 
@@ -69,7 +82,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     }
 }
 
-export {
+export default{
     consignar,
     liquidar
 }

@@ -1,0 +1,80 @@
+import { validate } from "./validate";
+import { ValidationError } from "../models/errors";
+
+export enum TipoCliente{
+    particular,
+    inscripto
+}
+
+export interface AfipData {
+    cond_fiscal: string,
+    razon_social: string,
+    domicilio: string,
+}
+
+export interface saveClienteInscripto extends AfipData{
+    nombre: string,
+    email?: string,
+    cuit: string,
+    tipo: TipoCliente
+}
+export interface retrieveCliente extends saveClienteInscripto{
+    id: number
+}
+export type updateCliente = {
+    nombre?: string,
+    email?: string,
+    cuit?: string,
+}
+
+export type createCliente = {
+    nombre: string,
+    email?: string
+    cuit: string
+}
+
+export type stockCliente = {
+    cantidad: number, 
+    isbn: string
+}[]
+
+export class validateCliente{
+    static tipoCliente(tipo: any): tipo is TipoCliente{
+        return Object.values(TipoCliente).includes(tipo);
+    }
+
+    static create(_obj: any): createCliente {
+        const required = {
+            'nombre': 'string',
+            'email': 'optional?string',
+            'cuit': 'string'
+        }
+        let valid = validate<createCliente>(required, _obj);
+        if (valid.error !== null)
+            throw new ValidationError(valid.error);
+
+        /*if(!('tipo' in _obj))
+            throw new ValidationError("El tipo es obligatorio");
+        
+        if(!validateCliente.tipoCliente(valid.obj.tipo))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoCliente)}`);
+            
+        if(_obj.tipo == TipoCliente.particular)
+            throw new ValidationError("No se puede crear un cliente de tipo consumidor final");*/
+
+        return valid.obj;
+    }
+
+    static update(_obj: any): updateCliente{
+        const required = {
+            'nombre': 'optional?string',
+            'email': 'optional?string',
+            'cuit': 'optional?string'
+        }
+        let valid = validate<createCliente>(required, _obj);
+        if (valid.error !== null)
+            throw new ValidationError(valid.error);
+
+        return valid.obj;
+    }
+}

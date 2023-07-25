@@ -1,6 +1,6 @@
 import express from "express"
 
-import {ConsignacionController} from "../controllers/consignacion.controller"
+import ConsignacionController from "../controllers/consignacion.controller"
 
 const router = express.Router();
 

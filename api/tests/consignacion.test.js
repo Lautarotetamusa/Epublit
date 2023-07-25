@@ -14,7 +14,7 @@ const app = 'http://localhost:3001'
 
 let token;
 let cliente = {
-    cuit: 20442317632,
+    cuit: '20442317632',
     nombre: "ClienteTest",
     email: "clientetest@gmail.com",
     tipo: 1
