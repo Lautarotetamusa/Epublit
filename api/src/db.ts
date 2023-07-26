@@ -1,6 +1,6 @@
-import {createPool, PoolOptions, Pool} from "mysql2/promise"
+import { createPool, PoolOptions, Pool } from "mysql2/promise";
 
-import * as dotenv from 'dotenv'
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 /*console.log(process.env.DB_HOST);
@@ -9,7 +9,7 @@ console.log(process.env.DB_PASS);
 console.log(process.env.DB_PORT);
 console.log(process.env.DB_NAME);*/
 
-const port = process.env.DB_PORT ? process.env.DB_PORT : 3306;
+const port: number = Number(process.env.DB_PORT) ? Number(process.env.DB_PORT) : 3306;
 
 const options = {
     host:       process.env.DB_HOST,

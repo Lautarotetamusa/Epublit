@@ -1,10 +1,11 @@
-import {conn} from '../db.js';
-import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors.js';
-import afip from "../afip/Afip.js";
+import { conn } from '../db.js';
+import { ValidationError, NotFound } from './errors.js';
 import { BaseModel } from './base.model.js';
 import { AfipData, TipoCliente, createCliente, retrieveCliente, saveClienteInscripto, stockCliente, updateCliente } from '../schemas/cliente.schema.js';
 import { RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model.js';
+
+import afip from "../afip/Afip.js";
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
