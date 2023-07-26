@@ -25,8 +25,10 @@ services:
       - $BACK_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    command: node dist/app.js
+    command: npm run dev
+    #command: node src/app.js
     volumes:
+     - ./api/dist/src:/app/src  #Solamete en dev, mantener archivos con lo compilado en dist/
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
 
@@ -47,3 +49,5 @@ services:
     volumes:
       - ./facturas:/app/src/comprobantes/facturas
       - ./remitos:/app/src/comprobantes/remitos
+      - ./front/src:/app/src/
+      - ./front/public:/app/public/
