@@ -46,16 +46,13 @@ export interface createVenta extends basic {
 }
 
 export class validateVenta{
-    static libroVenta(_obj: any): {isbn: string, cantidad: number}{
+    static libroVenta(_obj: any): libroVenta{
         const required = {
             'isbn': 'string',
             'cantidad': 'number'
         }
-        let valid = validate<{isbn: string, cantidad: number}>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
-
-        return valid.obj;
+        let valid = validate<libroVenta>(required, _obj);
+        return valid;
     }
 
     static medioPago(tipo: any): tipo is medio_pago{
@@ -70,12 +67,8 @@ export class validateVenta{
             'medio_pago': 'ignore'
         }
         let valid = validate<createVenta>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
-
-        console.log("valid medio pago:", this.medioPago(valid.obj.medio_pago));
         
-        if (!this.medioPago(valid.obj.medio_pago))
+        if (!this.medioPago(valid.medio_pago))
             throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(medio_pago)}`);
 
         if (!('libros' in _obj))

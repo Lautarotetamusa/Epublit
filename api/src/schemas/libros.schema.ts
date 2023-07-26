@@ -1,5 +1,6 @@
+import { ValidationError } from '../models/errors';
 import { createPersonaLibro, validateLibroPersona } from './libro_persona.schema';
-import { retrieve, validate } from './validate';
+import {validate} from './validate';
 
 export interface retrieveLibro{
     titulo: string,
@@ -24,7 +25,7 @@ export interface updateLibro{
 }
 
 export class validateLibro{
-    static create(_obj: any): retrieve<createLibro> {
+    static create(_obj: any): createLibro{
         const required = {
             'titulo': 'string',
             'isbn': 'string',
@@ -34,21 +35,16 @@ export class validateLibro{
             'autores': 'ignore',
             'ilustradores': 'ignore'
         }
-        let valid = validate<createLibro>(required, _obj);
-        if (valid.error !== null) return {error: valid.error, obj: null}
-
-        let obj = valid.obj;
+        let obj = validate<createLibro>(required, _obj);
 
         if (!('ilustradores' in obj) && !('autores' in obj)){
-            return {error: "Un libro debe tener al menos un autor o un ilustrador", obj: null}
+            throw new ValidationError("Un libro debe tener al menos un autor o un ilustrador");
         }
 
         if ('autores' in obj && Array.isArray(obj.autores)){
             for (let o of obj.autores){
                 o.isbn = obj.isbn;
                 let valid_p = validateLibroPersona.create(o);
-                if (valid_p.error !== null)
-                    return valid_p
             }
         }
 
@@ -56,15 +52,13 @@ export class validateLibro{
             for (let o of obj.ilustradores){
                 o.isbn = obj.isbn;
                 let valid_p = validateLibroPersona.create(o);
-                if (valid_p.error !== null)
-                    return valid_p
             }
         }
 
-        return valid;
+        return obj;
     }
 
-    static save(_obj: any): retrieve<saveLibro> {
+    static save(_obj: any): saveLibro{
         const required = {
             'titulo': 'string',
             'isbn': 'string',
@@ -75,7 +69,7 @@ export class validateLibro{
         return validate<saveLibro>(required, _obj);
     }
 
-    static update(obj: any): retrieve<updateLibro>{
+    static update(obj: any): updateLibro{
         const required = {
             'titulo': 'optional?string',
             'isbn': 'optional?string',

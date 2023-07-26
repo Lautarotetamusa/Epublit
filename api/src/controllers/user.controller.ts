@@ -8,12 +8,10 @@ import jwt, {Secret} from "jsonwebtoken";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     let valid = validateUser.create(req.body)
-    if (valid.error !== null)
-        throw new ValidationError(valid.error)
 
-    req.body.password = await bcrypt.hash(valid.obj.password, 10);
+    req.body.password = await bcrypt.hash(valid.password, 10);
 
-    const user = await User.insert(valid.obj);
+    const user = await User.insert(valid);
     return res.status(200).json({
         success: true,
         message: "Usuario creado correctamente",
@@ -22,22 +20,16 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const login = async (req: Request, res: Response): Promise<Response> => {
-    let is_valid = validateUser.create(req.body);
-    if (is_valid.error !== null)
-        throw new ValidationError(is_valid.error)
-
-    const user = await User.get_one(is_valid.obj.username);
-
+    let valid = validateUser.create(req.body);
+    const user = await User.get_one(valid.username);
     const string_hash: string = Buffer.from(user.password).toString('ascii');
 
-    //const valid = await bcrypt.compare(is_valid.obj.password, string_hash); 
-
-    if (is_valid.obj.password !== string_hash) return res.status(401).json({
+    if (valid.password !== string_hash) return res.status(401).json({
         success: false,
         error: "Contraseña incorrecta"
     })
 
-    const token = jwt.sign(is_valid.obj, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const token = jwt.sign(valid, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
 
     return res.status(200).json({
         success: true,

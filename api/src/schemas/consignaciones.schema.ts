@@ -35,11 +35,7 @@ export class validateConsignacion{
             'isbn': 'string',
             'cantidad': 'number'
         }
-        let valid = validate<{isbn: string, cantidad: number}>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
-
-        return valid.obj;
+        return validate<{isbn: string, cantidad: number}>(required, _obj);
     }
 
     static create(_obj: any): createConsignacion {
@@ -48,8 +44,6 @@ export class validateConsignacion{
             'libros': 'ignore'
         }
         let valid = validate<createConsignacion>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
 
         if (!('libros' in _obj))
             throw new ValidationError("Una consignacion necesita al menos un libro");

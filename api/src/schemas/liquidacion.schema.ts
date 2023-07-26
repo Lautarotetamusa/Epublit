@@ -1,5 +1,6 @@
-import {retrieve, validate} from './validate';
+import {validate} from './validate';
 import { validateLibroPersona, TipoPersona } from './libro_persona.schema';
+import { ValidationError } from '../models/errors';
 
 export interface createLiquidacion{
     isbn: string;
@@ -20,7 +21,7 @@ export interface retrieveLiquidacion extends saveLiquidacion{
 }
 
 export class LiquidacionValidator{
-    static create(obj: any): retrieve<createLiquidacion>{
+    static create(obj: any): createLiquidacion{
         const required = {
             'isbn': 'string',
             'id_persona': 'number',            
@@ -30,13 +31,10 @@ export class LiquidacionValidator{
         };
 
         let valid = validate<createLiquidacion>(required, obj)
-        if (valid.error !== null) 
-            return {error: valid.error, obj: null}
 
-        if (!validateLibroPersona.tipoPersona(valid.obj.tipo_persona))
-            return {error: "El tipo pasado no es correcto", obj: null}
+        if(!validateLibroPersona.tipoPersona(valid.tipo_persona))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
 
         return valid;
     }
-
 }

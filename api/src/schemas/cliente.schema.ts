@@ -53,19 +53,17 @@ export class validateCliente{
             'tipo': 'ignore'
         }
         let valid = validate<createCliente>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
 
         if(!('tipo' in _obj))
             throw new ValidationError("El tipo es obligatorio");
         
-        if(!validateCliente.tipoCliente(valid.obj.tipo))
+        if(!validateCliente.tipoCliente(valid.tipo))
             throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoCliente)}`);
             
         if(_obj.tipo != TipoCliente.inscripto)
             throw new ValidationError(`No se puede crear un cliente de tipo ${String(_obj.tipo)}`);
 
-        return valid.obj;
+        return valid;
     }
 
     static update(_obj: any): updateCliente{
@@ -74,10 +72,6 @@ export class validateCliente{
             'email': 'optional?string',
             'cuit': 'optional?string'
         }
-        let valid = validate<updateCliente>(required, _obj);
-        if (valid.error !== null)
-            throw new ValidationError(valid.error);
-
-        return valid.obj;
+        return validate<updateCliente>(required, _obj);
     }
 }

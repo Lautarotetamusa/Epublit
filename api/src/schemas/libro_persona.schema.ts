@@ -1,6 +1,6 @@
 import { ValidationError } from '../models/errors';
 import { createPersona,  validatePersona } from './persona.schema'
-import { retrieve, validate } from './validate'
+import { validate } from './validate'
 
 export enum TipoPersona {
     autor = 0,
@@ -35,7 +35,7 @@ export class validateLibroPersona{
         return Object.values(TipoPersona).includes(tipo);
     }
 
-    static indb(obj: any): retrieve<createPersonaLibroInDB>{
+    static indb(obj: any): createPersonaLibroInDB{
         const required = {
             'porcentaje': 'number',
             'id': 'number',
@@ -43,16 +43,14 @@ export class validateLibroPersona{
             'tipo': 'ignore'
         }
         let valid = validate<createPersonaLibroInDB>(required, obj);
-        if (valid.error !== null)
-            return valid
 
-        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
-            return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
+        if(!validateLibroPersona.tipoPersona(valid.tipo))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
 
-        return {error: null, obj: valid.obj}
+        return valid;
     }
 
-    static not_in_db(obj: any): retrieve<createPersonaLibroNOTInDB>{
+    static not_in_db(obj: any): createPersonaLibroNOTInDB{
         const required = {
             'porcentaje': 'number',
             'tipo': 'ignore',
@@ -62,20 +60,16 @@ export class validateLibroPersona{
             'dni': 'ignore'
         }
         let valid = validate<createPersonaLibroNOTInDB>(required, obj);
-        if (valid.error !== null)
-            return valid
 
-        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
-            return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
+        if(!validateLibroPersona.tipoPersona(valid.tipo))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
         
-        let valid_p = validatePersona.create(Object.assign({}, valid.obj));
-        if (valid_p.error !== null)
-            return valid_p
-        
-        return {error: null, obj: Object.assign({}, valid.obj, valid_p.obj)}
+        let valid_p = validatePersona.create(Object.assign({}, valid));
+
+        return Object.assign({}, valid, valid_p);
     }
 
-    static create(obj: any): retrieve<createPersonaLibro>{
+    static create(obj: any): createPersonaLibro{
         if ("id" in obj){
             return validateLibroPersona.indb(obj);
         }else{
@@ -83,7 +77,7 @@ export class validateLibroPersona{
         }
     }
 
-    static update(obj: unknown): retrieve<updateLibroPersona>{
+    static update(obj: unknown): updateLibroPersona{
         const required = {
             'porcentaje': 'number',
             'id': 'number',
@@ -91,13 +85,11 @@ export class validateLibroPersona{
             'tipo': 'ignore'
         }
         let valid = validate<updateLibroPersona>(required, obj);
-        if (valid.error !== null)
-            return valid
 
-        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
-            return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
+        if(!validateLibroPersona.tipoPersona(valid.tipo))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
 
-        return {error: null, obj: valid.obj}
+        return valid;
     }
 
     static all<T>(obj: unknown[], validator: Function): T[]{
@@ -112,19 +104,17 @@ export class validateLibroPersona{
         return valid_objs;
     }
 
-    static remove(obj: unknown): retrieve<removePersonaLibro>{
+    static remove(obj: unknown): removePersonaLibro{
         const required = {
             'id': 'number',
             'isbn': 'string',
             'tipo': 'ignore'
         }
         let valid = validate<removePersonaLibro>(required, obj);
-        if (valid.error !== null)
-            return valid
 
-        if(!validateLibroPersona.tipoPersona(valid.obj.tipo))
-            return {error: `El tipo pasado no es correcto ${Object.keys(TipoPersona)}`, obj: null}
+        if(!validateLibroPersona.tipoPersona(valid.tipo))
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
 
-        return {error: null, obj: valid.obj}
+        return valid;
     }
 }

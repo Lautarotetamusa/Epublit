@@ -204,7 +204,7 @@ describe('CONSIGNACION', () => {
             
                 expect_success_code(201, res);
 
-                consignacion = res.body;
+                consignacion = res.body.data;
             });
             it('Los libros reducieron su stock', async () => {
                 for (const libro of consignacion.libros) {

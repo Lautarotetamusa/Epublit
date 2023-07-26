@@ -5,12 +5,7 @@ import { validatePersona } from "../schemas/persona.schema";
 import { TipoPersona, TipoPersonaString } from "../schemas/libro_persona.schema";
 
 const create = async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
-    let valid = validatePersona.create(req.body);
-    if (valid.error !== null) return res.status(400).json({
-        success: false,
-        error: valid.error
-    })
-    const body = valid.obj;
+    const body = validatePersona.create(req.body);
     
     if (await Persona.exists(body.dni))
         throw new Duplicated(`La persona con dni ${body.dni} ya se encuentra cargada`);
@@ -25,16 +20,10 @@ const create = async (req: Request, res: Response, next: NextFunction): Promise<
 }
 
 const update = async (req: Request, res: Response): Promise<Response> => {
-    let valid = validatePersona.update(req.body);
-    if (valid.error !== null) return res.status(400).json({
-        success: false,
-        error: valid.error
-    })
-    const body = valid.obj;
     const id = Number(req.params.id);
+    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
-    if (!id)
-        throw new ValidationError("El id de la persona debe ser un integer");
+    const body = validatePersona.update(req.body);
 
     const persona = await Persona.get_by_id(id);
 
@@ -52,8 +41,8 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const remove = async (req: Request, res: Response): Promise<Response> => {    
-    if (!Number(req.params.id))
-        throw new ValidationError("El id de la persona debe ser un integer");
+    const id = Number(req.params.id);
+    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
     await Persona.delete({id: req.params.id})
 

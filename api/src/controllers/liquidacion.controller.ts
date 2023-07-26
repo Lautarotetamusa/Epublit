@@ -9,11 +9,7 @@ import { Persona } from "../models/persona.model";
 import { LibroPersona } from "../models/libro_persona.model";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    let valid = LiquidacionValidator.create(req.body);
-    if (valid.error !== null)
-        throw new ValidationError(valid.error);
-
-    let _liq = valid.obj;
+    let _liq = LiquidacionValidator.create(req.body);
 
     if (!(await Liquidacion.valid_period(_liq.fecha_inicial, _liq.fecha_final)))
         throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");

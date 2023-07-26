@@ -1,7 +1,5 @@
 import Afip from './afip.js/src/Afip.js';
-
 import QRcode from 'qrcode';
-
 import { emitir_comprobante } from '../comprobantes/comprobante.js'
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -50,17 +48,9 @@ function qr_url(voucher){
 	return url+buff;
 }
  
-function calc_subtotal(libro){
-    return libro.precio * libro.cantidad * (1 - libro.bonif * 0.01);
-}
-
 export default afip_madre;
 
 export async function facturar(venta){
-
-	console.log("FACTURANDO");
-
-	//let total = venta.libros.reduce((sum, libro) => sum + calc_subtotal(libro), 0);
 	let data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
@@ -78,14 +68,9 @@ export async function facturar(venta){
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
 		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
 	};
-	console.log("data:", data);
-
 	let {voucherNumber} = await afip.ElectronicBilling.createNextVoucher(data);	
-	
-	console.log("VOUCHER GENERADO");
 
 	let comprobante = await afip.ElectronicBilling.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
-
 	console.log("COMPROBANTE:", comprobante);
 
 	comprobante.nro 	= voucherNumber;

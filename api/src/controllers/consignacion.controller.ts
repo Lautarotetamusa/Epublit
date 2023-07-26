@@ -3,7 +3,7 @@ import { Consignacion } from "../models/consignacion.model.js";
 import { Cliente } from "../models/cliente.model.js";
 import { Libro } from "../models/libro.model.js";
 import { Venta } from "../models/venta.model.js";
-import { ValidationError, parse_error } from "../models/errors.js"
+import { ValidationError } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
 import { validateConsignacion } from "../schemas/consignaciones.schema.js";
@@ -23,7 +23,7 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     return res.status(201).json({
         success: true,
         message: "Consignacion cargada correctamente",
-        ...consignacion
+        data: consignacion
     });
 }
 

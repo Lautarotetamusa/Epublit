@@ -1,3 +1,5 @@
+import { ValidationError } from "../models/errors";
+
 function valid_date(date: string) {
   var regEx = /^\d{4}-\d{2}-\d{2}$/;
   return date.match(regEx) != null;
@@ -7,9 +9,7 @@ type RequiredFields<T> = {
     [K in keyof T]-?: string;
 };
 
-export type retrieve<T> = {error: string, obj: null} | {error: null, obj: T};
-
-export function validate<T>(required: RequiredFields<T>, obj: any): retrieve<T>{
+export function validate<T>(required: RequiredFields<T>, obj: any): T{
     type keys = keyof typeof required;
 
     // Validar que el obj contenga todos los campos requeridos (todos los campos de required) y que sean del mismo tipo
@@ -28,7 +28,7 @@ export function validate<T>(required: RequiredFields<T>, obj: any): retrieve<T>{
 
         if (!(key in obj))
             if(!optional)
-                return {error: `El campo ${key} es obligatorio`, obj: null};
+                throw new ValidationError(`El campo ${key} es obligatorio`);
             else
                 continue
 
@@ -37,11 +37,11 @@ export function validate<T>(required: RequiredFields<T>, obj: any): retrieve<T>{
                 break;
             case "Date":
                 if(!valid_date(value)) 
-                    return {error: `El formato de la fecha ${value} es incorrecto yyyy-mm-dd`, obj: null}
+                    throw new ValidationError(`El formato de la fecha ${value} es incorrecto yyyy-mm-dd`);
                 break;
             default:
                 if (typeof value !== field_type)
-                    return {error: `El campo ${key} debe ser de tipo ${field_type}`, obj: null};
+                    throw new ValidationError(`El campo ${key} debe ser de tipo ${field_type}`);
                 break;
         }
     }
@@ -54,7 +54,7 @@ export function validate<T>(required: RequiredFields<T>, obj: any): retrieve<T>{
     }
 
     if (Object.keys(obj).length === 0)
-        return {error: "Ningun campo es valido, obj: null", obj: null}
+        throw new ValidationError("Ningun campo es valido, obj: null");
 
-    return {error: null, obj: obj as T}
+    return obj as T;
 }

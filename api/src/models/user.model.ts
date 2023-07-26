@@ -1,8 +1,4 @@
-import {conn} from "../db"
-import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors'
 import { retrieveUser, createUser } from "../schemas/user.schema"
-
 import { BaseModel } from "./base.model";
 
 export class User extends BaseModel{

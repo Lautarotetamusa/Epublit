@@ -47,18 +47,11 @@ function remove_duplicateds(list: any[]) {
 }
 
 const create = async (req: Request, res: Response) => { 
-    let personas = parse_create_req(req.body);
-    console.log(personas);
-    
+    let personas = parse_create_req(req.body);    
     let indb: createPersonaLibroInDB[] = [];
     let not_indb: createPersonaLibroNOTInDB[] = [];
 
-    let valid_c = validateLibro.create(req.body);
-    if (valid_c.error !== null) return res.status(400).json({
-        success: false,
-        error: valid_c.error
-    });
-    const body = valid_c.obj;
+    const body = validateLibro.create(req.body);
 
     for (let _persona of personas){
         if ("id" in _persona){
@@ -78,11 +71,8 @@ const create = async (req: Request, res: Response) => {
         throw new ValidationError("Alguna persona ya se encuentra cargada");
 
     for (let _persona of not_indb){
-        let valid = validatePersona.create(Object.assign({}, _persona));
-        if (valid.error !== null) 
-            throw new ValidationError(valid.error);
-
-        const persona = await Persona.insert(valid.obj);
+        let valid_persona = validatePersona.create(Object.assign({}, _persona));
+        const persona = await Persona.insert(valid_persona);
 
         indb.push({
             porcentaje: _persona.porcentaje, 
@@ -93,10 +83,8 @@ const create = async (req: Request, res: Response) => {
     }
 
     let valid = validateLibro.save(body);
-    if (valid.error !== null) 
-        throw new ValidationError(valid.error);
 
-    const libro = await Libro.insert(valid.obj);
+    const libro = await Libro.insert(valid);
     await libro.add_personas(indb);
 
     return res.status(201).json({
@@ -120,12 +108,7 @@ const remove = async(req: Request, res: Response) => {
 }
 
 const update = async(req: Request, res: Response) => {
-    let valid = validateLibro.update(req.body)
-    if (valid.error !== null) return res.status(404).json({
-        success: false,
-        error: valid.error
-    });
-    const body = valid.obj;
+    const body = validateLibro.update(req.body);
 
     const libro = await Libro.get_by_isbn(req.params.isbn);
     await libro.update(body);

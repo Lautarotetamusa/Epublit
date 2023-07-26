@@ -1,4 +1,4 @@
-import {retrieve, validate} from './validate'
+import {validate} from './validate'
 
 export interface createUser{
     username: string;
@@ -11,13 +11,12 @@ export interface retrieveUser extends createUser{
 export class validateUser {
     static error: string;
 
-    static create(obj: any): retrieve<createUser>{
+    static create(obj: any): createUser{
         const required = {
             'username': 'string',
             'password': 'string',
         };
 
-        let valid = validate<createUser>(required, obj);
-        return valid;
+        return validate<createUser>(required, obj);
     }
 }

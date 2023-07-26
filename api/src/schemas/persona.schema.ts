@@ -1,4 +1,4 @@
-import {retrieve, validate} from './validate'
+import {validate} from './validate'
 
 export interface retrievePersona{
     nombre: string;
@@ -20,7 +20,7 @@ export interface updatePersona{
 }
 
 export class validatePersona {
-    static create(_obj: any): retrieve<createPersona> {
+    static create(_obj: any): createPersona {
         const required = {
             'nombre': 'string',
             'email': 'optional?string',
@@ -29,7 +29,7 @@ export class validatePersona {
         return validate<createPersona>(required, _obj);
     }
 
-    static update(obj: any): retrieve<updatePersona>{
+    static update(obj: any): updatePersona{
         const required = {
             'nombre': 'optional?string',
             'dni': 'optional?string',
