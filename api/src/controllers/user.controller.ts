@@ -3,7 +3,6 @@ import { User } from "../models/user.model";
 import { ValidationError, parse_error } from '../models/errors';
 import { validateUser } from "../schemas/user.schema";
 
-import * as dotenv from 'dotenv'
 import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
 
