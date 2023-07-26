@@ -1,5 +1,4 @@
 import {Request, Response} from "express";
-
 import { Persona } from "../models/persona.model.js";
 import { Libro } from "../models/libro.model.js";
 import { validateLibro, createLibro, retrieveLibro  } from "../schemas/libros.schema";
@@ -11,11 +10,11 @@ import {
     updateLibroPersona, 
     validateLibroPersona
 } from "../schemas/libro_persona.schema";
-
 import { Duplicated, NotFound, ValidationError } from "../models/errors.js"
 import { validatePersona } from "../schemas/persona.schema.js";
 import { LibroPersona } from "../models/libro_persona.model.js";
 
+import fs from 'fs';
 
 function parse_create_req(body: createLibro){
     let tipos_keys: ("autores" | "ilustradores")[] = ["autores", "ilustradores"];
@@ -214,6 +213,19 @@ const get_one = async(req: Request, res: Response) => {
     });
 }
 
+const lista_libros = async (req: Request, res: Response) => {
+    const libros = await Libro.get_all();
+
+    let len = Object.keys(libros[0]).length;
+    let header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
+    let headers = Object.keys(libros[0]).join(',') + '\r\n';
+    let data = libros.map(l => Object.values(l).join(',')).join('\r\n');
+
+    let file_path = 'lista_libros.csv';
+    fs.writeFileSync(file_path, header+headers+data);
+    return res.download(file_path);
+}
+
 const get_all = async(req: Request, res: Response) => {
     let libros: retrieveLibro[] = [];
     if ("page" in req.query){
@@ -231,5 +243,6 @@ export default{
     manage_personas,
     create,
     remove,
-    update
+    update,
+    lista_libros
 }

@@ -7,6 +7,7 @@ const router = express.Router();
 // Create new libro
 router.post('/', LibroController.create);
 
+router.get('/lista_libros', LibroController.lista_libros); 
 router.get('', LibroController.get_all); //paginated
 router.get('/:isbn', LibroController.get_one);
 router.get('/:isbn/ventas', LibroController.get_ventas)
