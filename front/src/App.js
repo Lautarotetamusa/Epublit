@@ -6,7 +6,7 @@ import { DataPersonTable } from './components/personas/DataTable';
 import { Route, Routes } from 'react-router-dom';
 import { NuevoLibro } from './components/libros/NuevoLibro';
 import { ListaLibros } from './components/libros/ListaLibros';
-import { Clientes } from './components/ventas/Clientes';
+import { Clientes } from './components/clientes/Clientes';
 import { Ventas } from './components/ventas/Ventas';
 import {Consignaciones} from './components/consignaciones/Consignaciones';
 

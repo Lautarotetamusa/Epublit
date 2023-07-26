@@ -76,7 +76,7 @@ CREATE TABLE consignaciones(
 CREATE TABLE libros_consignaciones(
     isbn VARCHAR(13) NOT NULL,
     id_consignacion INT(11) NOT NULL,
-    stock INT NOT NULL,
+    cantidad INT NOT NULL,
 
     PRIMARY KEY (isbn, id_consignacion),
     FOREIGN KEY (isbn) REFERENCES libros(isbn),

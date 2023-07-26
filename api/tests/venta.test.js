@@ -9,19 +9,20 @@ process.env.DB_NAME = "librossilvestres"
 import {conn} from '../src/db.js'
 import {expect_err_code, expect_success_code} from './util.js';
 import { Venta } from '../src/models/venta.model.js';
+import { medio_pago } from '../src/schemas/venta.schema.js';
 
 const app = 'http://localhost:3001'
 let token;
 
 let cliente = {
-    cuit: 30500007539,
+    cuit: '30500007539',
     nombre: "ClienteTest",
     email: "clientetest@gmail.com",
     tipo: 1
 }
 let venta = {
     libros: [],
-    medio_pago: Venta.str_medios_pago.length+1,
+    medio_pago: "anashe",
     descuento: 10
 }
 
