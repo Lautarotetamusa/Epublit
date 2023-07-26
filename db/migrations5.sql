@@ -1,0 +1,1 @@
+ALTER TABLE libros_consignaciones RENAME COLUMN stock TO cantidad;

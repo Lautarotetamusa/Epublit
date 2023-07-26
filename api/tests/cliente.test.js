@@ -28,6 +28,33 @@ const app = 'http://localhost:3001';
 */
 
 it('Hard delete', async () => {
+    let [cliente] = await conn.query(`
+        SELECT * FROM clientes
+        WHERE cuit=30500001735`
+    );
+    //console.log("cliente:", cliente);
+
+    let [consignaciones] = await conn.query(`
+        SELECT * FROM consignaciones
+        WHERE id_cliente=${cliente[0].id}
+    `);
+    //console.log("consignaciones:", consignaciones);
+
+    for (let consigna of consignaciones){
+        await conn.query(`
+            DELETE FROM libros_consignaciones
+            WHERE id_consignacion=${consigna.id}
+        `);
+        await conn.query(`
+            DELETE FROM consignaciones
+            WHERE id=${consigna.id}
+        `);
+    }
+    await conn.query(`
+        DELETE FROM stock_cliente
+        WHERE id_cliente=${cliente[0].id}
+    `);
+
     await conn.query(`
         DELETE FROM clientes
         WHERE cuit=30500001735`
@@ -85,7 +112,7 @@ describe('POST cliente/', () => {
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
         
-        cliente.cuit = '20434919798';
+        cliente.cuit = '30710813082';
         
         expect_err_code(404, res);
     });
@@ -154,11 +181,11 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        chai.expect(res.status).to.equal(200);
+        chai.expect(res.status).to.equal(201);
     });
 
     it('Actualizar nombre y email', async () => {
-        cliente.cuit = '20434919798';
+        cliente.cuit = '30710813082';
         cliente.nombre = 'Test nro 2';
 
         let req = Object.assign({}, cliente);
@@ -186,13 +213,32 @@ describe('PUT cliente/{id}', () => {
     });
 
     it('Actualizar a un cuit que no esta en afip', async () => {
-        cliente.cuit = '1111111111';
+        cliente.cuit = '12345';
         const res = await request(app)
             .put('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
         expect_err_code(404, res);
+    });
+
+    it('Actualizar a un cuit que ya esta cargado', async () => {
+        let res = await request(app)
+            .get('/cliente/')
+            .set('Authorization', `Bearer ${token}`);
+
+        chai.expect(res.status).to.equal(200);
+        chai.expect(res.body.at(-2)).to.have.property('cuit');
+
+        cliente.cuit = '20434919798';
+        
+        res = await request(app)
+            .put('/cliente/'+cliente.id)
+            .set('Authorization', `Bearer ${token}`)
+            .send(cliente);
+
+        expect_err_code(404, res);
+        chai.expect(res.body.error).to.equal(`El cliente con cuit ${cliente.cuit} ya existe`);
     });
 
     it('Actualizar el cuit', async () => {
@@ -204,7 +250,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
         
-        console.log(res.body);
+        //console.log(res.body);
         cliente = res.body.data;
 
         expect_success_code(201, res);
@@ -212,8 +258,8 @@ describe('PUT cliente/{id}', () => {
 
     it('El cuit se actualizo correctamente', async () => {
         const res = await request(app)
-        .get('/cliente/'+cliente.id)
-        .set('Authorization', `Bearer ${token}`);
+            .get('/cliente/'+cliente.id)
+            .set('Authorization', `Bearer ${token}`);
 
         chai.expect(res.status).to.equal(200);
 

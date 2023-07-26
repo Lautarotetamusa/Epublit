@@ -30,9 +30,9 @@ export async function emitir_comprobante(data, tipo="factura"){
     
     await page.setContent(html);
   
-    console.log(tipo+"s/"+data.path);
+    console.log(tipo+"s/"+data.file_path);
     const pdf = await page.pdf({
-      path: tipo+"s/"+data.path,
+      path: tipo+"s/"+data.file_path,
       printBackground: true,
       format: 'A4',
     });
