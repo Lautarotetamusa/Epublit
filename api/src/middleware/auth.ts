@@ -5,14 +5,6 @@ import * as dotenv from 'dotenv'
 dotenv.config();
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-    next();
-    /**
-     * 
-     * IMPORTANTE!!
-     * Eliminamos la autorizacion por ahora en produccion hasta que este listo el front
-     * 
-     *  */
-    /*
     const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
 
     if (!token) return res.status(403).json({
@@ -28,5 +20,5 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
             success: false,
             error: "Invalid token"
         });
-    }*/
+    }
 }
