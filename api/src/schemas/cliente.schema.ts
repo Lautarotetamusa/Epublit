@@ -3,7 +3,8 @@ import { ValidationError } from "../models/errors";
 
 export enum TipoCliente{
     particular,
-    inscripto
+    inscripto,
+    negro
 }
 
 export interface AfipData {
@@ -29,8 +30,9 @@ export type updateCliente = {
 
 export type createCliente = {
     nombre: string,
-    email?: string
-    cuit: string
+    email?: string,
+    cuit: string,
+    tipo: TipoCliente
 }
 
 export type stockCliente = {
@@ -47,20 +49,21 @@ export class validateCliente{
         const required = {
             'nombre': 'string',
             'email': 'optional?string',
-            'cuit': 'string'
+            'cuit': 'string',
+            'tipo': 'ignore'
         }
         let valid = validate<createCliente>(required, _obj);
         if (valid.error !== null)
             throw new ValidationError(valid.error);
 
-        /*if(!('tipo' in _obj))
+        if(!('tipo' in _obj))
             throw new ValidationError("El tipo es obligatorio");
         
         if(!validateCliente.tipoCliente(valid.obj.tipo))
             throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoCliente)}`);
             
-        if(_obj.tipo == TipoCliente.particular)
-            throw new ValidationError("No se puede crear un cliente de tipo consumidor final");*/
+        if(_obj.tipo != TipoCliente.inscripto)
+            throw new ValidationError(`No se puede crear un cliente de tipo ${String(_obj.tipo)}`);
 
         return valid.obj;
     }
@@ -71,7 +74,7 @@ export class validateCliente{
             'email': 'optional?string',
             'cuit': 'optional?string'
         }
-        let valid = validate<createCliente>(required, _obj);
+        let valid = validate<updateCliente>(required, _obj);
         if (valid.error !== null)
             throw new ValidationError(valid.error);
 

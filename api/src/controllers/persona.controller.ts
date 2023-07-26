@@ -1,10 +1,10 @@
-import { Request, Response } from "express"
+import { NextFunction, Request, Response } from "express"
 import { Persona } from "../models/persona.model";
-import { ValidationError, Duplicated, parse_error } from '../models/errors';
+import { ValidationError, Duplicated } from '../models/errors';
 import { validatePersona } from "../schemas/persona.schema";
 import { TipoPersona, TipoPersonaString } from "../schemas/libro_persona.schema";
 
-const create = async (req: Request, res: Response): Promise<Response> => {
+const create = async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
     let valid = validatePersona.create(req.body);
     if (valid.error !== null) return res.status(400).json({
         success: false,
@@ -12,21 +12,16 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     })
     const body = valid.obj;
     
-    try{
-        if (await Persona.exists(body.dni)){
-            throw new Duplicated(`La persona con dni ${body.dni} ya se encuentra cargada`);
-        }
+    if (await Persona.exists(body.dni))
+        throw new Duplicated(`La persona con dni ${body.dni} ya se encuentra cargada`);
 
-        const persona = await Persona.insert(body);
+    const persona = await Persona.insert(body);
 
-        return res.status(201).json({
-            success: true,
-            message: "Persona creada correctamente",
-            data: persona
-        });
-    }catch(error: any){
-        return parse_error(res, error)
-    }
+    return res.status(201).json({
+        success: true,
+        message: "Persona creada correctamente",
+        data: persona
+    });
 }
 
 const update = async (req: Request, res: Response): Promise<Response> => {
@@ -38,88 +33,66 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     const body = valid.obj;
     const id = Number(req.params.id);
 
-    try {
-        if (!id)
-            throw new ValidationError("El id de la persona debe ser un integer");
+    if (!id)
+        throw new ValidationError("El id de la persona debe ser un integer");
 
-        const persona = await Persona.get_by_id(id);
+    const persona = await Persona.get_by_id(id);
 
-        if (body.dni && body.dni != persona.dni && await Persona.exists(body.dni))
-            throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
+    if (body.dni && body.dni != persona.dni && await Persona.exists(body.dni))
+        throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
 
-        await persona.update(body);
-        console.log(persona);
-    
-        return res.status(201).json({
-            success: true,
-            message: "Persona actualizada correctamente",
-            data: persona
-        });
-    } catch (error: any) {
-        return parse_error(res, error);
-    }
+    await persona.update(body);
+    console.log(persona);
+
+    return res.status(201).json({
+        success: true,
+        message: "Persona actualizada correctamente",
+        data: persona
+    });
 }
 
-const remove = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    
-    try {
-        if (!id)
-            throw new ValidationError("El id de la persona debe ser un integer");
+const remove = async (req: Request, res: Response): Promise<Response> => {    
+    if (!Number(req.params.id))
+        throw new ValidationError("El id de la persona debe ser un integer");
 
-        await Persona.delete({id: id})
+    await Persona.delete({id: req.params.id})
 
-        return res.json({
-            success: true,
-            message: `Persona con id ${id} eliminada correctamente`
-        });
-
-    } catch (error: any) {
-        return parse_error(res, error);
-    }
+    return res.json({
+        success: true,
+        message: `Persona con id ${req.params.id} eliminada correctamente`
+    });
 }
 
 const get_all = async (req: Request, res: Response): Promise<Response>  => {
     let params = req.query;
     let personas: any[];
 
-    try {
-        if ('tipo' in params){
-            let tipo: TipoPersonaString = <TipoPersonaString>String(req.query.tipo);
+    if ('tipo' in params){
+        let tipo: TipoPersonaString = <TipoPersonaString>String(req.query.tipo);
 
-            if( !(Object.values(TipoPersona).includes(tipo)) )
-                return res.status(400).json({
-                    success: false,
-                    message: `El tipo pasado no es correcto (${TipoPersona})`
-                })
+        if( !(Object.values(TipoPersona).includes(tipo)) )
+            return res.status(400).json({
+                success: false,
+                message: `El tipo pasado no es correcto (${TipoPersona})`
+            })
 
-            personas = await Persona.get_all_by_tipo(TipoPersona[tipo])
-        }else {
-            personas = await Persona.get_all()
-        }
-
-        return res.json(personas);
-
-    } catch (error: any) {
-        return parse_error(res, error);
+        personas = await Persona.get_all_by_tipo(TipoPersona[tipo])
+    }else {
+        personas = await Persona.get_all()
     }
+
+    return res.json(personas);
 }
 
-const get_one = async (req: Request, res: Response)  => {
+const get_one = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
-    
-    try {
-        if (!id)
-            throw new ValidationError("El id de la persona debe ser un integer");
+    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
-        const persona = await Persona.get_by_id(id);
+    const persona = await Persona.get_by_id(id);
 
-        await persona.get_libros();
+    await persona.get_libros();
 
-        res.json(persona);
-    } catch (error: any) {
-        return parse_error(res, error);
-    }
+    return res.json(persona);
 }
 
 export default {

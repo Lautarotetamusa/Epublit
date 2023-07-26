@@ -8,8 +8,6 @@ process.env.DB_PASS = "Lautaro123.",
 process.env.DB_NAME = "librossilvestres"
 import {conn} from '../src/db.js'
 import {expect_err_code, expect_success_code} from './util.js';
-import { Venta } from '../src/models/venta.model.js';
-import { medio_pago } from '../src/schemas/venta.schema.js';
 
 const app = 'http://localhost:3001'
 let token;
@@ -275,6 +273,18 @@ describe('VENTA', () => {
 
                 chai.expect(res.status).to.equal(200);
             });
+        });
+    });
+
+    describe('GET /venta', () => {
+        it('Obtener los medios de pago', async () => {
+            const res = await request(app)
+                .get(`/venta/${venta.id}/medios_pago/`)
+                .set('Authorization', `Bearer ${token}`);
+        
+            chai.expect(res.status).to.equal(200);    
+            chai.expect(typeof res.body).to.equal("Object");
+            chai.expect(res.body.length).to.above(0);
         });
     });
 });

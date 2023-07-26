@@ -4,6 +4,7 @@ import afip from "../afip/Afip.js";
 import { BaseModel } from './base.model.js';
 import { AfipData, TipoCliente, createCliente, retrieveCliente, saveClienteInscripto, stockCliente, updateCliente } from '../schemas/cliente.schema.js';
 import { RowDataPacket } from 'mysql2';
+import { Venta } from './venta.model.js';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -131,15 +132,8 @@ export class Cliente extends BaseModel{
             throw new NotFound(`No se encuentra el cliente con id ${id}`);
     }
 
-    async get_ventas(){
-        //const res = await Venta.find_one({id_cliente: this.id});
-        const [rows] = await conn.query<RowDataPacket[]>(`
-            SELECT 
-                id, fecha, total, file_path
-            FROM ventas
-            WHERE id_cliente=${this.id}
-        `);
-        return rows;
+    async get_ventas(): Promise<Venta[]>{
+        return await Venta.find_all({id_cliente: this.id});
     }
 
     async get_stock() {

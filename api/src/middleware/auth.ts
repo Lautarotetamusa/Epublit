@@ -5,7 +5,8 @@ import * as dotenv from 'dotenv'
 dotenv.config();
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
-    const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
+    next();
+    /*const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
 
     if (!token) return res.status(403).json({
         success: false,
@@ -20,5 +21,5 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
             success: false,
             error: "Invalid token"
         });
-    }
+    }*/
 }

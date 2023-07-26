@@ -40,7 +40,6 @@ export class Duplicated extends Error {
     }
 }
 
-
 export function parse_error(res: Response, error: Error){
     console.log(error);
     if (error instanceof ValidationError || error instanceof NotFound || error instanceof NothingChanged || error instanceof Duplicated)
@@ -55,8 +54,7 @@ export function parse_error(res: Response, error: Error){
             error: "Json error:" + error.message
         })
     }
-        
-    //console.log("parse_error:", error);
+
     return res.status(500).json({
         success:false, 
         error: error.message

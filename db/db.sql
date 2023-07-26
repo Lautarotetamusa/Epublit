@@ -144,3 +144,11 @@ cond_fiscal = "CONSUMIDOR FINAL",
 razon_social = "CONSUMIDOR FINAL",
 domicilio = "",
 tipo = 0;
+
+/*Cliente En negro*/
+INSERT INTO clientes SET 
+nombre = "NEGRO",
+cond_fiscal = "",
+razon_social = "",
+domicilio = "",
+tipo = 2;

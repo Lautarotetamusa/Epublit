@@ -3,6 +3,7 @@ import { Venta } from "../models/venta.model.js";
 import { ValidationError, parse_error } from "../models/errors.js"
 import { facturar } from "../afip/Afip.js";
 import { validateVenta } from "../schemas/venta.schema.js";
+import { TipoCliente } from "../schemas/cliente.schema.js";
 
 const vender = async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -12,9 +13,12 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         venta.save();
     
         console.log("venta:", venta);
-        
-        await facturar(venta);
-    
+
+        if (venta.cliente.tipo != TipoCliente.negro)
+            await facturar(venta);
+        else
+            console.log("No se emite factura para cliente en negro");
+            
         return res.status(201).json({
             success: true,
             message: "Venta cargada correctamente",

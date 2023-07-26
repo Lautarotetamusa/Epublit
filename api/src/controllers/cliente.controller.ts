@@ -2,7 +2,6 @@ import { Cliente } from "../models/cliente.model";
 import { Request, Response } from "express";
 import { Duplicated, ValidationError, parse_error } from '../models/errors';
 import { validateCliente } from "../schemas/cliente.schema";
-import { Duplex } from "stream";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
      try {
@@ -84,14 +83,14 @@ const get_ventas = async (req: Request, res: Response): Promise<Response> => {
     try {
         if (!id) throw new ValidationError("El id debe ser un numero");
 
-        let cliente: any;
+        let cliente: Cliente;
         if (req.params.id == "consumidor_final"){
             cliente = await Cliente.get_consumidor_final();
         }else{
             cliente = await Cliente.get_by_id(id);
         }
         
-        let ventas = await cliente.get_ventas();
+        const ventas = await cliente.get_ventas();
         return res.json(ventas)
     } catch (error: any) {
         return parse_error(res, error);
