@@ -7,7 +7,7 @@ import { RowDataPacket } from 'mysql2';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
-    static fields = ["id", "nombre", "email", "cuit", "cond_fiscal", "razon_social", "domicilio"];
+    static fields = ["id", "nombre", "tipo", "email", "cuit", "cond_fiscal", "razon_social", "domicilio"];
 
     id: number;
     nombre: string;
@@ -39,7 +39,7 @@ export class Cliente extends BaseModel{
     }
 
     static async get_by_id(id: number): Promise<Cliente> {
-        return await this.find_one({id: id});
+        return await this.find_one<createCliente, Cliente>({id: id});
     }
 
     static async get_consumidor_final(): Promise<Cliente>{

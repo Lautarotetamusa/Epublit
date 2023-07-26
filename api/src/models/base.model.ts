@@ -8,7 +8,6 @@ export class BaseModel{
     */
     static table_name: string;
     static fields?: string[];
-
     /*
         IMPLEMENTATIONS
     */

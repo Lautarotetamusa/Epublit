@@ -8,6 +8,7 @@ import { ValidationError, parse_error } from "../models/errors.js"
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
 import { validateConsignacion } from "../schemas/consignaciones.schema.js";
 import { TipoCliente } from "../schemas/cliente.schema.js";
+import { medio_pago } from "../schemas/venta.schema.js";
 
 const consignar = async(req: Request, res: Response): Promise<Response> => {
     try {
@@ -31,6 +32,43 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
 
     } catch (error: any) {
         return parse_error(res, error);
+    }
+}
+
+const get_one = async (req: Request, res: Response): Promise<Response> => {
+    const id = Number(req.params.id);
+
+    try {
+        if (!id) throw new ValidationError("El id debe ser un numero");
+
+        const cons = await Consignacion.get_by_id(id);
+
+        return res.json(cons);
+    } catch (error: any) {
+        return parse_error(res, error);
+    }
+}
+
+const get_all = async (req: Request, res: Response): Promise<Response> => {
+    try {
+        const cons = await Consignacion.get_all();
+        return res.json(cons);
+    } catch (error: any) {
+        return parse_error(res, error);
+    }
+}
+
+const get_remito = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+
+    try {
+        if (!id) throw new ValidationError("El id debe ser un numero");
+
+        const cons = await Consignacion.get_by_id(id);
+
+        res.download('remitos/'+cons.file_path);
+    } catch (error: any) {
+        return parse_error(res, error);   
     }
 }
 
@@ -68,12 +106,19 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         console.log(substacted_stock);
         await cliente.update_stock(substacted_stock);
 
-        const venta = new Venta({
+
+        const venta = Venta.build({
+            ...body,
+            descuento: 0,
+            medio_pago: medio_pago.debito
+        });
+
+        /*const venta = new Venta({
             cliente: body.cliente,
             libros: body.libros,
             descuento: 0,
             medio_pago: "debito"
-        });
+        });*/
 
         return res.status(201).json(venta);
 
@@ -84,5 +129,8 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
 
 export default{
     consignar,
-    liquidar
+    liquidar,
+    get_one,
+    get_all,
+    get_remito
 }

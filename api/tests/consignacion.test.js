@@ -2,12 +2,11 @@ import request from 'supertest';
 import chai from 'chai';
 import fs from 'fs';
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
-import {conn} from '../src/db.js'
+process.env.DB_HOST = "localhost";
+process.env.DB_USER = "teti";
+process.env.DB_PASS = "Lautaro123.";
+process.env.DB_NAME = "librossilvestres";
+import {conn} from '../src/db.js';
 import {expect_err_code, expect_success_code} from './util.js';
 
 const app = 'http://localhost:3001'
@@ -34,7 +33,7 @@ let consignacion = {
     - Revisar que el cliente tenga la consignacion en /cliente/{id}/consignacions
 */
 
-it('login', async () => {
+it('login', async () => {    
     let data = {
         username: 'teti',
         password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
@@ -48,7 +47,7 @@ it('login', async () => {
 });
 
 describe('CONSIGNACION', () => {
-    before('delete cliente', async () => {
+    it('delete cliente', async () => {
         let res = (await conn.query(`
             SELECT id FROM clientes
             WHERE cuit=${cliente.cuit}`
@@ -174,6 +173,24 @@ describe('CONSIGNACION', () => {
 
                 consignacion.libros[2].cantidad = 3;
             });
+            it('No se debe poder consignar a un cliente consumidor final', async () => {
+                const res1 = await request(app)
+                    .get('/cliente/consumidor_final')
+                    .set('Authorization', `Bearer ${token}`);
+
+                chai.expect(res1.status).to.equal(200);
+                const consumidor_final = res1.body;
+
+                const res = await request(app)
+                    .post('/consignacion/')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send({
+                        ...consignacion,
+                        cliente: consumidor_final.id
+                    });
+
+                expect_err_code(400, res);
+            });
         });
 
         describe('consignacion exitosa', () => {
@@ -209,7 +226,6 @@ describe('CONSIGNACION', () => {
                 for (const libro of res.body) {
                     chai.expect(libro.stock).to.equal(3);
                 }
-            
             });
             it('El remito existe y el nombre coincide', async () => {       
                 //console.log("consignacion:", consignacion);

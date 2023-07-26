@@ -1,5 +1,5 @@
 import { LibroConsignacion } from "../models/consignacion.model";
-import { validate, retrieve } from "./validate";
+import { validate } from "./validate";
 import { ValidationError } from "../models/errors";
 
 export type buildConsignacion = {
