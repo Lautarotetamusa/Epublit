@@ -34,7 +34,7 @@ export const Consignaciones =({clientes,libros}) => {
             event.preventDefault();
             const listaLibros = librosSeleccionados.map((libro) => {
               return {
-                isbn: parseInt(libro.libro.isbn),
+                isbn: libro.libro.isbn,
                 cantidad: parseInt(libro.cantidad),
               };
             });        

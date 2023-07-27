@@ -38,18 +38,20 @@ const handleSeleccionadoAdd = (event) => {
         event.preventDefault();
         const listaLibros = librosSeleccionados.map((libro) => {
           return {
-            isbn: parseInt(libro.libro.isbn),
+            isbn: libro.libro.isbn,
             cantidad: parseInt(libro.cantidad),
           };
-        });        
-        const venta =JSON.stringify({
+        });       
+        const venta = {
           cliente: parseInt(event.target.cliente.value),
           descuento: parseFloat(event.target.descuento.value),
           medio_pago: parseInt(event.target.medio_pago.value),
           libros: listaLibros
-        });
-        
-        PostVenta(venta);
+        };
+        if (!venta.descuento)
+          delete venta.descuento
+          
+        PostVenta(JSON.stringify(venta));
         event.target.reset();
         setLibrosSeleccionados([]);
       }

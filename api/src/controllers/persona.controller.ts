@@ -44,11 +44,11 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
-    await Persona.delete({id: req.params.id})
-
+    await Persona.delete({id: id})
+1
     return res.json({
         success: true,
-        message: `Persona con id ${req.params.id} eliminada correctamente`
+        message: `Persona con id ${id} eliminada correctamente`
     });
 }
 
@@ -76,7 +76,7 @@ const get_all = async (req: Request, res: Response): Promise<Response>  => {
 const get_one = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id de la persona debe ser un integer");
-
+    
     const persona = await Persona.get_by_id(id);
 
     await persona.get_libros();

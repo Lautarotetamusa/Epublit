@@ -58,6 +58,7 @@ app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
     parse_error(res, err);
 });
 
+
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({
     success: false,

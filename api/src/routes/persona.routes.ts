@@ -1,5 +1,4 @@
 import express from "express"
-
 import PersonaController from "../controllers/persona.controller"
 
 const router = express.Router();

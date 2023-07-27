@@ -3,6 +3,16 @@ import { Request, Response } from "express";
 import { Duplicated, ValidationError } from '../models/errors';
 import { validateCliente } from "../schemas/cliente.schema";
 
+async function get_client(req: Request): Promise<Cliente>{
+    const id = Number(req.params.id);
+
+    if (req.params.id == "consumidor_final")
+        return await Cliente.get_consumidor_final();
+
+    if (!id) throw new ValidationError("El id debe ser un numero");
+    return await Cliente.get_by_id(id);
+}
+
 const create = async (req: Request, res: Response): Promise<Response> => {
     let body = validateCliente.create(req.body);
 
@@ -46,31 +56,13 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const get_stock = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    if (!id) throw new ValidationError("El id debe ser un numero");
-
-    let cliente: any;
-    if (req.params.id == "consumidor_final"){
-        cliente = await Cliente.get_consumidor_final();
-    }else{
-        cliente = await Cliente.get_by_id(id);
-    }
-    
+    const cliente = await get_client(req);
     let stock = await cliente.get_stock();
     return res.json(stock);
 }
 
 const get_ventas = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    if (!id) throw new ValidationError("El id debe ser un numero");
-
-    let cliente: Cliente;
-    if (req.params.id == "consumidor_final"){
-        cliente = await Cliente.get_consumidor_final();
-    }else{
-        cliente = await Cliente.get_by_id(id);
-    }
-    
+    const cliente = await get_client(req);
     const ventas = await cliente.get_ventas();
     return res.json(ventas);
 }
@@ -94,17 +86,7 @@ const get_all = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const get_one = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-
-    let cliente = {};
-    if (req.params.id == "consumidor_final"){
-        cliente = await Cliente.get_consumidor_final();
-    }else{
-        if (!id) throw new ValidationError("El id debe ser un numero");
-
-        cliente = await Cliente.get_by_id(id);
-    }
-
+    const cliente = await get_client(req);
     return res.json(cliente);
 }
 
