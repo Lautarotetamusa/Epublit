@@ -28,7 +28,7 @@ jobs:
         node-version: 16.9  # Cambia "14" por la versión de Node.js que estás utilizando
         
     - name: Prepare .env file
-      run: echo "$ENV_FILE_CONTENT" > api/.env
+      run: echo "$ENV_FILE_CONTENT" > .env
 
     - name: Build and start backend services
       run: |
