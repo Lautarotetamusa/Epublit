@@ -30,9 +30,17 @@ const login = async (req: Request, res: Response): Promise<Response> => {
     if (!match) return res.status(401).json({
         success: false,
         error: "Contraseña incorrecta"
-    })
+    });
 
-    const token = jwt.sign(valid, process.env.JWT_SECRET as Secret, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const token = jwt.sign({
+        id: user.id,
+        username: user.username,
+        razon_social: user.razon_social,
+        domicilio: user.domicilio,
+        cond_fiscal: user.cond_fiscal,
+        cuit: user.cuit
+    }, process.env.JWT_SECRET as Secret, 
+    { expiresIn: process.env.JWT_EXPIRES_IN });
 
     return res.status(200).json({
         success: true,
@@ -45,7 +53,8 @@ const welcome = async (req: Request, res: Response): Promise<Response> => {
     return res.status(200).json({
         success: true,
         message: "Ingreso correcto",
-    })
+        data: res.locals.user
+    });
 }
 
 export default {

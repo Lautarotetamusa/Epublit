@@ -3,18 +3,21 @@ import puppeteer from 'puppeteer';
 import { Venta } from '../models/venta.model';
 import { Consignacion } from '../models/consignacion.model';
 import { medio_pago } from '../schemas/venta.schema';
+import { User } from '../models/user.model';
 
 const path = './src/comprobantes';
 
 type args = {
-    data: Venta & {qr_data: string, comprobante: any}, 
+    data: Venta & {qr_data: string, comprobante: any},
+    user: User,
     tipo: "factura"
 } | {
     data: Consignacion,
+    user: User,
     tipo: "remito"
 }
 
-export async function emitir_comprobante({data, tipo}: args){
+export async function emitir_comprobante({data, user, tipo}: args){
     const browser = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome',
       args: ['--no-sandbox']
@@ -27,6 +30,11 @@ export async function emitir_comprobante({data, tipo}: args){
     
     html = html.replace('<style></style>', `<style>${css}</style>`);
     html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
+
+    html = html.replace(/\{\{user_razon_social\}\}/g, user.razon_social);
+    html = html.replace('{{user_domicilio}}', user.domicilio);
+    html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
+    html = html.replace('{{user_cuit}}', user.cuit);
 
     if (tipo == "factura"){
         html = factura(html, data);
@@ -73,9 +81,6 @@ function factura(html: string, venta: Venta & {qr_data: string, comprobante: any
     }
     html = html.replace('{{LIBROS}}', table); 
     /**/
-
-    console.log("Venta: ", venta);
-    
 
     html = html.replace('{{cond_venta}}', String(medio_pago[venta.medio_pago]));
 

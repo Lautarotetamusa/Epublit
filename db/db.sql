@@ -7,8 +7,13 @@ USE librossilvestres;
 CREATE TABLE users(
     id INT(11) NOT NULL AUTO_INCREMENT,
 
-    username VARCHAR(25),
-    password BINARY(60),
+    username VARCHAR(25) NOT NULL,
+    password BINARY(60) NOT NULL,
+
+    cuit VARCHAR(15) DEFAULT NULL,
+    cond_fiscal VARCHAR(50) NOT NULL,
+    razon_social VARCHAR(255) NOT NULL,
+    domicilio VARCHAR(100) NOT NULL,
 
     PRIMARY KEY (id)
 );

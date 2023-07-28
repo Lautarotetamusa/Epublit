@@ -16,9 +16,11 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     const consignacion = await Consignacion.build(body);
     await consignacion.save();
 
+    console.log("user: ", res.locals.user);
+
     await consignacion.cliente.update_stock(body.libros);
 
-    await emitir_comprobante({data: consignacion, tipo:"remito"});
+    await emitir_comprobante({data: consignacion, user: res.locals.user, tipo:"remito"});
 
     return res.status(201).json({
         success: true,

@@ -11,12 +11,11 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     const venta = await Venta.build(body);
     
     if (venta.cliente.tipo != TipoCliente.negro)
-        await facturar(venta);
+        await facturar(venta, res.locals.user);
     else
         console.log("No se emite factura para cliente en negro");
 
     venta.save();
-    console.log("venta:", venta);
         
     return res.status(201).json({
         success: true,

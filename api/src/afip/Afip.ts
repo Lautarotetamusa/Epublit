@@ -4,6 +4,7 @@ import { emitir_comprobante } from '../comprobantes/comprobante.js'
 import { Venta } from '../models/venta.model.js';
 import { NotFound } from '../models/errors.js';
 import { AfipData } from '../schemas/cliente.schema.js';
+import { User } from '../models/user.model.js';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -51,8 +52,16 @@ function qr_url(voucher: any){
 
 	return url+buff;
 }
+
+export async function get_server_status(){
+	const serverStatus = await afip.ElectronicBilling?.getServerStatus();
+
+	console.log('Este es el estado del servidor:');
+	console.log(serverStatus);
+	return serverStatus;
+}
  
-export async function facturar(venta: Venta){
+export async function facturar(venta: Venta, user: User){
 	let data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
@@ -85,6 +94,7 @@ export async function facturar(venta: Venta){
 				qr_data: base64_qr,
 				comprobante: comprobante
 			}),
+			user: user,
 			tipo: "factura"
 		});
 	});
