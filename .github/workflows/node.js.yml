@@ -20,12 +20,27 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm install
-    - run: npm run compile
-    - run: npm run test_persona
+        node-version: 14  # Cambia "14" por la versión de Node.js que estás utilizando
+
+    - name: Build and start backend services
+      run: |
+        docker-compose build
+        docker-compose up -d  # El flag "-d" inicia los servicios en segundo plano
+
+    - name: Wait for backend to start
+      run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Run tests
+      run: npm test
+
+    - name: Stop and remove backend services
+      run: docker-compose down
