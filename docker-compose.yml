@@ -25,7 +25,7 @@ services:
       - $BACK_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    command: node src/app.js
+    command: node dist/app.js
     volumes:
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
