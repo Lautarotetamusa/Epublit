@@ -10,7 +10,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  api-testing:
     runs-on: ubuntu-latest
 
     strategy:
@@ -32,8 +32,11 @@ jobs:
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
         
-    - name: View .env file
-      run: cat .env
+    - name: Compile typescript
+      run: | 
+        cd api
+        npm run compile
+        cd ..
 
     - name: Build and start backend services
       run: |
