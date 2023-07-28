@@ -24,7 +24,11 @@ export interface createPersonaLibroNOTInDB extends createPersona{
 }
 export type createPersonaLibro = createPersonaLibroInDB | createPersonaLibroNOTInDB;
 
-export interface retrieveLibroPersona extends createPersonaLibroInDB{};
+export interface retrieveLibroPersona extends createPersonaLibroInDB{
+    dni: string,
+    nombre: string,
+    email: string,
+};
 
 export interface removePersonaLibro extends LibroPersonaPK{};
 
@@ -94,13 +98,9 @@ export class validateLibroPersona{
 
     static all<T>(obj: unknown[], validator: Function): T[]{
         let valid_objs: T[] = [];
-        for (let o of obj){
-            let valid = validator(o);
-            if (valid.error !== null)
-                throw new ValidationError(valid.error);
-
-            valid_objs.push(valid.obj);
-        }
+        for (let o of obj)
+            valid_objs.push(validator(o));
+            
         return valid_objs;
     }
 

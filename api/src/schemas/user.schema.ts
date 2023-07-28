@@ -1,10 +1,18 @@
+import { AfipData } from './cliente.schema';
 import {validate} from './validate'
 
-export interface createUser{
+interface loginUser {
     username: string;
     password: string;
 }
-export interface retrieveUser extends createUser{
+
+export interface createUser extends loginUser{
+    cuit: string;
+}
+
+export type saveUser = AfipData & createUser;
+
+export interface retrieveUser extends saveUser{
     id: number;
 }
 
@@ -15,8 +23,18 @@ export class validateUser {
         const required = {
             'username': 'string',
             'password': 'string',
+            'cuit': 'string'
         };
 
         return validate<createUser>(required, obj);
+    }
+
+    static login(obj: any): loginUser{
+        const required = {
+            'username': 'string',
+            'password': 'string'
+        };
+
+        return validate<loginUser>(required, obj);
     }
 }

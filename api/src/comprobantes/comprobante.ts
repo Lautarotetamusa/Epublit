@@ -1,17 +1,24 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
+import { Venta } from '../models/venta.model';
+import { Consignacion } from '../models/consignacion.model';
+import { medio_pago } from '../schemas/venta.schema';
 
 const path = './src/comprobantes';
 
-export async function emitir_comprobante(data, tipo="factura"){
+type args = {
+    data: Venta & {qr_data: string, comprobante: any}, 
+    tipo: "factura"
+} | {
+    data: Consignacion,
+    tipo: "remito"
+}
 
-    //Create a browser instance
+export async function emitir_comprobante({data, tipo}: args){
     const browser = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome',
       args: ['--no-sandbox']
     });
-  
-    // Create a new page
     const page = await browser.newPage();
   
     var html = fs.readFileSync(`${path}/${tipo}/${tipo}.html`, 'utf8');
@@ -24,7 +31,7 @@ export async function emitir_comprobante(data, tipo="factura"){
     if (tipo == "factura"){
         html = factura(html, data);
     }
-    else if(tipo == "remito"){
+    else if(data instanceof Consignacion){
         html = remito(html, data);
     }
     
@@ -43,9 +50,10 @@ export async function emitir_comprobante(data, tipo="factura"){
     console.log(tipo+" generado correctamente");
   };
 
-function factura(html, venta){
+function factura(html: string, venta: Venta & {qr_data: string, comprobante: any}){
     /*Parse venta.libros*/
     var table = '';
+    console.log("generando factura");
 
     for (let libro of venta.libros) {
         let bonif = venta.descuento * 0.01;
@@ -66,17 +74,19 @@ function factura(html, venta){
     html = html.replace('{{LIBROS}}', table); 
     /**/
 
-    html = html.replace('{{cond_venta}}', venta.tipo);
+    console.log("Venta: ", venta);
+    
+
+    html = html.replace('{{cond_venta}}', String(medio_pago[venta.medio_pago]));
 
     //QR
     html = html.replace('<img class="qr" src="">', `<img class="qr" src="${venta.qr_data}">`)
 
-    html = html.replaceAll('{{TOTAL}}', venta.total);
+    html = html.replace(/\{\{TOTAL\}\}/g, String(venta.total));
     
     /*parse clientes*/
     html = html.replace('{{cliente_cond}}', venta.cliente.cond_fiscal);
     html = html.replace('{{cliente_cuit}}', venta.cliente.cuit);
-    html = html.replace('{{cliente_tipo_venta}}', venta.cliente.tipo_venta);
     html = html.replace('{{cliente_nombre}}', venta.cliente.razon_social);
     html = html.replace('{{cliente_domicilio}}', venta.cliente.domicilio);
     /**/
@@ -93,12 +103,11 @@ function factura(html, venta){
     return html;
 }
 
-function remito(html, consignacion){
+function remito(html: string, consignacion: Consignacion){
     //parse libros
     var table = '';
 
     for (let libro of consignacion.libros) {
-        console.log(libro);
         if (libro.autores.length > 0){
             table += 
                 `<tr>
@@ -128,7 +137,7 @@ function remito(html, consignacion){
     html = html.replace('{{cliente.razon_social}}', consignacion.cliente.razon_social);
     html = html.replace('{{cliente.domicilio}}', consignacion.cliente.domicilio);
     //
-    html = html.replace("{{fecha}}", new Date());
+    html = html.replace("{{fecha}}", new Date().toString());
     //
     return html;
 }

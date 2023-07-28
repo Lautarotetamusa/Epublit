@@ -145,13 +145,14 @@ export class Venta extends BaseModel{
     }
 
     static async get_all(){
-        return (await conn.query(`
+        const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                ventas.id, fecha, medio_pago, total, file_path,
+                ventas.*,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM ventas
             INNER JOIN clientes
                 ON ventas.id_cliente = clientes.id
-        `))[0];
+        `);
+        return rows;
     }
 }

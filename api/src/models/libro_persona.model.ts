@@ -1,5 +1,3 @@
-import {conn} from "../db";
-import { RowDataPacket } from "mysql2/promise";
 import { createPersonaLibroInDB, updateLibroPersona, removePersonaLibro } from "../schemas/libro_persona.schema";
 
 import { BaseModel } from "./base.model";

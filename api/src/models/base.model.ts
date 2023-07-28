@@ -126,8 +126,6 @@ export class BaseModel{
         console.log(query);
 
         const [result] = await conn.query<OkPacket>(query, _req);
-
-        console.log(result);
     }
 
     protected static async _bulk_select<RT extends {}>(_req: RT[]): Promise<RowDataPacket[]>{

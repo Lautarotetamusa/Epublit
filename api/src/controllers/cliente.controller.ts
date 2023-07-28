@@ -33,7 +33,6 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     let body = validateCliente.update(req.body);
-    console.log("body:", body);
 
     if (Object.keys(req.body).length === 0 && req.body.constructor === Object) //Si pasamos un objeto vacio
         return res.status(204).json({
@@ -43,7 +42,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 
     const cliente = await Cliente.get_by_id(id);
     
-    if(body.cuit && await Cliente.cuil_exists(body.cuit))
+    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuil_exists(body.cuit))
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`);
     
     await cliente.update(body);

@@ -54,14 +54,14 @@ export class validateCliente{
         }
         let valid = validate<createCliente>(required, _obj);
 
-        if(!('tipo' in _obj))
+        /*if(!('tipo' in _obj))
             throw new ValidationError("El tipo es obligatorio");
         
         if(!validateCliente.tipoCliente(valid.tipo))
             throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoCliente)}`);
             
         if(_obj.tipo != TipoCliente.inscripto)
-            throw new ValidationError(`No se puede crear un cliente de tipo ${String(_obj.tipo)}`);
+            throw new ValidationError(`No se puede crear un cliente de tipo ${String(_obj.tipo)}`);*/
 
         return valid;
     }

@@ -54,7 +54,6 @@ app.use('/liquidacion', auth, LiquidacionRouter);
 app.use('/user', UserRouter);
 
 app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
-    console.error("app use:", err.stack);
     parse_error(res, err);
 });
 

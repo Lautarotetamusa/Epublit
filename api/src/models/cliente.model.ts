@@ -1,11 +1,19 @@
 import { conn } from '../db.js';
 import { ValidationError, NotFound } from './errors.js';
 import { BaseModel } from './base.model.js';
-import { AfipData, TipoCliente, createCliente, retrieveCliente, saveClienteInscripto, stockCliente, updateCliente } from '../schemas/cliente.schema.js';
+import { 
+    AfipData, 
+    TipoCliente, 
+    createCliente, 
+    retrieveCliente, 
+    saveClienteInscripto, 
+    stockCliente, 
+    updateCliente 
+} from '../schemas/cliente.schema.js';
 import { RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model.js';
 
-import afip from "../afip/Afip.js";
+import { get_afip_data } from "../afip/Afip.js";
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -48,7 +56,7 @@ export class Cliente extends BaseModel{
         return await this.find_one({tipo: TipoCliente.particular});
     }
     
-    static async get_afip_data(cuit: string){
+    /*static async get_afip_data(cuit: string){
         const afip_data = await afip.RegisterScopeFive?.getTaxpayerDetails(cuit);
         if (afip_data === null)
             throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
@@ -92,14 +100,14 @@ export class Cliente extends BaseModel{
             + afip_data.datosGenerales.domicilioFiscal.descripcionProvincia;
 
         return data;
-    }
+    }*/
 
     static async cuil_exists(cuit: string): Promise<Boolean>{
         return await this._exists({cuit: cuit, tipo: TipoCliente.inscripto})
     }
 
     static async insert(_req: createCliente): Promise<Cliente> {
-        let afip_data: AfipData = await this.get_afip_data(_req.cuit);
+        let afip_data: AfipData = await get_afip_data(_req.cuit);
         return await this._insert<saveClienteInscripto, Cliente>({
             ..._req,
             ...afip_data,
@@ -114,7 +122,7 @@ export class Cliente extends BaseModel{
 
         // Update cuit
         if (data.cuit && (data.cuit != this.cuit)){
-            let afip_data = await Cliente.get_afip_data(data.cuit);
+            let afip_data = await get_afip_data(data.cuit);
             this.cond_fiscal = afip_data.cond_fiscal;
             this.razon_social = afip_data.razon_social;
             this.domicilio = afip_data.cond_fiscal;

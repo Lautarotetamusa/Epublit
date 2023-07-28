@@ -18,7 +18,7 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
 
     await consignacion.cliente.update_stock(body.libros);
 
-    await emitir_comprobante(consignacion, "remito");
+    await emitir_comprobante({data: consignacion, tipo:"remito"});
 
     return res.status(201).json({
         success: true,

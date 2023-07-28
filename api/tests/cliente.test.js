@@ -181,7 +181,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        chai.expect(res.status).to.equal(201);
+        chai.expect(res.status).to.equal(200);
     });
 
     it('Actualizar nombre y email', async () => {

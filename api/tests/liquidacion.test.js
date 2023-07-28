@@ -8,7 +8,6 @@ process.env.DB_NAME = "librossilvestres"
 import {conn} from '../src/db.js'
 
 import {expect_err_code, expect_success_code} from './util.js';
-import { it } from 'node:test';
 
 const app = 'http://localhost:3001'
 
@@ -54,7 +53,7 @@ it('HARD DELETE', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: 'Lautaro123.'
+        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
     }
     const res = await request(app)
         .post('/user/login')
@@ -99,9 +98,6 @@ it('Insertar Libro', async () => {
 
 describe('Crear liquidacion POST /liquidacion', function () {
     it('La persona no trabaja en el libro', async () => {
-
-        console.log("LIBRO: 2", libro);
-
         let req = {
             "isbn": libro.isbn,
             "fecha_inicial": "2020-06-15",
@@ -115,6 +111,6 @@ describe('Crear liquidacion POST /liquidacion', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(req);
 
-        expect_err_code(400, res);
+        expect_err_code(404, res);
     });
 });

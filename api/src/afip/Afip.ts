@@ -1,6 +1,9 @@
 import Afip from './afip.js/src/Afip.js';
 import QRcode from 'qrcode';
 import { emitir_comprobante } from '../comprobantes/comprobante.js'
+import { Venta } from '../models/venta.model.js';
+import { NotFound } from '../models/errors.js';
+import { AfipData } from '../schemas/cliente.schema.js';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -13,6 +16,7 @@ const afip_madre = new Afip({
 	cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
 	production: true,
 });
+export default afip_madre;
 
 const afip = new Afip({
 	CUIT: 20434919798,
@@ -23,7 +27,7 @@ const afip = new Afip({
 	production: false,
 });
 
-function qr_url(voucher){
+function qr_url(voucher: any){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
 
 	let datos_comprobante = {
@@ -48,9 +52,7 @@ function qr_url(voucher){
 	return url+buff;
 }
  
-export default afip_madre;
-
-export async function facturar(venta){
+export async function facturar(venta: Venta){
 	let data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
@@ -68,22 +70,67 @@ export async function facturar(venta){
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
 		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
 	};
-	let {voucherNumber} = await afip.ElectronicBilling.createNextVoucher(data);	
+	let {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
 
-	let comprobante = await afip.ElectronicBilling.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
-	console.log("COMPROBANTE:", comprobante);
+	let comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 
 	comprobante.nro 	= voucherNumber;
-	comprobante.CbteFch = afip.ElectronicBilling.formatDate(comprobante.CbteFch);
-	comprobante.FchVto	= afip.ElectronicBilling.formatDate(comprobante.FchVto);
+	comprobante.CbteFch = afip.ElectronicBilling?.formatDate(comprobante.CbteFch);
+	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
 	comprobante.emisor 	= venta.cliente.cuit;
-	//console.log(comprobante);
 	
 	QRcode.toDataURL(qr_url(comprobante), function (err, base64_qr) {
 		emitir_comprobante({
-			...venta,
-			qr_data: base64_qr,
-			comprobante: comprobante
-		}, "factura");
+			data: Object.assign(venta, {
+				qr_data: base64_qr,
+				comprobante: comprobante
+			}),
+			tipo: "factura"
+		});
 	});
+}
+
+export async function get_afip_data(cuit: string): Promise<AfipData>{
+	const afip_data = await afip_madre.RegisterScopeFive?.getTaxpayerDetails(cuit);
+	if (afip_data === null)
+		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
+
+	let data: AfipData = {
+		cond_fiscal: " - ",
+		domicilio: " - ",
+		razon_social: " - "
+	};
+
+	if (!afip_data.datosGenerales.domicilioFiscal.localidad)
+		afip_data.datosGenerales.domicilioFiscal.localidad = 'CAPITAL FEDERAL'
+
+	let impuestos = null;
+	if (afip_data.datosRegimenGeneral)
+		impuestos = afip_data.datosRegimenGeneral.impuesto
+	else if(afip_data.datosMonotributo)
+		impuestos = afip_data.datosMonotributo.impuesto
+
+	if (impuestos){
+		var iva = (impuestos as {
+			idImpuesto: number,
+			descripcionImpuesto: string
+		}[]).find(i => i.idImpuesto == 32);
+
+		if (iva)
+		data.cond_fiscal = iva.descripcionImpuesto;
+	}else{
+		data.cond_fiscal = " - ";
+	}
+	
+	if (afip_data.datosGenerales.tipoPersona == 'JURIDICA')
+		data.razon_social = afip_data.datosGenerales.razonSocial;
+	else 
+		data.razon_social = afip_data.datosGenerales.nombre+' '+afip_data.datosGenerales.apellido;
+
+	data.domicilio = ''
+		+ afip_data.datosGenerales.domicilioFiscal.direccion+' - '
+		+ afip_data.datosGenerales.domicilioFiscal.localidad+ ' ' 
+		+ afip_data.datosGenerales.domicilioFiscal.descripcionProvincia;
+
+	return data;
 }
