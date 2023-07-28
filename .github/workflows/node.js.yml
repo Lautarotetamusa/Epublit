@@ -11,6 +11,19 @@ on:
 
 jobs:
   build:
+  
+    env:
+      SERVER_HOST: localhost
+      DB_USER: user
+      DB_PASS: password
+      DB_PORT: 3306
+      DB_NAME: db_name
+
+      BACK_PORT: 3001
+      FRONT_PORT: 3000
+
+      JWT_SECRET: clave_secreta_segura
+      JWT_EXPIRES_IN: 1h
 
     runs-on: ubuntu-latest
 
