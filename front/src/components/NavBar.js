@@ -1,10 +1,11 @@
 import React from "react";
+import { Button } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
 
-export const NavBar = () => {
+export const NavBar = ({handleLogout}) => {
     return (
         <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
           <Container>
@@ -16,14 +17,16 @@ export const NavBar = () => {
                   <NavDropdown.Item href="nuevo-libro">Nuevo Libro</NavDropdown.Item>
                   <NavDropdown.Item href="lista-libros">Lista de Libros</NavDropdown.Item>
                 </NavDropdown>
-                <NavDropdown title="Ventas" id="collasible-nav-dropdown">
-                  <NavDropdown.Item href="ventas">Ventas</NavDropdown.Item>
-                  <NavDropdown.Item href="clientes">Clientes</NavDropdown.Item>
-                </NavDropdown>
+               
+                <Nav.Link href="ventas">Ventas</Nav.Link>
+                <Nav.Link href="clientes">Clientes</Nav.Link>
                 <Nav.Link href="autores">Autores</Nav.Link>
                 <Nav.Link href="ilustradores">Ilustradores</Nav.Link>
                 <Nav.Link href="consignaciones">Consignaciones</Nav.Link>
               </Nav>
+              <Button variant="outline-light" onClick={handleLogout}>
+                Logout
+              </Button>
             </Navbar.Collapse>
           </Container>
         </Navbar>

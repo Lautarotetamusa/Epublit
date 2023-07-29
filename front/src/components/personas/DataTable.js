@@ -23,11 +23,6 @@ const FilterComponent = ({ filterText, onFilter, onClear }) => (
 
 const columns = [
 	{
-		name: 'ID',
-		selector: row => row.id,
-		sortable: true,
-	},
-	{
 		name: 'Nombre',
 		selector: row => row.nombre,
 		sortable: true,
