@@ -45,5 +45,5 @@ services:
     ports:
       - 80:$FRONT_PORT
     volumes:
-     - ./facturas:/app/facturas
-     - ./remitos:/app/remitos
+     - ./facturas:/app/src/comprobantes/facturas
+     - ./remitos:/app/src/comprobantes/remitos
