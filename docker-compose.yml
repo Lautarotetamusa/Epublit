@@ -44,3 +44,6 @@ services:
     command: npm start
     ports:
       - 80:$FRONT_PORT
+    volumes:
+     - ./facturas:/app/facturas
+     - ./remitos:/app/remitos

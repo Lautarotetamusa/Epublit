@@ -10,22 +10,50 @@ on:
     branches: [ "dev" ]
 
 jobs:
-  build:
-
+  api-testing:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [14.x, 16.x, 18.x]
+        node-version: [16.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm install
-    - run: npm run compile
-    - run: npm run test_persona
+        node-version: 16.9  # Cambia "14" por la versión de Node.js que estás utilizando
+        
+    - name: Prepare .env file
+      run: echo "$ENV_FILE_CONTENT" > .env
+      env:
+        ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+        
+    - name: Install dependencies
+      run: | 
+        cd api
+        npm install
+    
+    - name: Compile typescript
+      run: | 
+        cd api
+        npm run compile
+
+    - name: Build and start backend services
+      run: |
+        docker compose build app
+        docker compose up -d app
+
+    - name: Wait for backend to start
+      run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
+
+    - name: Run tests
+      run: |
+        cd api
+        npm run test
+
+    - name: Stop and remove backend services
+      run: docker compose down
