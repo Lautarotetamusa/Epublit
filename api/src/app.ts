@@ -1,6 +1,9 @@
 import express, {NextFunction, Request, Response} from "express";
 import "express-async-errors";
 
+import * as https from 'https'
+import * as fs from 'fs';
+
 import * as dotenv from 'dotenv';
 import cors from 'cors';
 
@@ -14,6 +17,8 @@ import LiquidacionRouter from "./routes/liquidacion.routes"
 
 import {auth} from "./middleware/auth";
 import { parse_error } from "./models/errors";
+import { fstat } from "fs";
+import { Http2ServerRequest } from "http2";
 
 dotenv.config();
 export const app = express();
@@ -64,6 +69,11 @@ app.use('*', (req, res) => res.status(404).json({
     error: "Esta ruta no hace nada negro"
 }));
 
-app.listen(port, () => console.log(`Libros Silvestres start in port ${port}!`))
-
-
+const https_options = {
+    key: fs.readFileSync('/app/security/key.pem'),
+    cert: fs.readFileSync('/app/security/cert.pem'),
+};
+  
+https.createServer(https_options, app).listen(port, () => 
+    console.log(`Libros Silvestres start in port ${port}!`)
+);

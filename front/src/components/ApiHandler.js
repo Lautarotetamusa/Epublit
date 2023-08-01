@@ -1,7 +1,12 @@
 const HOST = process.env.REACT_APP_HOST;
 const API_PORT = process.env.REACT_APP_API_PORT;
+//const PROTOCOL = process.env.REACT_PROTOCOL;
+//const PROTOCOL = "http";
+const PROTOCOL = "https";
 
 let TOKEN = "";
+
+console.log(`backend: ${PROTOCOL}://${HOST}:${API_PORT}`);
 
 export const setToken = (token) => {
     TOKEN = token;
@@ -10,7 +15,7 @@ export const setToken = (token) => {
 export const GetPeople = async (type) => {
     // type =  'autor' || 'ilustrador' ?tipo=${type}
     
-    const URL = `http://${HOST}:${API_PORT}/persona?tipo=${type}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona?tipo=${type}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -26,7 +31,7 @@ export const GetPeople = async (type) => {
 export const GetPersonas = async () => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/persona`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -42,7 +47,7 @@ export const GetPersonas = async () => {
 export const GetLibros = async () => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/libro`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -58,7 +63,7 @@ export const GetLibros = async () => {
 export const GetLibro = async (isbn) => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/libro/${isbn}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -74,7 +79,7 @@ export const GetLibro = async (isbn) => {
 export const GetMedioPago = async () => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/venta/medios_pago`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta/medios_pago`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -88,7 +93,7 @@ export const GetMedioPago = async () => {
 }
 
 export const PostPeople = async (inputs) => {
-    const URL = `http://${HOST}:${API_PORT}/persona`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -106,7 +111,7 @@ export const PostPeople = async (inputs) => {
 }
 
 export const PutLibro = async ({edit,isbn}) => {
-    const URL = `http://${HOST}:${API_PORT}/libro/${isbn}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -124,7 +129,7 @@ export const PutLibro = async ({edit,isbn}) => {
 }
 
 export const PutCliente = async ({edit,id}) => {
-    const URL = `http://${HOST}:${API_PORT}/cliente/${id}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -142,7 +147,7 @@ export const PutCliente = async ({edit,id}) => {
 }
 
 export const DeleteCliente = async (id) => {
-    const URL = `http://${HOST}:${API_PORT}/cliente/${id}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -159,7 +164,7 @@ export const DeleteCliente = async (id) => {
 }
 
 export const PutPersonaLibro = async ({persona,isbn}) => {
-    const URL = `http://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -180,7 +185,7 @@ export const PutPersonaLibro = async ({persona,isbn}) => {
 export const GetVentas = async (id) => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/cliente/${id}/ventas`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}/ventas`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -196,7 +201,7 @@ export const GetVentas = async (id) => {
 export const GetAllVentas = async () => {
 
     
-    const URL = `http://${HOST}:${API_PORT}/venta`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -211,7 +216,7 @@ export const GetAllVentas = async () => {
 
 
 export const GetVentaById = async (id) => {
-    const URL = `http://${HOST}:${API_PORT}/venta/${id}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta/${id}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -225,7 +230,7 @@ export const GetVentaById = async (id) => {
 }
 
 export const GetStockById = async (id) => {
-    const URL = `http://${HOST}:${API_PORT}/cliente/${id}/stock`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}/stock`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -240,7 +245,7 @@ export const GetStockById = async (id) => {
 
 
 export const PostVenta = async (inputs) => {
-    const URL = `http://${HOST}:${API_PORT}/venta`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -260,7 +265,7 @@ export const PostVenta = async (inputs) => {
 
 
 export const PostLibro = async (inputs) => {
-    const URL = `http://${HOST}:${API_PORT}/libro`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -277,7 +282,7 @@ export const PostLibro = async (inputs) => {
 }
 
 export const PostPeopleLibro = async ({people,isbn}) => {
-    const URL = `http://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -295,7 +300,7 @@ export const PostPeopleLibro = async ({people,isbn}) => {
 
 export const PostPerson = async (inputs) => {
     try{
-        const response = await fetch(`http://${HOST}:${API_PORT}/persona`, {
+        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/persona`, {
             method: "POST",
             body: JSON.stringify(inputs),
             headers: {"Content-type": "application/json; charset=UTF-8",
@@ -312,7 +317,7 @@ export const PostPerson = async (inputs) => {
 
 export const PostCliente = async (inputs) => {
     try{
-        const response = await fetch(`http://${HOST}:${API_PORT}/cliente`, {
+        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/cliente`, {
             method: "POST",
             body: inputs,
             headers: {"Content-type": "application/json; charset=UTF-8",
@@ -329,7 +334,7 @@ export const PostCliente = async (inputs) => {
 
 export const PostConsignacion = async (inputs) => {
     try{
-        const response = await fetch(`http://${HOST}:${API_PORT}/consignacion`, {
+        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/consignacion`, {
             method: "POST",
             body: inputs,
             headers: {"Content-type": "application/json; charset=UTF-8",
@@ -354,7 +359,7 @@ export const DeletePersonFromBook = async ({isbn,id,type}) => {
     }); 
     
 
-    const URL = `http://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -373,7 +378,7 @@ export const DeletePersonFromBook = async ({isbn,id,type}) => {
 
 
 export const GetClientes = async () => {
-    const URL = `http://${HOST}:${API_PORT}/cliente`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -390,7 +395,7 @@ export const GetClientes = async () => {
 
 
 export const DeletePerson = async (id) => { 
-    const URL = `http://${HOST}:${API_PORT}/persona/${id}`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona/${id}`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -406,7 +411,7 @@ export const DeletePerson = async (id) => {
 
 
 export const PostLogin = async (user)  => {
-    const URL = `http://${HOST}:${API_PORT}/user/login`;
+    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/user/login`;
     try{
         const response = await fetch(URL, {
             method: "POST",
