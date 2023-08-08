@@ -71,7 +71,7 @@ export class validateVenta{
         if (!this.medioPago(valid.medio_pago))
             throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(medio_pago)}`);
 
-        if (!('libros' in _obj))
+        if (!('libros' in _obj) || _obj['libros'].length <= 0)
             throw new ValidationError("Una Venta necesita al menos un libro");
 
         for (let l of _obj.libros){

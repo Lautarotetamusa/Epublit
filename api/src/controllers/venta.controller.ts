@@ -15,7 +15,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     else
         console.log("No se emite factura para cliente en negro");
 
-    venta.save();
+    await venta.save();
         
     return res.status(201).json({
         success: true,

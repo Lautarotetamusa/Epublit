@@ -5,3 +5,4 @@
 /mysql
 /api/dist/*
 /node_modules
+/data/*.csv
