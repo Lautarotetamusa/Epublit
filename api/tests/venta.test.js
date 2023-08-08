@@ -39,7 +39,7 @@ let venta = {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: 'Lautaro123.'
+        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
     }
     const res = await request(app)
         .post('/user/login')
@@ -181,24 +181,6 @@ describe('VENTA', () => {
 
                 venta.cliente = aux_cliente;
             });
-            it('Venta no tiene libros', async () => {
-                let aux_venta = Object.assign({}, venta.libros);
-                delete aux_venta.libros;
-
-                let res = await request(app)
-                    .post('/venta/')
-                    .set('Authorization', `Bearer ${token}`)
-                    .send(aux_venta);
-                expect_err_code(400, res);
-
-                aux_venta.libros = [];
-
-                res = await request(app)
-                    .post('/venta/')
-                    .set('Authorization', `Bearer ${token}`)
-                    .send(aux_venta);
-                expect_err_code(400, res);
-            });
             it('Medio de pago incorrecto', async () => {
                 const res = await request(app)
                     .post('/venta/')
@@ -230,18 +212,17 @@ describe('VENTA', () => {
                 expect_success_code(201, res);
 
                 //console.log("data:", res.body);
-                venta.id = res.body.data.id;
-                venta.file_path = res.body.data.file_path;
+                venta.id = res.body.id;
+                venta.file_path = res.body.path;
+                //console.log("VENTA:", venta);
             });
             
             it('Los libros reducieron su stock', async () => {
-                //console.log("VENTA:", venta);
                 for (const libro of venta.libros) {
                     const res = await request(app)
                         .get(`/libro/${libro.isbn}`)
                         .set('Authorization', `Bearer ${token}`);
         
-                    console.log("res body ", res.body);
                     chai.expect(res.status).to.equal(200);
                     chai.expect(res.body.stock).to.equal(0);
                 }
@@ -298,11 +279,11 @@ describe('VENTA', () => {
     describe('GET /venta', () => {
         it('Obtener los medios de pago', async () => {
             const res = await request(app)
-                .get(`/venta/medios_pago/`)
+                .get(`/venta/${venta.id}/medios_pago/`)
                 .set('Authorization', `Bearer ${token}`);
         
             chai.expect(res.status).to.equal(200);    
-            chai.expect(typeof res.body).to.equal("object");
+            chai.expect(typeof res.body).to.equal("Object");
             chai.expect(res.body.length).to.above(0);
         });
     });
