@@ -4,19 +4,20 @@ import csv
 import json
 import requests
 
-url = 'http://localhost:3000/'
-#url = 'http://ec2-54-207-220-227.sa-east-1.compute.amazonaws.com:3001/'
+#url = 'http://localhost:3000/'
+url = 'https://epublit.com.ar:8443/'
 
 headers = {}
 
 def login():
     data = {
         "username": "caro",
-        "password": "password"
+        "password": "Lautaro123."
     }
     res = requests.post(url+'user/login', json=data)
 
     if (res.status_code != 200 or not res.json()["token"]):
+        print(res.json())
         exit(1)
 
     headers["Authorization"] = res.json()["token"]
@@ -37,7 +38,7 @@ def add_personas(personas):
         if (not res.json()["success"]):
             print(res.text)
         elif 'id' in res.json():
-            personas[i]["id"] = res.json()["id"]
+            personas[i]["id"] = int(res.json()["id"])
 
     return personas
 
@@ -73,9 +74,8 @@ if __name__ == "__main__":
                 "dni": str(dni)
             }
             dni += 1
-    personas = add_personas(personas)
-    #personas = get_personas(personas)
-    #print(personas)
+    #personas = add_personas(personas)
+    personas = get_personas(personas)
 
     with open('Libros.csv', encoding='utf-8') as file:
         reader = csv.reader(file)

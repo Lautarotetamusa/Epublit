@@ -6,3 +6,4 @@
 /api/dist/*
 /node_modules
 /security/*
+/data/*.csv
