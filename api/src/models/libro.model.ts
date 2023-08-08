@@ -55,8 +55,15 @@ export class Libro extends BaseModel{
         }
     }
 
-    async update_stock(stock: number){
-        await this.update({stock: this.stock+stock})
+    async update_stock(qty: number){
+        //await this.update({stock: this.stock+stock})
+        const query = `
+            UPDATE ${Libro.table_name}
+            SET stock = stock + ${qty}
+            WHERE isbn = ?`
+
+        const [result] = await conn.query<any>(query, [this.isbn]);
+        return result;
     }
 
     static async delete(isbn: string){
