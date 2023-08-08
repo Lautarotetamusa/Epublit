@@ -1,4 +1,5 @@
 import { ValidationError } from '../models/errors';
+import { LibroPersona } from '../models/libro_persona.model';
 import { createPersonaLibro, validateLibroPersona } from './libro_persona.schema';
 import {validate} from './validate';
 
@@ -37,22 +38,23 @@ export class validateLibro{
         }
         let obj = validate<createLibro>(required, _obj);
 
-        if (!('ilustradores' in obj) && !('autores' in obj)){
+        let personas: createPersonaLibro[] = [];
+
+        if ('autores' in obj){
+            personas = personas.concat(obj.autores);
+        }
+
+        if ('ilustradores' in obj){
+            personas = personas.concat(obj.ilustradores);
+        }
+    
+        if (personas.length <= 0){
             throw new ValidationError("Un libro debe tener al menos un autor o un ilustrador");
         }
 
-        if ('autores' in obj && Array.isArray(obj.autores)){
-            for (let o of obj.autores){
-                o.isbn = obj.isbn;
-                let valid_p = validateLibroPersona.create(o);
-            }
-        }
-
-        if ('ilustradores' in obj && Array.isArray(obj.ilustradores)){
-            for (let o of obj.ilustradores){
-                o.isbn = obj.isbn;
-                let valid_p = validateLibroPersona.create(o);
-            }
+        for (let o of personas){
+            o.isbn = obj.isbn;
+            let valid_p = validateLibroPersona.create(o);
         }
 
         return obj;
