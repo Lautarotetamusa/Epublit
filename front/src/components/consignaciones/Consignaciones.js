@@ -1,8 +1,11 @@
 import React from "react";
-import {Button, Col, Row, Form} from 'react-bootstrap';
-import {PostConsignacion} from '../ApiHandler';
+import {Button, Col, Row, Form,Spinner,Table,InputGroup} from 'react-bootstrap';
+import {PostConsignacion,GetConsignacionByID} from '../ApiHandler';
+import {formatDate} from '../libros/ListaLibros';
+import DataTable from 'react-data-table-component';
+import Swal from 'sweetalert2';
 
-export const Consignaciones =({clientes,libros}) => {
+export const ConsignacionesForm =({clientes,libros}) => {
     const [librosSeleccionados, setLibrosSeleccionados] = React.useState([]);
     const [inputs, setInputs] = React.useState({libro: "", cantidad: ""});
     
@@ -18,11 +21,16 @@ export const Consignaciones =({clientes,libros}) => {
         };
     
     const handleSeleccionadoAdd = (event) => {
+      event.preventDefault();
         if(inputs.cantidad === "" || inputs.libro === ""){
-            alert("Debe completar todos los campos");
-            return;
+            Swal.fire({
+              title: "Advertencia",
+              text: "Debe completar todos los campos",
+              icon: "warning"
+            });
+            
         }else{
-          event.preventDefault();
+          
           setLibrosSeleccionados([...librosSeleccionados,{cantidad: inputs.cantidad, libro: libros.find((libro) => inputs.libro === libro.isbn)}]);
           setInputs({libro: "", cantidad: ""});
         }
@@ -108,3 +116,181 @@ export const Consignaciones =({clientes,libros}) => {
         </div>
       );
     }
+
+export const Consignaciones = ({consignaciones,clientes,libros}) => {
+  return (
+    <div className='container mt-1'>
+      <ConsignacionesForm clientes={clientes} libros={libros}/>
+      <ListaConsignaciones consignaciones={consignaciones}/>  
+    </div>
+  );
+}
+
+
+    const ListaConsignaciones = ({consignaciones}) => {
+
+      const [filterText, setFilterText] = React.useState('');
+      const [resetPaginationToggle, setResetPaginationToggle] = React.useState(false);
+    
+      
+      const filteredItems = consignaciones.filter(
+        item => item.nombre_cliente && item.nombre_cliente.toLowerCase().includes(filterText.toLowerCase()),
+      );
+        
+        
+    
+      const subHeaderComponentMemo = React.useMemo(() => {
+        const handleClear = () => {
+          if (filterText) {
+            setResetPaginationToggle(!resetPaginationToggle);
+            setFilterText('');
+          }
+        };
+    
+        return (
+          <FilterComponent onFilter={e => setFilterText(e.target.value)} onClear={handleClear} filterText={filterText} />
+        );
+      }, [filterText, resetPaginationToggle]);
+    
+    
+    
+      return (
+        <div className='container mt-1'>
+          <DataTable
+          title="Consignaciones"
+          columns={columns}
+          data={filteredItems}
+          pagination
+          paginationResetDefaultPage={resetPaginationToggle}
+          subHeader
+          subHeaderComponent={subHeaderComponentMemo}
+          persistTableHead
+          expandableRows
+          expandableRowsComponent={ExpandedComponent}
+          
+        />
+        </div>
+        
+      );
+    }
+    
+    
+    
+    const columns =[
+        {
+            name: 'ID',
+            selector: row => row.id,
+            sortable: true,
+        },
+        {
+            name: 'Nombre Cliente',
+            selector: row => row.nombre_cliente,
+            sortable: true,
+        },
+        {
+          name: 'Cuit',
+          selector: row => row.cuit,
+          sortable: true,
+        },
+        {
+            name: 'Fecha',
+            selector: row => formatDate(row.fecha),
+            sortable: true,
+        }
+   
+    ];
+    
+    const ExpandedComponent = ({ data }) => {
+      const [loading, setLoading] = React.useState(true);
+      const [consignacion, setConsignacion] = React.useState(null);
+      const [path, setPath] = React.useState(null);
+    
+      React.useEffect(() => {
+              fetchConsignaciones();// eslint-disable-next-line react-hooks/exhaustive-deps
+          }, [data.id]);
+    
+      const fetchConsignaciones = async () => {
+          try {
+              const cons = await GetConsignacionByID(data.id);
+              setConsignacion(cons);
+              
+              setLoading(false);
+              getPath(cons);
+              
+          } catch (error) {
+              console.error(error);
+              setLoading(false);
+          }
+      };
+      
+      
+      const getPath = (consignacion)=> {
+        console.log("archivo: ", `../../comprobantes/remitos/${consignacion.remito_path}`)
+        
+        if(consignacion != null){
+          try{
+            console.log("archivo: ", `../../comprobantes/remitos/${consignacion.remito_path}`)
+            setPath(require(`../../comprobantes/remitos/${consignacion.remito_path}`));
+          }catch(e){
+            console.log("no hay archivo");
+            console.log(e);
+          }
+        } 
+        
+      }
+    
+      
+      if(loading){
+        return (
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+        );
+      }
+      else{
+      return (
+          <div className="container">
+          <Table striped bordered hover size="sm">
+          <thead>
+              <tr>
+              <th>ISBN</th>
+              <th>Titulo</th>
+              <th>Cantidad</th>
+              </tr>
+          </thead>
+          <tbody>
+              {consignacion.libros.map(fila=>(
+                  <tr key={fila.isbn}>
+                  <td>{fila.isbn}</td>
+                  <td>{fila.titulo}</td>
+                  <td>{fila.cantidad}</td>
+                  </tr>
+              )
+              )}
+              
+          </tbody>
+          </Table>
+          <Button variant="success" onClick={() => window.open(path, '_blank')}>Remito</Button>
+          </div>
+      );
+      }
+    }
+    
+    
+    
+    
+    
+    const FilterComponent = ({ filterText, onFilter, onClear }) => (
+        
+      <InputGroup>
+          <Form.Control 
+              id="search"
+              type="text"
+              placeholder="Buscar por cliente..."
+              value={filterText}
+              onChange={onFilter} />
+          <Button variant="outline-secondary" onClick={onClear}>x</Button>
+      </InputGroup>
+      
+    
+    );

@@ -1,21 +1,27 @@
 const HOST = process.env.REACT_APP_HOST;
 const API_PORT = process.env.REACT_APP_API_PORT;
-//const PROTOCOL = process.env.REACT_PROTOCOL;
-//const PROTOCOL = "http";
-const PROTOCOL = "https";
+import Swal from 'sweetalert2';
+
 
 let TOKEN = "";
-
-console.log(`backend: ${PROTOCOL}://${HOST}:${API_PORT}`);
 
 export const setToken = (token) => {
     TOKEN = token;
 }
 
+const handleAlert = (message,type) => {
+    const title = type === "success" ? "Exito" : "Error";
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: type
+      });}
+
+
 export const GetPeople = async (type) => {
     // type =  'autor' || 'ilustrador' ?tipo=${type}
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona?tipo=${type}`;
+    const URL = `${HOST}:${API_PORT}/persona?tipo=${type}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -31,7 +37,7 @@ export const GetPeople = async (type) => {
 export const GetPersonas = async () => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona`;
+    const URL = `${HOST}:${API_PORT}/persona`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -47,7 +53,7 @@ export const GetPersonas = async () => {
 export const GetLibros = async () => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro`;
+    const URL = `${HOST}:${API_PORT}/libro`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -63,7 +69,7 @@ export const GetLibros = async () => {
 export const GetLibro = async (isbn) => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}`;
+    const URL = `${HOST}:${API_PORT}/libro/${isbn}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -79,7 +85,7 @@ export const GetLibro = async (isbn) => {
 export const GetMedioPago = async () => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta/medios_pago`;
+    const URL = `${HOST}:${API_PORT}/venta/medios_pago`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -93,7 +99,7 @@ export const GetMedioPago = async () => {
 }
 
 export const PostPeople = async (inputs) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona`;
+    const URL = `${HOST}:${API_PORT}/persona`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -102,7 +108,7 @@ export const PostPeople = async (inputs) => {
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
         
     }catch(error){
@@ -111,7 +117,7 @@ export const PostPeople = async (inputs) => {
 }
 
 export const PutLibro = async ({edit,isbn}) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}`;
+    const URL = `${HOST}:${API_PORT}/libro/${isbn}`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -121,7 +127,7 @@ export const PutLibro = async ({edit,isbn}) => {
             });
         const data = await response.json();
         console.log(data);
-        !response.ok || !data.success ? alert(data.error) : alert(data.message);
+        !response.ok || !data.success ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -129,7 +135,7 @@ export const PutLibro = async ({edit,isbn}) => {
 }
 
 export const PutCliente = async ({edit,id}) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}`;
+    const URL = `${HOST}:${API_PORT}/cliente/${id}`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -139,7 +145,7 @@ export const PutCliente = async ({edit,id}) => {
             });
         const data = await response.json();
         console.log(data);
-        !response.ok || !data.success ? alert(data.error) : alert(data.message);
+        !response.ok || !data.success ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -147,7 +153,7 @@ export const PutCliente = async ({edit,id}) => {
 }
 
 export const DeleteCliente = async (id) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}`;
+    const URL = `${HOST}:${API_PORT}/cliente/${id}`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -156,7 +162,7 @@ export const DeleteCliente = async (id) => {
             });
         const data = await response.json();
         console.log(data);
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -164,7 +170,7 @@ export const DeleteCliente = async (id) => {
 }
 
 export const PutPersonaLibro = async ({persona,isbn}) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "PUT",
@@ -174,7 +180,7 @@ export const PutPersonaLibro = async ({persona,isbn}) => {
             });
         const data = await response.json();
         console.log(data);
-        !response.ok || !data.success ? alert(data.error) : alert(data.message);
+        !response.ok || !data.success ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -185,7 +191,7 @@ export const PutPersonaLibro = async ({persona,isbn}) => {
 export const GetVentas = async (id) => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}/ventas`;
+    const URL = `${HOST}:${API_PORT}/cliente/${id}/ventas`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -201,7 +207,7 @@ export const GetVentas = async (id) => {
 export const GetAllVentas = async () => {
 
     
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta`;
+    const URL = `${HOST}:${API_PORT}/venta`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -214,9 +220,37 @@ export const GetAllVentas = async () => {
     }
 }
 
+export const GetConsignaciones = async () => {
 
+    
+    const URL = `${HOST}:${API_PORT}/consignacion`;
+    try{
+        const response = await fetch(URL,{
+            method: "GET",
+            headers: {"Authorization": TOKEN,
+        }});
+        const data = await response.json();
+        return data;
+    }catch(error){
+        console.log(error);
+    }
+}
+
+export const GetConsignacionByID = async (id) => {
+    const URL = `${HOST}:${API_PORT}/consignacion/${id}`;
+    try{
+        const response = await fetch(URL,{
+            method: "GET",
+            headers: {"Authorization": TOKEN,
+        }});
+        const data = await response.json();
+        return data;
+    }catch(error){
+        console.log(error);
+    }
+}
 export const GetVentaById = async (id) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta/${id}`;
+    const URL = `${HOST}:${API_PORT}/venta/${id}`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -230,7 +264,7 @@ export const GetVentaById = async (id) => {
 }
 
 export const GetStockById = async (id) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente/${id}/stock`;
+    const URL = `${HOST}:${API_PORT}/cliente/${id}/stock`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -245,7 +279,7 @@ export const GetStockById = async (id) => {
 
 
 export const PostVenta = async (inputs) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/venta`;
+    const URL = `${HOST}:${API_PORT}/venta`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -254,7 +288,7 @@ export const PostVenta = async (inputs) => {
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -265,7 +299,7 @@ export const PostVenta = async (inputs) => {
 
 
 export const PostLibro = async (inputs) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro`;
+    const URL = `${HOST}:${API_PORT}/libro`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -274,7 +308,7 @@ export const PostLibro = async (inputs) => {
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -282,7 +316,7 @@ export const PostLibro = async (inputs) => {
 }
 
 export const PostPeopleLibro = async ({people,isbn}) => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "POST",
@@ -291,7 +325,7 @@ export const PostPeopleLibro = async ({people,isbn}) => {
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -300,7 +334,7 @@ export const PostPeopleLibro = async ({people,isbn}) => {
 
 export const PostPerson = async (inputs) => {
     try{
-        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/persona`, {
+        const response = await fetch(`${HOST}:${API_PORT}/persona`, {
             method: "POST",
             body: JSON.stringify(inputs),
             headers: {"Content-type": "application/json; charset=UTF-8",
@@ -308,7 +342,7 @@ export const PostPerson = async (inputs) => {
             });
         const data = await response.json();
         
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -317,14 +351,14 @@ export const PostPerson = async (inputs) => {
 
 export const PostCliente = async (inputs) => {
     try{
-        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/cliente`, {
+        const response = await fetch(`${HOST}:${API_PORT}/cliente`, {
             method: "POST",
             body: inputs,
             headers: {"Content-type": "application/json; charset=UTF-8",
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -334,14 +368,14 @@ export const PostCliente = async (inputs) => {
 
 export const PostConsignacion = async (inputs) => {
     try{
-        const response = await fetch(`${PROTOCOL}://${HOST}:${API_PORT}/consignacion`, {
+        const response = await fetch(`${HOST}:${API_PORT}/consignacion`, {
             method: "POST",
             body: inputs,
             headers: {"Content-type": "application/json; charset=UTF-8",
             "Authorization": TOKEN}
             });
         const data = await response.json();
-        !response.ok ? alert(data.error) : alert(data.message);
+        !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
     }catch(error){
         console.log(error);
@@ -359,7 +393,7 @@ export const DeletePersonFromBook = async ({isbn,id,type}) => {
     }); 
     
 
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/libro/${isbn}/personas`;
+    const URL = `${HOST}:${API_PORT}/libro/${isbn}/personas`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -368,7 +402,7 @@ export const DeletePersonFromBook = async ({isbn,id,type}) => {
             "Authorization": TOKEN}
             });
         const data = await response.json();
-       !response.ok ? alert(data.error) : alert(data.message);
+       !response.ok ? handleAlert(data.error,"error") : handleAlert(data.message,"success");
         return data;
 
     }catch(error){
@@ -378,7 +412,7 @@ export const DeletePersonFromBook = async ({isbn,id,type}) => {
 
 
 export const GetClientes = async () => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/cliente`;
+    const URL = `${HOST}:${API_PORT}/cliente`;
     try{
         const response = await fetch(URL,{
             method: "GET",
@@ -395,7 +429,7 @@ export const GetClientes = async () => {
 
 
 export const DeletePerson = async (id) => { 
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/persona/${id}`;
+    const URL = `${HOST}:${API_PORT}/persona/${id}`;
     try{
         const response = await fetch(URL, {
             method: "DELETE",
@@ -411,7 +445,7 @@ export const DeletePerson = async (id) => {
 
 
 export const PostLogin = async (user)  => {
-    const URL = `${PROTOCOL}://${HOST}:${API_PORT}/user/login`;
+    const URL = `${HOST}:${API_PORT}/user/login`;
     try{
         const response = await fetch(URL, {
             method: "POST",
