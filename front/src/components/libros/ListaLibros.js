@@ -9,7 +9,7 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import { PutLibro, GetLibro,PutPersonaLibro, DeletePersonFromBook,PostPeopleLibro,PostPeople} from '../ApiHandler';
 import Modal from 'react-bootstrap/Modal';
 import {ModalPersonaExistente,ModalNuevaPersona} from './NuevoLibro';
-
+import Swal from 'sweetalert2';
 
 
 
@@ -80,7 +80,7 @@ const ExpandedComponent = ({ data,people }) => {
     const [loading, setLoading] = React.useState(true);
     const [libro, setLibro] = React.useState(null);
     React.useEffect(() => {
-            fetchLibro();
+            fetchLibro();// eslint-disable-next-line react-hooks/exhaustive-deps
         }, [data.isbn]);
     const fetchLibro = async () => {
         try {
@@ -114,7 +114,7 @@ const ExpandedComponent = ({ data,people }) => {
     const handlePorcentaje = async({porcentaje,id,tipo})=>{
         const response = await PutPersonaLibro({persona:JSON.stringify({porcentaje:porcentaje,id:id,tipo:tipo}),isbn:data.isbn});
         if(response.success) {
-            tipo == 0 ? setLibro({...libro,autores:libro.autores.map(autor => autor.id === id ? {...autor,porcentaje:porcentaje} : autor)}) : setLibro({...libro,ilustradores:libro.ilustradores.map(ilustrador => ilustrador.id === id ? {...ilustrador,porcentaje:porcentaje} : ilustrador)});
+            tipo === 0 ? setLibro({...libro,autores:libro.autores.map(autor => autor.id === id ? {...autor,porcentaje:porcentaje} : autor)}) : setLibro({...libro,ilustradores:libro.ilustradores.map(ilustrador => ilustrador.id === id ? {...ilustrador,porcentaje:porcentaje} : ilustrador)});
         }
 
 
@@ -123,7 +123,7 @@ const ExpandedComponent = ({ data,people }) => {
        
         DeletePersonFromBook({isbn,id,type});
         
-        type == 0 ? setLibro({...libro,autores:libro.autores.filter(autor => autor.id !== id)}) : setLibro({...libro,ilustradores:libro.ilustradores.filter(ilustrador => ilustrador.id !== id)});
+        type === 0 ? setLibro({...libro,autores:libro.autores.filter(autor => autor.id !== id)}) : setLibro({...libro,ilustradores:libro.ilustradores.filter(ilustrador => ilustrador.id !== id)});
     }
 
     if (loading) { 
@@ -326,7 +326,11 @@ const ModalEditLibro = ({libro,show,setShow,setLibros,libros}) => {
             });
             setLibros(aux);
             
-        }else alert("Error al editar libro");
+        }else Swal.fire({
+            title: "Error",
+            text: "Error al editar libro",
+            icon: "error"
+          });
 
 
     }

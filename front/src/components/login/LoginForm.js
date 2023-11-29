@@ -1,9 +1,9 @@
 import React from "react";
 import {Button, Form} from 'react-bootstrap';
 import { PostLogin } from "../ApiHandler";
+import Swal from 'sweetalert2';
 
-
-export const LoginForm = ({ setErrorAlert,setLoginUser }) => {
+export const LoginForm = ({setLoginUser }) => {
 
     const [user, setUser] = React.useState({
         username: "",
@@ -17,7 +17,11 @@ export const LoginForm = ({ setErrorAlert,setLoginUser }) => {
             localStorage.setItem('loggedUser', JSON.stringify({username: user.username, token: response.token}));
             setLoginUser({username: user.username, token: response.token});
         }else{
-            setErrorAlert({show: true, content: response.error});
+            Swal.fire({
+              title: "Error",
+              text: response.error,
+              icon: "error"
+            });
         }
             
     };

@@ -1,8 +1,6 @@
 FROM node:16.19.1-alpine AS app
 
 WORKDIR app/
-COPY ./security security/
-
 COPY ./front/package.json .
 RUN npm install
 COPY ./front/src src/

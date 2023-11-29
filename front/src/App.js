@@ -1,6 +1,6 @@
 import { NavBar } from './components/NavBar';
 import './App.css';
-import { GetPersonas, GetPeople, GetLibros, GetClientes,GetMedioPago,GetAllVentas,setToken} from './components/ApiHandler';
+import { GetPersonas, GetPeople, GetLibros, GetClientes,GetMedioPago,GetAllVentas,setToken,GetConsignaciones} from './components/ApiHandler';
 import React,{ useEffect,useState } from 'react';
 import { DataPersonTable } from './components/personas/DataTable';
 import { Route, Routes } from 'react-router-dom';
@@ -157,18 +157,26 @@ const ShowConsignaciones = () => {
     
   }
 
+
   const [libros,setLibros] = useState([]);
   const fetchLibros = async () => {
     const data = await GetLibros();
     setLibros(data);
     
   }
-  useEffect(() => {fetchClientes();fetchLibros();},[]);
+
+  const[consignaciones,setConsignaciones] = useState([]);
+  const fetchConsignaciones = async () => {
+    const data = await GetConsignaciones();
+    setConsignaciones(data);
+  }
+
+  useEffect(() => {fetchClientes();fetchLibros();fetchConsignaciones()},[]);
 
 
 
   return(
-    <Consignaciones clientes={clientes} libros={libros}/>
+    <Consignaciones consignaciones={consignaciones} clientes={clientes} libros={libros}/>
   );
 }
 
@@ -214,7 +222,7 @@ function App() {
   if (loading) {
     return <Spinner className="loading-spinner" animation="border" role="status"/>
   }
-  return <>{(user != UserInitialState) ? <LoggedInRender handleLogout={handleLogout}/> : <Login setUser={setUser}/>}</>;
+  return <>{(user !== UserInitialState) ? <LoggedInRender handleLogout={handleLogout}/> : <Login setUser={setUser}/>}</>;
   
 }
 
