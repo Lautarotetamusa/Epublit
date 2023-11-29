@@ -45,12 +45,21 @@ export async function emitir_comprobante({data, user, tipo}: args){
     
     await page.setContent(html);
   
-    console.log(tipo+"s/"+data.file_path);
-    const pdf = await page.pdf({
-      path: tipo+"s/"+data.file_path,
-      printBackground: true,
-      format: 'A4',
-    });
+    if (data instanceof Consignacion){
+        console.log(tipo+"s/"+data.remito_path);
+        const pdf = await page.pdf({
+          path: tipo+"s/"+data.remito_path,
+          printBackground: true,
+          format: 'A4',
+        });
+    }else{
+        console.log(tipo+"s/"+data.file_path);
+        const pdf = await page.pdf({
+          path: tipo+"s/"+data.file_path,
+          printBackground: true,
+          format: 'A4',
+        });
+    }
   
     // Close the browser instance
     await browser.close();
