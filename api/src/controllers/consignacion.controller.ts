@@ -47,7 +47,7 @@ const get_remito = async (req: Request, res: Response) => {
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     const cons = await Consignacion.get_by_id(id);
-    res.download('remitos/'+cons.file_path);
+    res.download('remitos/'+cons.remito_path);
 }
 
 const liquidar = async(req: Request, res: Response): Promise<Response> => {

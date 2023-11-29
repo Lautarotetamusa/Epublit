@@ -30,7 +30,7 @@ export class LibroConsignacion extends Libro {
 
 export class Consignacion extends BaseModel{
     id?: number;
-    file_path: string;
+    remito_path: string;
     libros: LibroConsignacion[];
     cliente: Cliente;
 
@@ -39,7 +39,7 @@ export class Consignacion extends BaseModel{
     constructor(req: buildConsignacion & {id?: number}){
         super();
 
-        this.file_path = req.file_path;
+        this.remito_path = req.remito_path;
         this.libros = req.libros;
         this.cliente = req.cliente;
         if ('id' in req)
@@ -95,14 +95,14 @@ export class Consignacion extends BaseModel{
             ...req,
             libros: await this.set_libros(req.libros),
             cliente: cliente,
-            file_path: cliente.razon_social.replace('/-/g', '')+'_'+date+'.pdf'
+            remito_path: cliente.razon_social.replace('/-/g', '')+'_'+date+'.pdf'
         }); 
     }
     
     async save(){
         let cons = await Consignacion._insert<saveConsignacion, Consignacion>({
             id_cliente: this.cliente.id,
-            remito_path: this.file_path,
+            remito_path: this.remito_path,
         });
         this.id = cons.id;
         
