@@ -88,8 +88,11 @@ export async function facturar(venta: Venta, user: User){
 	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
 	comprobante.emisor 	= venta.cliente.cuit;
 	
-	QRcode.toDataURL(qr_url(comprobante), function (err, base64_qr) {
-		emitir_comprobante({
+	QRcode.toDataURL(qr_url(comprobante), async function (err, base64_qr) {
+		if (err)
+			throw new Error(err.message);
+
+		await emitir_comprobante({
 			data: Object.assign(venta, {
 				qr_data: base64_qr,
 				comprobante: comprobante
