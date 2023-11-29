@@ -23,6 +23,10 @@ export interface buildVenta extends basic {
     total: number;
 };
 
+export interface retrieveVenta extends buildVenta{
+    fecha: Date;
+}
+
 export type libroVenta = {
     cantidad: number,
     isbn: string

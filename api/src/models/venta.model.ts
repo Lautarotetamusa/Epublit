@@ -4,7 +4,7 @@ import { Cliente } from "./cliente.model.js";
 
 import { ValidationError } from './errors.js';
 import { BaseModel } from './base.model.js';
-import { buildVenta, createVenta, libroVenta, medio_pago, saveVenta } from '../schemas/venta.schema.js';
+import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema.js';
 import { retrieveLibro } from '../schemas/libros.schema.js';
 import { RowDataPacket } from 'mysql2';
 
@@ -26,6 +26,7 @@ export class Venta extends BaseModel{
     medio_pago: medio_pago;
     total: number;
     file_path: string;
+    fecha?: Date;
 
     punto_venta: number;
     tipo_cbte: number;
@@ -35,7 +36,7 @@ export class Venta extends BaseModel{
 
     static table_name = 'ventas';
 
-    constructor(request: buildVenta & {id?: number}){
+    constructor(request: buildVenta & {id?: number, fecha?: Date}){
         super();
 
         this.descuento  = request.descuento || 0;
@@ -48,6 +49,9 @@ export class Venta extends BaseModel{
         this.libros     = request.libros;
         this.total = request.total;
         this.file_path = request.file_path;
+
+        if ('fecha' in request)
+            this.fecha = request.fecha;
 
         if ('id' in request)
             this.id = request.id;
@@ -125,7 +129,7 @@ export class Venta extends BaseModel{
 
     static async get_by_id(id: number){
 
-        const venta = await this.find_one<buildVenta, Venta>({id: id});
+        const venta = await this.find_one<retrieveVenta, Venta>({id: id});
 
         venta.libros = await venta.get_libros();
         return venta;
