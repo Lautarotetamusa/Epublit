@@ -144,14 +144,18 @@ function remito(html: string, consignacion: Consignacion){
     }
 
     html = html.replace('{{LIBROS}}', table);
-    //
+    //El 0003 es un numero igual para todos los remitos, esto obviamente habría que cambiarlo en un futuro para que no este hardescrito
+    html = html.replace('{{remito.nro}}', '0003/'+String(consignacion.id).padStart(5, '0'));
     
     //parse_clientes
     html = html.replace('{{cliente.cuit}}', consignacion.cliente.cuit);
     html = html.replace('{{cliente.razon_social}}', consignacion.cliente.razon_social);
     html = html.replace('{{cliente.domicilio}}', consignacion.cliente.domicilio);
     //
-    html = html.replace("{{fecha}}", new Date().toString());
+    const date = new Date().toISOString().
+      replace(/T/, ' '). 
+      replace(/\..+/, '');
+    html = html.replace("{{fecha}}", date);
     //
     return html;
 }
