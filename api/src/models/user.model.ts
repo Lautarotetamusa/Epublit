@@ -17,26 +17,26 @@ export class User extends BaseModel{
 
     static table_name = "users"; 
 
-    constructor(_user: retrieveUser){
+    constructor(body: retrieveUser){
         super();
 
-        this.username = _user.username;
-        this.password = _user.password;
-        this.cond_fiscal = _user.cond_fiscal;
-        this.cuit = _user.cuit;
-        this.razon_social = _user.razon_social;
-        this.domicilio = _user.domicilio;
-        this.id = _user.id;
+        this.username = body.username;
+        this.password = body.password;
+        this.cond_fiscal = body.cond_fiscal;
+        this.cuit = body.cuit;
+        this.razon_social = body.razon_social;
+        this.domicilio = body.domicilio;
+        this.id = body.id;
     }
 
     static async exists(username: string): Promise<boolean>{
         return await super._exists({username: username});
     }
 
-    static async insert(_user: createUser): Promise<User>{
-        let afip_data = await get_afip_data(_user.cuit);
+    static async insert(body: createUser): Promise<User>{
+        let afip_data = await get_afip_data(body.cuit);
         return await this._insert<saveUser, User>({
-            ..._user,
+            ...body,
             ...afip_data,
         });
     }

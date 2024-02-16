@@ -55,74 +55,27 @@ export class Cliente extends BaseModel{
     static async get_consumidor_final(): Promise<Cliente>{
         return await this.find_one({tipo: TipoCliente.particular});
     }
-    
-    /*static async get_afip_data(cuit: string){
-        const afip_data = await afip.RegisterScopeFive?.getTaxpayerDetails(cuit);
-        if (afip_data === null)
-            throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
-
-        let data: AfipData = {
-            cond_fiscal: " - ",
-            domicilio: " - ",
-            razon_social: " - "
-        };
-
-        if (!afip_data.datosGenerales.domicilioFiscal.localidad)
-            afip_data.datosGenerales.domicilioFiscal.localidad = 'CAPITAL FEDERAL'
-
-        let impuestos = null;
-        if (afip_data.datosRegimenGeneral)
-            impuestos = afip_data.datosRegimenGeneral.impuesto
-        else if(afip_data.datosMonotributo)
-            impuestos = afip_data.datosMonotributo.impuesto
-
-        if (impuestos){
-            var iva = (impuestos as {
-                idImpuesto: number,
-                descripcionImpuesto: string
-            }[]).find(i => i.idImpuesto == 32);
-
-            if (iva)
-            data.cond_fiscal = iva.descripcionImpuesto;
-        }else{
-            data.cond_fiscal = " - ";
-        }
-        
-
-        if (afip_data.datosGenerales.tipoPersona == 'JURIDICA')
-            data.razon_social = afip_data.datosGenerales.razonSocial;
-        else 
-            data.razon_social = afip_data.datosGenerales.nombre+' '+afip_data.datosGenerales.apellido;
-
-        data.domicilio = ''
-            + afip_data.datosGenerales.domicilioFiscal.direccion+' - '
-            + afip_data.datosGenerales.domicilioFiscal.localidad+ ' ' 
-            + afip_data.datosGenerales.domicilioFiscal.descripcionProvincia;
-
-        return data;
-    }*/
 
     static async cuil_exists(cuit: string): Promise<Boolean>{
         return await this._exists({cuit: cuit, tipo: TipoCliente.inscripto})
     }
 
-    static async insert(_req: createCliente): Promise<Cliente> {
-        let afip_data: AfipData = await get_afip_data(_req.cuit);
+    static async insert(body: createCliente): Promise<Cliente> {
+        const afip_data: AfipData = await get_afip_data(body.cuit);
         return await this._insert<saveClienteInscripto, Cliente>({
-            ..._req,
+            ...body,
             ...afip_data,
             tipo: TipoCliente.inscripto //No se puede crear un cliente que no sea inscripto
         });
     }
-
   
     async update(data: updateCliente) {
         if (this.tipo == TipoCliente.particular)
             throw new ValidationError("No se puede actualizar un cliente CONSUMIDOR FINAL");
 
-        // Update cuit
+        // Update cuit 
         if (data.cuit && (data.cuit != this.cuit)){
-            let afip_data = await get_afip_data(data.cuit);
+            const afip_data = await get_afip_data(data.cuit);
             this.cond_fiscal = afip_data.cond_fiscal;
             this.razon_social = afip_data.razon_social;
             this.domicilio = afip_data.cond_fiscal;
@@ -136,7 +89,7 @@ export class Cliente extends BaseModel{
     }
 
     static async delete(id: number){
-        let res = await this._delete({id: id});
+        const res = await this._delete({id: id});
         if (res.affectedRows == 0)
             throw new NotFound(`No se encuentra el cliente con id ${id}`);
     }
@@ -152,36 +105,31 @@ export class Cliente extends BaseModel{
             FROM stock_cliente as sc
             INNER JOIN libros
                 ON libros.isbn = sc.isbn
-            WHERE id_cliente=${this.id}
-        `);
+            WHERE id_cliente=?
+        `, [this.id]);
         return rows;
     }
 
     async update_stock(libros: stockCliente){
-        let stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
+        const stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
         await conn.query(`
-
             INSERT INTO stock_cliente
                 (id_cliente, stock, isbn)
                 VALUES ?
             ON DUPLICATE KEY UPDATE
                 stock = stock + VALUES(stock)
-
         `, [stock_clientes]);
     }
 
     async have_stock(libros: stockCliente){
-        for (let libro of libros){
-            //const res = await Cliente.find_all({id_cliente: this.id, isbn: libro.isbn, stock: libro.cantidad});
-
-            let count = (await conn.query<RowDataPacket[]>(`
-
+        for (const libro of libros){
+            const [rows] = await conn.query<RowDataPacket[]>(`
                 SELECT COUNT(*) as count FROM stock_cliente
-                WHERE id_cliente=${this.id}
-                AND isbn = ${libro.isbn}
-                AND stock < ${libro.cantidad};
-
-            `))[0][0].count;
+                WHERE id_cliente=?
+                AND isbn = ?
+                AND stock < ?;
+            `, [this.id, libro.isbn, libro.cantidad]); 
+            const count = rows[0].count;
 
             if (count > 0){
                 throw new NotFound(`No hay suficiente stock del libro ${libro.isbn} para el cliente ${this.nombre} (${this.id})`);

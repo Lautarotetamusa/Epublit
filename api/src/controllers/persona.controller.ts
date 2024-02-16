@@ -45,7 +45,7 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
     if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
     await Persona.delete({id: id})
-1
+
     return res.json({
         success: true,
         message: `Persona con id ${id} eliminada correctamente`

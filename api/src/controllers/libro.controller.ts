@@ -187,7 +187,7 @@ const get_ventas = async(req: Request, res: Response) => {
 }
 
 const get_one = async(req: Request, res: Response) => {
-    let libro = await Libro.get_by_isbn(req.params.isbn)
+    const libro = await Libro.get_by_isbn(req.params.isbn)
     const {autores, ilustradores} = await libro.get_personas();
     return res.json({
         ...libro,

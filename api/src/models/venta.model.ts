@@ -68,8 +68,9 @@ export class Venta extends BaseModel{
                 cantidad: _libro.cantidad
             }))
 
-            if (libro.stock < _libro.cantidad)
+            if (libro.stock < _libro.cantidad){
                 throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+            }
         }
         return libros;
     }
@@ -106,7 +107,7 @@ export class Venta extends BaseModel{
     }
         
     async save(){
-        let venta = await Venta._insert<saveVenta, Venta>({
+        const venta = await Venta._insert<saveVenta, Venta>({
             id_cliente: this.cliente.id,
             total: this.total,
             file_path: this.file_path,
@@ -128,7 +129,6 @@ export class Venta extends BaseModel{
     }
 
     static async get_by_id(id: number){
-
         const venta = await this.find_one<retrieveVenta, Venta>({id: id});
 
         venta.libros = await venta.get_libros();
@@ -136,15 +136,13 @@ export class Venta extends BaseModel{
     }
 
     async get_libros(): Promise<LibroVenta[]>{
-        let [libros] = await conn.query<RowDataPacket[]>(`
+        const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad, precio_venta 
             FROM libros
             INNER JOIN libros_ventas
                 ON libros_ventas.isbn = libros.isbn
-            INNER JOIN ventas
-                ON ventas.id = libros_ventas.id_venta
-            WHERE ventas.id = ${this.id}
-        `);
+            WHERE libros_ventas.id_venta = ?
+        `, [this.id]);
         return libros as LibroVenta[];
     }
 

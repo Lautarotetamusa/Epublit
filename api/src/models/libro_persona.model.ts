@@ -14,17 +14,17 @@ export class LibroPersona extends BaseModel{
     static pk = ["tipo", "isbn", "id_persona"];
 
     //Validamos al momento de crear un objeto
-    constructor(_req: retrieveLibroPersona) {
+    constructor(body: retrieveLibroPersona) {
         super();
 
-        this.tipo = _req.tipo;
-        this.porcentaje  = _req.porcentaje;
-        this.isbn = _req.isbn;
-        this.id = _req.id;
+        this.tipo = body.tipo;
+        this.porcentaje  = body.porcentaje;
+        this.isbn = body.isbn;
+        this.id = body.id;
     }
 
-    static async get_one(_req: removePersonaLibro): Promise<LibroPersona>{
-        return super.find_one<removePersonaLibro, LibroPersona>(_req);
+    static async get_one(body: removePersonaLibro): Promise<LibroPersona>{
+        return super.find_one<removePersonaLibro, LibroPersona>(body);
     }
 
     static async exists(p: removePersonaLibro): Promise<boolean>{

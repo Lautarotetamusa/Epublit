@@ -6,14 +6,6 @@ import { BaseModel } from "./base.model";
 import { TipoPersona } from "../schemas/libro_persona.schema";
 import { retrieveLibro } from "../schemas/libros.schema";
 
-export interface IPersona extends RowDataPacket{
-    nombre: string;
-    email?: string;
-    dni: string;
-    id?: number;
-    tipo?: TipoPersona;
-}
-
 export class Persona extends BaseModel{
     nombre: string;
     email: string;
@@ -50,21 +42,24 @@ export class Persona extends BaseModel{
         return await super._insert<createPersona, Persona>(p);
     }
 
-    static async update(_req: updatePersona, _where: object){
-        await this._update<updatePersona>(_req, _where);    
+    static async update(body: updatePersona, where: object){
+        await this._update<updatePersona>(body, where);    
     }
 
     /**
      * const p = Persona.get_one({id: 1}); \
      * p.update({nombre: "Lautaro"})
-     * @param _req 
+     * @param body 
      * @param _where 
      */
-    async update(_req: updatePersona){
-        await Persona._update<updatePersona>(_req, {id: this.id, is_deleted: 0});    
+    async update(body: updatePersona){
+        await Persona._update<updatePersona>(body, {
+            id: this.id, 
+            is_deleted: 0
+        });    
 
-        for (let i in _req){
-            let value = _req[i as keyof typeof _req];
+        for (let i in body){
+            let value = body[i as keyof typeof body];
             if (value !== undefined)
                 this[i as keyof updatePersona] = value; 
         }
@@ -93,13 +88,11 @@ export class Persona extends BaseModel{
             SELECT libros.*, libros_personas.tipo 
             FROM libros
             INNER JOIN libros_personas
-                ON libros_personas.id_persona = ?
-            INNER JOIN ${Persona.table_name}
                 ON libros.isbn = libros_personas.isbn
             WHERE personas.id = ?
             AND personas.is_deleted = 0`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, this.id]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
         this.libros = rows as retrieveLibro[];
     }
 }

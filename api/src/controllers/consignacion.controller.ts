@@ -11,7 +11,7 @@ import { TipoCliente } from "../schemas/cliente.schema.js";
 import { medio_pago } from "../schemas/venta.schema.js";
 
 const consignar = async(req: Request, res: Response): Promise<Response> => {
-    let body = validateConsignacion.create(req.body);
+    const body = validateConsignacion.create(req.body);
 
     const consignacion = await Consignacion.build(body);
     await consignacion.save();
@@ -54,8 +54,8 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    let body = validateConsignacion.create(req.body);
-    let cliente = await Cliente.get_by_id(id);
+    const body = validateConsignacion.create(req.body);
+    const cliente = await Cliente.get_by_id(id);
 
     if(cliente.tipo == TipoCliente.particular){
         return res.status(400).json({
@@ -75,7 +75,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     await cliente.have_stock(body.libros);
 
     //Actualizar el stock del cliente
-    let substacted_stock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
+    const substacted_stock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
     console.log(substacted_stock);
     await cliente.update_stock(substacted_stock);
 

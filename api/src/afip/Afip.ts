@@ -31,7 +31,7 @@ const afip = new Afip({
 function qr_url(voucher: any){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
 
-	let datos_comprobante = {
+	const datos_comprobante = {
 		ver: 1,
 		fecha: 	voucher.CbteFch,
 		cuit: 	voucher.emisor,
@@ -45,7 +45,6 @@ function qr_url(voucher: any){
 		tipoCodAut: "E", //“E” para comprobante autorizado por CAE
 		codAut: parseInt(voucher.CodAutorizacion)
 	}
-	//console.log(datos_comprobante);
 
 	var buff = Buffer.from(JSON.stringify(datos_comprobante)).toString("base64");
 	console.log(url+buff);
@@ -62,7 +61,7 @@ export async function get_server_status(){
 }
  
 export async function facturar(venta: Venta, user: User){
-	let data = {
+	const data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
 		'CbteTipo' 	: venta.tipo_cbte,  					//Tipo de comprobante (ver tipos disponibles) 
@@ -79,7 +78,7 @@ export async function facturar(venta: Venta, user: User){
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
 		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
 	};
-	let {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
+	const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
 
 	let comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 
@@ -102,8 +101,9 @@ export async function facturar(venta: Venta, user: User){
 
 export async function get_afip_data(cuit: string): Promise<AfipData>{
 	const afip_data = await afip_madre.RegisterScopeFive?.getTaxpayerDetails(cuit);
-	if (afip_data === null)
+	if (afip_data === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
+    }
 
 	let data: AfipData = {
 		cond_fiscal: " - ",

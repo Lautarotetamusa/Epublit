@@ -32,7 +32,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    let body = validateCliente.update(req.body);
+    const body = validateCliente.update(req.body);
 
     if (Object.keys(req.body).length === 0 && req.body.constructor === Object) //Si pasamos un objeto vacio
         return res.status(204).json({

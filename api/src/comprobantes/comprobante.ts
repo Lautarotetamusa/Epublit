@@ -38,8 +38,7 @@ export async function emitir_comprobante({data, user, tipo}: args){
 
     if (tipo == "factura"){
         html = factura(html, data);
-    }
-    else if(data instanceof Consignacion){
+    }else if(data instanceof Consignacion){
         html = remito(html, data);
     }
     
