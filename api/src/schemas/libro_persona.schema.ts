@@ -1,55 +1,58 @@
+import {z} from 'zod';
 import { ValidationError } from '../models/errors';
-import { createPersona,  validatePersona } from './persona.schema'
+import { createPersona } from './persona.schema'
 import { validate } from './validate'
 
-export enum TipoPersona {
-    autor = 0,
-    ilustrador
-}
-export type TipoPersonaString = keyof typeof TipoPersona;
+export const tipoPersona = {
+    "autor": 0,
+    "ilustrador": 1
+}  as const;
+export type TipoPersona = typeof tipoPersona[keyof typeof tipoPersona];
 
-export type LibroPersonaPK = {
-    tipo: TipoPersona;
-    id: number;
-    isbn: string;
-}
+const libroPersonaSchema = z.object({
+    porcentaje: z.number().min(0).max(100),
+    tipo: z.enum(tipoPersona),
+    isbn: z.string(),
+    id_persona: z.number()
+});
+type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
 
-export interface createPersonaLibroInDB extends LibroPersonaPK{
-    porcentaje: number;
-}
-export interface createPersonaLibroNOTInDB extends createPersona{
-    porcentaje: number;
-    tipo: TipoPersona;
-    isbn: string;
-}
-export type createPersonaLibro = createPersonaLibroInDB | createPersonaLibroNOTInDB;
+const libroPersonaKey = libroPersonaSchema.omit({
+    porcentaje: true
+});
+export type LibroPersonaKey = z.infer<typeof libroPersonaKey>;
 
-export interface retrieveLibroPersona extends createPersonaLibroInDB{
-    dni: string,
-    nombre: string,
-    email: string,
-};
+const updateLibroPersona = libroPersonaSchema.pick({
+    porcentaje: true
+});
+type UpdateLibroPersona = z.infer<typeof updateLibroPersona>;
 
-export interface removePersonaLibro extends LibroPersonaPK{};
+export const createPersonaLibroInDB = libroPersonaSchema;
+export type CreatePersonaLibroInDB = z.infer<typeof createPersonaLibroInDB>;
 
-export interface updateLibroPersona extends createPersonaLibroInDB{};
+const createPersonaLibroNOTInDB = createPersona.and(libroPersonaSchema.omit({
+    id_persona: true 
+}));
+export type createPersonaLibroNOTInDB = z.infer<typeof createPersonaLibroNOTInDB>;
+
+export type createPersonaLibro = CreatePersonaLibroInDB | createPersonaLibroNOTInDB;
 
 export class validateLibroPersona{
     static tipoPersona(tipo: any): tipo is TipoPersona{
-        return Object.values(TipoPersona).includes(tipo);
+        return Object.values(tipoPersona).includes(tipo);
     }
 
-    static indb(obj: any): createPersonaLibroInDB{
+    static indb(obj: any): CreatePersonaLibroInDB{
         const required = {
             'porcentaje': 'number',
             'id': 'number',
             'isbn': 'string',
             'tipo': 'ignore'
         }
-        let valid = validate<createPersonaLibroInDB>(required, obj);
+        let valid = validate<CreatePersonaLibroInDB>(required, obj);
 
         if(!validateLibroPersona.tipoPersona(valid.tipo))
-            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(tipoPersona)}`);
 
         return valid;
     }
@@ -66,9 +69,9 @@ export class validateLibroPersona{
         let valid = validate<createPersonaLibroNOTInDB>(required, obj);
 
         if(!validateLibroPersona.tipoPersona(valid.tipo))
-            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(tipoPersona)}`);
         
-        let valid_p = validatePersona.create(Object.assign({}, valid));
+        let valid_p = createPersona.parse(valid);
 
         return Object.assign({}, valid, valid_p);
     }
@@ -81,17 +84,17 @@ export class validateLibroPersona{
         }
     }
 
-    static update(obj: unknown): updateLibroPersona{
+    static update(obj: unknown): UpdateLibroPersona{
         const required = {
             'porcentaje': 'number',
             'id': 'number',
             'isbn': 'string',
             'tipo': 'ignore'
         }
-        let valid = validate<updateLibroPersona>(required, obj);
+        let valid = validate<UpdateLibroPersona>(required, obj);
 
         if(!validateLibroPersona.tipoPersona(valid.tipo))
-            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(tipoPersona)}`);
 
         return valid;
     }
@@ -113,7 +116,7 @@ export class validateLibroPersona{
         let valid = validate<removePersonaLibro>(required, obj);
 
         if(!validateLibroPersona.tipoPersona(valid.tipo))
-            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(TipoPersona)}`);
+            throw new ValidationError(`El tipo pasado no es correcto ${Object.keys(tipoPersona)}`);
 
         return valid;
     }
