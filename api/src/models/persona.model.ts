@@ -3,15 +3,13 @@ import { RowDataPacket } from "mysql2/promise";
 import {PersonaSchema, CreatePersona, UpdatePersona} from "../schemas/persona.schema";
 
 import { BaseModel } from "./base.model";
-import { TipoPersona } from "../schemas/libro_persona.schema";
-import { retrieveLibro } from "../schemas/libros.schema";
+import { tipoPersona, TipoPersona } from "../schemas/libro_persona.schema";
 
 export class Persona extends BaseModel{
     nombre: string;
     email: string;
     dni: string;
     id: number;
-    libros?: retrieveLibro[];
 
     static table_name: string = "personas";
     static fields = ["id", "dni", "nombre", "email"]
@@ -73,7 +71,7 @@ export class Persona extends BaseModel{
             AND libros_personas.tipo = ?
             GROUP BY id`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [tipo]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [tipoPersona[tipo]]);
         return rows;
     }    
 
@@ -87,7 +85,7 @@ export class Persona extends BaseModel{
             AND personas.is_deleted = 0`;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
-        this.libros = rows as retrieveLibro[];
+        return rows as retrieveLibro[];
     }
 }
 

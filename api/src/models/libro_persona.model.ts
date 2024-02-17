@@ -1,4 +1,4 @@
-import { CreatePersonaLibroInDB, LibroPersonaKey, TipoPersona, LibroPersonaSchema} from "../schemas/libro_persona.schema";
+import { LibroPersonaKey, TipoPersona, LibroPersonaSchema} from "../schemas/libro_persona.schema";
 import { BaseModel } from "./base.model";
 
 export class LibroPersona extends BaseModel{
@@ -30,7 +30,7 @@ export class LibroPersona extends BaseModel{
         return rows.length > 0;
     }
 
-    static async insert(personas: CreatePersonaLibroInDB[]){
+    static async insert(personas: LibroPersonaSchema[]){
         await super._bulk_insert(personas);
     }
     

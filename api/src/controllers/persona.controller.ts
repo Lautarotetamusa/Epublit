@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express"
 import { Persona } from "../models/persona.model";
 import { ValidationError, Duplicated } from '../models/errors';
 import { createPersona, updatePersona} from "../schemas/persona.schema";
-import { TipoPersona, tipoPersona } from "../schemas/libro_persona.schema";
+import { libroPersonaSchema} from "../schemas/libro_persona.schema";
 
 const create = async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
     const body = createPersona.parse(req.body);
@@ -58,15 +58,8 @@ const get_all = async (req: Request, res: Response): Promise<Response>  => {
     let personas: any[];
 
     if ('tipo' in params){
-        const tipo: TipoPersona = String(req.query.tipo) as TipoPersona;
-
-        if( !(Object.values(tipoPersona).includes(tipo)) )
-            return res.status(400).json({
-                success: false,
-                message: `El tipo pasado no es correcto (${tipoPersona})`
-            })
-
-        personas = await Persona.get_all_by_tipo(tipoPersona[tipo])
+        const tipo = libroPersonaSchema.shape.tipo.parse(req.query.tipo);
+        personas = await Persona.get_all_by_tipo(tipo);
     }else {
         personas = await Persona.get_all()
     }

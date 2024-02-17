@@ -7,15 +7,16 @@ export const tipoPersona = {
     "autor": 0,
     "ilustrador": 1
 }  as const;
-export type TipoPersona = typeof tipoPersona[keyof typeof tipoPersona];
+export type TipoPersona = keyof typeof tipoPersona;
+const tipoPersonaKeys = Object.keys(tipoPersona) as [TipoPersona];
 
-const libroPersonaSchema = z.object({
+export const libroPersonaSchema = z.object({
     porcentaje: z.number().min(0).max(100),
-    tipo: z.enum(tipoPersona),
+    tipo: z.enum(tipoPersonaKeys),
     isbn: z.string(),
     id_persona: z.number()
 });
-type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
+export type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
 
 const libroPersonaKey = libroPersonaSchema.omit({
     porcentaje: true
@@ -27,15 +28,10 @@ const updateLibroPersona = libroPersonaSchema.pick({
 });
 type UpdateLibroPersona = z.infer<typeof updateLibroPersona>;
 
-export const createPersonaLibroInDB = libroPersonaSchema;
-export type CreatePersonaLibroInDB = z.infer<typeof createPersonaLibroInDB>;
-
-const createPersonaLibroNOTInDB = createPersona.and(libroPersonaSchema.omit({
-    id_persona: true 
+export const createLibroPersona = createPersona.and(libroPersonaSchema.omit({
+    id_persona: true
 }));
-export type createPersonaLibroNOTInDB = z.infer<typeof createPersonaLibroNOTInDB>;
-
-export type createPersonaLibro = CreatePersonaLibroInDB | createPersonaLibroNOTInDB;
+export type CreateLibroPersona = z.infer<typeof createLibroPersona>;
 
 export class validateLibroPersona{
     static tipoPersona(tipo: any): tipo is TipoPersona{
