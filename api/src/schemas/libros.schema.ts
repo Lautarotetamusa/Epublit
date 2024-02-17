@@ -10,6 +10,13 @@ export const libroSchema = z.object({
 });
 export type LibroSchema = z.infer<typeof libroSchema>;
 
+export const libroCantidad = libroSchema.pick({
+    isbn: true
+}).and(z.object({
+    cantidad: z.number().min(1)
+}));
+export type LibroCantidad = z.infer<typeof libroCantidad>;
+
 export const createLibro = libroSchema.extend({
     personas: z.array(libroPersonaSchema.or(createLibroPersona))
 });

@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { createPersona } from './persona.schema'
+import { createPersona, personaSchema } from './persona.schema'
 
 export const tipoPersona = {
     "autor": 0,
@@ -15,6 +15,9 @@ export const libroPersonaSchema = z.object({
     id_persona: z.number()
 });
 export type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
+
+const personaLibroPersonaSchema = personaSchema.and(libroPersonaSchema);
+export type PersonaLibroPersonaSchema = z.infer<typeof personaLibroPersonaSchema>;
 
 const libroPersonaKey = libroPersonaSchema.omit({
     porcentaje: true

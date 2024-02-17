@@ -6,7 +6,7 @@ export const createPersona = z.object({
     dni: z.string()
 });
 
-const personaSchema = createPersona.extend({
+export const personaSchema = createPersona.extend({
     id: z.number()
 });
 

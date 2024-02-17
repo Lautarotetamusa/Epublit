@@ -1,9 +1,10 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
 import { Venta } from '../models/venta.model';
-import { Consignacion } from '../models/consignacion.model';
+import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
 import { medio_pago } from '../schemas/venta.schema';
 import { User } from '../models/user.model';
+import { Cliente } from '../models/cliente.model';
 
 const path = './src/comprobantes';
 
@@ -12,9 +13,15 @@ type args = {
     user: User,
     tipo: "factura"
 } | {
-    data: Consignacion,
+    data: CreateRemito,
     user: User,
     tipo: "remito"
+}
+
+type CreateRemito = {
+    consignacion: Consignacion,
+    cliente: Cliente,
+    libros: LibroConsignacion[]
 }
 
 export async function emitir_comprobante({data, user, tipo}: args){
@@ -36,33 +43,23 @@ export async function emitir_comprobante({data, user, tipo}: args){
     html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
     html = html.replace('{{user_cuit}}', user.cuit);
 
+    let filePath: string;
     if (tipo == "factura"){
         html = factura(html, data);
-    }else if(data instanceof Consignacion){
+        filePath = data.file_path
+    }else{
         html = remito(html, data);
+        filePath = data.consignacion.remito_path
     }
     
     await page.setContent(html);
+    const pdf = await page.pdf({
+      path: tipo+"s/"+filePath,
+      printBackground: true,
+      format: 'A4',
+    });
   
-    if (data instanceof Consignacion){
-        console.log(tipo+"s/"+data.remito_path);
-        const pdf = await page.pdf({
-          path: tipo+"s/"+data.remito_path,
-          printBackground: true,
-          format: 'A4',
-        });
-    }else{
-        console.log(tipo+"s/"+data.file_path);
-        const pdf = await page.pdf({
-          path: tipo+"s/"+data.file_path,
-          printBackground: true,
-          format: 'A4',
-        });
-    }
-  
-    // Close the browser instance
     await browser.close();
-  
     console.log(tipo+" generado correctamente");
   };
 
@@ -116,11 +113,11 @@ function factura(html: string, venta: Venta & {qr_data: string, comprobante: any
     return html;
 }
 
-function remito(html: string, consignacion: Consignacion){
+function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     //parse libros
     var table = '';
 
-    for (let libro of consignacion.libros) {
+    for (let libro of libros) {
         if (libro.autores.length > 0){
             table += 
                 `<tr>
@@ -147,9 +144,9 @@ function remito(html: string, consignacion: Consignacion){
     html = html.replace('{{remito.nro}}', '0003/'+String(consignacion.id).padStart(5, '0'));
     
     //parse_clientes
-    html = html.replace('{{cliente.cuit}}', consignacion.cliente.cuit);
-    html = html.replace('{{cliente.razon_social}}', consignacion.cliente.razon_social);
-    html = html.replace('{{cliente.domicilio}}', consignacion.cliente.domicilio);
+    html = html.replace('{{cliente.cuit}}', cliente.cuit);
+    html = html.replace('{{cliente.razon_social}}', cliente.razon_social);
+    html = html.replace('{{cliente.domicilio}}', cliente.domicilio);
     //
     const date = new Date().toISOString().
       replace(/T/, ' '). 

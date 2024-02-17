@@ -45,6 +45,16 @@ export class Cliente extends BaseModel{
         this.cond_fiscal  = request.cond_fiscal;
     }
 
+    generatePath(){
+        const date = new Date().toISOString()
+            .replace(/\..+/, '')     // delete the . and everything after;
+            .replace(/T/, '_')       // replace T with a space
+            .replace(/\-/gi, '_')
+            .replace(/\:/gi, '');
+
+        return this.razon_social.replace('/-/g', '')+'_'+date+'.pdf';
+    }
+
     static async get_all() {
         return await this.find_all();
     }

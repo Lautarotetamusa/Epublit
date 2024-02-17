@@ -1,11 +1,12 @@
 import { conn } from "../db"
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { LibroSchema, UpdateLibro } from "../schemas/libros.schema";
+import { LibroCantidad, LibroSchema, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
 import { LibroPersona } from "./libro_persona.model";
-import { LibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
+import { LibroPersonaSchema, PersonaLibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
+import { StockCliente } from "../schemas/cliente.schema";
 
 export class Libro extends BaseModel{
     static table_name = "libros";
@@ -55,13 +56,13 @@ export class Libro extends BaseModel{
         }
     }
 
-    async update_stock(qty: number){
+    static async update_stock(body: LibroCantidad){
         const query = `
             UPDATE ${Libro.table_name}
-            SET stock = stock + ${qty}
+            SET stock = stock + ${body.cantidad}
             WHERE isbn = ?`
 
-        const [result] = await conn.query<OkPacket>(query, [this.isbn]);
+        const [result] = await conn.query<OkPacket>(query, [body.isbn]);
         return result;
     }
 
@@ -98,7 +99,7 @@ export class Libro extends BaseModel{
         return libros as LibroSchema[];
     }
 
-    async get_personas(): Promise<{autores: LibroPersonaSchema[], ilustradores: LibroPersonaSchema[]}>{
+    async get_personas(){
         const query = `
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
@@ -108,8 +109,8 @@ export class Libro extends BaseModel{
 
         const [personas] = await conn.query<RowDataPacket[]>(query, [this.isbn]);
         return {
-            autores: personas.filter(p => p.tipo == tipoPersona.autor) as LibroPersonaSchema[],
-            ilustradores: personas.filter(p => p.tipo == tipoPersona.ilustrador) as LibroPersonaSchema[]
+            autores: personas.filter(p => p.tipo == tipoPersona.autor) as PersonaLibroPersonaSchema[],
+            ilustradores: personas.filter(p => p.tipo == tipoPersona.ilustrador) as PersonaLibroPersonaSchema[]
         };
     }
 }

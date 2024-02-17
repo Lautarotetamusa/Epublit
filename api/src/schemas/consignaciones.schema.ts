@@ -1,56 +1,18 @@
-import { LibroConsignacion } from "../models/consignacion.model";
-import { validate } from "./validate";
-import { ValidationError } from "../models/errors";
+import {z} from 'zod';
+import { libroCantidad } from "./libros.schema";
 
-export type buildConsignacion = {
-    cliente: any,
-    libros: LibroConsignacion[];
-    remito_path: string;
-}
+const consignacionSchema = z.object({
+   id: z.number(),
+   id_cliente: z.number(),
+   fecha: z.date(),
+   remito_path: z.string()
+});
+export type ConsignacionSchema = z.infer<typeof consignacionSchema>;
 
-export type createLibroConsignacion = {
-    cliente: any,
-    id: number,
-    libros: {
-        cantidad: number,
-        isbn: string
-    }[]
-}
+export type SaveConsignacion = Omit<ConsignacionSchema, 'fecha' | 'id'>; 
 
-export type saveConsignacion = {
-    remito_path: string;
-    id_cliente: number;
-}
-
-export type createConsignacion = {
-    cliente: number,
-    libros: {
-        cantidad: number,
-        isbn: string
-    }[]
-}
-export class validateConsignacion{
-    static libroConsignacion(_obj: any): {isbn: string, cantidad: number}{
-        const required = {
-            'isbn': 'string',
-            'cantidad': 'number'
-        }
-        return validate<{isbn: string, cantidad: number}>(required, _obj);
-    }
-
-    static create(_obj: any): createConsignacion {
-        const required = {
-            'cliente': 'number',
-            'libros': 'ignore'
-        }
-        let valid = validate<createConsignacion>(required, _obj);
-
-        if (!('libros' in _obj))
-            throw new ValidationError("Una consignacion necesita al menos un libro");
-
-        for (let l of _obj.libros){
-            l = this.libroConsignacion(l);
-        }    
-        return _obj;
-    }
-}
+export const createConsignacion = z.object({
+    cliente: z.number(),
+    libros: libroCantidad.array()
+});
+export type CreateConsignacion = z.infer<typeof createConsignacion>;
