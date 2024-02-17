@@ -1,25 +1,24 @@
 import { conn } from "../db"
-import { RowDataPacket } from "mysql2/promise";
-import { retrieveLibro, saveLibro, updateLibro } from "../schemas/libros.schema";
-import { TipoPersona, createPersonaLibroInDB, removePersonaLibro, updateLibroPersona } from "../schemas/libro_persona.schema";
+import { OkPacket, RowDataPacket } from "mysql2/promise";
+import { LibroSchema, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
-import { retrieveLibroPersona } from "../schemas/libro_persona.schema";
 import { LibroPersona } from "./libro_persona.model";
+import { LibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
 
 export class Libro extends BaseModel{
+    static table_name = "libros";
+    static fields = ["titulo", "isbn", "fecha_edicion", "precio", "stock"];
+    static pk = ["isbn"];
+
     titulo: string;
     isbn: string;
     fecha_edicion: Date;
     precio: number;
     stock: number;
 
-    static table_name = "libros";
-    static fields = ["titulo", "isbn", "fecha_edicion", "precio", "stock"];
-    static pk = ["isbn"];
-
-    constructor(request: retrieveLibro) {
+    constructor(request: LibroSchema) {
         super();
 
         this.titulo = request.titulo;
@@ -30,39 +29,39 @@ export class Libro extends BaseModel{
     }
 
     static async get_by_isbn(isbn: string): Promise<Libro> {
-        return await super.find_one<retrieveLibro, Libro>({isbn: isbn, is_deleted: 0})
+        return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0})
     }
-    static async get_all(): Promise<retrieveLibro[]>{        
-        return await super.find_all<retrieveLibro>({is_deleted: 0})
+    static async get_all(): Promise<LibroSchema[]>{        
+        return await super.find_all<LibroSchema>({is_deleted: 0})
     }
-    static async insert(_req: saveLibro): Promise<Libro> {
-        return await super._insert<saveLibro, Libro>(_req);
+    static async insert(body: LibroSchema): Promise<Libro> {
+        return await super._insert<LibroSchema, Libro>(body);
     }
 
     static async is_duplicated(isbn: string){
         const exists = await super._exists({isbn: isbn, is_deleted: 0});
-        if (exists)
+        if (exists){
             throw new Duplicated(`El libro con isbn ${isbn} ya existe`);
+        }
     }
     
-    async update(_req: updateLibro){
-        await Libro._update(_req, {isbn: this.isbn, is_deleted: 0});
+    async update(body: UpdateLibro){
+        await Libro._update(body, {isbn: this.isbn, is_deleted: 0});
 
-        for (let i in _req){
-            let value = _req[i as keyof typeof _req];
+        for (let i in body){
+            let value = body[i as keyof typeof body];
             if (value !== undefined)
                 (this as any)[i] = value; 
         }
     }
 
     async update_stock(qty: number){
-        //await this.update({stock: this.stock+stock})
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${qty}
             WHERE isbn = ?`
 
-        const [result] = await conn.query<any>(query, [this.isbn]);
+        const [result] = await conn.query<OkPacket>(query, [this.isbn]);
         return result;
     }
 
@@ -72,7 +71,7 @@ export class Libro extends BaseModel{
         await super._update({is_deleted: 1}, {isbn: isbn});
     }
 
-    static async get_ventas(isbn: string): Promise<any>{
+    static async get_ventas(isbn: string){
         const [ventas] = await conn.query<RowDataPacket[]>(`
             SELECT  
                 ventas.id as id_venta, fecha, medio_pago, total, file_path,
@@ -80,14 +79,14 @@ export class Libro extends BaseModel{
             FROM libros_ventas
             INNER JOIN ventas
                 ON ventas.id = libros_ventas.id_venta
-            WHERE libros_ventas.isbn = ${isbn}
-        `);
+            WHERE libros_ventas.isbn = ?
+        `, [isbn]);
 
         return ventas;
     }
 
-    static async get_paginated(page = 0): Promise<retrieveLibro[]>{
-        let libros_per_page = 10;
+    static async get_paginated(page = 0): Promise<LibroSchema[]>{
+        const libros_per_page = 10;
         const query = `
             SELECT ${this.fields.join(',')}
             FROM ${this.table_name}
@@ -96,36 +95,21 @@ export class Libro extends BaseModel{
             OFFSET ${page * libros_per_page}`
 
         const [libros] = await conn.query<RowDataPacket[]>(query);
-        return libros as retrieveLibro[];
+        return libros as LibroSchema[];
     }
 
-    async get_personas(): Promise<{autores: retrieveLibroPersona[], ilustradores: retrieveLibroPersona[]}>{
+    async get_personas(): Promise<{autores: LibroPersonaSchema[], ilustradores: LibroPersonaSchema[]}>{
         const query = `
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
             INNER JOIN libros_personas
-            INNER JOIN ${Libro.table_name}
                 ON personas.id  = libros_personas.id_persona
-                AND ${Libro.table_name}.isbn = libros_personas.isbn
-            WHERE ${Libro.table_name}.isbn = ?
-            AND ${Libro.table_name}.is_deleted = 0`
+            WHERE isbn = ?`
 
         const [personas] = await conn.query<RowDataPacket[]>(query, [this.isbn]);
         return {
-            autores: personas.filter(p => p.tipo == TipoPersona.autor) as retrieveLibroPersona[],
-            ilustradores: personas.filter(p => p.tipo == TipoPersona.ilustrador) as retrieveLibroPersona[]
+            autores: personas.filter(p => p.tipo == tipoPersona.autor) as LibroPersonaSchema[],
+            ilustradores: personas.filter(p => p.tipo == tipoPersona.ilustrador) as LibroPersonaSchema[]
         };
-    }
-
-    async add_personas(personas: createPersonaLibroInDB[]){
-        await LibroPersona.insert(personas);
-    }
-
-    async update_personas(personas: updateLibroPersona[]){
-        await LibroPersona.update(personas);
-    }
-    
-    async remove_personas(personas: removePersonaLibro[]){
-        await LibroPersona.remove(personas);
     }
 }

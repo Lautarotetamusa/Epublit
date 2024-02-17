@@ -220,11 +220,9 @@ const ExpandedComponent = ({ data }) => {
     const [loading, setLoading] = React.useState(true);
     const [ventas, setVentas] = React.useState(null);
     const [stock, setStock] = React.useState(null);
-    const [path, setPath] = React.useState(null);
+   // const [path, setPath] = React.useState(null);
 
-    React.useEffect(() => {
-            fetchVentas();
-        }, [data.id]);
+    
 
     const fetchVentas = async () => {
         try {
@@ -242,8 +240,11 @@ const ExpandedComponent = ({ data }) => {
             console.error(error);
             setLoading(false);
         }
+        
     };
-
+    React.useEffect(() => {
+        fetchVentas();// eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data.id]); 
 
 
     if(loading){
@@ -278,17 +279,17 @@ const ExpandedComponent = ({ data }) => {
                 <>
                     <td className="align-middle text-center" rowSpan={venta.libros.length}>{venta.id}</td>
                     <td>{libro.titulo}</td>
-                    <td>{libro.cantidad}</td>
-                    <td>{libro.precio_venta}</td>
-                    <td className="align-middle" rowSpan={venta.libros.length}>{formatDate(venta.fecha)}</td>
-                    <td className="align-middle" rowSpan={venta.libros.length}>{venta.total}</td>
+                    <td className="text-center"> {libro.cantidad}</td>
+                    <td className="text-end">{libro.precio_venta}</td>
+                    <td className="text-center align-middle" rowSpan={venta.libros.length}>{formatDate(venta.fecha)}</td>
+                    <td className="text-end align-middle" rowSpan={venta.libros.length}>{venta.total}</td>
                 </>
                 )}
                 {libroIndex !== 0 && (
                 <>
                     <td>{libro.titulo}</td>
-                    <td>{libro.cantidad}</td>
-                    <td>{libro.precio_venta}</td>
+                    <td className="text-center">{libro.cantidad}</td>
+                    <td className="text-end">{libro.precio_venta}</td>
                 </>
                 )}
             </tr>

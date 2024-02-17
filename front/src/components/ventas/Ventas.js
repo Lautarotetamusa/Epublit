@@ -3,7 +3,7 @@ import React from 'react';
 import { PostVenta,GetVentaById} from '../ApiHandler';
 import { formatDate } from '../libros/ListaLibros';
 import DataTable from 'react-data-table-component';
-
+import Swal from 'sweetalert2';
 
 
 const AltaVenta = ({Clientes,medioPago,libros}) =>{
@@ -22,11 +22,14 @@ const handleSeleccionadoDelete = (isbn) => {
     };
 
 const handleSeleccionadoAdd = (event) => {
+  event.preventDefault();
     if(inputs.cantidad === "" || inputs.libro === ""){
-        alert("Debe completar todos los campos");
-        return;
+      Swal.fire({
+        title: "Advertencia",
+        text: "Debe completar todos los campos",
+        icon: "warning"
+      }); 
     }else{
-      event.preventDefault();
       setLibrosSeleccionados([...librosSeleccionados,{cantidad: inputs.cantidad, libro: libros.find((libro) => inputs.libro === libro.isbn)}]);
       setInputs({libro: "", cantidad: ""});
     }
@@ -41,17 +44,15 @@ const handleSeleccionadoAdd = (event) => {
             isbn: libro.libro.isbn,
             cantidad: parseInt(libro.cantidad),
           };
-        });       
-        const venta = {
+        });        
+        const venta =JSON.stringify({
           cliente: parseInt(event.target.cliente.value),
           descuento: parseFloat(event.target.descuento.value),
           medio_pago: parseInt(event.target.medio_pago.value),
           libros: listaLibros
-        };
-        if (!venta.descuento)
-          delete venta.descuento
-          
-        PostVenta(JSON.stringify(venta));
+        });
+        
+        PostVenta(venta);
         event.target.reset();
         setLibrosSeleccionados([]);
       }
@@ -214,7 +215,7 @@ const columns =(medioDePago) =>([
     {
         name: 'Fecha',
         selector: row => formatDate(row.fecha),
-        sortable: false,
+        sortable: true,
     },
     {
       name: 'Total',
@@ -230,8 +231,7 @@ const ExpandedComponent = ({ data }) => {
   const [path, setPath] = React.useState(null);
 
   React.useEffect(() => {
-          fetchVentas();
-          
+          fetchVentas();// eslint-disable-next-line react-hooks/exhaustive-deps
       }, [data.id]);
 
   const fetchVentas = async () => {

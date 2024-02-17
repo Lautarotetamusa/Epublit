@@ -6,14 +6,13 @@ import { validateVenta } from "../schemas/venta.schema.js";
 import { TipoCliente } from "../schemas/cliente.schema.js";
 
 const vender = async (req: Request, res: Response): Promise<Response> => {
-    let body = validateVenta.create(req.body);
+    const body = validateVenta.create(req.body);
 
     const venta = await Venta.build(body);
     
-    if (venta.cliente.tipo != TipoCliente.negro)
+    if (venta.cliente.tipo != TipoCliente.negro){
         await facturar(venta, res.locals.user);
-    else
-        console.log("No se emite factura para cliente en negro");
+    }
 
     await venta.save();
         

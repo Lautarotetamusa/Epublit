@@ -1,40 +1,17 @@
-import {validate} from './validate'
+import {z} from "zod"
 
-export interface retrievePersona{
-    nombre: string;
-    email?: string;
-    dni: string;
-    id: number;
-}
+export const createPersona = z.object({
+    nombre: z.string(),
+    email: z.string().optional(),
+    dni: z.string()
+});
 
-export interface createPersona{
-    nombre: string;
-    email?: string;
-    dni: string;
-}
+const personaSchema = createPersona.extend({
+    id: z.number()
+});
 
-export interface updatePersona{
-    nombre?: string;
-    email?: string;
-    dni?: string;
-}
+export const updatePersona = createPersona.partial();
 
-export class validatePersona {
-    static create(_obj: any): createPersona {
-        const required = {
-            'nombre': 'string',
-            'email': 'optional?string',
-            'dni': 'string',
-        }
-        return validate<createPersona>(required, _obj);
-    }
-
-    static update(obj: any): updatePersona{
-        const required = {
-            'nombre': 'optional?string',
-            'dni': 'optional?string',
-            'email': 'optional?string'
-        }
-        return validate<updatePersona>(required, obj);
-    }
-}
+export type CreatePersona = z.infer<typeof createPersona>;
+export type UpdatePersona = z.infer<typeof updatePersona>;
+export type PersonaSchema = z.infer<typeof personaSchema>;

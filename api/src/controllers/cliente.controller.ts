@@ -1,7 +1,7 @@
 import { Cliente } from "../models/cliente.model";
 import { Request, Response } from "express";
 import { Duplicated, ValidationError } from '../models/errors';
-import { validateCliente } from "../schemas/cliente.schema";
+import { createCliente, updateCliente } from "../schemas/cliente.schema";
 
 async function get_client(req: Request): Promise<Cliente>{
     const id = Number(req.params.id);
@@ -14,10 +14,11 @@ async function get_client(req: Request): Promise<Cliente>{
 }
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    let body = validateCliente.create(req.body);
+    const body = createCliente.parse(req.body);
 
-    if(await Cliente.cuil_exists(body.cuit))
+    if(await Cliente.cuil_exists(body.cuit)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`)
+    }
 
     const cliente = await Cliente.insert(body);
 
@@ -32,18 +33,12 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    let body = validateCliente.update(req.body);
-
-    if (Object.keys(req.body).length === 0 && req.body.constructor === Object) //Si pasamos un objeto vacio
-        return res.status(204).json({
-            success: false,
-            message: "No hay ningun campo para actualizar",
-        });
-
+    const body = updateCliente.parse(req.body); 
     const cliente = await Cliente.get_by_id(id);
     
-    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuil_exists(body.cuit))
+    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuil_exists(body.cuit)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`);
+    }
     
     await cliente.update(body);
     

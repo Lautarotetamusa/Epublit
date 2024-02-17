@@ -1,31 +1,20 @@
 import {conn} from "../db";
 import { RowDataPacket } from "mysql2/promise";
-import { createPersona, retrievePersona, updatePersona } from "../schemas/persona.schema";
+import {PersonaSchema, CreatePersona, UpdatePersona} from "../schemas/persona.schema";
 
 import { BaseModel } from "./base.model";
-import { TipoPersona } from "../schemas/libro_persona.schema";
-import { retrieveLibro } from "../schemas/libros.schema";
-
-export interface IPersona extends RowDataPacket{
-    nombre: string;
-    email?: string;
-    dni: string;
-    id?: number;
-    tipo?: TipoPersona;
-}
+import { tipoPersona, TipoPersona } from "../schemas/libro_persona.schema";
 
 export class Persona extends BaseModel{
     nombre: string;
     email: string;
     dni: string;
     id: number;
-    libros?: retrieveLibro[];
 
     static table_name: string = "personas";
     static fields = ["id", "dni", "nombre", "email"]
 
-    //Validamos al momento de crear un objeto
-    constructor(persona: retrievePersona) {
+    constructor(persona: PersonaSchema) {
         super();
 
         this.nombre = persona.nombre;
@@ -35,43 +24,41 @@ export class Persona extends BaseModel{
     }
 
     static async get_by_id(id: number): Promise<Persona> {
-        return await super.find_one<retrievePersona, Persona>({id: id, is_deleted: 0});
+        return await super.find_one<PersonaSchema, Persona>({id: id, is_deleted: 0});
     }
 
-    static async get_all(): Promise<retrievePersona[]> {
-        return await super.find_all<retrievePersona>({is_deleted: 0});
+    static async get_all(): Promise<PersonaSchema[]> {
+        return await super.find_all<PersonaSchema>({is_deleted: 0});
     }
     
     static async exists(dni: string): Promise<boolean>{
         return await super._exists({dni: dni, is_deleted: 0});
     }
 
-    static async insert(p: createPersona) {
-        return await super._insert<createPersona, Persona>(p);
+    static async insert(p: CreatePersona) {
+        return await super._insert<CreatePersona, Persona>(p);
     }
 
-    static async update(_req: updatePersona, _where: object){
-        await this._update<updatePersona>(_req, _where);    
+    static async update(body: UpdatePersona, where: object){
+        await this._update<UpdatePersona>(body, where);    
     }
 
-    /**
-     * const p = Persona.get_one({id: 1}); \
-     * p.update({nombre: "Lautaro"})
-     * @param _req 
-     * @param _where 
-     */
-    async update(_req: updatePersona){
-        await Persona._update<updatePersona>(_req, {id: this.id, is_deleted: 0});    
+    async update(body: UpdatePersona){
+        await Persona._update<UpdatePersona>(body, {
+            id: this.id, 
+            is_deleted: 0
+        });    
 
-        for (let i in _req){
-            let value = _req[i as keyof typeof _req];
-            if (value !== undefined)
-                this[i as keyof updatePersona] = value; 
+        for (let i in body){
+            const value = body[i as keyof typeof body];
+            if (value !== undefined){
+                this[i as keyof this] = value as any; 
+            }
         }
     }
 
-    static async delete(_where: object){
-        await this._update({is_deleted: 1}, _where);
+    static async delete(where: object){
+        await this._update({is_deleted: 1}, where);
     }
 
     static async get_all_by_tipo(tipo: TipoPersona): Promise<RowDataPacket[]> {
@@ -84,7 +71,7 @@ export class Persona extends BaseModel{
             AND libros_personas.tipo = ?
             GROUP BY id`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [tipo]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [tipoPersona[tipo]]);
         return rows;
     }    
 
@@ -93,14 +80,12 @@ export class Persona extends BaseModel{
             SELECT libros.*, libros_personas.tipo 
             FROM libros
             INNER JOIN libros_personas
-                ON libros_personas.id_persona = ?
-            INNER JOIN ${Persona.table_name}
                 ON libros.isbn = libros_personas.isbn
             WHERE personas.id = ?
             AND personas.is_deleted = 0`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, this.id]);
-        this.libros = rows as retrieveLibro[];
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
+        return rows as retrieveLibro[];
     }
 }
 

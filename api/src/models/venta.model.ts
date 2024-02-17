@@ -4,8 +4,8 @@ import { Cliente } from "./cliente.model.js";
 
 import { ValidationError } from './errors.js';
 import { BaseModel } from './base.model.js';
-import { buildVenta, createVenta, libroVenta, medio_pago, saveVenta } from '../schemas/venta.schema.js';
-import { retrieveLibro } from '../schemas/libros.schema.js';
+import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema.js';
+import { LibroSchema } from '../schemas/libros.schema.js';
 import { RowDataPacket } from 'mysql2';
 
 export class LibroVenta extends Libro {
@@ -13,7 +13,7 @@ export class LibroVenta extends Libro {
 
     static table_name = "libros_ventas";
 
-    constructor(req: {libro: retrieveLibro, cantidad: number}){
+    constructor(req: {libro: LibroSchema, cantidad: number}){
         super(req.libro);
         
         this.cantidad = req.cantidad;
@@ -26,6 +26,7 @@ export class Venta extends BaseModel{
     medio_pago: medio_pago;
     total: number;
     file_path: string;
+    fecha?: Date;
 
     punto_venta: number;
     tipo_cbte: number;
@@ -35,7 +36,7 @@ export class Venta extends BaseModel{
 
     static table_name = 'ventas';
 
-    constructor(request: buildVenta & {id?: number}){
+    constructor(request: buildVenta & {id?: number, fecha?: Date}){
         super();
 
         this.descuento  = request.descuento || 0;
@@ -48,6 +49,9 @@ export class Venta extends BaseModel{
         this.libros     = request.libros;
         this.total = request.total;
         this.file_path = request.file_path;
+
+        if ('fecha' in request)
+            this.fecha = request.fecha;
 
         if ('id' in request)
             this.id = request.id;
@@ -64,8 +68,9 @@ export class Venta extends BaseModel{
                 cantidad: _libro.cantidad
             }))
 
-            if (libro.stock < _libro.cantidad)
+            if (libro.stock < _libro.cantidad){
                 throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+            }
         }
         return libros;
     }
@@ -102,7 +107,7 @@ export class Venta extends BaseModel{
     }
         
     async save(){
-        let venta = await Venta._insert<saveVenta, Venta>({
+        const venta = await Venta._insert<saveVenta, Venta>({
             id_cliente: this.cliente.id,
             total: this.total,
             file_path: this.file_path,
@@ -124,23 +129,20 @@ export class Venta extends BaseModel{
     }
 
     static async get_by_id(id: number){
-
-        const venta = await this.find_one<buildVenta, Venta>({id: id});
+        const venta = await this.find_one<retrieveVenta, Venta>({id: id});
 
         venta.libros = await venta.get_libros();
         return venta;
     }
 
     async get_libros(): Promise<LibroVenta[]>{
-        let [libros] = await conn.query<RowDataPacket[]>(`
+        const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad, precio_venta 
             FROM libros
             INNER JOIN libros_ventas
                 ON libros_ventas.isbn = libros.isbn
-            INNER JOIN ventas
-                ON ventas.id = libros_ventas.id_venta
-            WHERE ventas.id = ${this.id}
-        `);
+            WHERE libros_ventas.id_venta = ?
+        `, [this.id]);
         return libros as LibroVenta[];
     }
 

@@ -38,19 +38,27 @@ export async function emitir_comprobante({data, user, tipo}: args){
 
     if (tipo == "factura"){
         html = factura(html, data);
-    }
-    else if(data instanceof Consignacion){
+    }else if(data instanceof Consignacion){
         html = remito(html, data);
     }
     
     await page.setContent(html);
   
-    console.log(tipo+"s/"+data.file_path);
-    const pdf = await page.pdf({
-      path: tipo+"s/"+data.file_path,
-      printBackground: true,
-      format: 'A4',
-    });
+    if (data instanceof Consignacion){
+        console.log(tipo+"s/"+data.remito_path);
+        const pdf = await page.pdf({
+          path: tipo+"s/"+data.remito_path,
+          printBackground: true,
+          format: 'A4',
+        });
+    }else{
+        console.log(tipo+"s/"+data.file_path);
+        const pdf = await page.pdf({
+          path: tipo+"s/"+data.file_path,
+          printBackground: true,
+          format: 'A4',
+        });
+    }
   
     // Close the browser instance
     await browser.close();
@@ -135,14 +143,18 @@ function remito(html: string, consignacion: Consignacion){
     }
 
     html = html.replace('{{LIBROS}}', table);
-    //
+    //El 0003 es un numero igual para todos los remitos, esto obviamente habría que cambiarlo en un futuro para que no este hardescrito
+    html = html.replace('{{remito.nro}}', '0003/'+String(consignacion.id).padStart(5, '0'));
     
     //parse_clientes
     html = html.replace('{{cliente.cuit}}', consignacion.cliente.cuit);
     html = html.replace('{{cliente.razon_social}}', consignacion.cliente.razon_social);
     html = html.replace('{{cliente.domicilio}}', consignacion.cliente.domicilio);
     //
-    html = html.replace("{{fecha}}", new Date().toString());
+    const date = new Date().toISOString().
+      replace(/T/, ' '). 
+      replace(/\..+/, '');
+    html = html.replace("{{fecha}}", date);
     //
     return html;
 }

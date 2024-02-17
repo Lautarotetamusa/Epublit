@@ -5,7 +5,7 @@ import { ValidationError } from "../models/errors";
 export type buildConsignacion = {
     cliente: any,
     libros: LibroConsignacion[];
-    file_path: string;
+    remito_path: string;
 }
 
 export type createLibroConsignacion = {

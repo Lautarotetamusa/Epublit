@@ -22,13 +22,11 @@ services:
       dockerfile: ./api/Dockerfile
     env_file: ./.env
     ports:
-      - $BACK_PORT:$BACK_PORT
+      - $BACK_PUBLIC_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    command: npm run dev
-    #command: node src/app.js
+    command: node dist/app.js
     volumes:
-     - ./api/dist/src:/app/src  #Solamete en dev, mantener archivos con lo compilado en dist/
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
 
@@ -41,13 +39,16 @@ services:
     env_file: ./.env
     environment:
       - PORT=$FRONT_PORT
-      - REACT_APP_API_PORT=$BACK_PORT
+      - REACT_PROTOCOL=$PROTOCOL
+      - REACT_APP_API_PORT=$BACK_PUBLIC_PORT
       - REACT_APP_HOST=$SERVER_HOST
-    command: npm start #serve -s build -l $FRONT_PORT
+      - HTTPS=true
+      - SSL_KEY_FILE=security/key.pem
+      - SSL_CRT_FILE=security/cert.pem
+
+    command: npm start
     ports:
-      - 80:$FRONT_PORT
+      - $FRONT_PUBLIC_PORT:$FRONT_PORT
     volumes:
-      - ./facturas:/app/src/comprobantes/facturas
-      - ./remitos:/app/src/comprobantes/remitos
-      - ./front/src:/app/src/
-      - ./front/public:/app/public/
+     - ./facturas:/app/src/comprobantes/facturas
+     - ./remitos:/app/src/comprobantes/remitos

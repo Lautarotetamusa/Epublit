@@ -1,5 +1,5 @@
 import {conn} from "../db";
-import { OkPacket, RowDataPacket } from "mysql2/promise";
+import { RowDataPacket } from "mysql2/promise";
 import { NotFound } from './errors';
 
 import { BaseModel } from "./base.model";
@@ -22,18 +22,18 @@ export class Liquidacion extends BaseModel{
     static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
     static pk = ["id", "isbn", "id_persona", "tipo_persona"];
 
-    constructor(_liq: retrieveLiquidacion){
+    constructor(body: retrieveLiquidacion){
         super();
         
-        this.id = _liq.id;
-        this.isbn = _liq.isbn;
-        this.id_persona = _liq.id_persona;
-        this.tipo_persona = _liq.tipo_persona;
+        this.id = body.id;
+        this.isbn = body.isbn;
+        this.id_persona = body.id_persona;
+        this.tipo_persona = body.tipo_persona;
 
-        this.fecha_inicial = _liq.fecha_inicial;
-        this.fecha_final = _liq.fecha_final;
-        this.total = _liq.total;
-        this.file_path =  _liq.file_path;
+        this.fecha_inicial = body.fecha_inicial;
+        this.fecha_final = body.fecha_final;
+        this.total = body.total;
+        this.file_path =  body.file_path;
     }
 
     static async insert(_req: saveLiquidacion): Promise<Liquidacion>{
@@ -58,7 +58,7 @@ export class Liquidacion extends BaseModel{
         return rows.length <= 0;
     }
 
-    static async get_ventas(_liq: createLiquidacion){
+    static async get_ventas(body: createLiquidacion){
        const query = `
             SELECT * 
             FROM libros_ventas AS LV
@@ -68,10 +68,11 @@ export class Liquidacion extends BaseModel{
             AND V.fecha > ?
             AND V.fecha < ?` 
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [_liq.isbn, _liq.fecha_inicial, _liq.fecha_final]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [body.isbn, body.fecha_inicial, body.fecha_final]);
 
-        if (rows.length <= 0)
-            throw new NotFound(`No hay ninguna venta para el libro ${_liq.isbn} en el periodo`);
+        if (rows.length <= 0){
+            throw new NotFound(`No hay ninguna venta para el libro ${body.isbn} en el periodo`);
+        }
 
         return rows;
     }
@@ -82,9 +83,9 @@ export class Liquidacion extends BaseModel{
             FROM ${Liquidacion.table_name} AS Liq
 
             INNER JOIN libros_ventas AS LV
-                    ON LV.isbn = ? 
+                ON LV.isbn = ? 
             INNER JOIN ventas AS V
-                    ON V.id = LV.id_venta
+                ON V.id = LV.id_venta
 
             AND V.fecha < Liq.fecha_final
             AND V.fecha > Liq.fecha_inicial
@@ -92,8 +93,9 @@ export class Liquidacion extends BaseModel{
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.isbn, this.id]);
 
-        if (rows.length <= 0)
+        if (rows.length <= 0){
             throw new NotFound(`No hay ninguna venta para el libro ${this.isbn} en el periodo seleccionado`);
+        }
         
         return rows;
     }

@@ -7,7 +7,7 @@ import Modal from 'react-bootstrap/Modal';
 import { useState,useEffect,React } from "react";
 import { PostLibro } from '../ApiHandler';
 import InputGroup from 'react-bootstrap/InputGroup';
-
+import Swal from 'sweetalert2';
 
 export const ModalNuevaPersona = ({type,setPerson,person}) => {
     const [show, setShow] = useState(false);
@@ -20,8 +20,9 @@ export const ModalNuevaPersona = ({type,setPerson,person}) => {
 
     const handleChange = (event) => {
         const name = event.target.name;
-        const value = name === "porcentaje" ? parseInt(event.target.value) : event.target.value;
+        const value = name === "dni"||name === "porcentaje" ? parseInt(event.target.value) : event.target.value;
         setInputs(values => ({...values, [name]: value}))
+        
     }
 
     const handleSubmit = async (event) => {
@@ -78,14 +79,14 @@ export function ModalPersonaExistente({ options, onSave,type }) {
   const [selectedPorcentaje, setSelectedPorcentaje] = useState(0);
 
   const handleOpenClick = () => {
-    setSelectedOption(options[0].id);
+    setSelectedOption(parseInt(options[0].id));
     handleShow();
   };
 
   const handleSaveClick = () => {
     if(selectedOption !== -1) {
-    const option = options.find(option => option.id == selectedOption);
-    option.porcentaje = parseInt(selectedPorcentaje | 0);
+    const option = options.find(option => option.id === selectedOption);
+    option.porcentaje = parseInt(selectedPorcentaje);
     if (type === "Autor") option.tipo = 0;
     else option.tipo = 1;
 
@@ -107,7 +108,7 @@ export function ModalPersonaExistente({ options, onSave,type }) {
           <Modal.Body>
             <Row>
             <Col>
-             <Form.Select value={selectedOption} onChange={e => setSelectedOption(e.target.value)}>
+             <Form.Select value={selectedOption} onChange={e => setSelectedOption(parseInt(e.target.value))}>
                {options.map(option => (
                 <option key={option.id} value={option.id}>{option.nombre}</option>
                ))}
@@ -174,7 +175,11 @@ export const NuevoLibro = ({personas}) => {
 
     const handleSaveAuthor = (author) => {
       if (selectedAuthors.some(autor => autor.id === author.id)) {
-        alert("El autor ya fue seleccionado");
+        Swal.fire({
+          title: "Advertencia",
+          text: "El autor ya fue seleccionado",
+          icon: "warning"
+        });
         return;
       } else {
         setSelectedAuthors([...selectedAuthors, author]);
@@ -183,8 +188,11 @@ export const NuevoLibro = ({personas}) => {
 
     const handleSaveIlustrator = (ilustrator) => {
       if (selectedIlustrators.some(ilustrador => ilustrador.id === ilustrator.id)) {
-        alert("El ilustrador ya fue seleccionado");
-        
+        Swal.fire({
+          title: "Advertencia",
+          text: "El ilustrador ya fue seleccionado",
+          icon: "warning"
+        });
         return;
       } else {
         setSelectedIlustrators([...selectedIlustrators, ilustrator]);
@@ -194,26 +202,23 @@ export const NuevoLibro = ({personas}) => {
 
     const handleExistentesDelete = ({id,type}) => {
       if (type === "autor") {
-        setSelectedAuthors(selectedAuthors.filter(autor => autor.id != id));
+        setSelectedAuthors(selectedAuthors.filter(autor => autor.id !== id));
       }else{
-        setSelectedIlustrators(selectedIlustrators.filter(ilustrador => ilustrador.id != id));
+        setSelectedIlustrators(selectedIlustrators.filter(ilustrador => ilustrador.id !== id));
       }
+      
     }
 
     const handleSubmit = async (event) => {
       event.preventDefault();
-      for (let a of autores){
-        if (!('porcentaje' in a))
-          a.porcentaje = 0;
-      }
-      const listaAutores = autores.concat(selectedAuthors.map(item => ({id: item.id, porcentaje: 'porcentaje' in item ? item.porcentaje : 0})));
-      const listaIlustradores = ilustradores.concat(selectedIlustrators.map(item => ({id: item.id, porcentaje: 'porcentaje' in item ? item.porcentaje : 0})));
+      const listaAutores = autores.concat(selectedAuthors.map(item => ({id: item.id, porcentaje: item.porcentaje})));
+      const listaIlustradores = ilustradores.concat(selectedIlustrators.map(item => ({id: item.id, porcentaje: item.porcentaje})));
       const libro =JSON.stringify({
         titulo: event.target.titulo.value,
         isbn: event.target.isbn.value,
         fecha_edicion: event.target["fecha-edicion"].value,
-        precio: parseFloat(event.target.precio.value | 0),
-        stock: parseInt(event.target.stock.value | 0),
+        precio: parseFloat(event.target.precio.value),
+        stock: parseInt(event.target.stock.value),
         autores: listaAutores,
         ilustradores: listaIlustradores,
       });
@@ -223,6 +228,8 @@ export const NuevoLibro = ({personas}) => {
       setIlustradores([]);
       setSelectedAuthors([]);
       setSelectedIlustrators([]);
+
+      
     }
   
 
