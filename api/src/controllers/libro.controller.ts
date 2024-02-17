@@ -1,17 +1,17 @@
 import {Request, Response} from "express";
-import { Persona } from "../models/persona.model.js";
-import { Libro } from "../models/libro.model.js";
+import { Persona } from "../models/persona.model";
+import { Libro } from "../models/libro.model";
 import { 
     CreateLibroPersona,
     LibroPersonaSchema,
     libroPersonaSchema,
     tipoPersona, 
 } from "../schemas/libro_persona.schema";
-import { Duplicated, NotFound, ValidationError } from "../models/errors.js"
-import { LibroPersona } from "../models/libro_persona.model.js";
+import { Duplicated, NotFound, ValidationError } from "../models/errors"
+import { LibroPersona } from "../models/libro_persona.model";
 
 import fs from 'fs';
-import {  createLibro, updateLibro } from "../schemas/libros.schema.js";
+import {  createLibro, updateLibro } from "../schemas/libros.schema";
 
 function remove_duplicateds(list: any[]) {
     const uniqueIds: number[] = [];

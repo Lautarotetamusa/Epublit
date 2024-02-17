@@ -1,6 +1,6 @@
-import {conn} from '../db.js'
+import {conn} from '../db'
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { ValidationError, NotFound, NothingChanged, Duplicated } from './errors.js';
+import { NotFound, NothingChanged } from './errors';
 
 export class BaseModel{
     /*

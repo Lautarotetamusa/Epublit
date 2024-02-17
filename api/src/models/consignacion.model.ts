@@ -2,22 +2,22 @@ import { Cliente } from './cliente.model.js'
 import { Libro } from './libro.model.js'
 
 import { ValidationError } from './errors.js';
-import { retrieveLibro } from '../schemas/libros.schema.js';
+import { LibroSchema } from '../schemas/libros.schema.js';
 import { buildConsignacion, createConsignacion, saveConsignacion } from '../schemas/consignaciones.schema.js';
 import { BaseModel } from './base.model.js';
-import { retrieveLibroPersona } from '../schemas/libro_persona.schema.js';
-import { TipoCliente, stockCliente } from '../schemas/cliente.schema.js';
+import { CreateLibroPersona } from '../schemas/libro_persona.schema.js';
+import { StockCliente, tipoCliente } from '../schemas/cliente.schema.js';
 import { conn } from '../db.js';
 import { RowDataPacket } from 'mysql2';
 
 export class LibroConsignacion extends Libro {
     cantidad: number;
-    autores: retrieveLibroPersona[];
-    ilustradores: retrieveLibroPersona[];
+    autores: CreateLibroPersona[];
+    ilustradores: CreateLibroPersona[];
 
     static table_name = "libros_consignaciones";
 
-    constructor(body: {libro: retrieveLibro, cantidad: number, autores: retrieveLibroPersona[], ilustradores: retrieveLibroPersona[]}){
+    constructor(body: {libro: LibroSchema, cantidad: number, autores: CreateLibroPersona[], ilustradores: CreateLibroPersona[]}){
 
         super(body.libro);
         
@@ -45,21 +45,22 @@ export class Consignacion extends BaseModel{
             this.id = body.id;
     }
 
-    static async set_libros(_libros: stockCliente): Promise<LibroConsignacion[]>{
+    static async set_libros(body: StockCliente): Promise<LibroConsignacion[]>{
         let libros: LibroConsignacion[] = [];
-        for (const _libro of _libros) {
-            let libro = await Libro.get_by_isbn(_libro.isbn);
+        for (const libroBody of body) {
+            let libro = await Libro.get_by_isbn(libroBody.isbn);
             let {autores, ilustradores} = await libro.get_personas();
 
             libros.push(new LibroConsignacion({
                 libro: libro,
-                cantidad: _libro.cantidad,
+                cantidad: libroBody.cantidad,
                 autores: autores,
                 ilustradores: ilustradores
             }));
 
-            if (libro.stock < _libro.cantidad)
+            if (libro.stock < libroBody.cantidad){
                 throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`);
+            }
         }
 
         return libros;        
@@ -67,7 +68,7 @@ export class Consignacion extends BaseModel{
 
     static async build(body: createConsignacion): Promise<Consignacion>{
         const cliente = await Cliente.get_by_id(body.cliente);
-        if (cliente.tipo == TipoCliente.particular){
+        if (tipoCliente[cliente.tipo] == tipoCliente.particular){
             throw new ValidationError("No se puede hacer una consignacion a un cliente CONSUMIDOR FINAL");
         }
 
@@ -116,9 +117,7 @@ export class Consignacion extends BaseModel{
             FROM libros
             INNER JOIN libros_consignaciones
                 ON libros_consignaciones.isbn = libros.isbn
-            INNER JOIN consignaciones
-                ON consignaciones.id = libros_consignaciones.id_consignacion
-            WHERE consignaciones.id = ?
+            WHERE libros_consignaciones.id_consignacion = ?
         `, [this.id]);
         return libros as LibroConsignacion[];
     }

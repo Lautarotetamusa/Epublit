@@ -9,16 +9,14 @@ import cors from 'cors';
 
 import PersonaRouter from "./routes/persona.routes";
 import LibroRouter from "./routes/libro.routes";
-import ClienteRouter from "./routes/cliente.routes.js";
-import VentaRouter from "./routes/venta.routes.js";
-import ConsignacionRouter from "./routes/consignacion.routes.js";
-import UserRouter from "./routes/user.routes.js"
+import ClienteRouter from "./routes/cliente.routes";
+import VentaRouter from "./routes/venta.routes";
+import ConsignacionRouter from "./routes/consignacion.routes";
+import UserRouter from "./routes/user.routes"
 import LiquidacionRouter from "./routes/liquidacion.routes"
 
 import {auth} from "./middleware/auth";
 import { parse_error } from "./models/errors";
-import { fstat } from "fs";
-import { Http2ServerRequest } from "http2";
 
 dotenv.config();
 export const app = express();

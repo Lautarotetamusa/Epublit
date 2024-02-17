@@ -20,15 +20,18 @@ services:
         condition: service_started
     build: 
       dockerfile: ./api/Dockerfile
+      context: .
     env_file: ./.env
     ports:
       - $BACK_PUBLIC_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    command: node dist/app.js
+    #command: node dist/app.js
+    command: npm run dev
     volumes:
      - ./facturas:/app/facturas
      - ./remitos:/app/remitos
+     - ./api/src:/app/src
 
   front:
     depends_on:

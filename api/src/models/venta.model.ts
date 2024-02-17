@@ -1,11 +1,11 @@
-import {conn} from '../db.js'
-import { Libro } from './libro.model.js';
-import { Cliente } from "./cliente.model.js";
+import {conn} from '../db'
+import { Libro } from './libro.model';
+import { Cliente } from "./cliente.model";
 
-import { ValidationError } from './errors.js';
-import { BaseModel } from './base.model.js';
-import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema.js';
-import { LibroSchema } from '../schemas/libros.schema.js';
+import { ValidationError } from './errors';
+import { BaseModel } from './base.model';
+import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema';
+import { LibroSchema } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
 
 export class LibroVenta extends Libro {

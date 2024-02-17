@@ -4,6 +4,7 @@ import {PersonaSchema, CreatePersona, UpdatePersona} from "../schemas/persona.sc
 
 import { BaseModel } from "./base.model";
 import { tipoPersona, TipoPersona } from "../schemas/libro_persona.schema";
+import { LibroSchema } from "../schemas/libros.schema";
 
 export class Persona extends BaseModel{
     nombre: string;
@@ -35,8 +36,8 @@ export class Persona extends BaseModel{
         return await super._exists({dni: dni, is_deleted: 0});
     }
 
-    static async insert(p: CreatePersona) {
-        return await super._insert<CreatePersona, Persona>(p);
+    static async insert(body: CreatePersona) {
+        return await super._insert<CreatePersona, Persona>(body);
     }
 
     static async update(body: UpdatePersona, where: object){
@@ -85,7 +86,7 @@ export class Persona extends BaseModel{
             AND personas.is_deleted = 0`;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
-        return rows as retrieveLibro[];
+        return rows as LibroSchema[];
     }
 }
 

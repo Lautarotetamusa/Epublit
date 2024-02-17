@@ -22,7 +22,6 @@ RUN npm install
 RUN npm install typescript -g
 
 COPY ./api/src src/
-RUN tsc --project .
 
 COPY ./api/src/afip/Claves dist/afip/Claves
 COPY ./api/src/afip/ClavesLibrosSilvestres dist/afip/ClavesLibrosSilvestres

@@ -1,6 +1,6 @@
-import { conn } from '../db.js';
-import { ValidationError, NotFound } from './errors.js';
-import { BaseModel } from './base.model.js';
+import { conn } from '../db';
+import { ValidationError, NotFound } from './errors';
+import { BaseModel } from './base.model';
 import { 
     AfipData, 
     TipoCliente, 
@@ -10,11 +10,11 @@ import {
     CreateCliente,
     SaveClienteInscripto,
     UpdateCliente, 
-} from '../schemas/cliente.schema.js';
+} from '../schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
-import { Venta } from './venta.model.js';
+import { Venta } from './venta.model';
 
-import { get_afip_data } from "../afip/Afip.js";
+import { get_afip_data } from "../afip/Afip";
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -66,12 +66,12 @@ export class Cliente extends BaseModel{
         return await this._insert<SaveClienteInscripto, Cliente>({
             ...body,
             ...afip_data,
-            tipo: tipoCliente.inscripto //No se puede crear un cliente que no sea inscripto
+            tipo: "inscripto" //No se puede crear un cliente que no sea inscripto
         });
     }
   
     async update(data: UpdateCliente) {
-        if (this.tipo == tipoCliente.particular){
+        if (tipoCliente[this.tipo] == tipoCliente.particular){
             throw new ValidationError("No se puede actualizar un cliente CONSUMIDOR FINAL");
         }
 

@@ -1,10 +1,10 @@
 import Afip from './afip.js/src/Afip.js';
 import QRcode from 'qrcode';
-import { emitir_comprobante } from '../comprobantes/comprobante.js'
-import { Venta } from '../models/venta.model.js';
-import { NotFound } from '../models/errors.js';
-import { AfipData } from '../schemas/cliente.schema.js';
-import { User } from '../models/user.model.js';
+import { emitir_comprobante } from '../comprobantes/comprobante'
+import { Venta } from '../models/venta.model';
+import { NotFound } from '../models/errors';
+import { AfipData } from '../schemas/cliente.schema';
+import { User } from '../models/user.model';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
