@@ -1,7 +1,5 @@
 import {z} from 'zod';
-import { ValidationError } from '../models/errors';
 import { createPersona } from './persona.schema'
-import { validate } from './validate'
 
 export const tipoPersona = {
     "autor": 0,

@@ -5,7 +5,7 @@ import { Cliente } from "./cliente.model.js";
 import { ValidationError } from './errors.js';
 import { BaseModel } from './base.model.js';
 import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema.js';
-import { retrieveLibro } from '../schemas/libros.schema.js';
+import { LibroSchema } from '../schemas/libros.schema.js';
 import { RowDataPacket } from 'mysql2';
 
 export class LibroVenta extends Libro {
@@ -13,7 +13,7 @@ export class LibroVenta extends Libro {
 
     static table_name = "libros_ventas";
 
-    constructor(req: {libro: retrieveLibro, cantidad: number}){
+    constructor(req: {libro: LibroSchema, cantidad: number}){
         super(req.libro);
         
         this.cantidad = req.cantidad;

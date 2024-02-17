@@ -62,7 +62,7 @@ const create = async (req: Request, res: Response) => {
         });
     }
     const libro = await Libro.insert(libroBody);
-    await libro.add_personas(indb);
+    await LibroPersona.insert(indb);
 
     return res.status(201).json({
         success: true,
@@ -117,14 +117,14 @@ const manage_personas = async(req: Request, res: Response) => {
                 throw new Duplicated("Alguna persona ya trabaja en ese libro");
             }
                 
-            await libro.add_personas(personas);
+            await LibroPersona.insert(personas);
             break;
         case "PUT":
             if (!await LibroPersona.all_exists(personas)){
                 throw new NotFound("Alguna persona no trabaja en este libro");
             }
 
-            await libro.update_personas(personas);
+            await LibroPersona.update(personas);
             message = 'actualizadas'
 
             break;
@@ -134,7 +134,7 @@ const manage_personas = async(req: Request, res: Response) => {
                 throw new Duplicated("Alguna persona ya trabaja en ese libro");
             }
 
-            await libro.remove_personas(personas);
+            await LibroPersona.remove(personas);
             message = 'borradas'
             code = 200
             

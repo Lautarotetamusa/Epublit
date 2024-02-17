@@ -4,11 +4,12 @@ import { BaseModel } from './base.model.js';
 import { 
     AfipData, 
     TipoCliente, 
-    createCliente, 
-    retrieveCliente, 
-    saveClienteInscripto, 
-    stockCliente, 
-    updateCliente 
+    ClienteSchema, 
+    StockCliente,
+    tipoCliente,
+    CreateCliente,
+    SaveClienteInscripto,
+    UpdateCliente, 
 } from '../schemas/cliente.schema.js';
 import { RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model.js';
@@ -28,7 +29,7 @@ export class Cliente extends BaseModel{
     domicilio: string;
     tipo: TipoCliente;
 
-    constructor(request: retrieveCliente){
+    constructor(request: ClienteSchema){
         super();
 
         this.id = request.id;
@@ -49,29 +50,30 @@ export class Cliente extends BaseModel{
     }
 
     static async get_by_id(id: number): Promise<Cliente> {
-        return await this.find_one<createCliente, Cliente>({id: id});
+        return await this.find_one<ClienteSchema, Cliente>({id: id});
     }
 
     static async get_consumidor_final(): Promise<Cliente>{
-        return await this.find_one({tipo: TipoCliente.particular});
+        return await this.find_one({tipo: tipoCliente.particular});
     }
 
     static async cuil_exists(cuit: string): Promise<Boolean>{
-        return await this._exists({cuit: cuit, tipo: TipoCliente.inscripto})
+        return await this._exists({cuit: cuit, tipo: tipoCliente.inscripto})
     }
 
-    static async insert(body: createCliente): Promise<Cliente> {
+    static async insert(body: CreateCliente): Promise<Cliente> {
         const afip_data: AfipData = await get_afip_data(body.cuit);
-        return await this._insert<saveClienteInscripto, Cliente>({
+        return await this._insert<SaveClienteInscripto, Cliente>({
             ...body,
             ...afip_data,
-            tipo: TipoCliente.inscripto //No se puede crear un cliente que no sea inscripto
+            tipo: tipoCliente.inscripto //No se puede crear un cliente que no sea inscripto
         });
     }
   
-    async update(data: updateCliente) {
-        if (this.tipo == TipoCliente.particular)
+    async update(data: UpdateCliente) {
+        if (this.tipo == tipoCliente.particular){
             throw new ValidationError("No se puede actualizar un cliente CONSUMIDOR FINAL");
+        }
 
         // Update cuit 
         if (data.cuit && (data.cuit != this.cuit)){
@@ -85,7 +87,7 @@ export class Cliente extends BaseModel{
         this.nombre = data.nombre   || this.nombre;
         this.email  = data.email    || this.email;
 
-        await Cliente._update<updateCliente>(this, {id: this.id});
+        await Cliente._update<UpdateCliente>(this, {id: this.id});
     }
 
     static async delete(id: number){
@@ -110,7 +112,7 @@ export class Cliente extends BaseModel{
         return rows;
     }
 
-    async update_stock(libros: stockCliente){
+    async update_stock(libros: StockCliente){
         const stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
         await conn.query(`
             INSERT INTO stock_cliente
@@ -121,7 +123,7 @@ export class Cliente extends BaseModel{
         `, [stock_clientes]);
     }
 
-    async have_stock(libros: stockCliente){
+    async have_stock(libros: StockCliente){
         for (const libro of libros){
             const [rows] = await conn.query<RowDataPacket[]>(`
                 SELECT COUNT(*) as count FROM stock_cliente

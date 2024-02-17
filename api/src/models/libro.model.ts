@@ -112,16 +112,4 @@ export class Libro extends BaseModel{
             ilustradores: personas.filter(p => p.tipo == tipoPersona.ilustrador) as LibroPersonaSchema[]
         };
     }
-
-    async add_personas(personas: createPersonaLibroInDB[]){
-        await LibroPersona.insert(personas);
-    }
-
-    async update_personas(personas: updateLibroPersona[]){
-        await LibroPersona.update(personas);
-    }
-    
-    async remove_personas(personas: removePersonaLibro[]){
-        await LibroPersona.remove(personas);
-    }
 }
