@@ -1,8 +1,6 @@
-import { get_afip_data } from "../afip/Afip";
 import { 
-    retrieveUser, 
-    createUser, 
-    saveUser 
+    UserSchema,
+    SaveUser
 } from "../schemas/user.schema"
 import { BaseModel } from "./base.model";
 
@@ -17,7 +15,7 @@ export class User extends BaseModel{
 
     static table_name = "users"; 
 
-    constructor(body: retrieveUser){
+    constructor(body: UserSchema){
         super();
 
         this.username = body.username;
@@ -33,19 +31,15 @@ export class User extends BaseModel{
         return await super._exists({username: username});
     }
 
-    static async insert(body: createUser): Promise<User>{
-        let afip_data = await get_afip_data(body.cuit);
-        return await this._insert<saveUser, User>({
-            ...body,
-            ...afip_data,
-        });
+    static async insert(body: SaveUser): Promise<User>{
+        return await this._insert<SaveUser, User>(body);
     }
 
-    static async get_all(): Promise<retrieveUser[]>{
-        return await super.find_all<retrieveUser>();
+    static async get_all(): Promise<UserSchema[]>{
+        return await super.find_all<UserSchema>();
     }
 
     static async get_one(username: string): Promise<User>{
-        return await super.find_one<retrieveUser, User>({username: username})
+        return await super.find_one<UserSchema, User>({username: username})
     }
 }

@@ -1,20 +1,25 @@
 import { Request, Response } from "express";
 import { User } from "../models/user.model";
-import { validateUser } from "../schemas/user.schema";
 
 import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
 import { ValidationError } from "../models/errors";
+import { createUser, loginUser } from "../schemas/user.schema";
+import { get_afip_data } from "../afip/Afip";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    let valid = validateUser.create(req.body);
+    const body = createUser.parse(req.body);
 
-    if (await User.exists(valid.username))
+    if (await User.exists(body.username)){
         throw new ValidationError("Ya existe un cliente con este cuit y este username");
-    
-    valid.password = await bcrypt.hash(valid.password, 10);
+    }
+    body.password = await bcrypt.hash(body.password, 10);
+    const afipData = await get_afip_data(body.cuit);
 
-    const user = await User.insert(valid);
+    const user = await User.insert({
+        ...body,
+        ...afipData
+    });
     return res.status(201).json({
         success: true,
         message: "Usuario creado correctamente",
@@ -23,9 +28,9 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const login = async (req: Request, res: Response): Promise<Response> => {
-    let valid = validateUser.login(req.body);
-    const user = await User.get_one(valid.username);
-    let match = await bcrypt.compare(valid.password, Buffer.from(user.password).toString('ascii'));
+    const body = loginUser.parse(req.body);
+    const user = await User.get_one(body.username);
+    const match = await bcrypt.compare(body.password, Buffer.from(body.password).toString('ascii'));
     
     if (!match) return res.status(401).json({
         success: false,

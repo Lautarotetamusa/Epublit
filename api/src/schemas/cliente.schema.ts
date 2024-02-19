@@ -19,7 +19,12 @@ const clienteSchema = z.object({
 });
 export type ClienteSchema = z.infer<typeof clienteSchema>;
 
-export type AfipData = Pick<ClienteSchema, 'cond_fiscal' | 'razon_social' | 'domicilio'>
+export const afipSchema = clienteSchema.pick({
+    cond_fiscal: true,
+    razon_social: true,
+    domicilio: true
+});
+export type AfipData = z.infer<typeof afipSchema>;
 
 const saveClienteInscripto = clienteSchema.omit({id: true});
 export type SaveClienteInscripto = z.infer<typeof saveClienteInscripto>; 

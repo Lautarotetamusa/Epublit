@@ -1,40 +1,26 @@
-import { AfipData } from './cliente.schema';
+import { AfipData, afipSchema } from './cliente.schema';
 import {validate} from './validate'
+import {z} from 'zod';
 
-interface loginUser {
-    username: string;
-    password: string;
-}
+const userSchema = z.object({
+    id: z.number(),
+    username: z.string(),
+    password: z.string(),
+    cuit: z.string()
+}).and(afipSchema);
+export type UserSchema = z.infer<typeof userSchema>; 
 
-export interface createUser extends loginUser{
-    cuit: string;
-}
+export const loginUser = z.object({
+    username: z.string(),
+    password: z.string(),
+});
+type LoginUser = z.infer<typeof loginUser>;
 
-export type saveUser = AfipData & createUser;
+export const createUser = z.object({
+    username: z.string(),
+    password: z.string(),
+    cuit: z.string()
+});
+export type CreateUser = z.infer<typeof createUser>;
 
-export interface retrieveUser extends saveUser{
-    id: number;
-}
-
-export class validateUser {
-    static error: string;
-
-    static create(obj: any): createUser{
-        const required = {
-            'username': 'string',
-            'password': 'string',
-            'cuit': 'string'
-        };
-
-        return validate<createUser>(required, obj);
-    }
-
-    static login(obj: any): loginUser{
-        const required = {
-            'username': 'string',
-            'password': 'string'
-        };
-
-        return validate<loginUser>(required, obj);
-    }
-}
+export type SaveUser = Omit<UserSchema, 'id'>;
