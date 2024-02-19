@@ -39,10 +39,10 @@ export class Liquidacion extends BaseModel{
     static async insert(body: SaveLiquidacion): Promise<Liquidacion>{
         return await super._insert<SaveLiquidacion, Liquidacion>(body);
     }
-    static async get_all(){
+    static async getAll(){
         return await super.find_all<LiquidacionSchema>();
     }
-    static async get_one(id: number): Promise<Liquidacion>{
+    static async getOne(id: number): Promise<Liquidacion>{
         return await super.find_one<LiquidacionSchema, Liquidacion>({id: id})
     }
 
@@ -58,7 +58,7 @@ export class Liquidacion extends BaseModel{
         return rows.length <= 0;
     }
 
-    static async get_ventas(body: CreateLiquidacion){
+    static async getVentas(body: CreateLiquidacion){
        const query = `
             SELECT * 
             FROM libros_ventas AS LV

@@ -1,10 +1,8 @@
 import {conn} from '../db'
 import { Libro } from './libro.model';
-import { Cliente } from "./cliente.model";
-
 import { ValidationError } from './errors';
 import { BaseModel } from './base.model';
-import { CreateVenta, MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
+import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
 import { LibroCantidad, LibroSchema } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
 
@@ -19,11 +17,11 @@ export class LibroVenta extends Libro {
         this.cantidad = req.cantidad;
     }
 
-    static async set_libros(body: LibroCantidad[]): Promise<LibroVenta[]>{
+    static async setLibros(body: LibroCantidad[]): Promise<LibroVenta[]>{
         let libros: LibroVenta[] = [];
 
         for (let _libro of body) {
-            let libro = await Libro.get_by_isbn(_libro.isbn);
+            let libro = await Libro.getByIsbn(_libro.isbn);
 
             libros.push(new LibroVenta({
                 libro: libro,
@@ -85,11 +83,11 @@ export class Venta extends BaseModel{
         return await this._insert<SaveVenta, Venta>(body);
     }
 
-    static async get_by_id(id: number){
+    static async getById(id: number){
         return await this.find_one<VentaSchema, Venta>({id: id});
     }
 
-    async get_libros(): Promise<LibroVenta[]>{
+    async getLibros(): Promise<LibroVenta[]>{
         const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad, precio_venta 
             FROM libros
@@ -100,7 +98,7 @@ export class Venta extends BaseModel{
         return libros as LibroVenta[];
     }
 
-    static async get_all(){
+    static async getAll(){
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
                 ventas.*,

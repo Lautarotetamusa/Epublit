@@ -6,8 +6,8 @@ const router = express.Router();
 
 router.post('/', LiquidacionController.create);
 
-router.get('/:id', LiquidacionController.get_one);
+router.get('/:id', LiquidacionController.getOne);
 
-router.get('/', LiquidacionController.get_all);
+router.get('/', LiquidacionController.getAll);
 
 export default router;

@@ -1,12 +1,10 @@
-import { Cliente } from './cliente.model'
 import { Libro } from './libro.model'
-
 import { ValidationError } from './errors';
 import { LibroSchema } from '../schemas/libros.schema';
-import { ConsignacionSchema, CreateConsignacion, SaveConsignacion, buildConsignacion, createConsignacion, saveConsignacion } from '../schemas/consignaciones.schema';
+import { ConsignacionSchema, SaveConsignacion } from '../schemas/consignaciones.schema';
 import { BaseModel } from './base.model';
 import { PersonaLibroPersonaSchema } from '../schemas/libro_persona.schema';
-import { StockCliente, tipoCliente } from '../schemas/cliente.schema';
+import { StockCliente } from '../schemas/cliente.schema';
 import { conn } from '../db';
 import { RowDataPacket } from 'mysql2';
 
@@ -23,7 +21,6 @@ export class LibroConsignacion extends Libro {
         autores: PersonaLibroPersonaSchema[], 
         ilustradores: PersonaLibroPersonaSchema[]
     }){
-
         super(body.libro);
         
         this.cantidad = body.cantidad;
@@ -35,11 +32,11 @@ export class LibroConsignacion extends Libro {
        this._bulk_insert(body); 
     }
 
-    static async set_libros(body: StockCliente): Promise<LibroConsignacion[]>{
+    static async setLibros(body: StockCliente): Promise<LibroConsignacion[]>{
         let libros: LibroConsignacion[] = [];
         for (const libroBody of body) {
-            const libro = await Libro.get_by_isbn(libroBody.isbn);
-            const {autores, ilustradores} = await libro.get_personas();
+            const libro = await Libro.getByIsbn(libroBody.isbn);
+            const {autores, ilustradores} = await libro.getPersonas();
 
             libros.push(new LibroConsignacion({
                 libro: libro,
@@ -76,11 +73,11 @@ export class Consignacion extends BaseModel{
         return await Consignacion._insert<SaveConsignacion, Consignacion>(body);
     }
 
-    static async get_by_id(id: number){
-        return await this.find_one<buildConsignacion, Consignacion>({id: id});
+    static async getById(id: number){
+        return await this.find_one<ConsignacionSchema, Consignacion>({id: id});
     }
 
-    async get_libros(): Promise<LibroConsignacion[]>{
+    async getLibros(): Promise<LibroConsignacion[]>{
         const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad 
             FROM libros
@@ -91,7 +88,7 @@ export class Consignacion extends BaseModel{
         return libros as LibroConsignacion[];
     }
 
-    static async get_all(){
+    static async getAll(){
         const [rows] = await conn.query(`
             SELECT 
                 consignaciones.id, fecha, remito_path,

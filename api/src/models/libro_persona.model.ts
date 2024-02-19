@@ -21,7 +21,7 @@ export class LibroPersona extends BaseModel{
         this.id_persona = body.id_persona;
     }
 
-    static async get_one(body: LibroPersonaKey): Promise<LibroPersona>{
+    static async getOne(body: LibroPersonaKey): Promise<LibroPersona>{
         return super.find_one<LibroPersonaSchema, LibroPersona>(body);
     }
 

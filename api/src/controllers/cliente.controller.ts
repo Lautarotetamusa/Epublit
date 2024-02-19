@@ -3,20 +3,20 @@ import { Request, Response } from "express";
 import { Duplicated, ValidationError } from '../models/errors';
 import { createCliente, updateCliente } from "../schemas/cliente.schema";
 
-async function get_client(req: Request): Promise<Cliente>{
+async function getCliente(req: Request): Promise<Cliente>{
     const id = Number(req.params.id);
 
     if (req.params.id == "consumidor_final")
-        return await Cliente.get_consumidor_final();
+        return await Cliente.getConsumidorFinal();
 
     if (!id) throw new ValidationError("El id debe ser un numero");
-    return await Cliente.get_by_id(id);
+    return await Cliente.getById(id);
 }
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createCliente.parse(req.body);
 
-    if(await Cliente.cuil_exists(body.cuit)){
+    if(await Cliente.cuilExists(body.cuit)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`)
     }
 
@@ -34,9 +34,9 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     const body = updateCliente.parse(req.body); 
-    const cliente = await Cliente.get_by_id(id);
+    const cliente = await Cliente.getById(id);
     
-    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuil_exists(body.cuit)){
+    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuilExists(body.cuit)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`);
     }
     
@@ -49,15 +49,15 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_stock = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await get_client(req);
-    let stock = await cliente.get_stock();
+const getStock = async (req: Request, res: Response): Promise<Response> => {
+    const cliente = await getCliente(req);
+    let stock = await cliente.getStock();
     return res.json(stock);
 }
 
-const get_ventas = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await get_client(req);
-    const ventas = await cliente.get_ventas();
+const getVentas = async (req: Request, res: Response): Promise<Response> => {
+    const cliente = await getCliente(req);
+    const ventas = await cliente.getVentas();
     return res.json(ventas);
 }
 
@@ -74,22 +74,22 @@ const delet = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_all = async (req: Request, res: Response): Promise<Response> => {
-    const clientes = await Cliente.get_all()
+const getAll = async (req: Request, res: Response): Promise<Response> => {
+    const clientes = await Cliente.getAll()
     return res.json(clientes);
 }
 
-const get_one = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await get_client(req);
+const getOne = async (req: Request, res: Response): Promise<Response> => {
+    const cliente = await getCliente(req);
     return res.json(cliente);
 }
 
 export default {
     create,
     update,
-    get_stock,
-    get_ventas,
+    getStock,
+    getVentas,
     delet,
-    get_all,
-    get_one
+    getAll,
+    getOne
 }

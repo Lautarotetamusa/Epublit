@@ -35,11 +35,11 @@ export class User extends BaseModel{
         return await this._insert<SaveUser, User>(body);
     }
 
-    static async get_all(): Promise<UserSchema[]>{
+    static async getAll(): Promise<UserSchema[]>{
         return await super.find_all<UserSchema>();
     }
 
-    static async get_one(username: string): Promise<User>{
+    static async getOne(username: string): Promise<User>{
         return await super.find_one<UserSchema, User>({username: username})
     }
 }

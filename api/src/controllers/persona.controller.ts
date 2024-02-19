@@ -26,7 +26,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 
     const body = updatePersona.parse(req.body);
 
-    const persona = await Persona.get_by_id(id);
+    const persona = await Persona.getById(id);
 
     if (body.dni && body.dni != persona.dni && await Persona.exists(body.dni)){
         throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
@@ -53,25 +53,25 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_all = async (req: Request, res: Response): Promise<Response>  => {
+const getAll = async (req: Request, res: Response): Promise<Response>  => {
     let personas: any[];
 
     if ('tipo' in req.query){
         const tipo = libroPersonaSchema.shape.tipo.parse(req.query.tipo);
-        personas = await Persona.get_all_by_tipo(tipo);
+        personas = await Persona.getAllByTipo(tipo);
     }else {
-        personas = await Persona.get_all()
+        personas = await Persona.getAll()
     }
 
     return res.json(personas);
 }
 
-const get_one = async (req: Request, res: Response): Promise<Response> => {
+const getOne = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id de la persona debe ser un integer");
     
-    const persona = await Persona.get_by_id(id);
-    const libros = await persona.get_libros();
+    const persona = await Persona.getById(id);
+    const libros = await persona.getLibros();
 
     return res.json({
         ...persona,
@@ -83,6 +83,6 @@ export default {
     create,
     update,
     remove,
-    get_all,
-    get_one
+    getAll,
+    getOne
 }

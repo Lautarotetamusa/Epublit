@@ -28,10 +28,10 @@ export class Libro extends BaseModel{
         this.stock  = request.stock || 0
     }
 
-    static async get_by_isbn(isbn: string): Promise<Libro> {
+    static async getByIsbn(isbn: string): Promise<Libro> {
         return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0})
     }
-    static async get_all(): Promise<LibroSchema[]>{        
+    static async getAll(): Promise<LibroSchema[]>{        
         return await super.find_all<LibroSchema>({is_deleted: 0})
     }
     static async insert(body: LibroSchema): Promise<Libro> {
@@ -55,7 +55,7 @@ export class Libro extends BaseModel{
         }
     }
 
-    static async update_stock(body: LibroCantidad){
+    static async updateStock(body: LibroCantidad){
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${body.cantidad}
@@ -71,7 +71,7 @@ export class Libro extends BaseModel{
         await super._update({is_deleted: 1}, {isbn: isbn});
     }
 
-    static async get_ventas(isbn: string){
+    static async getVentas(isbn: string){
         const [ventas] = await conn.query<RowDataPacket[]>(`
             SELECT  
                 ventas.id as id_venta, fecha, medio_pago, total, file_path,
@@ -85,7 +85,7 @@ export class Libro extends BaseModel{
         return ventas;
     }
 
-    static async get_paginated(page = 0): Promise<LibroSchema[]>{
+    static async getPaginated(page = 0): Promise<LibroSchema[]>{
         const libros_per_page = 10;
         const query = `
             SELECT ${this.fields.join(',')}
@@ -98,7 +98,7 @@ export class Libro extends BaseModel{
         return libros as LibroSchema[];
     }
 
-    async get_personas(){
+    async getPersonas(){
         const query = `
             SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 

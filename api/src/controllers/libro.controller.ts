@@ -13,7 +13,7 @@ import { LibroPersona } from "../models/libro_persona.model";
 import fs from 'fs';
 import {  createLibro, updateLibro } from "../schemas/libros.schema";
 
-function remove_duplicateds(list: any[]) {
+function removeDuplicateds(list: any[]) {
     const uniqueIds: number[] = [];
     return list.filter(element => {
         const isDuplicate = uniqueIds.includes(element.id);
@@ -30,28 +30,28 @@ function remove_duplicateds(list: any[]) {
 const create = async (req: Request, res: Response) => { 
     const {personas, ...libroBody} = createLibro.parse(req.body);
     let indb: LibroPersonaSchema[] = [];
-    let not_indb: CreateLibroPersona[] = [];
+    let notIndb: CreateLibroPersona[] = [];
 
     for (const persona of personas){
         if ("id_persona" in persona){
             indb.push(persona);
         }else{
-            not_indb.push(persona);
+            notIndb.push(persona);
         }
     }
 
-    indb = remove_duplicateds(indb);       
+    indb = removeDuplicateds(indb);       
     await Libro.is_duplicated(libroBody.isbn);
 
     if (!await Persona.all_exists(indb.map(p => ({id: p.id_persona})))){
         throw new ValidationError("Alguna persona no existe");
     }
 
-    if(await Persona.any_exists(not_indb.map(p => ({dni: p.dni})))){
+    if(await Persona.any_exists(notIndb.map(p => ({dni: p.dni})))){
         throw new ValidationError("Alguna persona ya se encuentra cargada");
     }
 
-    for (const personaBody of not_indb){
+    for (const personaBody of notIndb){
         const persona = await Persona.insert(personaBody);
 
         indb.push({
@@ -87,7 +87,7 @@ const remove = async(req: Request, res: Response) => {
 const update = async(req: Request, res: Response) => {
     const body = updateLibro.parse(req.body);
 
-    const libro = await Libro.get_by_isbn(req.params.isbn);
+    const libro = await Libro.getByIsbn(req.params.isbn);
     await libro.update(body);
 
     return res.status(201).json({
@@ -97,12 +97,12 @@ const update = async(req: Request, res: Response) => {
     })
 }
 
-const manage_personas = async(req: Request, res: Response) => {
+const managePersonas = async(req: Request, res: Response) => {
     let body = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
     let code = 201;
     let message = 'creadas';
         
-    const libro = await Libro.get_by_isbn(req.params.isbn);
+    const libro = await Libro.getByIsbn(req.params.isbn);
 
     if (!await Persona.all_exists(body.map(p => ({id: p.id})))){
         throw new NotFound("Alguna persona no existe");
@@ -151,14 +151,14 @@ const manage_personas = async(req: Request, res: Response) => {
     });
 }
 
-const get_ventas = async(req: Request, res: Response) => {
-    const ventas = await Libro.get_ventas(req.params.isbn);
+const getVentas = async(req: Request, res: Response) => {
+    const ventas = await Libro.getVentas(req.params.isbn);
     return res.json(ventas);
 }
 
-const get_one = async(req: Request, res: Response) => {
-    const libro = await Libro.get_by_isbn(req.params.isbn)
-    const {autores, ilustradores} = await libro.get_personas();
+const getOne = async(req: Request, res: Response) => {
+    const libro = await Libro.getByIsbn(req.params.isbn)
+    const {autores, ilustradores} = await libro.getPersonas();
     return res.json({
         ...libro,
         autores: autores,
@@ -166,8 +166,8 @@ const get_one = async(req: Request, res: Response) => {
     });
 }
 
-const lista_libros = async (req: Request, res: Response) => {
-    const libros = await Libro.get_all();
+const listaLibros = async (req: Request, res: Response) => {
+    const libros = await Libro.getAll();
 
     let len = Object.keys(libros[0]).length;
     let header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
@@ -179,23 +179,23 @@ const lista_libros = async (req: Request, res: Response) => {
     return res.download(file_path);
 }
 
-const get_all = async(req: Request, res: Response) => {
+const getAll = async(req: Request, res: Response) => {
     if ("page" in req.query){
-        const libros = await Libro.get_paginated(Number(req.query.page) || 0);
+        const libros = await Libro.getPaginated(Number(req.query.page) || 0);
         return res.json(libros);
     }
 
-    const libros = await Libro.get_all();
+    const libros = await Libro.getAll();
     return res.json(libros);
 }
 
 export default{
-    get_all,
-    get_one,
-    get_ventas,
-    manage_personas,
+    getAll,
+    getOne,
+    getVentas,
+    managePersonas,
     create,
     remove,
     update,
-    lista_libros
+    listaLibros
 }

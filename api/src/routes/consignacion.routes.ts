@@ -6,9 +6,9 @@ const router = express.Router();
 
 router.post('/', ConsignacionController.consignar);
 
-router.get('/', ConsignacionController.get_all);
+router.get('/', ConsignacionController.getAll);
 
-router.get('/:id', ConsignacionController.get_one);
+router.get('/:id', ConsignacionController.getOne);
 
 router.get('/:id/remito', ConsignacionController.get_remito);
 

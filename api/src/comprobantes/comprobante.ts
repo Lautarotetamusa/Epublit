@@ -1,15 +1,16 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
-import { LibroVenta, Venta } from '../models/venta.model';
+import { Venta } from '../models/venta.model';
 import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
 import { medioPago } from '../schemas/venta.schema';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
+import { Comprobante } from '../afip/Afip';
 
 const path = './src/comprobantes';
 
 type args = {
-    data: Venta & {qr_data: string, comprobante: any},
+    data: CreateFactura
     user: User,
     tipo: "factura"
 } | {
@@ -19,9 +20,10 @@ type args = {
 }
 
 type CreateFactura = {
-    venta: Venta & {qr_data: string, comprobante: any}
+    venta: Venta
+    comprobante: Comprobante
     cliente: Cliente,
-    libros: LibroVenta[] 
+    libros: LibroConsignacion[] 
 }
 
 type CreateRemito = {
@@ -30,7 +32,7 @@ type CreateRemito = {
     libros: LibroConsignacion[]
 }
 
-export async function emitir_comprobante({data, user, tipo}: args){
+export async function emitirComprobante({data, user, tipo}: args){
     const browser = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome',
       args: ['--no-sandbox']
@@ -52,7 +54,7 @@ export async function emitir_comprobante({data, user, tipo}: args){
     let filePath: string;
     if (tipo == "factura"){
         html = factura(html, data);
-        filePath = data.file_path
+        filePath = data.venta.file_path
     }else{
         html = remito(html, data);
         filePath = data.consignacion.remito_path
@@ -69,7 +71,7 @@ export async function emitir_comprobante({data, user, tipo}: args){
     console.log(tipo+" generado correctamente");
   };
 
-function factura(html: string, {venta, cliente, libros}: CreateFactura){
+function factura(html: string, {venta, cliente, libros, comprobante}: CreateFactura){
     /*Parse venta.libros*/
     var table = '';
     console.log("generando factura");
@@ -96,7 +98,7 @@ function factura(html: string, {venta, cliente, libros}: CreateFactura){
     html = html.replace('{{cond_venta}}', String(medioPago[venta.medio_pago]));
 
     //QR
-    html = html.replace('<img class="qr" src="">', `<img class="qr" src="${venta.qr_data}">`)
+    html = html.replace('<img class="qr" src="">', `<img class="qr" src="${comprobante.qr}">`)
 
     html = html.replace(/\{\{TOTAL\}\}/g, String(venta.total));
     
@@ -109,12 +111,12 @@ function factura(html: string, {venta, cliente, libros}: CreateFactura){
 
     /*parse comprobante*/
     html = html.replace('{{tipo_factura}}', 'C');
-    html = html.replace('{{cod_factura}}', venta.comprobante.CbteTipo);
-    html = html.replace('{{punto_venta}}', String(venta.comprobante.PtoVta).padStart(5, '0'));
-    html = html.replace('{{cae}}', venta.comprobante.CodAutorizacion);
-    html = html.replace('{{fecha_vto}}', venta.comprobante.FchVto);
-    html = html.replace('{{fecha_emision}}', venta.comprobante.CbteFch);
-    html = html.replace('{{nro_comprobante}}', String(venta.comprobante.nro).padStart(8, '0'));
+    html = html.replace('{{cod_factura}}', comprobante.CbteTipo);
+    html = html.replace('{{punto_venta}}', String(comprobante.PtoVta).padStart(5, '0'));
+    html = html.replace('{{cae}}', comprobante.CodAutorizacion);
+    html = html.replace('{{fecha_vto}}', comprobante.FchVto);
+    html = html.replace('{{fecha_emision}}', comprobante.CbteFch);
+    html = html.replace('{{nro_comprobante}}', String(comprobante.nro).padStart(8, '0'));
     /**/
     return html;
 }

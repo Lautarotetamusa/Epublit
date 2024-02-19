@@ -14,7 +14,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     if (!(await Liquidacion.valid_period(body.fecha_inicial, body.fecha_final))){
         throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");
     }
-    const persona = await Persona.get_by_id(body.id_persona);
+    const persona = await Persona.getById(body.id_persona);
 
     if (!await LibroPersona.exists({
         id_persona: body.id_persona,
@@ -24,7 +24,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         throw new ValidationError(`La persona con id ${body.id_persona} no trabaja en el libro ${body.isbn}`);
     }
 
-    const ventas = await Liquidacion.get_ventas(body);
+    const ventas = await Liquidacion.getVentas(body);
     const total: number = ventas.reduce((total, row) => total + row.cantidad * row.precio_venta, 0);
     const file_path = "TEST";
 
@@ -44,12 +44,12 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_one = async (req: Request, res: Response): Promise<Response> => {
+const getOne = async (req: Request, res: Response): Promise<Response> => {
     if (!('id' in req.params)) throw new ValidationError("Se debe pasar un id para obtener la liquidacion")
     const id = Number(req.params.id);
 
-    const liquidacion = await Liquidacion.get_one(id);
-    const libro = await Libro.get_by_isbn(liquidacion.isbn);
+    const liquidacion = await Liquidacion.getOne(id);
+    const libro = await Libro.getByIsbn(liquidacion.isbn);
     const ventas = await liquidacion.get_details();
 
     return res.status(200).json({
@@ -59,13 +59,13 @@ const get_one = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_all = async (req: Request, res: Response): Promise<Response> => {
-    const liquidaciones = await Liquidacion.get_all();
+const getAll = async (req: Request, res: Response): Promise<Response> => {
+    const liquidaciones = await Liquidacion.getAll();
     return res.status(200).json(liquidaciones);
 
 }
 export default {
     create,
-    get_one,
-    get_all
+    getOne,
+    getAll
 }

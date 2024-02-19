@@ -5,9 +5,9 @@ const router = express.Router();
 
 router.post('/', PersonaController.create);
 
-router.get('/', PersonaController.get_all);
+router.get('/', PersonaController.getAll);
 
-router.get('/:id', PersonaController.get_one);
+router.get('/:id', PersonaController.getOne);
 
 router.put('/:id', PersonaController.update)
 

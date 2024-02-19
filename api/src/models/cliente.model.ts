@@ -14,7 +14,7 @@ import {
 import { RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model';
 
-import { get_afip_data } from "../afip/Afip";
+import { getAfipData } from "../afip/Afip";
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -55,24 +55,24 @@ export class Cliente extends BaseModel{
         return this.razon_social.replace('/-/g', '')+'_'+date+'.pdf';
     }
 
-    static async get_all() {
+    static async getAll() {
         return await this.find_all();
     }
 
-    static async get_by_id(id: number): Promise<Cliente> {
+    static async getById(id: number): Promise<Cliente> {
         return await this.find_one<ClienteSchema, Cliente>({id: id});
     }
 
-    static async get_consumidor_final(): Promise<Cliente>{
+    static async getConsumidorFinal(): Promise<Cliente>{
         return await this.find_one({tipo: tipoCliente.particular});
     }
 
-    static async cuil_exists(cuit: string): Promise<Boolean>{
+    static async cuilExists(cuit: string): Promise<Boolean>{
         return await this._exists({cuit: cuit, tipo: tipoCliente.inscripto})
     }
 
     static async insert(body: CreateCliente): Promise<Cliente> {
-        const afip_data: AfipData = await get_afip_data(body.cuit);
+        const afip_data: AfipData = await getAfipData(body.cuit);
         return await this._insert<SaveClienteInscripto, Cliente>({
             ...body,
             ...afip_data,
@@ -87,7 +87,7 @@ export class Cliente extends BaseModel{
 
         // Update cuit 
         if (data.cuit && (data.cuit != this.cuit)){
-            const afip_data = await get_afip_data(data.cuit);
+            const afip_data = await getAfipData(data.cuit);
             this.cond_fiscal = afip_data.cond_fiscal;
             this.razon_social = afip_data.razon_social;
             this.domicilio = afip_data.cond_fiscal;
@@ -106,11 +106,11 @@ export class Cliente extends BaseModel{
             throw new NotFound(`No se encuentra el cliente con id ${id}`);
     }
 
-    async get_ventas(): Promise<Venta[]>{
+    async getVentas(): Promise<Venta[]>{
         return await Venta.find_all({id_cliente: this.id});
     }
 
-    async get_stock() {
+    async getStock() {
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
                 titulo, libros.isbn, sc.stock
@@ -122,7 +122,7 @@ export class Cliente extends BaseModel{
         return rows;
     }
 
-    async update_stock(libros: StockCliente){
+    async updateStock(libros: StockCliente){
         const stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
         await conn.query(`
             INSERT INTO stock_cliente
@@ -133,7 +133,7 @@ export class Cliente extends BaseModel{
         `, [stock_clientes]);
     }
 
-    async have_stock(libros: StockCliente){
+    async haveStock(libros: StockCliente){
         for (const libro of libros){
             const [rows] = await conn.query<RowDataPacket[]>(`
                 SELECT COUNT(*) as count FROM stock_cliente

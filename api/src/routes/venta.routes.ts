@@ -1,18 +1,18 @@
 import express from "express"
 
 import VentaController from "../controllers/venta.controller"
-import { medio_pago } from "../schemas/venta.schema";
+import { medioPago } from "../schemas/venta.schema";
 
 const router = express.Router();
 
 router.post('/', VentaController.vender);
 
-router.get('/', VentaController.get_all);
+router.get('/', VentaController.getAll);
 
 router.get('/medios_pago', async (req, res) => {
-        return res.json(Object.values(medio_pago).filter(m => isNaN(Number(m))));
+        return res.json(Object.keys(medioPago));
 });
-router.get('/:id', VentaController.get_one);
+router.get('/:id', VentaController.getOne);
 
 router.get('/:id/factura', VentaController.get_factura);
 

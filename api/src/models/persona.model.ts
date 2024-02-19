@@ -24,11 +24,11 @@ export class Persona extends BaseModel{
         this.id = Number(persona.id);
     }
 
-    static async get_by_id(id: number): Promise<Persona> {
+    static async getById(id: number): Promise<Persona> {
         return await super.find_one<PersonaSchema, Persona>({id: id, is_deleted: 0});
     }
 
-    static async get_all(): Promise<PersonaSchema[]> {
+    static async getAll(): Promise<PersonaSchema[]> {
         return await super.find_all<PersonaSchema>({is_deleted: 0});
     }
     
@@ -62,7 +62,7 @@ export class Persona extends BaseModel{
         await this._update({is_deleted: 1}, where);
     }
 
-    static async get_all_by_tipo(tipo: TipoPersona): Promise<RowDataPacket[]> {
+    static async getAllByTipo(tipo: TipoPersona): Promise<PersonaSchema[]> {
         const query = `
             SELECT ${this.fields.join(', ')} 
             FROM ${this.table_name} 
@@ -73,10 +73,10 @@ export class Persona extends BaseModel{
             GROUP BY id`;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [tipoPersona[tipo]]);
-        return rows;
+        return rows as PersonaSchema[];
     }    
 
-    async get_libros(){
+    async getLibros(){
         const query = `
             SELECT libros.*, libros_personas.tipo 
             FROM libros

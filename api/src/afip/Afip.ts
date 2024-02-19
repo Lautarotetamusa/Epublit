@@ -1,6 +1,5 @@
 import Afip from './afip.js/src/Afip.js';
 import QRcode from 'qrcode';
-import { emitir_comprobante } from '../comprobantes/comprobante'
 import { Venta } from '../models/venta.model';
 import { NotFound } from '../models/errors';
 import { AfipData } from '../schemas/cliente.schema';
@@ -8,6 +7,16 @@ import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model.js';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+export type Comprobante = {
+    nro: string,
+    qr: string,
+	CbteTipo: string,
+	PtoVta: string,
+	CodAutorizacion: string,
+	FchVto: string,
+	CbteFch: string,
+};
 
 // cuenta madre
 const afip_madre = new Afip({
@@ -59,8 +68,8 @@ export async function get_server_status(){
 	console.log(serverStatus);
 	return serverStatus;
 }
- 
-export async function facturar(venta: Venta, user: User, cliente: Cliente){
+
+export async function facturar(venta: Venta, cliente: Cliente): Promise<Comprobante>{
 	const data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
@@ -80,29 +89,25 @@ export async function facturar(venta: Venta, user: User, cliente: Cliente){
 	};
 	const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
 
-	let comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
+	let comprobante: Comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 
 	comprobante.nro 	= voucherNumber;
 	comprobante.CbteFch = afip.ElectronicBilling?.formatDate(comprobante.CbteFch);
 	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
-	comprobante.emisor 	= cliente.cuit;
-	
-	QRcode.toDataURL(qr_url(comprobante), async function (err, base64_qr) {
-		if (err)
-			throw new Error(err.message);
 
-		await emitir_comprobante({
-			data: Object.assign(venta, {
-				qr_data: base64_qr,
-				comprobante: comprobante
-			}),
-			user: user,
-			tipo: "factura"
-		});
-	});
+	return new Promise<Comprobante>((resolve, reject) => {
+        QRcode.toDataURL(qr_url(comprobante), function (err, base64_qr) {
+            if (err) reject(err);
+
+            resolve({
+                ...comprobante,
+                qr: base64_qr
+            });
+        });
+    })
 }
 
-export async function get_afip_data(cuit: string): Promise<AfipData>{
+export async function getAfipData(cuit: string): Promise<AfipData>{
 	const afip_data = await afip_madre.RegisterScopeFive?.getTaxpayerDetails(cuit);
 	if (afip_data === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);

@@ -5,7 +5,7 @@ import { Libro } from "../models/libro.model.js";
 import { Venta } from "../models/venta.model.js";
 import { ValidationError } from "../models/errors.js"
 
-import { emitir_comprobante } from "../comprobantes/comprobante.js"
+import { emitirComprobante } from "../comprobantes/comprobante.js"
 import { createConsignacion } from "../schemas/consignaciones.schema.js";
 import { tipoCliente } from "../schemas/cliente.schema.js";
 import { medioPago } from "../schemas/venta.schema.js";
@@ -13,12 +13,12 @@ import { medioPago } from "../schemas/venta.schema.js";
 const consignar = async(req: Request, res: Response): Promise<Response> => {
     const body = createConsignacion.parse(req.body);
 
-    const cliente = await Cliente.get_by_id(body.cliente);
+    const cliente = await Cliente.getById(body.cliente);
     if (tipoCliente[cliente.tipo] == tipoCliente.particular){
         throw new ValidationError("No se puede hacer una consignacion a un cliente CONSUMIDOR FINAL");
     }
 
-    const libros = await LibroConsignacion.set_libros(body.libros);
+    const libros = await LibroConsignacion.setLibros(body.libros);
     const consignacion = await Consignacion.insert({
         id_cliente: body.cliente,
         remito_path: cliente.generatePath()
@@ -31,12 +31,12 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     })));
         
     for (const libro of libros) {
-        await Libro.update_stock({isbn: libro.isbn, cantidad: -libro.cantidad});
+        await Libro.updateStock({isbn: libro.isbn, cantidad: -libro.cantidad});
     }
 
-    await cliente.update_stock(body.libros);
+    await cliente.updateStock(body.libros);
 
-    await emitir_comprobante({
+    await emitirComprobante({
         data: {
             consignacion: consignacion,
             cliente: cliente,
@@ -53,24 +53,24 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const get_one = async (req: Request, res: Response): Promise<Response> => {
+const getOne = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    const cons = await Consignacion.get_by_id(id);
+    const cons = await Consignacion.getById(id);
     return res.json(cons);
 }
 
-const get_all = async (req: Request, res: Response): Promise<Response> => {
-    const cons = await Consignacion.get_all();
+const getAll = async (req: Request, res: Response): Promise<Response> => {
+    const cons = await Consignacion.getAll();
     return res.json(cons);
 }
 
-const get_remito = async (req: Request, res: Response) => {
+const getRemito = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    const cons = await Consignacion.get_by_id(id);
+    const cons = await Consignacion.getById(id);
     res.download('remitos/'+cons.remito_path);
 }
 
@@ -78,7 +78,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
     const body = createConsignacion.parse(req.body);
-    const cliente = await Cliente.get_by_id(id);
+    const cliente = await Cliente.getById(id);
 
     if(tipoCliente[cliente.tipo] == tipoCliente.particular){
         throw new ValidationError("No se puede hacer una liquidacion a un cliente CONSUMIDOR FINAL");
@@ -88,14 +88,14 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         throw new ValidationError("Algun libro no existe");
     }
 
-    await cliente.have_stock(body.libros);
+    await cliente.haveStock(body.libros);
     
     //Actualizar el stock del cliente y del libro
     for (const libroBody of body.libros){
-        await Libro.update_stock(libroBody);
+        await Libro.updateStock(libroBody);
     }
-    const substacted_stock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
-    await cliente.update_stock(substacted_stock);
+    const substactedStock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
+    await cliente.updateStock(substactedStock);
 
     const venta = await Venta.build({
         ...body,
@@ -114,7 +114,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
 export default{
     consignar,
     liquidar,
-    get_one,
-    get_all,
-    get_remito
+    getOne,
+    getAll,
+    getRemito
 }

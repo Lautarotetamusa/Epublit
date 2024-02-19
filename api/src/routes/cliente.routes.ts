@@ -7,15 +7,15 @@ const router = express.Router();
 
 router.post('/', ClienteController.create);
 
-router.get('/', ClienteController.get_all);
+router.get('/', ClienteController.getAll);
 
-router.get('/:id/stock', ClienteController.get_stock);
-router.get('/:id/ventas', ClienteController.get_ventas);
+router.get('/:id/stock', ClienteController.getStock);
+router.get('/:id/ventas', ClienteController.getVentas);
 
 router.post('/:id/liquidacion', ConsignacionController.liquidar);
 
-router.get('/:id', ClienteController.get_one);
-router.get('/consumidor_final', ClienteController.get_one);
+router.get('/:id', ClienteController.getOne);
+router.get('/consumidor_final', ClienteController.getOne);
 
 router.put('/:id', ClienteController.update);
 
