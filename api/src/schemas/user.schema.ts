@@ -1,5 +1,4 @@
-import { AfipData, afipSchema } from './cliente.schema';
-import {validate} from './validate'
+import { afipSchema } from './cliente.schema';
 import {z} from 'zod';
 
 const userSchema = z.object({

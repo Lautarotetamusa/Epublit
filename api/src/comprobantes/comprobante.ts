@@ -1,6 +1,6 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
-import { Venta } from '../models/venta.model';
+import { LibroVenta, Venta } from '../models/venta.model';
 import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
 import { medioPago } from '../schemas/venta.schema';
 import { User } from '../models/user.model';
@@ -9,30 +9,26 @@ import { Comprobante } from '../afip/Afip';
 
 const path = './src/comprobantes';
 
-type args = {
-    data: CreateFactura
-    user: User,
-    tipo: "factura"
-} | {
-    data: CreateRemito,
-    user: User,
-    tipo: "remito"
-}
-
 type CreateFactura = {
     venta: Venta
     comprobante: Comprobante
     cliente: Cliente,
-    libros: LibroConsignacion[] 
-}
+    libros: LibroVenta[] 
+};
 
 type CreateRemito = {
     consignacion: Consignacion,
     cliente: Cliente,
     libros: LibroConsignacion[]
-}
+};
 
-export async function emitirComprobante({data, user, tipo}: args){
+type args = {
+    data: CreateFactura | CreateRemito
+    user: User,
+} 
+export async function emitirComprobante({data, user}: args){
+    const tipo = 'venta' in data ? 'factura' : 'remito';
+
     const browser = await puppeteer.launch({
       executablePath: '/usr/bin/google-chrome',
       args: ['--no-sandbox']
@@ -52,12 +48,12 @@ export async function emitirComprobante({data, user, tipo}: args){
     html = html.replace('{{user_cuit}}', user.cuit);
 
     let filePath: string;
-    if (tipo == "factura"){
-        html = factura(html, data);
+    if ('venta' in data){
         filePath = data.venta.file_path
+        factura(html, data);
     }else{
-        html = remito(html, data);
         filePath = data.consignacion.remito_path
+        remito(html, data);
     }
     
     await page.setContent(html);
@@ -68,8 +64,7 @@ export async function emitirComprobante({data, user, tipo}: args){
     });
   
     await browser.close();
-    console.log(tipo+" generado correctamente");
-  };
+};
 
 function factura(html: string, {venta, cliente, libros, comprobante}: CreateFactura){
     /*Parse venta.libros*/

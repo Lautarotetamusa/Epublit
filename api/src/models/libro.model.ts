@@ -1,6 +1,6 @@
 import { conn } from "../db"
 import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { LibroCantidad, LibroSchema, UpdateLibro } from "../schemas/libros.schema";
+import { LibroSchema, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
@@ -31,8 +31,11 @@ export class Libro extends BaseModel{
     static async getByIsbn(isbn: string): Promise<Libro> {
         return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0})
     }
-    static async getAll(): Promise<LibroSchema[]>{        
-        return await super.find_all<LibroSchema>({is_deleted: 0})
+    static async getAll(req?: Partial<LibroSchema> | Partial<LibroSchema>[]): Promise<LibroSchema[]>{        
+        if (req && Array.isArray(req)){
+            return await super._bulk_select<LibroSchema>(req);
+        }
+        return await super.find_all<LibroSchema>({...req, is_deleted: 0})
     }
     static async insert(body: LibroSchema): Promise<Libro> {
         return await super._insert<LibroSchema, Libro>(body);
@@ -55,13 +58,13 @@ export class Libro extends BaseModel{
         }
     }
 
-    static async updateStock(body: LibroCantidad){
+    async updateStock(cantidad: number){
         const query = `
             UPDATE ${Libro.table_name}
-            SET stock = stock + ${body.cantidad}
+            SET stock = stock + ${cantidad}
             WHERE isbn = ?`
 
-        const [result] = await conn.query<OkPacket>(query, [body.isbn]);
+        const [result] = await conn.query<OkPacket>(query, [this.isbn]);
         return result;
     }
 

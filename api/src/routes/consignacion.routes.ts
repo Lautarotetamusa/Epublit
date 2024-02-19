@@ -10,6 +10,6 @@ router.get('/', ConsignacionController.getAll);
 
 router.get('/:id', ConsignacionController.getOne);
 
-router.get('/:id/remito', ConsignacionController.get_remito);
+router.get('/:id/remito', ConsignacionController.getRemito);
 
 export default router;

@@ -1,6 +1,6 @@
 import { Libro } from './libro.model'
 import { ValidationError } from './errors';
-import { LibroSchema } from '../schemas/libros.schema';
+import { LibroCantidad, LibroSchema } from '../schemas/libros.schema';
 import { ConsignacionSchema, SaveConsignacion } from '../schemas/consignaciones.schema';
 import { BaseModel } from './base.model';
 import { PersonaLibroPersonaSchema } from '../schemas/libro_persona.schema';
@@ -28,7 +28,7 @@ export class LibroConsignacion extends Libro {
         this.ilustradores = body.ilustradores;
     }
 
-    static async bulk_insert(body){
+    static async bulk_insert(body: LibroCantidad[]){
        this._bulk_insert(body); 
     }
 

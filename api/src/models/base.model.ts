@@ -128,8 +128,8 @@ export class BaseModel{
         const [result] = await conn.query<OkPacket>(query, _req);
     }
 
-    protected static async _bulk_select<RT extends {}>(_req: RT[]): Promise<RowDataPacket[]>{
-        if (_req.length == 0) return [] as RowDataPacket[];
+    protected static async _bulk_select<RT extends {}>(_req: object[]): Promise<RT[]>{
+        if (_req.length == 0) return [] as RT[];
 
         const keys = Object.keys(_req[0]).join(",");
         const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
@@ -140,7 +140,7 @@ export class BaseModel{
             WHERE (${keys}) IN (${values})`
 
         const [rows] = await conn.query<RowDataPacket[]>(query, _req);
-        return rows;
+        return rows as RT[];
     }
 
     /**

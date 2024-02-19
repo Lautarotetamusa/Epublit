@@ -1,10 +1,10 @@
-import Afip from './afip.js/src/Afip.js';
+import Afip from './afip.js/src/Afip';
 import QRcode from 'qrcode';
 import { Venta } from '../models/venta.model';
 import { NotFound } from '../models/errors';
 import { AfipData } from '../schemas/cliente.schema';
 import { User } from '../models/user.model';
-import { Cliente } from '../models/cliente.model.js';
+import { Cliente } from '../models/cliente.model';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
