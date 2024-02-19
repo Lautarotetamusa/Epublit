@@ -1,20 +1,36 @@
 import { Request, Response } from "express";
-import { Venta } from "../models/venta.model.js";
+import { LibroVenta, Venta } from "../models/venta.model.js";
 import { ValidationError } from "../models/errors.js"
 import { facturar } from "../afip/Afip.js";
-import { validateVenta } from "../schemas/venta.schema.js";
-import { TipoCliente } from "../schemas/cliente.schema.js";
+import { createVenta } from "../schemas/venta.schema.js";
+import { tipoCliente } from "../schemas/cliente.schema.js";
+import { Cliente } from "../models/cliente.model.js";
+import { Libro } from "../models/libro.model.js";
 
 const vender = async (req: Request, res: Response): Promise<Response> => {
-    const body = validateVenta.create(req.body);
+    const {libros, ...ventaBody} = createVenta.parse(req.body);
+    const cliente = await Cliente.get_by_id(ventaBody.cliente);
+    const librosModel = await LibroVenta.set_libros(libros);
 
-    const venta = await Venta.build(body);
+    const venta = await Venta.insert({
+        ...ventaBody,
+        id_cliente: cliente.id,
+        total: Venta.calcTotal(librosModel, ventaBody.descuento),
+        file_path: cliente.generatePath()            
+    });
+
+    await LibroVenta.bulk_insert(libros.map(l => ({
+        id_venta: venta.id, 
+        ...l            
+    })));
+
+    for (const libro of libros){
+        await Libro.update_stock({cantidad: -libro.cantidad, isbn: libro.isbn});
+    }
     
-    if (venta.cliente.tipo != TipoCliente.negro){
+    if (tipoCliente[cliente.tipo] != tipoCliente.negro){
         await facturar(venta, res.locals.user);
     }
-
-    await venta.save();
         
     return res.status(201).json({
         success: true,

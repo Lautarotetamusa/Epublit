@@ -4,10 +4,14 @@ import { NotFound } from './errors';
 
 import { BaseModel } from "./base.model";
 
-import { retrieveLiquidacion, createLiquidacion, saveLiquidacion } from "../schemas/liquidacion.schema";
+import { CreateLiquidacion, LiquidacionSchema, SaveLiquidacion } from "../schemas/liquidacion.schema";
 import { TipoPersona } from "../schemas/libro_persona.schema";
 
 export class Liquidacion extends BaseModel{
+    static table_name = "liquidaciones";
+    static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
+    static pk = ["id", "isbn", "id_persona", "tipo_persona"];
+
     id: number;
     isbn: string;
     id_persona: number;
@@ -18,11 +22,7 @@ export class Liquidacion extends BaseModel{
     total: number;
     file_path: string;
 
-    static table_name = "liquidaciones";
-    static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
-    static pk = ["id", "isbn", "id_persona", "tipo_persona"];
-
-    constructor(body: retrieveLiquidacion){
+    constructor(body: LiquidacionSchema){
         super();
         
         this.id = body.id;
@@ -36,14 +36,14 @@ export class Liquidacion extends BaseModel{
         this.file_path =  body.file_path;
     }
 
-    static async insert(_req: saveLiquidacion): Promise<Liquidacion>{
-        return await super._insert<saveLiquidacion, Liquidacion>(_req);
+    static async insert(body: SaveLiquidacion): Promise<Liquidacion>{
+        return await super._insert<SaveLiquidacion, Liquidacion>(body);
     }
     static async get_all(){
-        return await super.find_all<retrieveLiquidacion>();
+        return await super.find_all<LiquidacionSchema>();
     }
     static async get_one(id: number): Promise<Liquidacion>{
-        return await super.find_one<retrieveLiquidacion, Liquidacion>({id: id})
+        return await super.find_one<LiquidacionSchema, Liquidacion>({id: id})
     }
 
     static async valid_period(fecha_inicial: Date, fecha_final: Date): Promise<boolean>{
@@ -58,7 +58,7 @@ export class Liquidacion extends BaseModel{
         return rows.length <= 0;
     }
 
-    static async get_ventas(body: createLiquidacion){
+    static async get_ventas(body: CreateLiquidacion){
        const query = `
             SELECT * 
             FROM libros_ventas AS LV
@@ -80,18 +80,14 @@ export class Liquidacion extends BaseModel{
     async get_details(){
         const query = `
             SELECT id_venta, id_cliente, cantidad, precio_venta, V.file_path, fecha, descuento, medio_pago
-            FROM ${Liquidacion.table_name} AS Liq
-
-            INNER JOIN libros_ventas AS LV
-                ON LV.isbn = ? 
+            FROM libros_ventas AS LV
             INNER JOIN ventas AS V
                 ON V.id = LV.id_venta
+            WHERE LV.isbn = ?
+            AND V.fecha < ?
+            AND V.fecha > ?`
 
-            AND V.fecha < Liq.fecha_final
-            AND V.fecha > Liq.fecha_inicial
-            WHERE Liq.id = ?`;
-
-        const [rows] = await conn.query<RowDataPacket[]>(query, [this.isbn, this.id]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.isbn, this.fecha_final, this.fecha_inicial]);
 
         if (rows.length <= 0){
             throw new NotFound(`No hay ninguna venta para el libro ${this.isbn} en el periodo seleccionado`);

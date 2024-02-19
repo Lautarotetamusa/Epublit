@@ -4,8 +4,8 @@ import { Cliente } from "./cliente.model";
 
 import { ValidationError } from './errors';
 import { BaseModel } from './base.model';
-import { buildVenta, createVenta, libroVenta, medio_pago, retrieveVenta, saveVenta } from '../schemas/venta.schema';
-import { LibroSchema } from '../schemas/libros.schema';
+import { CreateVenta, MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
+import { LibroCantidad, LibroSchema } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
 
 export class LibroVenta extends Libro {
@@ -18,49 +18,11 @@ export class LibroVenta extends Libro {
         
         this.cantidad = req.cantidad;
     }
-}
 
-export class Venta extends BaseModel{
-    id?: number;
-    descuento: number;
-    medio_pago: medio_pago;
-    total: number;
-    file_path: string;
-    fecha?: Date;
-
-    punto_venta: number;
-    tipo_cbte: number;
-
-    cliente: Cliente;
-    libros: LibroVenta[];
-
-    static table_name = 'ventas';
-
-    constructor(request: buildVenta & {id?: number, fecha?: Date}){
-        super();
-
-        this.descuento  = request.descuento || 0;
-        this.punto_venta = 4;
-        this.tipo_cbte   = 11;
-
-        this.medio_pago = request.medio_pago;
-
-        this.cliente    = request.cliente;
-        this.libros     = request.libros;
-        this.total = request.total;
-        this.file_path = request.file_path;
-
-        if ('fecha' in request)
-            this.fecha = request.fecha;
-
-        if ('id' in request)
-            this.id = request.id;
-    }
-
-    static async set_libros(_libros: libroVenta[]): Promise<LibroVenta[]>{
+    static async set_libros(body: LibroCantidad[]): Promise<LibroVenta[]>{
         let libros: LibroVenta[] = [];
 
-        for (let _libro of _libros) {
+        for (let _libro of body) {
             let libro = await Libro.get_by_isbn(_libro.isbn);
 
             libros.push(new LibroVenta({
@@ -75,64 +37,56 @@ export class Venta extends BaseModel{
         return libros;
     }
 
-    calc_total(){
-        let total = this.libros.reduce((acumulador, libro) => 
+    static async bulk_insert(libros: LibroCantidad[]){
+        await this._bulk_insert(libros);
+    }
+}
+
+export class Venta extends BaseModel{
+    static table_name = 'ventas';
+
+    id: number;
+    descuento: number;
+    medio_pago: MedioPago;
+    total: number;
+    file_path: string;
+    fecha: Date;
+    id_cliente: number;
+
+    punto_venta: number;
+    tipo_cbte: number;
+
+    constructor(request: VentaSchema){
+        super();
+
+        this.descuento  = request.descuento;
+        this.punto_venta = 4;
+        this.tipo_cbte   = 11;
+
+        this.medio_pago = request.medio_pago;
+        this.total = request.total;
+        this.file_path = request.file_path;
+        this.fecha = request.fecha;
+        this.id = request.id;
+        this.id_cliente = request.id_cliente;
+    }
+
+    static calcTotal(libros: LibroVenta[], descuento: number){
+        let total = libros.reduce((acumulador, libro) => 
             acumulador + libro.cantidad * libro.precio
         , 0);
 
-        total -= (total * this.descuento * 0.01);
+        total -= (total * descuento * 0.01);
         total = parseFloat(total.toFixed(2));
-
-        this.total = total;
+        return total;
     }
 
-    static async build(req: createVenta): Promise<Venta>{
-        const cliente = await Cliente.get_by_id(req.cliente);
-
-        let date = new Date().toISOString()
-            .replace(/\..+/, '')     // delete the . and everything after;
-            .replace(/T/, '_')       // replace T with a space
-            .replace(/\-/gi, '_')
-            .replace(/\:/gi, '');
-
-        let venta = new Venta({
-            ...req,
-            libros: await this.set_libros(req.libros),
-            cliente: cliente,
-            total: 0,
-            file_path: cliente.nombre.replace(' ', '')+'_'+date+'.pdf',            
-        });
-        venta.calc_total();
-        return venta;
-    }
-        
-    async save(){
-        const venta = await Venta._insert<saveVenta, Venta>({
-            id_cliente: this.cliente.id,
-            total: this.total,
-            file_path: this.file_path,
-            descuento: this.descuento,
-            medio_pago: this.medio_pago
-        });
-        this.id = venta.id;
-    
-        await LibroVenta._bulk_insert(this.libros.map(l => ({
-            id_venta: venta.id, 
-            cantidad: l.cantidad, 
-            isbn: l.isbn, 
-            precio_venta: l.precio
-        })));
-
-        for (const libro of this.libros){
-            await libro.update_stock(-libro.cantidad);
-        }
+    static async insert(body: SaveVenta){
+        return await this._insert<SaveVenta, Venta>(body);
     }
 
     static async get_by_id(id: number){
-        const venta = await this.find_one<retrieveVenta, Venta>({id: id});
-
-        venta.libros = await venta.get_libros();
-        return venta;
+        return await this.find_one<VentaSchema, Venta>({id: id});
     }
 
     async get_libros(): Promise<LibroVenta[]>{

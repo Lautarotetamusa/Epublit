@@ -7,8 +7,8 @@ import { ValidationError } from "../models/errors.js"
 
 import { emitir_comprobante } from "../comprobantes/comprobante.js"
 import { createConsignacion } from "../schemas/consignaciones.schema.js";
-import { medio_pago } from "../schemas/venta.schema.js";
 import { tipoCliente } from "../schemas/cliente.schema.js";
+import { medioPago } from "../schemas/venta.schema.js";
 
 const consignar = async(req: Request, res: Response): Promise<Response> => {
     const body = createConsignacion.parse(req.body);
@@ -100,7 +100,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     const venta = await Venta.build({
         ...body,
         descuento: 0,
-        medio_pago: medio_pago.debito
+        medio_pago: medioPago.debito
     });
     await venta.save();
 

@@ -1,8 +1,8 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
-import { Venta } from '../models/venta.model';
+import { LibroVenta, Venta } from '../models/venta.model';
 import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
-import { medio_pago } from '../schemas/venta.schema';
+import { medioPago } from '../schemas/venta.schema';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
 
@@ -16,6 +16,12 @@ type args = {
     data: CreateRemito,
     user: User,
     tipo: "remito"
+}
+
+type CreateFactura = {
+    venta: Venta & {qr_data: string, comprobante: any}
+    cliente: Cliente,
+    libros: LibroVenta[] 
 }
 
 type CreateRemito = {
@@ -63,12 +69,12 @@ export async function emitir_comprobante({data, user, tipo}: args){
     console.log(tipo+" generado correctamente");
   };
 
-function factura(html: string, venta: Venta & {qr_data: string, comprobante: any}){
+function factura(html: string, {venta, cliente, libros}: CreateFactura){
     /*Parse venta.libros*/
     var table = '';
     console.log("generando factura");
 
-    for (let libro of venta.libros) {
+    for (let libro of libros) {
         let bonif = venta.descuento * 0.01;
         let imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
         let subtotal  = (libro.precio * libro.cantidad * (1 - bonif)).toFixed(2);
@@ -87,7 +93,7 @@ function factura(html: string, venta: Venta & {qr_data: string, comprobante: any
     html = html.replace('{{LIBROS}}', table); 
     /**/
 
-    html = html.replace('{{cond_venta}}', String(medio_pago[venta.medio_pago]));
+    html = html.replace('{{cond_venta}}', String(medioPago[venta.medio_pago]));
 
     //QR
     html = html.replace('<img class="qr" src="">', `<img class="qr" src="${venta.qr_data}">`)
@@ -95,10 +101,10 @@ function factura(html: string, venta: Venta & {qr_data: string, comprobante: any
     html = html.replace(/\{\{TOTAL\}\}/g, String(venta.total));
     
     /*parse clientes*/
-    html = html.replace('{{cliente_cond}}', venta.cliente.cond_fiscal);
-    html = html.replace('{{cliente_cuit}}', venta.cliente.cuit);
-    html = html.replace('{{cliente_nombre}}', venta.cliente.razon_social);
-    html = html.replace('{{cliente_domicilio}}', venta.cliente.domicilio);
+    html = html.replace('{{cliente_cond}}', cliente.cond_fiscal);
+    html = html.replace('{{cliente_cuit}}', cliente.cuit);
+    html = html.replace('{{cliente_nombre}}', cliente.razon_social);
+    html = html.replace('{{cliente_domicilio}}', cliente.domicilio);
     /**/
 
     /*parse comprobante*/

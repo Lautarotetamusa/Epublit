@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { ValidationError } from '../models/errors';
 
-import { LiquidacionValidator } from "../schemas/liquidacion.schema";
+import { createLiquidacion } from "../schemas/liquidacion.schema";
 
 import { Liquidacion } from "../models/liquidacion.model";
 import { Libro } from "../models/libro.model";
@@ -9,29 +9,27 @@ import { Persona } from "../models/persona.model";
 import { LibroPersona } from "../models/libro_persona.model";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    let _liq = LiquidacionValidator.create(req.body);
+    const body = createLiquidacion.parse(req.body); 
 
-    if (!(await Liquidacion.valid_period(_liq.fecha_inicial, _liq.fecha_final)))
+    if (!(await Liquidacion.valid_period(body.fecha_inicial, body.fecha_final))){
         throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");
-
-    const libro = await Libro.get_by_isbn(_liq.isbn);
-
-    const persona = await Persona.get_by_id(_liq.id_persona);
+    }
+    const persona = await Persona.get_by_id(body.id_persona);
 
     if (!await LibroPersona.exists({
-        id: _liq.id_persona,
-        tipo: _liq.tipo_persona,
-        isbn: _liq.isbn
+        id_persona: body.id_persona,
+        tipo: body.tipo_persona,
+        isbn: body.isbn
     })){
-        throw new ValidationError(`La persona con id ${_liq.id_persona} no trabaja en el libro ${_liq.isbn}`);
+        throw new ValidationError(`La persona con id ${body.id_persona} no trabaja en el libro ${body.isbn}`);
     }
 
-    const ventas = await Liquidacion.get_ventas(_liq);
-    let total: number = ventas.reduce((total, row) => total + row.cantidad * row.precio_venta, 0);
-    let file_path = "TEST";
+    const ventas = await Liquidacion.get_ventas(body);
+    const total: number = ventas.reduce((total, row) => total + row.cantidad * row.precio_venta, 0);
+    const file_path = "TEST";
 
     const liquidacion = await Liquidacion.insert({
-        ..._liq,
+        ...body,
         total: total, 
         file_path: file_path,
     });
@@ -47,8 +45,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const get_one = async (req: Request, res: Response): Promise<Response> => {
-    if (!('id' in req.params))
-        throw new ValidationError("Se debe pasar un id para obtener la liquidacion")
+    if (!('id' in req.params)) throw new ValidationError("Se debe pasar un id para obtener la liquidacion")
     const id = Number(req.params.id);
 
     const liquidacion = await Liquidacion.get_one(id);

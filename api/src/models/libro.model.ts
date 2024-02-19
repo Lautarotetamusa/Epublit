@@ -5,8 +5,7 @@ import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
 import { LibroPersona } from "./libro_persona.model";
-import { LibroPersonaSchema, PersonaLibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
-import { StockCliente } from "../schemas/cliente.schema";
+import { PersonaLibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
 
 export class Libro extends BaseModel{
     static table_name = "libros";

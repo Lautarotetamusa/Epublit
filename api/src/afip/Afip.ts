@@ -5,6 +5,7 @@ import { Venta } from '../models/venta.model';
 import { NotFound } from '../models/errors';
 import { AfipData } from '../schemas/cliente.schema';
 import { User } from '../models/user.model';
+import { Cliente } from '../models/cliente.model.js';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -17,9 +18,8 @@ const afip_madre = new Afip({
 	cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
 	production: true,
 });
-export default afip_madre;
-
-const afip = new Afip({
+//export default afip_madre;
+export const afip = new Afip({
 	CUIT: 20434919798,
 	ta_folder: './src/afip/Claves/Tokens/',
 	res_folder: './src/afip/Claves',
@@ -60,14 +60,14 @@ export async function get_server_status(){
 	return serverStatus;
 }
  
-export async function facturar(venta: Venta, user: User){
+export async function facturar(venta: Venta, user: User, cliente: Cliente){
 	const data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
 		'CbteTipo' 	: venta.tipo_cbte,  					//Tipo de comprobante (ver tipos disponibles) 
 		'Concepto' 	: 1,  									//Concepto del Comprobante: (1)Productos, (2)Servicios, (3)Productos y Servicios
-		'DocTipo' 	: venta.cliente.cuit ? 80 : 99, 		//Tipo de documento del comprador (99 consumidor fina,l 80 cuit)
-		'DocNro' 	: venta.cliente.cuit || 0,  			//Número de documento del comprador (0 consumidor final)
+		'DocTipo' 	: cliente.cuit ? 80 : 99, 		//Tipo de documento del comprador (99 consumidor fina,l 80 cuit)
+		'DocNro' 	: cliente.cuit || 0,  			//Número de documento del comprador (0 consumidor final)
 		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	//(Opcional) Fecha del comprobante (yyyymmdd) o fecha actual si es nulo
 		'ImpTotal' 	: venta.total, 							//Importe total del comprobante
 		'ImpTotConc': 0,   									//Importe neto no gravado2
@@ -85,7 +85,7 @@ export async function facturar(venta: Venta, user: User){
 	comprobante.nro 	= voucherNumber;
 	comprobante.CbteFch = afip.ElectronicBilling?.formatDate(comprobante.CbteFch);
 	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
-	comprobante.emisor 	= venta.cliente.cuit;
+	comprobante.emisor 	= cliente.cuit;
 	
 	QRcode.toDataURL(qr_url(comprobante), async function (err, base64_qr) {
 		if (err)
