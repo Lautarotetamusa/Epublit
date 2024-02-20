@@ -67,6 +67,15 @@ export class Libro extends BaseModel{
         const [result] = await conn.query<OkPacket>(query, [this.isbn]);
         return result;
     }
+    static async updateStock(isbn: string, cantidad: number){
+        const query = `
+            UPDATE ${Libro.table_name}
+            SET stock = stock + ${cantidad}
+            WHERE isbn = ?`
+
+        const [result] = await conn.query<OkPacket>(query, isbn);
+        return result;
+    }
 
     static async delete(isbn: string){
         await LibroPersona._delete({isbn: isbn});

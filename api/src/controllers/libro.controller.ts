@@ -69,8 +69,8 @@ const create = async (req: Request, res: Response) => {
         message: `Libro con isbn ${libroBody.isbn} creado correctamente`,
         data: {
             ...libro,
-            autores:      indb.filter(p => tipoPersona[p.tipo] == tipoPersona.autor),
-            ilustradores: indb.filter(p => tipoPersona[p.tipo] == tipoPersona.ilustrador),
+            autores:      indb.filter(p => p.tipo == tipoPersona.autor),
+            ilustradores: indb.filter(p => p.tipo == tipoPersona.ilustrador),
         }
     });
 }

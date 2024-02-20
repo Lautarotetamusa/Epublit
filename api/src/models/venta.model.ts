@@ -3,40 +3,55 @@ import { Libro } from './libro.model';
 import { ValidationError } from './errors';
 import { BaseModel } from './base.model';
 import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
-import { LibroCantidad, LibroSchema } from '../schemas/libros.schema';
+import { LibroCantidad } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
+import { LibroConsignacion } from './consignacion.model';
 
-export class LibroVenta extends Libro {
+type libroVentaSchema = {
+    cantidad: number, 
+    precio_venta: number
+};
+
+export class LibroVenta extends Libro{
     cantidad: number;
+    precio_venta: number;
 
     static table_name = "libros_ventas";
 
-    constructor(req: {libro: LibroSchema, cantidad: number}){
+    constructor(req: {libro: Libro} & libroVentaSchema){
         super(req.libro);
-        
+
         this.cantidad = req.cantidad;
+        this.precio_venta = req.precio_venta;
     }
 
     static async setLibros(body: LibroCantidad[]): Promise<LibroVenta[]>{
         let libros: LibroVenta[] = [];
 
-        for (let _libro of body) {
-            let libro = await Libro.getByIsbn(_libro.isbn);
+        for (const libroBody of body) {
+            const libro = await Libro.getByIsbn(libroBody.isbn);
 
             libros.push(new LibroVenta({
                 libro: libro,
-                cantidad: _libro.cantidad
+                cantidad: libroBody.cantidad,
+                precio_venta: libro.precio 
             }))
 
-            if (libro.stock < _libro.cantidad){
+            if (libro.stock < libroBody.cantidad){
                 throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
             }
         }
         return libros;
     }
 
-    static async bulk_insert(libros: LibroCantidad[]){
-        await this._bulk_insert(libros);
+    static async save(body: LibroVenta[], id_venta: number){
+        const libros = body.map(libro => ({
+            cantidad: libro.cantidad,
+            precio_venta: libro.precio_venta,
+            isbn: libro.isbn,
+            id_venta: id_venta
+        }));
+        await this._bulk_insert<libroVentaSchema>(libros);
     }
 }
 
@@ -71,7 +86,7 @@ export class Venta extends BaseModel{
 
     static calcTotal(libros: LibroVenta[], descuento: number){
         let total = libros.reduce((acumulador, libro) => 
-            acumulador + libro.cantidad * libro.precio
+            acumulador + libro.cantidad * libro.precio_venta
         , 0);
 
         total -= (total * descuento * 0.01);

@@ -95,7 +95,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         id_cliente: cliente.id,
         descuento: 0,
         medio_pago: "debito",
-        total: Venta.calcTotal(librosModel, 0),
+        total: 0,//Venta.calcTotal(librosModel, 0),
         file_path: cliente.generatePath()
     });
 

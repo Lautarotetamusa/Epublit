@@ -2,8 +2,8 @@ import {z} from 'zod';
 import { createPersona, personaSchema } from './persona.schema'
 
 export const tipoPersona = {
-    "autor": 0,
-    "ilustrador": 1
+    autor: "autor",
+    ilustrador: "ilustrador"
 }  as const;
 export type TipoPersona = keyof typeof tipoPersona;
 const tipoPersonaKeys = Object.keys(tipoPersona) as [TipoPersona];

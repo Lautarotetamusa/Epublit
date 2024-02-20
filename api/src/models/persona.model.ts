@@ -72,7 +72,7 @@ export class Persona extends BaseModel{
             AND libros_personas.tipo = ?
             GROUP BY id`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [tipoPersona[tipo]]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, tipo);
         return rows as PersonaSchema[];
     }    
 
@@ -82,8 +82,7 @@ export class Persona extends BaseModel{
             FROM libros
             INNER JOIN libros_personas
                 ON libros.isbn = libros_personas.isbn
-            WHERE personas.id = ?
-            AND personas.is_deleted = 0`;
+            WHERE libros_personas.id_persona = ?`;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
         return rows as LibroSchema[];

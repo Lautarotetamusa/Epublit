@@ -19,19 +19,17 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     await cliente.haveStock(libros);
 
     const venta = await Venta.insert({
-        ...ventaBody,
+        descuento: ventaBody.descuento,
+        medio_pago: ventaBody.medio_pago,
         id_cliente: cliente.id,
         total: Venta.calcTotal(librosModel, ventaBody.descuento),
         file_path: cliente.generatePath()            
     });
 
-    await LibroVenta.bulk_insert(libros.map(l => ({
-        id_venta: venta.id, 
-        ...l            
-    })));
+    await LibroVenta.save(librosModel, venta.id);
 
     for (const libro of librosModel){
-        await libro.updateStock(-libro.cantidad);
+        await libro.updateStock(libro.cantidad);
     }
     
     //Solo facturamos para clientes que no son en negro

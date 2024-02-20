@@ -50,10 +50,10 @@ export async function emitirComprobante({data, user}: args){
     let filePath: string;
     if ('venta' in data){
         filePath = data.venta.file_path
-        factura(html, data);
+        html = factura(html, data);
     }else{
         filePath = data.consignacion.remito_path
-        remito(html, data);
+        html = remito(html, data);
     }
     
     await page.setContent(html);
@@ -90,7 +90,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     html = html.replace('{{LIBROS}}', table); 
     /**/
 
-    html = html.replace('{{cond_venta}}', String(medioPago[venta.medio_pago]));
+    html = html.replace('{{cond_venta}}', venta.medio_pago);
 
     //QR
     html = html.replace('<img class="qr" src="">', `<img class="qr" src="${comprobante.qr}">`)

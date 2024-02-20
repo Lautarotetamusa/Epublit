@@ -4,7 +4,7 @@ import { ValidationError, Duplicated } from '../models/errors';
 import { createPersona, updatePersona} from "../schemas/persona.schema";
 import { libroPersonaSchema} from "../schemas/libro_persona.schema";
 
-const create = async (req: Request, res: Response, next: NextFunction): Promise<Response> => {
+const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createPersona.parse(req.body);
     
     if (await Persona.exists(body.dni)){
