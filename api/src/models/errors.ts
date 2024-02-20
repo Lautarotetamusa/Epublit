@@ -1,4 +1,5 @@
 import {Response} from "express"
+import { ZodError } from "zod";
 
 export class ValidationError extends Error {
     status: number;
@@ -52,6 +53,13 @@ export function parse_error(res: Response, error: Error){
         return res.status(400).json({
             success: false,
             error: "Json error:" + error.message
+        })
+    }
+
+    if(error instanceof ZodError){
+        return res.status(400).json({
+            success: false,
+            error: error.issues
         })
     }
 
