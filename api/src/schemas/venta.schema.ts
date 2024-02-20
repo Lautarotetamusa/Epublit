@@ -1,12 +1,12 @@
 import {z} from 'zod';
-import { libroCantidad } from "./libros.schema";
+import { LibroCantidad, libroCantidad } from "./libros.schema";
 
 export const medioPago = {
-    efectivo: 0,
-    debito: 1,
-    credito: 2,
-    mercadopago: 3,
-    transferencia: 4
+    efectivo: "efectivo",
+    debito: "debito",
+    credito: "credito",
+    mercadopago: "mercadopago",
+    transferencia: "transferencia"
 } as const;
 export type MedioPago = keyof typeof medioPago;
 
@@ -25,7 +25,17 @@ export const createVenta = ventaSchema.pick({
     descuento: true,
     medio_pago: true
 }).and(z.object({
-    libros: libroCantidad.array(),
+    libros: libroCantidad.array().transform(items => { //Si un libro esta dos veces se suman las cantidades
+        let isbns: Record<string, number> = {};
+        for (const item of items){
+            if (item.isbn in isbns){
+                isbns[item.isbn] += item.cantidad;
+            }else{
+                isbns[item.isbn] = item.cantidad;
+            }
+        }
+        return Object.keys(isbns).map(i => ({isbn: i, cantidad: isbns[i]}));
+    }),
     cliente: z.number()
 }));
 export type CreateVenta = z.infer<typeof createVenta>;
