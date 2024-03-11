@@ -1,0 +1,54 @@
+body, html {
+    height: 100%;
+  }
+
+.bdy{
+    background-image: url(./media/library.jpg);
+    height: 100vh;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+
+}
+
+.title{
+    display: block;
+    font-family: monospace;
+    white-space: nowrap;
+    border-right: 4px solid;
+    width: 17ch;
+    font-size: 50px;
+    color: white;
+    margin: 0 auto;
+    text-align: center;
+    vertical-align: middle;
+
+    animation: typing 2s steps(17), 
+    blink .5s infinite step-end alternate;
+
+    overflow:hidden;
+    
+    }
+    
+    @keyFrames typing {
+    from { width: 0}
+    }
+    
+    @keyFrames blink {
+     50% { border-color: transparent}
+    }
+
+    .sign-in-box {
+      width: 400px;
+      height: 400px;
+      background: rgba(0, 0, 0, 0.5);
+      color: #fff;
+      top: 50%;
+      left: 50%;
+      position: absolute;
+      transform: translate(-50%, -50%);
+      box-sizing: border-box;
+      padding: 50px 30px;
+      border-radius: 10px;
+  
+    }
