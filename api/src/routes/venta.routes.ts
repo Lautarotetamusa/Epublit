@@ -10,7 +10,7 @@ router.post('/', VentaController.vender);
 router.get('/', VentaController.getAll);
 
 router.get('/medios_pago', async (req, res) => {
-        return res.json(Object.keys(medioPago));
+    return res.json(Object.keys(medioPago));
 });
 router.get('/:id', VentaController.getOne);
 
