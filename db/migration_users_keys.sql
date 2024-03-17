@@ -1,0 +1,3 @@
+ALTER TABLE users
+    ADD COLUMN cert VARCHAR(128),
+    ADD COLUMN key VARCHAR(128);

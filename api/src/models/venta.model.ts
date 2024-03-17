@@ -5,7 +5,7 @@ import { BaseModel } from './base.model';
 import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
 import { LibroCantidad } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
-import { LibroConsignacion } from './consignacion.model';
+import { filesUrl } from '../app';
 
 type libroVentaSchema = {
     cantidad: number, 
@@ -57,6 +57,7 @@ export class LibroVenta extends Libro{
 
 export class Venta extends BaseModel{
     static table_name = 'ventas';
+    static filesFolder = 'facturas';
 
     id: number;
     descuento: number;
@@ -94,12 +95,18 @@ export class Venta extends BaseModel{
         return total;
     }
 
+    parsePath(){
+        this.file_path = this.file_path ? `${filesUrl}/${Venta.filesFolder}/${this.file_path}` : this.file_path;
+    }
+
     static async insert(body: SaveVenta){
         return await this._insert<SaveVenta, Venta>(body);
     }
 
     static async getById(id: number){
-        return await this.find_one<VentaSchema, Venta>({id: id});
+        const venta = await this.find_one<VentaSchema, Venta>({id: id});
+        venta.parsePath();
+        return venta;
     }
 
     async getLibros(): Promise<LibroVenta[]>{
@@ -116,7 +123,7 @@ export class Venta extends BaseModel{
     static async getAll(){
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                ventas.*,
+                ventas.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', ventas.file_path) AS file_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM ventas
             INNER JOIN clientes

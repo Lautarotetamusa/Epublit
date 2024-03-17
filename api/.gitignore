@@ -6,5 +6,8 @@ package-lock.json
 src/afip/Claves/*
 src/afip/ClavesLibrosSilvestres/*
 
+files/facturas/*
+files/remitos/*
+
 #Ts build folder
 dist/

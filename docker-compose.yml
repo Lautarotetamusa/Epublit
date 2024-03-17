@@ -23,14 +23,13 @@ services:
       context: .
     env_file: ./.env
     ports:
-      - $BACK_PUBLIC_PORT:$BACK_PORT
+      - $BACK_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
     #command: node dist/app.js
     command: npm run dev
     volumes:
-     - ./facturas:/app/facturas
-     - ./remitos:/app/remitos
+     - ./api/files:/app/files
      - ./api/src:/app/src
 
   front:
@@ -52,6 +51,3 @@ services:
     command: npm start
     ports:
       - $FRONT_PUBLIC_PORT:$FRONT_PORT
-    volumes:
-     - ./facturas:/app/src/comprobantes/facturas
-     - ./remitos:/app/src/comprobantes/remitos

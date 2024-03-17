@@ -46,6 +46,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
             });
         });
     }
+    venta.parsePath();
         
     return res.status(201).json({
         success: true,

@@ -15,7 +15,7 @@ const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto intern
 const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo
 const host = process.env.HOST ? process.env.HOST : "localhost";
 
-export const filesUrl  = `http://${host}:${publicPort}/files` as const;
+export const filesUrl  = `http://${host}:${backPort}/files` as const;
 export const filesPath = join(__dirname, "../files");
 
 app.use((req, res, next) => {
@@ -30,11 +30,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended: true,}));
 
-app.use(router);
-
 //Servir los archivos estáticos, lo imoprtamos aca para que filesPath funcione
 import { fileRouter } from "./routes/files.routes";
-app.use(fileRouter);
+app.use('/files', fileRouter);
+
+app.use(router);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({
