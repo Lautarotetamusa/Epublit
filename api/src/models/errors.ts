@@ -1,70 +1,83 @@
-import {Response} from "express"
+import {Response, Request, NextFunction} from "express"
 import { ZodError } from "zod";
 
-export class ValidationError extends Error {
+export class ApiError extends Error{
     status: number;
+    name: string;
 
-    constructor(message: string){
+    constructor(status: number, message: string, name: string){
         super(message);
-        this.name = "ValidationError";
-        this.status = 400;
+        this.status = status;
+        this.name = name;
     }
 }
 
-export class NotFound extends Error {
-    status: number;
-
+export class ValidationError extends ApiError {
     constructor(message: string){
-        super(message);
-        this.name = "NotFound";
-        this.status = 404;
+        super(400, message, "ValidationError");
     }
 }
 
-export class NothingChanged extends Error {
-    status: number;
-
+export class NotFound extends ApiError {
     constructor(message: string){
-        super(message);
-        this.name = "NothingChanged";
-        this.status = 200;
+        super(404, message, "NotFound");
     }
 }
 
-export class Duplicated extends Error {
-    status: number;
-
+export class NothingChanged extends ApiError {
     constructor(message: string){
-        super(message);
-        this.name = "Duplicated";
-        this.status = 404;
+        super(200, message, "NothingChanged");
     }
 }
 
-export function parse_error(res: Response, error: Error){
-    console.log(error);
-    if (error instanceof ValidationError || error instanceof NotFound || error instanceof NothingChanged || error instanceof Duplicated)
-        return res.status(error.status).json({
-            success: false,
-            error: error.message
+export class Duplicated extends ApiError {
+    constructor(message: string){
+        super(404, message, "Duplicated");
+    }
+}
+
+export class Forbidden extends ApiError {
+    constructor(message: string){
+        super(403, message, "Forbidden");
+    }
+}
+
+export class Unauthorized extends ApiError {
+    constructor(message: string){
+        super(401, message, "Unauthorized");
+    }
+}
+
+export function handleErrors(err: Error, req: Request, res: Response, next: NextFunction): Response{
+    console.log("ERROR: ", err.message);
+    
+    if (err instanceof ZodError){
+        const errors = err.errors;
+        errors.map(e => {
+            if (e.code == "invalid_type"){
+                e.message = `El campo ${e.path[0]} es obligatorio`
+            }
         });
 
-    if(error instanceof SyntaxError){
         return res.status(400).json({
             success: false,
-            error: "Json error:" + error.message
-        })
+            errors: errors
+        });
     }
 
-    if(error instanceof ZodError){
-        return res.status(400).json({
-            success: false,
-            error: error.issues
-        })
-    }
-
+    if (err instanceof ApiError) return res.status(err.status).json({
+        success: false,
+        errors: [{
+            code: err.name,
+            message: err.message
+        }]
+    });
+        
     return res.status(500).json({
-        success:false, 
-        error: error.message
-    }) 
+        success: false,
+        errors: [{
+            code: err.name,
+            message: err.message
+        }]
+    })
 }
