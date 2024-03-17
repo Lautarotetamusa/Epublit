@@ -1,40 +1,28 @@
-import express, {NextFunction, Request, Response} from "express";
+import express from "express";
+import {createServer} from 'http';
+
+import cors from 'cors';
 import "express-async-errors";
 
-import * as https from 'https'
-import * as fs from 'fs';
+import { handleErrors } from "./models/errors";
+import { router } from "./routes";
+import {join} from "path"; //Crear path para los archivos estaticos
 
-import * as dotenv from 'dotenv';
-import cors from 'cors';
-
-import PersonaRouter from "./routes/persona.routes";
-import LibroRouter from "./routes/libro.routes";
-import ClienteRouter from "./routes/cliente.routes";
-import VentaRouter from "./routes/venta.routes";
-import ConsignacionRouter from "./routes/consignacion.routes";
-import UserRouter from "./routes/user.routes"
-import LiquidacionRouter from "./routes/liquidacion.routes"
-
-import {auth} from "./middleware/auth";
-import { parse_error } from "./models/errors";
-
-dotenv.config();
 export const app = express();
+const server = createServer(app);
 
-if (!process.env.BACK_PORT){
-    console.log("Error: la variable BACK_PORT no está seteada");
-    process.exit(1);
-}
-if (!process.env.JWT_EXPIRES_IN){
-    console.log("Error: la variable JWT_EXPIRES_IN no está seteada");
-    process.exit(1);
-}
-if (!process.env.JWT_SECRET){
-    console.log("Error: la variable JWT_SECRET no está seteada");
-    process.exit(1);
-}
+const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto interno del docker donde se levanta el server
+const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo
+const host = process.env.HOST ? process.env.HOST : "localhost";
 
-const port: number = Number(process.env.BACK_PORT);
+export const filesUrl  = `http://${host}:${publicPort}/files` as const;
+export const filesPath = join(__dirname, "../files");
+
+app.use((req, res, next) => {
+    const message = `[server]: ${req.method} ${req.url}`;
+    console.log(message);
+    next();
+});
 
 //Necesesario para que no tire error de CORS
 app.use(cors());
@@ -42,36 +30,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended: true,}));
 
-app.use('/persona', auth, PersonaRouter);
+app.use(router);
 
-app.use('/libro', auth, LibroRouter);
-
-app.use('/cliente', auth, ClienteRouter);
-
-app.use('/venta', auth, VentaRouter);
-
-app.use('/consignacion', auth, ConsignacionRouter);
-
-app.use('/liquidacion', auth, LiquidacionRouter);
-
-app.use('/user', UserRouter);
-
-app.use(function(err: Error, req: Request, res: Response, next: NextFunction) {
-    parse_error(res, err);
-});
-
+//Servir los archivos estáticos, lo imoprtamos aca para que filesPath funcione
+import { fileRouter } from "./routes/files.routes";
+app.use(fileRouter);
 
 //Cualquier otra ruta no especificada
 app.use('*', (req, res) => res.status(404).json({
     success: false,
-    error: "Esta ruta no hace nada negro"
+    error: "Esta ruta no hace nada"
 }));
 
-const https_options = {
-    key: fs.readFileSync('/app/security/key.pem'),
-    cert: fs.readFileSync('/app/security/cert.pem'),
-};
-  
-https.createServer(https_options, app).listen(port, () => 
-    console.log(`Libros Silvestres start in port ${port}!`)
-);
+app.use(handleErrors);
+
+server.listen(backPort, () => {
+    console.log(`[server]: Server is running at http://${host}:${backPort}`);
+});
