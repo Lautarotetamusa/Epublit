@@ -46,6 +46,8 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
         user: res.locals.user, 
     });
 
+    consignacion.parsePath();
+
     return res.status(201).json({
         success: true,
         message: "Consignacion cargada correctamente",
@@ -64,14 +66,6 @@ const getOne = async (req: Request, res: Response): Promise<Response> => {
 const getAll = async (req: Request, res: Response): Promise<Response> => {
     const cons = await Consignacion.getAll();
     return res.json(cons);
-}
-
-const getRemito = async (req: Request, res: Response) => {
-    const id = Number(req.params.id);
-    if (!id) throw new ValidationError("El id debe ser un numero");
-
-    const cons = await Consignacion.getById(id);
-    res.download('remitos/'+cons.remito_path);
 }
 
 const liquidar = async(req: Request, res: Response): Promise<Response> => {
@@ -124,5 +118,4 @@ export default{
     liquidar,
     getOne,
     getAll,
-    getRemito
 }

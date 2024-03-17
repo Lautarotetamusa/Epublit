@@ -7,6 +7,7 @@ import { PersonaLibroPersonaSchema } from '../schemas/libro_persona.schema';
 import { StockCliente } from '../schemas/cliente.schema';
 import { conn } from '../db';
 import { RowDataPacket } from 'mysql2';
+import { filesUrl } from '../app';
 
 export class LibroConsignacion extends Libro {
     cantidad: number;
@@ -56,6 +57,7 @@ export class LibroConsignacion extends Libro {
 
 export class Consignacion extends BaseModel{
     static table_name = "consignaciones";
+    static filesFolder = "remitos";
 
     id: number;
     remito_path: string;
@@ -69,12 +71,18 @@ export class Consignacion extends BaseModel{
         this.id_cliente = body.id_cliente;
     }
 
+    parsePath(){
+        this.remito_path = this.remito_path ? `${filesUrl}/${Consignacion.filesFolder}/${this.remito_path}` : this.remito_path;
+    }
+
     static async insert(body: SaveConsignacion){
         return await Consignacion._insert<SaveConsignacion, Consignacion>(body);
     }
 
     static async getById(id: number){
-        return await this.find_one<ConsignacionSchema, Consignacion>({id: id});
+        const consignacion = await this.find_one<ConsignacionSchema, Consignacion>({id: id});
+        consignacion.parsePath();
+        return consignacion;
     }
 
     async getLibros(): Promise<LibroConsignacion[]>{
@@ -91,7 +99,8 @@ export class Consignacion extends BaseModel{
     static async getAll(){
         const [rows] = await conn.query(`
             SELECT 
-                consignaciones.id, fecha, remito_path,
+                consignaciones.id, fecha, 
+                CONCAT ('${filesUrl}', '/', '${Consignacion.filesFolder}', '/', remito_path) AS remito_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM consignaciones
             INNER JOIN clientes
