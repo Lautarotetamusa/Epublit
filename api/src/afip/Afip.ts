@@ -1,10 +1,12 @@
 import Afip from './afip.js/src/Afip';
 import QRcode from 'qrcode';
 import { Venta } from '../models/venta.model';
-import { NotFound } from '../models/errors';
+import { NotFound, ValidationError } from '../models/errors';
 import { AfipData } from '../schemas/cliente.schema';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
+
+import fs from "fs";
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -28,14 +30,33 @@ const afip_madre = new Afip({
 	production: true,
 });
 //export default afip_madre;
-export const afip = new Afip({
+/*const afip = new Afip({
 	CUIT: 20434919798,
 	ta_folder: './src/afip/Claves/Tokens/',
 	res_folder: './src/afip/Claves',
 	key: 'private_key.key',
 	cert: 'cert.pem',
 	production: false,
-});
+});*/
+
+function getAfipClient(user: User){
+    const path = `./src/afip/Claves/${user.cuit}/`;
+    if (!(fs.existsSync(path+'private_key.key'))){
+        throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
+    }
+    if (!(fs.existsSync(path+'cert.pem'))){
+        throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
+    }
+
+    return new Afip({
+        CUIT: user.cuit,
+        ta_folder:  `${path}/Tokens/`,
+        res_folder: path,
+        key: 'private_key.key',
+        cert: 'cert.pem',
+        production: false,
+    });
+}
 
 function qr_url(voucher: any){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
@@ -61,7 +82,8 @@ function qr_url(voucher: any){
 	return url+buff;
 }
 
-export async function get_server_status(){
+export async function getServerStatus(user: User){
+    const afip = getAfipClient(user);
 	const serverStatus = await afip.ElectronicBilling?.getServerStatus();
 
 	console.log('Este es el estado del servidor:');
@@ -69,7 +91,8 @@ export async function get_server_status(){
 	return serverStatus;
 }
 
-export async function facturar(venta: Venta, cliente: Cliente): Promise<Comprobante>{
+export async function facturar(venta: Venta, cliente: Cliente, user: User): Promise<Comprobante>{
+    const afip = getAfipClient(user);
 	const data = {
 		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
 		'PtoVta' 	: venta.punto_venta,  					//Punto de venta

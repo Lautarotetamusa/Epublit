@@ -34,7 +34,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     
     //Solo facturamos para clientes que no son en negro
     if (tipoCliente[cliente.tipo] != tipoCliente.negro){
-        facturar(venta, cliente).then((comprobanteData) => {
+        facturar(venta, cliente, res.locals.user).then((comprobanteData) => {
             emitirComprobante({
                 data: {
                     venta: venta,
