@@ -7,6 +7,7 @@ import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
 
 import fs from "fs";
+import { join } from 'path';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -40,7 +41,7 @@ const afip_madre = new Afip({
 });*/
 
 function getAfipClient(user: User){
-    const path = `./src/afip/Claves/${user.cuit}/`;
+    const path = join(__dirname, `/Claves/${user.cuit}/`);
     if (!(fs.existsSync(path+'private_key.key'))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
     }

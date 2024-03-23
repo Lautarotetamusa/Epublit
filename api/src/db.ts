@@ -12,4 +12,4 @@ const options = {
     database:   process.env.DB_NAME
   }
 
-export var conn = createPool(options);
+export const conn = createPool(options);
