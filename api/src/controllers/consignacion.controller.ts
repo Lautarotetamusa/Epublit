@@ -15,7 +15,7 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     if (tipoCliente[cliente.tipo] == tipoCliente.particular){
         throw new ValidationError("No se puede hacer una consignacion a un cliente CONSUMIDOR FINAL");
     }
-    const libros = await LibroConsignacion.setLibros(body.libros);
+    const libros = await LibroConsignacion.setLibros(body.libros, res.locals.user.id);
     if (libros.length < body.libros.length){
         throw new ValidationError("Algun libro no existe");
     }
@@ -32,7 +32,7 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     })));
         
     for (const libro of libros) {
-        await libro.updateStock(-libro.cantidad);
+        await libro.updateStock(-libro.cantidad, res.locals.user.id);
     }
 
     await cliente.updateStock(body.libros);
@@ -79,7 +79,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     }
     await cliente.haveStock(body.libros);
 
-    const librosModel = await LibroConsignacion.setLibros(body.libros);
+    const librosModel = await LibroConsignacion.setLibros(body.libros, res.locals.user.id);
     if (librosModel.length < body.libros.length){
         throw new ValidationError("Algun libro no existe");
     }
@@ -101,7 +101,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
 
     //Actualizar el stock del cliente y del libro
     for (const libro of librosModel){
-        await libro.updateStock(libro.cantidad);
+        await libro.updateStock(libro.cantidad, res.locals.user.id);
     }
     const substactedStock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
     await cliente.updateStock(substactedStock);

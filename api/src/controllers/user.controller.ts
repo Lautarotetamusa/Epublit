@@ -30,7 +30,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 const login = async (req: Request, res: Response): Promise<Response> => {
     const body = loginUser.parse(req.body);
     const user = await User.getOne(body.username);
-    const match = await bcrypt.compare(body.password, Buffer.from(body.password).toString('ascii'));
+    const match = await bcrypt.compare(body.password, Buffer.from(user.password).toString('ascii'));
     
     if (!match) return res.status(401).json({
         success: false,

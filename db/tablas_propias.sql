@@ -1,0 +1,30 @@
+ALTER TABLE libros
+    add column user INT(11) DEFAULT 1,
+    add constraint foreign key (user) references users(id);
+ALTER TABLE libros
+    modify column user INT(11) NOT NULL;
+
+ALTER TABLE ventas
+    add column user INT(11) DEFAULT 1,
+    add constraint foreign key (user) references users(id);
+ALTER TABLE ventas
+    modify column user INT(11) NOT NULL;
+
+ALTER TABLE personas
+    add column user INT(11) DEFAULT 1,
+    add constraint foreign key (user) references users(id);
+ALTER TABLE personas
+    modify column user INT(11) NOT NULL;
+
+ALTER TABLE clientes
+    add column user INT(11) NOT NULL,
+    add constraint foreign key (user) references users(id);
+
+ALTER TABLE consignaciones
+    add column user INT(11) NOT NULL,
+    add constraint foreign key (user) references users(id);
+
+
+ALTER TABLE liquidaciones
+    add column user INT(11) NOT NULL,
+    add constraint foreign key (user) references users(id);

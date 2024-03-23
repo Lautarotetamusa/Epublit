@@ -29,7 +29,12 @@ const updateLibroPersona = libroPersonaSchema.pick({
 });
 type UpdateLibroPersona = z.infer<typeof updateLibroPersona>;
 
+export const createlibroPersonaInDB = libroPersonaSchema.omit({
+    isbn: true
+});
+
 export const createLibroPersona = createPersona.and(libroPersonaSchema.omit({
-    id_persona: true
+    id_persona: true,
+    isbn: true
 }));
 export type CreateLibroPersona = z.infer<typeof createLibroPersona>;

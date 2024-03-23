@@ -118,14 +118,14 @@ export class BaseModel{
         if (_req.length == 0) return
 
         const keys = Object.keys(_req[0]).join(",");
-        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = _req.map(obj => Object.values(obj)).flat();
 
         const query = `
             INSERT INTO ${this.table_name} (${keys})
-            VALUES ${values}`
-        console.log(query);
+            VALUES ${parameters}`;
 
-        const [result] = await conn.query<OkPacket>(query, _req);
+        const [result] = await conn.query<OkPacket>(query, value_list);
     }
 
     protected static async _bulk_select<RT extends {}>(_req: object[]): Promise<RT[]>{

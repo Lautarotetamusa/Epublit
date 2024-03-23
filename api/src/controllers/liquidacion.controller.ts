@@ -14,7 +14,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     if (!(await Liquidacion.valid_period(body.fecha_inicial, body.fecha_final))){
         throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");
     }
-    const persona = await Persona.getById(body.id_persona);
+    const persona = await Persona.getById(body.id_persona, res.locals.user.id);
 
     if (!await LibroPersona.exists({
         id_persona: body.id_persona,
@@ -49,7 +49,7 @@ const getOne = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
 
     const liquidacion = await Liquidacion.getOne(id);
-    const libro = await Libro.getByIsbn(liquidacion.isbn);
+    const libro = await Libro.getByIsbn(liquidacion.isbn, res.locals.user.id);
     const ventas = await liquidacion.get_details();
 
     return res.status(200).json({

@@ -19,6 +19,8 @@ CREATE TABLE users(
 );
 
 CREATE TABLE libros(
+    user INT(11) NOT NULL,
+
     isbn VARCHAR(13) NOT NULL,
     titulo VARCHAR(60) NOT NULL,
     fecha_edicion DATE NOT NULL,
@@ -27,10 +29,13 @@ CREATE TABLE libros(
 
     is_deleted BOOLEAN DEFAULT false,
 
-    PRIMARY KEY(isbn)
+    PRIMARY KEY (isbn),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE personas(
+    user INT(11) NOT NULL,
+
     id INT(11) NOT NULL AUTO_INCREMENT,
     dni VARCHAR(8) NOT NULL,
     nombre VARCHAR(60) NOT NULL,
@@ -38,7 +43,8 @@ CREATE TABLE personas(
 
     is_deleted BOOLEAN DEFAULT false,
 
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE libros_personas(
@@ -53,6 +59,8 @@ CREATE TABLE libros_personas(
 );
 
 CREATE TABLE clientes(
+    user INT(11) NOT NULL,
+
     id INT(11) NOT NULL AUTO_INCREMENT,
     nombre VARCHAR(60) NOT NULL, 
     email VARCHAR(60) DEFAULT "",
@@ -64,10 +72,13 @@ CREATE TABLE clientes(
 
     tipo TINYINT DEFAULT 0,
 
-    PRIMARY KEY(id)
+    PRIMARY KEY(id),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE consignaciones(
+    user INT(11) NOT NULL,
+
     id INT(11) NOT NULL AUTO_INCREMENT,
     id_cliente INT(11) NOT NULL,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -75,7 +86,8 @@ CREATE TABLE consignaciones(
     remito_path VARCHAR(80) NOT NULL,
 
     PRIMARY KEY(id),
-    FOREIGN KEY(id_cliente) REFERENCES clientes(id)
+    FOREIGN KEY(id_cliente) REFERENCES clientes(id),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE libros_consignaciones(
@@ -100,6 +112,8 @@ CREATE TABLE stock_cliente(
 );
 
 CREATE TABLE ventas(
+    user INT(11) NOT NULL,
+
     id INT(11) NOT NULL AUTO_INCREMENT,
     fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     descuento FLOAT DEFAULT 0,
@@ -111,7 +125,8 @@ CREATE TABLE ventas(
     file_path VARCHAR(80) NOT NULL,
 
     PRIMARY KEY (id),
-    FOREIGN KEY (id_cliente) REFERENCES clientes(id)
+    FOREIGN KEY (id_cliente) REFERENCES clientes(id),
+    FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE libros_ventas(

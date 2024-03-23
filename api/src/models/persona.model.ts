@@ -1,9 +1,9 @@
 import {conn} from "../db";
 import { RowDataPacket } from "mysql2/promise";
-import {PersonaSchema, CreatePersona, UpdatePersona} from "../schemas/persona.schema";
+import {PersonaSchema, UpdatePersona, SavePersona} from "../schemas/persona.schema";
 
 import { BaseModel } from "./base.model";
-import { tipoPersona, TipoPersona } from "../schemas/libro_persona.schema";
+import { TipoPersona } from "../schemas/libro_persona.schema";
 import { LibroSchema } from "../schemas/libros.schema";
 
 export class Persona extends BaseModel{
@@ -24,20 +24,20 @@ export class Persona extends BaseModel{
         this.id = Number(persona.id);
     }
 
-    static async getById(id: number): Promise<Persona> {
-        return await super.find_one<PersonaSchema, Persona>({id: id, is_deleted: 0});
+    static async getById(id: number, userId: number): Promise<Persona> {
+        return await super.find_one<PersonaSchema, Persona>({id: id, is_deleted: 0, user: userId});
     }
 
-    static async getAll(): Promise<PersonaSchema[]> {
-        return await super.find_all<PersonaSchema>({is_deleted: 0});
+    static async getAll(userId: number): Promise<PersonaSchema[]> {
+        return await super.find_all<PersonaSchema>({is_deleted: 0, user: userId});
     }
     
-    static async exists(dni: string): Promise<boolean>{
-        return await super._exists({dni: dni, is_deleted: 0});
+    static async exists(dni: string, userId: number): Promise<boolean>{
+        return await super._exists({dni: dni, is_deleted: 0, user: userId});
     }
 
-    static async insert(body: CreatePersona) {
-        return await super._insert<CreatePersona, Persona>(body);
+    static async insert(body: SavePersona) {
+        return await super._insert<SavePersona, Persona>(body);
     }
 
     static async update(body: UpdatePersona, where: object){
@@ -62,7 +62,7 @@ export class Persona extends BaseModel{
         await this._update({is_deleted: 1}, where);
     }
 
-    static async getAllByTipo(tipo: TipoPersona): Promise<PersonaSchema[]> {
+    static async getAllByTipo(tipo: TipoPersona, userId: number): Promise<PersonaSchema[]> {
         const query = `
             SELECT ${this.fields.join(', ')} 
             FROM ${this.table_name} 
@@ -70,21 +70,23 @@ export class Persona extends BaseModel{
                 ON id_persona=id
             WHERE is_deleted = 0
             AND libros_personas.tipo = ?
+            AND ${this.table_name}.user = ?
             GROUP BY id`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, tipo);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [tipo, userId]);
         return rows as PersonaSchema[];
     }    
 
-    async getLibros(){
+    async getLibros(userId: number){
         const query = `
             SELECT libros.*, libros_personas.tipo 
             FROM libros
             INNER JOIN libros_personas
                 ON libros.isbn = libros_personas.isbn
-            WHERE libros_personas.id_persona = ?`;
+            WHERE libros_personas.id_persona = ?
+            AND libros.user = ?`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, userId]);
         return rows as LibroSchema[];
     }
 }

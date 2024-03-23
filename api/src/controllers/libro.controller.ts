@@ -34,7 +34,10 @@ const create = async (req: Request, res: Response) => {
 
     for (const persona of personas){
         if ("id_persona" in persona){
-            indb.push(persona);
+            indb.push({
+                ...persona,
+                isbn: libroBody.isbn
+            });
         }else{
             notIndb.push(persona);
         }
@@ -52,7 +55,12 @@ const create = async (req: Request, res: Response) => {
     }
 
     for (const personaBody of notIndb){
-        const persona = await Persona.insert(personaBody);
+        const persona = await Persona.insert({
+            nombre: personaBody.nombre,
+            email: personaBody.email,
+            dni: personaBody.dni,
+            user: res.locals.user.id
+        });
 
         indb.push({
             porcentaje: personaBody.porcentaje, 
@@ -61,7 +69,11 @@ const create = async (req: Request, res: Response) => {
             isbn: libroBody.isbn
         });
     }
-    const libro = await Libro.insert(libroBody);
+    const libro = await Libro.insert({
+        ...libroBody,
+        user: res.locals.user.id
+    });
+
     await LibroPersona.insert(indb);
 
     return res.status(201).json({
@@ -76,7 +88,7 @@ const create = async (req: Request, res: Response) => {
 }
 
 const remove = async(req: Request, res: Response) => {
-    await Libro.delete(req.params.isbn);
+    await Libro.delete(req.params.isbn, res.locals.user.id);
 
     return res.json({
         success: true,
@@ -86,9 +98,10 @@ const remove = async(req: Request, res: Response) => {
 
 const update = async(req: Request, res: Response) => {
     const body = updateLibro.parse(req.body);
+    const user = res.locals.user.id;
 
-    const libro = await Libro.getByIsbn(req.params.isbn);
-    await libro.update(body);
+    const libro = await Libro.getByIsbn(req.params.isbn, user);
+    await libro.update(body, user);
 
     return res.status(201).json({
         success: true,
@@ -102,7 +115,7 @@ const managePersonas = async(req: Request, res: Response) => {
     let code = 201;
     let message = 'creadas';
         
-    const libro = await Libro.getByIsbn(req.params.isbn);
+    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id);
 
     if (!await Persona.all_exists(body.map(p => ({id: p.id})))){
         throw new NotFound("Alguna persona no existe");
@@ -152,13 +165,13 @@ const managePersonas = async(req: Request, res: Response) => {
 }
 
 const getVentas = async(req: Request, res: Response) => {
-    const ventas = await Libro.getVentas(req.params.isbn);
+    const ventas = await Libro.getVentas(req.params.isbn, res.locals.user.id);
     return res.json(ventas);
 }
 
 const getOne = async(req: Request, res: Response) => {
-    const libro = await Libro.getByIsbn(req.params.isbn)
-    const {autores, ilustradores} = await libro.getPersonas();
+    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id)
+    const {autores, ilustradores} = await libro.getPersonas(res.locals.user.id);
     return res.json({
         ...libro,
         autores: autores,
@@ -167,7 +180,7 @@ const getOne = async(req: Request, res: Response) => {
 }
 
 const listaLibros = async (req: Request, res: Response) => {
-    const libros = await Libro.getAll();
+    const libros = await Libro.getAll(res.locals.user.id);
 
     let len = Object.keys(libros[0]).length;
     let header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
@@ -181,11 +194,11 @@ const listaLibros = async (req: Request, res: Response) => {
 
 const getAll = async(req: Request, res: Response) => {
     if ("page" in req.query){
-        const libros = await Libro.getPaginated(Number(req.query.page) || 0);
+        const libros = await Libro.getPaginated(Number(req.query.page) || 0, res.locals.user.id);
         return res.json(libros);
     }
 
-    const libros = await Libro.getAll();
+    const libros = await Libro.getAll(res.locals.user.id);
     return res.json(libros);
 }
 

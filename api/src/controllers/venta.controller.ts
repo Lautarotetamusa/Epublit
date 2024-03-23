@@ -10,11 +10,12 @@ import { conn } from "../db";
 
 const vender = async (req: Request, res: Response): Promise<Response> => {
     const connection = await conn.getConnection();
+    const user = res.locals.user.id;
 
     const {libros, ...ventaBody} = createVenta.parse(req.body);
     const cliente = await Cliente.getById(ventaBody.cliente);
 
-    const librosModel = await LibroVenta.setLibros(libros);
+    const librosModel = await LibroVenta.setLibros(libros, user);
     if (librosModel.length < libros.length){
         throw new ValidationError("Algun libro no existe");
     }
@@ -34,7 +35,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         await LibroVenta.save(librosModel, venta.id);
 
         for (const libro of librosModel){
-            await libro.updateStock(libro.cantidad);
+            await libro.updateStock(libro.cantidad, user);
         }
         venta.parsePath();
 

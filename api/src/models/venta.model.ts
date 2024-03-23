@@ -25,11 +25,11 @@ export class LibroVenta extends Libro{
         this.precio_venta = req.precio_venta;
     }
 
-    static async setLibros(body: LibroCantidad[]): Promise<LibroVenta[]>{
+    static async setLibros(body: LibroCantidad[], userId: number): Promise<LibroVenta[]>{
         let libros: LibroVenta[] = [];
 
         for (const libroBody of body) {
-            const libro = await Libro.getByIsbn(libroBody.isbn);
+            const libro = await Libro.getByIsbn(libroBody.isbn, userId);
 
             libros.push(new LibroVenta({
                 libro: libro,

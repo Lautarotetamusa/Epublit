@@ -33,11 +33,11 @@ export class LibroConsignacion extends Libro {
        this._bulk_insert(body); 
     }
 
-    static async setLibros(body: StockCliente): Promise<LibroConsignacion[]>{
+    static async setLibros(body: StockCliente, userId: number): Promise<LibroConsignacion[]>{
         let libros: LibroConsignacion[] = [];
         for (const libroBody of body) {
-            const libro = await Libro.getByIsbn(libroBody.isbn);
-            const {autores, ilustradores} = await libro.getPersonas();
+            const libro = await Libro.getByIsbn(libroBody.isbn, userId);
+            const {autores, ilustradores} = await libro.getPersonas(userId);
 
             libros.push(new LibroConsignacion({
                 libro: libro,
