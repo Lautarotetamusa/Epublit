@@ -10,6 +10,25 @@ export const medioPago = {
 } as const;
 export type MedioPago = keyof typeof medioPago;
 
+export const tiposComprobantes = {
+    1: {
+        cod: 'A',
+        descripcion: "Factura A"
+    },
+    6: {
+        cod: 'B',
+        descripcion: "Factura B"
+    },
+    11: {
+        cod: 'C',
+        descripcion: "Factura C"
+    },
+    51: {
+        cod: 'M',
+        descripction: "Factura M"
+    }
+} as const;
+
 const ventaSchema = z.object({
     id: z.number(),
     fecha: z.date(),
@@ -18,15 +37,20 @@ const ventaSchema = z.object({
     id_cliente: z.number(),
     total: z.number(),
     file_path: z.string(),
-    user: z.number()
+    user: z.number(),
+    tipo_cbte: z.number().refine((val) => val in tiposComprobantes, {
+        message: "El tipo de comprobante no es valido"
+    })
 });
 export type VentaSchema = z.infer<typeof ventaSchema>;
 
 export const createVenta = ventaSchema.pick({
     descuento: true,
-    medio_pago: true
+    medio_pago: true,
+    tipo_cbte: true,
 }).and(z.object({
     libros: libroCantidad.array().transform(items => { //Si un libro esta dos veces se suman las cantidades
+
         let isbns: Record<string, number> = {};
         for (const item of items){
             if (item.isbn in isbns){

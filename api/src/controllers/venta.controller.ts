@@ -12,24 +12,23 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     const connection = await conn.getConnection();
     const user = res.locals.user.id;
 
-    const {libros, ...ventaBody} = createVenta.parse(req.body);
-    const cliente = await Cliente.getById(ventaBody.cliente);
+    const {libros, cliente, ...ventaBody} = createVenta.parse(req.body);
+    const c = await Cliente.getById(cliente);
 
     const librosModel = await LibroVenta.setLibros(libros, user);
     if (librosModel.length < libros.length){
         throw new ValidationError("Algun libro no existe");
     }
 
-    await cliente.haveStock(libros);
+    await c.haveStock(libros);
 
     try{
         await connection.beginTransaction();
         const venta = await Venta.insert({
-            descuento: ventaBody.descuento,
-            medio_pago: ventaBody.medio_pago,
-            id_cliente: cliente.id,
+            ...ventaBody,
+            id_cliente: c.id,
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
-            file_path: cliente.generatePath(),
+            file_path: c.generatePath(),
             user: user
         });
 
@@ -40,14 +39,14 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         }
 
         //Solo facturamos para clientes que no son en negro
-        if (tipoCliente[cliente.tipo] != tipoCliente.negro){
-            const comprobanteData = await facturar(venta, cliente, res.locals.user);
+        if (tipoCliente[c.tipo] != tipoCliente.negro){
+            const comprobanteData = await facturar(venta, c, res.locals.user);
 
             emitirComprobante({
                 data: {
                     venta: Object.assign({}, venta), //Copiamos la venta porque sino al llamar a parsePath no funcionaria
                     libros: librosModel,
-                    cliente: cliente,
+                    cliente: c,
                     comprobante: comprobanteData
                 },
                 user: res.locals.user,

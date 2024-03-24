@@ -90,6 +90,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     const venta = await Venta.insert({
         id_cliente: cliente.id,
         descuento: 0,
+        tipo_cbte: 11,
         medio_pago: "debito",
         total: 0,//Venta.calcTotal(librosModel, 0),
         file_path: cliente.generatePath(),

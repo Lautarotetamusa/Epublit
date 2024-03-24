@@ -75,7 +75,7 @@ export class Venta extends BaseModel{
 
         this.descuento  = request.descuento;
         this.punto_venta = 4;
-        this.tipo_cbte   = 11;
+        this.tipo_cbte   = request.tipo_cbte;
 
         this.medio_pago = request.medio_pago;
         this.total = request.total;

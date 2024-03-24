@@ -26,6 +26,8 @@
         "@types/qrcode": "^1.5.1",
         "@types/sax": "^1.2.4",
         "@types/soap": "^0.21.0",
+        "nodemon": "^3.0.3",
+        "ts-node": "^10.9.2"
     },
     "name": "Epublit",
     "type": "commonjs",
@@ -35,10 +37,6 @@
     "author": "Lautaro Teta Musa",
     "license": "ISC",
     "description": "",
-    "devDependencies": {
-        "nodemon": "^3.0.3",
-        "ts-node": "^10.9.2"
-    },
     "scripts": {
         "dev": "nodemon src/app.ts"
     }

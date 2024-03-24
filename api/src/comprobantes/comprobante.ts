@@ -7,6 +7,7 @@ import { Cliente } from '../models/cliente.model';
 import { Comprobante } from '../afip/Afip';
 import { filesPath } from '../app';
 import { join } from 'path';
+import { tiposComprobantes } from '../schemas/venta.schema';
 
 const path = './src/comprobantes';
 
@@ -108,7 +109,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     /**/
 
     /*parse comprobante*/
-    html = html.replace('{{tipo_factura}}', 'C');
+    html = html.replace('{{tipo_factura}}', tiposComprobantes[comprobante.CbteTipo as any as keyof typeof tiposComprobantes].cod);
     html = html.replace('{{cod_factura}}', comprobante.CbteTipo);
     html = html.replace('{{punto_venta}}', String(comprobante.PtoVta).padStart(5, '0'));
     html = html.replace('{{cae}}', comprobante.CodAutorizacion);

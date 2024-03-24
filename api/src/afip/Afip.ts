@@ -22,7 +22,7 @@ export type Comprobante = {
 };
 
 // cuenta madre
-const afip_madre = new Afip({
+export const afip_madre = new Afip({
 	CUIT: 27249804024,
 	ta_folder: './src/afip/ClavesLibrosSilvestres/Tokens/',
 	res_folder: './src/afip/ClavesLibrosSilvestres/',
@@ -31,7 +31,7 @@ const afip_madre = new Afip({
 	production: true,
 });
 
-function getAfipClient(user: User){
+export function getAfipClient(user: User){
     const path = join(__dirname, `/Claves/${user.cuit}`);
     if (!(fs.existsSync(path+'/private_key.key'))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
@@ -55,7 +55,7 @@ function getAfipClient(user: User){
 function qr_url(voucher: any){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
 
-	const datos_comprobante = {
+	const datosComprobante = {
 		ver: 1,
 		fecha: 	voucher.CbteFch,
 		cuit: 	voucher.emisor,
@@ -70,7 +70,7 @@ function qr_url(voucher: any){
 		codAut: parseInt(voucher.CodAutorizacion)
 	}
 
-	var buff = Buffer.from(JSON.stringify(datos_comprobante)).toString("base64");
+	const buff = Buffer.from(JSON.stringify(datosComprobante)).toString("base64");
 	console.log(url+buff);
 
 	return url+buff;
@@ -99,7 +99,7 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 		'ImpTotConc': 0,   									//Importe neto no gravado2
 		'ImpNeto' 	: venta.total, 							//Importe neto gravado
 		'ImpOpEx' 	: 0,   									//Importe exento de IVA
-		'ImpIVA' 	: 0,  									//Importe total de IVA
+		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0, //Importe total de IVA. Para facturas A el importe de iva no puede ser 0
 		'ImpTrib' 	: 0,   									//Importe total de tributos
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
 		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
@@ -125,7 +125,9 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 }
 
 export async function getAfipData(cuit: string): Promise<AfipData>{
-	const afip_data = await afip_madre.RegisterScopeFive?.getTaxpayerDetails(cuit);
+	const afip_data = await afip_madre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
+    console.log(afip_data);
+    console.log(afip_data["datosRegimenGeneral"]);
 	if (afip_data === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
@@ -136,8 +138,9 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		razon_social: " - "
 	};
 
-	if (!afip_data.datosGenerales.domicilioFiscal.localidad)
+	if (!afip_data.datosGenerales.domicilioFiscal.localidad){
 		afip_data.datosGenerales.domicilioFiscal.localidad = 'CAPITAL FEDERAL'
+    }
 
 	let impuestos = null;
 	if (afip_data.datosRegimenGeneral){
@@ -161,8 +164,7 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 	
 	if (afip_data.datosGenerales.tipoPersona == 'JURIDICA'){
 		data.razon_social = afip_data.datosGenerales.razonSocial;
-    }
-	else {
+    }else {
 		data.razon_social = afip_data.datosGenerales.nombre+' '+afip_data.datosGenerales.apellido;
     }
 
