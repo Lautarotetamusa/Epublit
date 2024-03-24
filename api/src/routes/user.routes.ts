@@ -10,6 +10,8 @@ router.post('/register', UserController.create);
 
 router.post('/login', UserController.login);
 
+router.put('/afip', auth, UserController.updateAfipData);
+
 router.get('/welcome', auth, UserController.welcome);
 
 export default router;

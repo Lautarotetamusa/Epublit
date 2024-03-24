@@ -27,6 +27,18 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
+const updateAfipData = async (req: Request, res: Response): Promise<Response> => {
+    const user = await User.getOne(res.locals.user.username);
+    const afipData = await getAfipData(user.cuit);
+    await user.update(afipData);
+
+    return res.status(200).json({
+        success: true,
+        message: "Usuario actualizado correctamente",
+        data: user
+    });
+};
+
 const login = async (req: Request, res: Response): Promise<Response> => {
     const body = loginUser.parse(req.body);
     const user = await User.getOne(body.username);
@@ -66,4 +78,5 @@ export default {
     create,
     login,
     welcome,
+    updateAfipData
 }

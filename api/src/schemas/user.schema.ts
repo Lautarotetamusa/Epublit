@@ -15,6 +15,8 @@ export const loginUser = z.object({
 });
 type LoginUser = z.infer<typeof loginUser>;
 
+export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
+
 export const createUser = z.object({
     username: z.string(),
     password: z.string(),

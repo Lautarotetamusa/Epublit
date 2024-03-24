@@ -1,6 +1,7 @@
 import { 
     UserSchema,
-    SaveUser
+    SaveUser,
+    UpdateUser
 } from "../schemas/user.schema"
 import { BaseModel } from "./base.model";
 
@@ -33,6 +34,19 @@ export class User extends BaseModel{
 
     static async insert(body: SaveUser): Promise<User>{
         return await this._insert<SaveUser, User>(body);
+    }
+
+    async update(body: UpdateUser){
+        await User._update<UpdateUser>(body, {
+            id: this.id, 
+        });    
+
+        for (const i in body){
+            const value = body[i as keyof typeof body];
+            if (value !== undefined){
+                this[i as keyof this] = value as any; 
+            }
+        }
     }
 
     static async getAll(): Promise<UserSchema[]>{
