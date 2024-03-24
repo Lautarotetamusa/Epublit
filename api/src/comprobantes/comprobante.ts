@@ -2,10 +2,11 @@ import fs from 'fs';
 import puppeteer from 'puppeteer';
 import { LibroVenta, Venta } from '../models/venta.model';
 import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
-import { medioPago } from '../schemas/venta.schema';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
 import { Comprobante } from '../afip/Afip';
+import { filesPath } from '../app';
+import { join } from 'path';
 
 const path = './src/comprobantes';
 
@@ -30,15 +31,15 @@ export async function emitirComprobante({data, user}: args){
     const tipo = 'venta' in data ? 'factura' : 'remito';
 
     const browser = await puppeteer.launch({
-      executablePath: '/usr/bin/google-chrome',
-      args: ['--no-sandbox']
+        executablePath: '/usr/bin/google-chrome',
+        args: ['--no-sandbox']
     });
     const page = await browser.newPage();
-  
+
     var html = fs.readFileSync(`${path}/${tipo}/${tipo}.html`, 'utf8');
     var css  = fs.readFileSync(`${path}/${tipo}/style.css`,    'utf8');
     var logo = fs.readFileSync(`${path}/${tipo}/Logo.png`,   'base64');
-    
+
     html = html.replace('<style></style>', `<style>${css}</style>`);
     html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
 
@@ -49,20 +50,22 @@ export async function emitirComprobante({data, user}: args){
 
     let filePath: string;
     if ('venta' in data){
-        filePath = data.venta.file_path
+        console.log(data.venta);
+        filePath = join(filesPath, Venta.filesFolder, data.venta.file_path);
         html = factura(html, data);
     }else{
         filePath = data.consignacion.remito_path
+        filePath = join(filesPath, Consignacion.filesFolder, data.consignacion.remito_path);
         html = remito(html, data);
     }
-    
+
     await page.setContent(html);
-    const pdf = await page.pdf({
-      path: tipo+"s/"+filePath,
-      printBackground: true,
-      format: 'A4',
+    await page.pdf({
+        path: filePath,
+        printBackground: true,
+        format: 'A4',
     });
-  
+
     await browser.close();
 };
 

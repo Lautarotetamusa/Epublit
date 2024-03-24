@@ -29,7 +29,8 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
             medio_pago: ventaBody.medio_pago,
             id_cliente: cliente.id,
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
-            file_path: cliente.generatePath()            
+            file_path: cliente.generatePath(),
+            user: user
         });
 
         await LibroVenta.save(librosModel, venta.id);
@@ -37,7 +38,6 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         for (const libro of librosModel){
             await libro.updateStock(libro.cantidad, user);
         }
-        venta.parsePath();
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[cliente.tipo] != tipoCliente.negro){
@@ -45,7 +45,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
 
             emitirComprobante({
                 data: {
-                    venta: venta,
+                    venta: Object.assign({}, venta), //Copiamos la venta porque sino al llamar a parsePath no funcionaria
                     libros: librosModel,
                     cliente: cliente,
                     comprobante: comprobanteData
@@ -54,6 +54,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
             });
         }
         await connection.commit();
+        venta.parsePath();
 
         return res.status(201).json({
             success: true,
@@ -74,12 +75,12 @@ const getOne = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    const venta = await Venta.getById(id);
+    const venta = await Venta.getById(id, res.locals.user.id);
     return res.json(venta);
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response> => {
-    const ventas = await Venta.getAll();
+    const ventas = await Venta.getAll(res.locals.user.id);
     return res.json(ventas);
 }
 

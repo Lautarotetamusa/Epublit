@@ -52,7 +52,9 @@ export class Cliente extends BaseModel{
             .replace(/\-/gi, '_')
             .replace(/\:/gi, '');
 
-        return this.razon_social.replace('/-/g', '')+'_'+date+'.pdf';
+        return this.razon_social
+            .replace('/-/g', '')
+            .replace(' ', '')+'_'+date+'.pdf';
     }
 
     static async getAll() {

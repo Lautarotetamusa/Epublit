@@ -39,26 +39,27 @@ export class Liquidacion extends BaseModel{
     static async insert(body: SaveLiquidacion): Promise<Liquidacion>{
         return await super._insert<SaveLiquidacion, Liquidacion>(body);
     }
-    static async getAll(){
-        return await super.find_all<LiquidacionSchema>();
+    static async getAll(userId: number){
+        return await super.find_all<LiquidacionSchema>({user: userId});
     }
-    static async getOne(id: number): Promise<Liquidacion>{
-        return await super.find_one<LiquidacionSchema, Liquidacion>({id: id})
+    static async getOne(id: number, userId: number): Promise<Liquidacion>{
+        return await super.find_one<LiquidacionSchema, Liquidacion>({id: id, user: userId})
     }
 
-    static async valid_period(fecha_inicial: Date, fecha_final: Date): Promise<boolean>{
+    static async valid_period(fecha_inicial: Date, fecha_final: Date, userId: number): Promise<boolean>{
         const query = `
             SELECT id FROM ${this.table_name}
             WHERE 
                 (? > fecha_final)
                 OR
-                (? < fecha_inicial)`
+                (? < fecha_inicial)
+            AND user = ?`
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [fecha_inicial, fecha_final]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [fecha_inicial, fecha_final, userId]);
         return rows.length <= 0;
     }
 
-    static async getVentas(body: CreateLiquidacion){
+    static async getVentas(body: CreateLiquidacion, userId: number){
        const query = `
             SELECT * 
             FROM libros_ventas AS LV
@@ -66,9 +67,10 @@ export class Liquidacion extends BaseModel{
                 ON V.id = LV.id_venta
             WHERE LV.isbn = ?
             AND V.fecha > ?
-            AND V.fecha < ?` 
+            AND V.fecha < ?
+            AND V.user = ?` 
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, [body.isbn, body.fecha_inicial, body.fecha_final]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [body.isbn, body.fecha_inicial, body.fecha_final, userId]);
 
         if (rows.length <= 0){
             throw new NotFound(`No hay ninguna venta para el libro ${body.isbn} en el periodo`);

@@ -30,24 +30,17 @@ const afip_madre = new Afip({
 	cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
 	production: true,
 });
-//export default afip_madre;
-/*const afip = new Afip({
-	CUIT: 20434919798,
-	ta_folder: './src/afip/Claves/Tokens/',
-	res_folder: './src/afip/Claves',
-	key: 'private_key.key',
-	cert: 'cert.pem',
-	production: false,
-});*/
 
 function getAfipClient(user: User){
-    const path = join(__dirname, `/Claves/${user.cuit}/`);
-    if (!(fs.existsSync(path+'private_key.key'))){
+    const path = join(__dirname, `/Claves/${user.cuit}`);
+    if (!(fs.existsSync(path+'/private_key.key'))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
     }
-    if (!(fs.existsSync(path+'cert.pem'))){
+    if (!(fs.existsSync(path+'/cert.pem'))){
         throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
     }
+    console.log("res folder:", path);
+    console.log("ta_folder:", `${path}/Tokens/`);
 
     return new Afip({
         CUIT: user.cuit,
@@ -147,10 +140,12 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		afip_data.datosGenerales.domicilioFiscal.localidad = 'CAPITAL FEDERAL'
 
 	let impuestos = null;
-	if (afip_data.datosRegimenGeneral)
+	if (afip_data.datosRegimenGeneral){
 		impuestos = afip_data.datosRegimenGeneral.impuesto
-	else if(afip_data.datosMonotributo)
+    }
+	else if(afip_data.datosMonotributo){
 		impuestos = afip_data.datosMonotributo.impuesto
+    }
 
 	if (impuestos){
 		var iva = (impuestos as {
@@ -164,10 +159,12 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		data.cond_fiscal = " - ";
 	}
 	
-	if (afip_data.datosGenerales.tipoPersona == 'JURIDICA')
+	if (afip_data.datosGenerales.tipoPersona == 'JURIDICA'){
 		data.razon_social = afip_data.datosGenerales.razonSocial;
-	else 
+    }
+	else {
 		data.razon_social = afip_data.datosGenerales.nombre+' '+afip_data.datosGenerales.apellido;
+    }
 
 	data.domicilio = ''
 		+ afip_data.datosGenerales.domicilioFiscal.direccion+' - '

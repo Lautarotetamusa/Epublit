@@ -70,6 +70,8 @@ const getAll = async (req: Request, res: Response): Promise<Response> => {
 
 const liquidar = async(req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
+    const user = res.locals.user.id;
+
     if (!id) throw new ValidationError("El id debe ser un numero");
     const body = createConsignacion.parse(req.body);
     const cliente = await Cliente.getById(id);
@@ -79,7 +81,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
     }
     await cliente.haveStock(body.libros);
 
-    const librosModel = await LibroConsignacion.setLibros(body.libros, res.locals.user.id);
+    const librosModel = await LibroConsignacion.setLibros(body.libros, user);
     if (librosModel.length < body.libros.length){
         throw new ValidationError("Algun libro no existe");
     }
@@ -90,7 +92,8 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         descuento: 0,
         medio_pago: "debito",
         total: 0,//Venta.calcTotal(librosModel, 0),
-        file_path: cliente.generatePath()
+        file_path: cliente.generatePath(),
+        user: user 
     });
 
     //Insertar todos los libros de esa venta

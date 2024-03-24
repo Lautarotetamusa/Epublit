@@ -1,5 +1,5 @@
 import {z} from 'zod';
-import { LibroCantidad, libroCantidad } from "./libros.schema";
+import { libroCantidad } from "./libros.schema";
 
 export const medioPago = {
     efectivo: "efectivo",
@@ -17,7 +17,8 @@ const ventaSchema = z.object({
     medio_pago: z.enum(Object.keys(medioPago) as [MedioPago]),
     id_cliente: z.number(),
     total: z.number(),
-    file_path: z.string()
+    file_path: z.string(),
+    user: z.number()
 });
 export type VentaSchema = z.infer<typeof ventaSchema>;
 

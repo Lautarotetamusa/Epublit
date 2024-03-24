@@ -103,24 +103,27 @@ export class Venta extends BaseModel{
         return await this._insert<SaveVenta, Venta>(body);
     }
 
-    static async getById(id: number){
-        const venta = await this.find_one<VentaSchema, Venta>({id: id});
+    static async getById(id: number, userId: number){
+        const venta = await this.find_one<VentaSchema, Venta>({
+            id: id, user: userId
+        });
         venta.parsePath();
         return venta;
     }
 
-    async getLibros(): Promise<LibroVenta[]>{
+    async getLibros(userId: number): Promise<LibroVenta[]>{
         const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad, precio_venta 
             FROM libros
             INNER JOIN libros_ventas
                 ON libros_ventas.isbn = libros.isbn
             WHERE libros_ventas.id_venta = ?
-        `, [this.id]);
+            AND libros.user = ?
+        `, [this.id, userId]);
         return libros as LibroVenta[];
     }
 
-    static async getAll(){
+    static async getAll(userId: number){
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
                 ventas.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', ventas.file_path) AS file_path,
@@ -128,7 +131,9 @@ export class Venta extends BaseModel{
             FROM ventas
             INNER JOIN clientes
                 ON ventas.id_cliente = clientes.id
-        `);
+            WHERE ventas.user = ?
+            ORDER BY ventas.id DESC
+        `, [userId]);
         return rows;
     }
 }
