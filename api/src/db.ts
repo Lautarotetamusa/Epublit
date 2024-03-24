@@ -1,8 +1,10 @@
 import { createPool } from "mysql2/promise";
 
 import * as dotenv from 'dotenv';
+import { join } from "path";
 
-dotenv.config();
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
 const options = {
     host:       process.env.DB_HOST,
