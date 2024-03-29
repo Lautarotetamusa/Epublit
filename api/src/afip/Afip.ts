@@ -126,8 +126,6 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 
 export async function getAfipData(cuit: string): Promise<AfipData>{
 	const afip_data = await afip_madre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
-    console.log(afip_data);
-    console.log(afip_data["datosRegimenGeneral"]);
 	if (afip_data === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }

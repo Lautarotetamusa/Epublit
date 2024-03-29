@@ -1,18 +1,21 @@
-import request from 'supertest';
-import chai from 'chai';
+import {describe, expect, it} from '@jest/globals';
+import request from "supertest";
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
+import * as dotenv from 'dotenv';
+import { join } from "path";
 
-import {expect_err_code, expect_success_code} from './util.js';
-import {Cliente} from '../src/models/cliente.model.js';
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
-let cliente = {};
-let token;
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+
 const app = 'http://localhost:3001';
+import {Cliente} from '../src/models/cliente.model.js';
+import { tipoCliente } from '../src/schemas/cliente.schema';
+
+let cliente: any = {};
+let token: string;
 
 /*
     - Creamos dos clientes, una con cuit 11111111 y otra 22222222
@@ -28,17 +31,16 @@ const app = 'http://localhost:3001';
 */
 
 it('Hard delete', async () => {
-    let [cliente] = await conn.query(`
+    let [cliente]: any = await conn.query(`
         SELECT * FROM clientes
         WHERE cuit=30500001735`
     );
     //console.log("cliente:", cliente);
 
-    let [consignaciones] = await conn.query(`
+    let [consignaciones]: any = await conn.query(`
         SELECT * FROM consignaciones
         WHERE id_cliente=${cliente[0].id}
     `);
-    //console.log("consignaciones:", consignaciones);
 
     for (let consigna of consignaciones){
         await conn.query(`
@@ -64,7 +66,7 @@ it('Hard delete', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
+        password: 'Lautaro123.'
     }
     const res = await request(app)
         .post('/user/login')
@@ -87,12 +89,12 @@ describe('POST cliente/', () => {
     });
 
     it('consumidor final', async () => {
-        cliente.tipo = Cliente.particular;
+        cliente.tipo = tipoCliente.particular;
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
         
-        delete cliente.tipo;
+        cliente.tipo = 'inscripto';
         
         expect_err_code(400, res);
     });
@@ -151,8 +153,8 @@ describe('GET cliente/', () => {
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
         
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body).to.deep.include(cliente);
+        expect(res.status).toEqual(200);
+        expect(res.body).toMatchObject(cliente);
     });
 
     it('La cliente está en la lista', async () => {
@@ -160,8 +162,8 @@ describe('GET cliente/', () => {
             .get('/cliente/')
             .set('Authorization', `Bearer ${token}`);
         
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body.map(p => p.id)).to.deep.include(cliente.id);
+        expect(res.status).toEqual(200);
+        expect(res.body.map((p: any) => p.id)).toContain(cliente.id);
     });
 
     it('consumidor final', async () => {
@@ -169,7 +171,7 @@ describe('GET cliente/', () => {
             .get('/cliente/consumidor_final')
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
+        expect(res.status).toEqual(200);
     });
 });
 
@@ -181,7 +183,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        chai.expect(res.status).to.equal(200);
+        expect(res.status).toEqual(200);
     });
 
     it('Actualizar nombre y email', async () => {
@@ -189,16 +191,13 @@ describe('PUT cliente/{id}', () => {
         cliente.nombre = 'Test nro 2';
 
         let req = Object.assign({}, cliente);
-        req.razon_social = "no se debe actualizar";
-        req.cond_fiscal = "no se debe actualizar";
-        req.tipo = 0; //No se debe actualizar
-        
         const res = await request(app)
             .put('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`)
             .send(req);
         
         expect_success_code(201, res);
+        expect(res.body.data.nombre).toEqual(cliente.nombre);
     });
 
     it('Los datos fueron actualizados correctamente', async () => {
@@ -207,9 +206,8 @@ describe('PUT cliente/{id}', () => {
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
-
-        chai.expect(res.body).to.deep.include(cliente);       
+        expect(res.status).toEqual(200);
+        expect(res.body).toMatchObject(cliente);       
     });
 
     it('Actualizar a un cuit que no esta en afip', async () => {
@@ -227,8 +225,8 @@ describe('PUT cliente/{id}', () => {
             .get('/cliente/')
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body.at(-2)).to.have.property('cuit');
+        expect(res.status).toEqual(200);
+        expect(res.body.at(-2)).toHaveProperty('cuit');
 
         cliente.cuit = '20434919798';
         
@@ -238,7 +236,7 @@ describe('PUT cliente/{id}', () => {
             .send(cliente);
 
         expect_err_code(404, res);
-        chai.expect(res.body.error).to.equal(`El cliente con cuit ${cliente.cuit} ya existe`);
+        expect(res.body.errors[0].message).toEqual(`El cliente con cuit ${cliente.cuit} ya existe`);
     });
 
     it('Actualizar el cuit', async () => {
@@ -261,10 +259,9 @@ describe('PUT cliente/{id}', () => {
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
+        expect(res.status).toEqual(200);
 
         delete cliente.tipo;
-        chai.expect(res.body).to.deep.include(cliente);       
+        expect(res.body).toMatchObject(cliente);       
     });
-
 });

@@ -35,7 +35,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         await LibroVenta.save(librosModel, venta.id);
 
         for (const libro of librosModel){
-            await libro.updateStock(libro.cantidad, user);
+            await libro.updateStock(-libro.cantidad, user);
         }
 
         //Solo facturamos para clientes que no son en negro

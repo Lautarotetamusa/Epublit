@@ -1,9 +1,9 @@
 import {z} from 'zod';
 
 export const tipoCliente = {
-    particular: 0,
-    inscripto: 1,
-    negro: 2
+    particular: "particular",
+    inscripto: "inscripto",
+    negro: "negro"
 }
 export type TipoCliente = keyof typeof tipoCliente;
 

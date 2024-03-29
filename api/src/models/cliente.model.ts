@@ -15,6 +15,7 @@ import { RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model';
 
 import { getAfipData } from "../afip/Afip";
+import { filesUrl } from '../app';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -108,8 +109,16 @@ export class Cliente extends BaseModel{
             throw new NotFound(`No se encuentra el cliente con id ${id}`);
     }
 
-    async getVentas(): Promise<Venta[]>{
-        return await Venta.find_all({id_cliente: this.id});
+    async getVentas(userId: number): Promise<Venta[]>{
+        const query = `
+            SELECT *, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', ventas.file_path) AS file_path
+            FROM ventas
+            WHERE id_cliente = ?
+            AND user = ?
+            ORDER BY id DESC
+        `;
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, userId]);
+        return rows as Venta[];
     }
 
     async getStock() {

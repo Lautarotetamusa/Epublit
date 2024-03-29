@@ -16,6 +16,7 @@
         "zod": "^3.22.4"
     },
     "devDependencies": {
+        "@babel/preset-typescript": "^7.24.1",
         "@types/bcrypt": "^5.0.0",
         "@types/cors": "^2.8.13",
         "@types/dotenv": "^8.2.0",
@@ -26,11 +27,15 @@
         "@types/qrcode": "^1.5.1",
         "@types/sax": "^1.2.4",
         "@types/soap": "^0.21.0",
+        "@types/supertest": "^6.0.2",
+        "jest": "^29.7.0",
         "nodemon": "^3.0.3",
+        "supertest": "^6.3.4",
+        "ts-jest": "^29.1.2",
         "ts-node": "^10.9.2"
     },
     "name": "Epublit",
-    "type": "commonjs",
+    "type": "module",
     "version": "1.0.0",
     "main": "src/app.ts",
     "keywords": [],
@@ -38,6 +43,7 @@
     "license": "ISC",
     "description": "",
     "scripts": {
-        "dev": "nodemon src/app.ts"
+        "dev": "nodemon src/app.ts",
+        "test": "jest"
     }
 }

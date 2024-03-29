@@ -1,28 +1,22 @@
-import request from 'supertest';
-import chai from 'chai';
+import {describe, expect, it} from '@jest/globals';
+import request from "supertest";
 import fs from 'fs';
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
-import {expect_err_code, expect_success_code} from './util.js';
+import * as dotenv from 'dotenv';
+import { join } from "path";
 
-const app = 'http://localhost:3001'
-let token;
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
-let cliente = {
-    cuit: '30500007539',
-    nombre: "ClienteTest",
-    email: "clientetest@gmail.com",
-    tipo: 1
-}
-let venta = {
-    libros: [],
-    medio_pago: "anashe",
-    descuento: 10
-}
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+
+const app = 'http://localhost:3001';
+let token: string;
+
+let cliente: any = {}; 
+let venta: any = {}; 
+const id_cliente = 1;
 
 /*
     - Crear un cliente nuevo
@@ -36,7 +30,7 @@ let venta = {
     - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
 */
 
-it('login', async () => {
+it.concurrent('login', async () => {
     let data = {
         username: 'teti',
         password: 'Lautaro123.'
@@ -50,89 +44,49 @@ it('login', async () => {
 });
 
 describe('VENTA', () => {
-    it('delete cliente', async () => {
-        /*Buscar los ids de los datos cargados*/
-        let _cliente = (await conn.query(`
-            SELECT id FROM clientes
-            WHERE cuit=${cliente.cuit}`
-        ))[0];
-
-        if (_cliente.length == 0)
-            return;
-
-        let id_cliente = _cliente[0].id;
-        console.log("id cliente: ", id_cliente);
-
-        let venta = (await conn.query(`
+    it('delete ventas', async () => {
+        //Buscamos la ultima venta creada
+        const venta: any = (await conn.query(`
             SELECT id FROM ventas
-            WHERE id_cliente=${id_cliente};
+            WHERE id_cliente=${id_cliente}
+            ORDER BY id DESC;
         `))[0];
 
-        if(venta.length == 0){
-            await conn.query(`
-                DELETE FROM clientes
-                WHERE id=${id_cliente};
-            `);
-            return;
-        }
-
-        let id_venta = venta[0].id;
+        const id_venta = venta[0].id;
 
         /*Borrar de la base de datos*/
         await conn.query(`
             DELETE FROM libros_ventas
             WHERE id_venta=${id_venta};
         `);
-
         await conn.query(`
             DELETE FROM ventas
-            WHERE id_cliente=${id_cliente};
-        `);
-
-        await conn.query(`
-            DELETE FROM clientes
-            WHERE id=${id_cliente};
+            WHERE id=${id_venta};
         `);
     });
 
     describe('Cargar datos para la venta', () => {
-        it('Crear nuevo cliente', async () => {
+        it('Buscar cliente', async () => {
             const res = await request(app)
-                .post('/cliente/')
-                .set('Authorization', `Bearer ${token}`)
-                .send(cliente);
-
-            //console.log(res.body);
-
-            expect_success_code(201, res);
-
-            cliente.id = res.body.data.id;
-            venta.cliente = cliente.id;
-        });
-
-        /*it('Buscar cliente', async () => {
-            const res = await request(app)
-                .get('/cliente/4')
+                .get(`/cliente/${id_cliente}`)
                 .set('Authorization', `Bearer ${token}`);
 
-            chai.expect(res.status).to.equal(200);
+            expect(res.status).toEqual(200);
 
             cliente = res.body;
-            venta.cliente = cliente.id;
-        });*/
+            venta['cliente'] = cliente.id;
+        });
 
         it('Seleccionar libros para la venta', async () => {
             const res = await request(app)
                 .get('/libro')
                 .set('Authorization', `Bearer ${token}`);
 
-            chai.expect(res.status).to.equal(200);
-            venta.libros = [ res.body[3], res.body[5], res.body[8] ];
-            //console.log("VENTA:", venta);
+            expect(res.status).toEqual(200);
+            venta['libros'] = [ res.body[3], res.body[5], res.body[8] ];
         });
 
         it('Agregar stock a los libros', async () => {
-
             let stock = 3;
             
             for (const libro of venta.libros) {
@@ -160,9 +114,9 @@ describe('VENTA', () => {
                     .get(`/libro/${libro.isbn}`)
                     .set('Authorization', `Bearer ${token}`);
 
-                chai.expect(res.status).to.equal(200);
+                expect(res.status).toEqual(200);
 
-                chai.expect(res.body.stock).to.equal(stock);
+                expect(res.body.stock).toEqual(stock);
             }    
         });
     });
@@ -200,13 +154,14 @@ describe('VENTA', () => {
                 expect_err_code(400, res);
             });
             it('Medio de pago incorrecto', async () => {
+                venta.medio_pago = '';
                 const res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
                 expect_err_code(400, res);
         
-                venta.medio_pago = 0;
+                venta.medio_pago = 'efectivo';
             });
             it('Un libro no tiene suficiente stock', async () => {
                 venta.libros[2].cantidad = 5;
@@ -222,7 +177,8 @@ describe('VENTA', () => {
         });
         describe('Venta exitosa', () => {
             it('vender', async () => {
-                const res = await request(app)
+                venta.tipo_cbte = 11;
+                const res: any = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
@@ -230,67 +186,64 @@ describe('VENTA', () => {
                 expect_success_code(201, res);
 
                 //console.log("data:", res.body);
+                expect(res.body.data).toHaveProperty('file_path');
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
+                expect(res.body.data.id).toEqual(venta.id);
             });
-            
             it('Los libros reducieron su stock', async () => {
                 //console.log("VENTA:", venta);
+                let total = 0;
                 for (const libro of venta.libros) {
                     const res = await request(app)
                         .get(`/libro/${libro.isbn}`)
                         .set('Authorization', `Bearer ${token}`);
+
+                    total += libro.cantidad * res.body.precio;
+                    total -= total * (venta.descuento ?? 0) * 0.01;
+                    total = parseFloat(total.toFixed(2));
         
-                    console.log("res body ", res.body);
-                    chai.expect(res.status).to.equal(200);
-                    chai.expect(res.body.stock).to.equal(0);
+                    expect(res.status).toEqual(200);
+                    expect(res.body.stock).toEqual(0);
                 }
+                venta.total = total;
             });
             it('El cliente tiene la venta cargada', async () => {
-                
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
             
-                chai.expect(res.status).to.equal(200);
-                chai.expect(res.body[0]).to.exist;
+                expect(res.status).toEqual(200);
+                expect(res.body[0]).not.toBeNull;
+                expect(res.body[0].id).toEqual(venta.id);
             });
             it('El total de la venta está bien', async () => {
-                let total = 0;
-                for (const libro of venta.libros) {
-                    total += libro.cantidad * libro.precio;
-                }
-                total -= total * venta.descuento * 0.01;
-                total = parseFloat(total.toFixed(2));
                 
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
             
-                chai.expect(res.status).to.equal(200);
-                let venta_aux = res.body[0];
-
-                chai.expect(venta_aux.total).to.equal(total);
+                expect(res.status).toEqual(200);
+                expect(res.body[0].total).toEqual(venta.total);
             });
             it('La factura existe y el nombre coincide', async () => {   
                 await delay(400);         
-                fs.readFile(`../facturas/${venta.file_path}`, 'utf8', (err, data) => {
+                fs.readFile(`../facturas/${venta.file_path}`, 'utf8', (err, _) => {
                     if(err){
                         console.error(err);
                     }
-                    chai.expect(err).to.not.exist;
+                    expect(err).toBeNull;
                 });
             });
             it('Se puede descargar la factura', async () => {
                 await delay(400);
-                //console.log("VENTA:", venta);
-                //console.log(`/venta/${venta.id}/factura`); 
+                console.log(venta.file_path);
 
                 const res = await request(app)
-                    .get(`/venta/${venta.id}/factura`)
+                    .get(venta.file_path)
                     .set('Authorization', `Bearer ${token}`); 
 
-                chai.expect(res.status).to.equal(200);
+                expect(res.status).toEqual(200);
             });
         });
     });
@@ -301,13 +254,12 @@ describe('VENTA', () => {
                 .get(`/venta/medios_pago/`)
                 .set('Authorization', `Bearer ${token}`);
         
-            chai.expect(res.status).to.equal(200);    
-            chai.expect(typeof res.body).to.equal("object");
-            chai.expect(res.body.length).to.above(0);
+            expect(res.status).toEqual(200);    
+            expect(typeof res.body).toEqual("object");
         });
     });
 });
 
-function delay(time) {
+function delay(time: number) {
     return new Promise(resolve => setTimeout(resolve, time));
   } 

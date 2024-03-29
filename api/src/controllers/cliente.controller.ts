@@ -5,6 +5,7 @@ import { createCliente, updateCliente } from "../schemas/cliente.schema";
 
 async function getCliente(req: Request): Promise<Cliente>{
     const id = Number(req.params.id);
+    console.log(req.params.id);
 
     if (req.params.id == "consumidor_final")
         return await Cliente.getConsumidorFinal();
@@ -57,10 +58,9 @@ const getStock = async (req: Request, res: Response): Promise<Response> => {
 
 const getVentas = async (req: Request, res: Response): Promise<Response> => {
     const cliente = await getCliente(req);
-    const ventas = await cliente.getVentas();
+    const ventas = await cliente.getVentas(res.locals.user.id);
     return res.json(ventas);
 }
-
 
 const delet = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
