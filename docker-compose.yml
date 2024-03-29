@@ -44,9 +44,6 @@ services:
       - REACT_PROTOCOL=$PROTOCOL
       - REACT_APP_API_PORT=$BACK_PUBLIC_PORT
       - REACT_APP_HOST=$SERVER_HOST
-      - HTTPS=true
-      - SSL_KEY_FILE=security/key.pem
-      - SSL_CRT_FILE=security/cert.pem
 
     command: npm start
     ports:

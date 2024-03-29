@@ -10,6 +10,101 @@
 
 ## Personas
 
+## Cambios API 29/03/24
+
+### Cambios internos
+ - Cada usuario tiene sus propias tablas, un usuarios podrá solamente acceder a sus libros, ventas etc.
+ - La facturación se realiza con los datos de afip del usuario loggeado, al momento de crearse la cuenta estos datos se traen desde afip. 
+
+### Crear libro 
+`POST libro/`.
+Ahora No se le pasan dos listas distintas (autores y ilustradores) sino que se le pasas una sola lista "personas" donde cada objecto tiene un "tipo".
+```json
+{
+    "isbn": "9789874864674",
+    "titulo": "Rio de sueño",
+    "precio": 2500,
+    "stock": 250,
+    "fecha_edicion": "2023-08-03",
+    "personas": [
+        {
+            "nombre": "Salvador Viedma",
+            "dni": "138",
+            "porcentaje": 0,
+            "tipo": "autor"
+        },
+        {
+            "nombre": "Lorena Méndez",
+            "dni": "139",
+            "porcentaje": 0,
+            "tipo": "ilustrador"
+        }
+    ]{
+    "medio_pago": "efectivo",
+    "libros": [
+        {
+            "isbn": "9789784765178",
+            "cantidad": 3
+        },{
+            "isbn": "9789784765178",
+            "cantidad": 5
+        }
+    ],
+    "tipo_cbte": 11,
+    //"cliente": 82 //cliente negro
+    //"cliente": 28 //lautarotetamusa
+    "cliente": 42 //cliente inscripto test
+}
+}
+```
+
+### Crear Venta 
+`POST venta/`.
+Ahora es necesario pasarle el campo "tipo_cbte"
+
+```json
+{
+    "medio_pago": "efectivo",
+    "libros": [
+        {
+            "isbn": "9789784765178",
+            "cantidad": 3
+        },{
+            "isbn": "9789784765178",
+            "cantidad": 5
+        }
+    ],
+    "tipo_cbte": 11,
+    //"cliente": 82 //cliente negro
+    //"cliente": 28 //lautarotetamusa
+    "cliente": 42 //cliente inscripto test
+}
+```
+
+### Archivos
+Ahora todos los archivos se devuelven como una url
+Ej: 
+```json
+[
+    {
+        "id": 191,
+        "fecha": "2024-03-25T00:00:48.000Z",
+        "descuento": 0,
+        "id_cliente": 42,
+        "total": 80000,
+        "file_path": "http://localhost:3001/files/facturas/AGRONASAJASRL_2024_03_25_000048.pdf",
+        "medio_pago": "efectivo",
+        "user": 1,
+        "tipo_cbte": 11,
+        "cuit": "30710712758",
+        "nombre_cliente": "ClienteTest",
+        "email": "clientetest@gmail.com",
+        "cond_fiscal": " - ",
+        "tipo": null
+    },
+    ...
+```
+
 #### Lista de autores
 
 #### Lista de ilustradores
