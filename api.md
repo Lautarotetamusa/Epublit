@@ -8,8 +8,6 @@
 * [Ventas](#Ventas)
 * [Consignaciones](#Consignaciones)
 
-## Personas
-
 ## Cambios API 29/03/24
 
 ### Cambios internos
@@ -104,6 +102,22 @@ Ej:
     },
     ...
 ```
+
+### Errores
+Los errores ahora son una lista con el nombre "errors". tal cual como esta en el back de agribussiness.
+
+Ej:
+```json
+"success": false,
+    "errors": [
+        {
+            "code": "Error",
+            "message": "La contraseña es incorrecta"
+        }
+    ]
+```
+
+## Personas
 
 #### Lista de autores
 
