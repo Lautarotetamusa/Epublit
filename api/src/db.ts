@@ -1,5 +1,4 @@
 import { createPool } from "mysql2/promise";
-
 import * as dotenv from 'dotenv';
 import { join } from "path";
 

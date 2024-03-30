@@ -14,18 +14,8 @@ RUN apt-get update && apt-get install curl gnupg -y \
 
 WORKDIR app/
 
-COPY ./security security/
-
-COPY ./api/package.json .
-COPY ./api/tsconfig.json .
+COPY ./api .
 RUN npm install
 RUN npm install typescript -g
 
-COPY ./api/src src/
-
 COPY ./api/src/afip/Claves dist/afip/Claves
-COPY ./api/src/afip/ClavesLibrosSilvestres dist/afip/ClavesLibrosSilvestres
-COPY ./api/src/afip/afip.js/src/Afip_res dist/afip/afip.js/src/Afip_res
-
-COPY ./api/src/comprobantes/factura dist/comprobantes/factura
-COPY ./api/src/comprobantes/remito dist/comprobantes/remito

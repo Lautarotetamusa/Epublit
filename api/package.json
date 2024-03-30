@@ -35,7 +35,7 @@
         "ts-node": "^10.9.2"
     },
     "name": "Epublit",
-    "type": "module",
+    "type": "commonjs",
     "version": "1.0.0",
     "main": "src/app.ts",
     "keywords": [],
@@ -44,6 +44,7 @@
     "description": "",
     "scripts": {
         "dev": "nodemon src/app.ts",
+        "build": "tsc .",
         "test": "jest"
     }
 }

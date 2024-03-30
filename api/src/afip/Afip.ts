@@ -1,4 +1,4 @@
-import Afip from './afip.js/src/Afip';
+import Afip from "../afip/afip.js/src/Afip";
 import QRcode from 'qrcode';
 import { Venta } from '../models/venta.model';
 import { NotFound, ValidationError } from '../models/errors';
@@ -22,12 +22,14 @@ export type Comprobante = {
 };
 
 // cuenta madre
+const cuitProd = "27249804024";
 export const afip_madre = new Afip({
-	CUIT: 27249804024,
-	ta_folder: './src/afip/ClavesLibrosSilvestres/Tokens/',
-	res_folder: './src/afip/ClavesLibrosSilvestres/',
+	CUIT: cuitProd,
+	ta_folder: `./src/afip/Claves/${cuitProd}Tokens/`,
+	res_folder: `./src/afip/Claves/${cuitProd}/`,
 	key: 'private_key.key',
-	cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
+	//cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
+    cert: 'cert.pem',
 	production: true,
 });
 
