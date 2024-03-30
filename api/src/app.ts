@@ -15,7 +15,7 @@ const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto intern
 const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo
 const host = process.env.HOST ? process.env.HOST : "localhost";
 
-export const filesUrl  = `http://${host}:${backPort}/files` as const;
+export const filesUrl  = `http://${host}:${publicPort}/files` as const;
 export const filesPath = join(__dirname, "../files");
 
 app.use((req, res, next) => {
