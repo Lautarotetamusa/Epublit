@@ -14,8 +14,10 @@ const server = createServer(app);
 const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto interno del docker donde se levanta el server
 const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo
 const host = process.env.HOST ? process.env.HOST : "localhost";
+const env = process.env.env || "dev";
 
-export const filesUrl  = `http://${host}:${publicPort}/files` as const;
+const route = `${env == "dev" ? 'api/v1/': ''}files` as const;
+export const filesUrl  = `http://${host}:${publicPort}/${route}` as const;
 export const filesPath = join(__dirname, "../files");
 
 app.use((req, res, next) => {
