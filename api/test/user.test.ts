@@ -1,20 +1,22 @@
-import request from 'supertest';
-import chai from 'chai';
-import bcrypt from "bcrypt";
+import {describe, expect, it} from '@jest/globals';
+import request from "supertest";
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
+import * as dotenv from 'dotenv';
+import { join } from "path";
 
-import {expect_err_code, expect_success_code} from './util.js';
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
-let user = {
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+
+const app = 'http://localhost:3001';
+
+let user: any;
+user = {
     username: "martinpdisalvo",
     password: "ANASHEEEEEEE"
 };
-const app = 'http://localhost:3001';
 
 it('Hard delete', async () => {
     await conn.query(`
@@ -62,7 +64,7 @@ describe('POST /login', () => {
             .post('/user/login').send(user)
         
         expect_err_code(401, res);
-        chai.expect(res.body.error).to.equal("Contraseña incorrecta");
+        expect(res.body.error).toEqual("Contraseña incorrecta");
     });
 
     it('Login exitoso', async () => {
@@ -72,7 +74,7 @@ describe('POST /login', () => {
             .post('/user/login').send(user)
         
         expect_success_code(200, res);
-        chai.expect(res.body.message).to.equal("login exitoso");
-        chai.expect(res.body).to.have.property("token");
+        expect(res.body.message).toEqual("login exitoso");
+        expect(res.body).toHaveProperty("token");
     });
 });

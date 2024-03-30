@@ -15,7 +15,6 @@ const app = 'http://localhost:3001'
 const rawdata = fs.readFileSync("tests/libro.test.json");
 const tests = JSON.parse(rawdata);
 
-
 let token;
 let libro = {
     "isbn": "111111111",

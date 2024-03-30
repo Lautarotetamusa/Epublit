@@ -33,10 +33,12 @@ let token: string;
 it('Hard delete', async () => {
     let [cliente]: any = await conn.query(`
         SELECT * FROM clientes
-        WHERE cuit=30500001735`
+        WHERE cuit='30500001735'`
     );
-    //console.log("cliente:", cliente);
 
+    if (cliente.length == 0){
+        return 0;
+    }
     let [consignaciones]: any = await conn.query(`
         SELECT * FROM consignaciones
         WHERE id_cliente=${cliente[0].id}
@@ -187,10 +189,10 @@ describe('PUT cliente/{id}', () => {
     });
 
     it('Actualizar nombre y email', async () => {
-        cliente.cuit = '30710813082';
         cliente.nombre = 'Test nro 2';
 
         let req = Object.assign({}, cliente);
+        
         const res = await request(app)
             .put('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`)
@@ -248,7 +250,6 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
         
-        //console.log(res.body);
         cliente = res.body.data;
 
         expect_success_code(201, res);
