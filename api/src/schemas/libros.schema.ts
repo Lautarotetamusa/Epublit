@@ -25,5 +25,8 @@ export const createLibro = libroSchema.extend({
 });
 type CreateLibro = z.infer<typeof createLibro>;
 
-export const updateLibro = libroSchema.partial();
+export const updateLibro = libroSchema.omit({
+    isbn: true,
+    user: true
+}).partial();
 export type UpdateLibro = Partial<LibroSchema>;

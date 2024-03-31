@@ -12,6 +12,7 @@ import { LibroPersona } from "../models/libro_persona.model";
 
 import fs from 'fs';
 import {  createLibro, updateLibro } from "../schemas/libros.schema";
+import { LibroPrecio } from "../models/libroPrecio.model";
 
 function removeDuplicateds(list: any[]) {
     const uniqueIds: number[] = [];
@@ -73,6 +74,8 @@ const create = async (req: Request, res: Response) => {
         ...libroBody,
         user: res.locals.user.id
     });
+    
+    await LibroPrecio.insert(libroBody.isbn, libroBody.precio);
 
     await LibroPersona.insert(indb);
 
@@ -99,8 +102,14 @@ const remove = async(req: Request, res: Response) => {
 const update = async(req: Request, res: Response) => {
     const body = updateLibro.parse(req.body);
     const user = res.locals.user.id;
+    const isbn = req.params.isbn;
 
-    const libro = await Libro.getByIsbn(req.params.isbn, user);
+    const libro = await Libro.getByIsbn(isbn, user);
+
+    //Solamente creamos un nuevo precio si el precio es distinto
+    if ('precio' in body && body.precio && libro.precio != body.precio){
+        await LibroPrecio.insert(isbn, body.precio);
+    }
     await libro.update(body, user);
 
     return res.status(201).json({
@@ -169,6 +178,11 @@ const getVentas = async(req: Request, res: Response) => {
     return res.json(ventas);
 }
 
+const getPrecios = async(req: Request, res: Response) => {
+    const precios = await LibroPrecio.getPreciosLibro(req.params.isbn);
+    return res.json(precios);
+}
+
 const getOne = async(req: Request, res: Response) => {
     const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id)
     const {autores, ilustradores} = await libro.getPersonas(res.locals.user.id);
@@ -206,6 +220,7 @@ export default{
     getAll,
     getOne,
     getVentas,
+    getPrecios,
     managePersonas,
     create,
     remove,

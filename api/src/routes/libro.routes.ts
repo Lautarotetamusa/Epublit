@@ -8,9 +8,14 @@ const router = express.Router();
 router.post('/', LibroController.create);
 
 router.get('/lista_libros', LibroController.listaLibros); 
+
 router.get('', LibroController.getAll); //paginated
+
 router.get('/:isbn', LibroController.getOne);
+
 router.get('/:isbn/ventas', LibroController.getVentas)
+
+router.get('/:isbn/precio', LibroController.getPrecios)
 
 router.put('/:isbn', LibroController.update);
 

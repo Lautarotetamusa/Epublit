@@ -83,7 +83,6 @@ export class Libro extends BaseModel{
 
     static async delete(isbn: string, userId: number){
         await LibroPersona._delete({isbn: isbn});
-
         await super._update({is_deleted: 1}, {isbn: isbn, user: userId});
     }
 
