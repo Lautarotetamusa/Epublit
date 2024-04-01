@@ -4,10 +4,9 @@ import { Libro } from "../models/libro.model";
 import { 
     CreateLibroPersona,
     LibroPersonaSchema,
-    libroPersonaSchema,
     tipoPersona, 
 } from "../schemas/libro_persona.schema";
-import { Duplicated, NotFound, ValidationError } from "../models/errors"
+import { ValidationError } from "../models/errors"
 import { LibroPersona } from "../models/libro_persona.model";
 
 import fs from 'fs';
@@ -119,60 +118,6 @@ const update = async(req: Request, res: Response) => {
     })
 }
 
-const managePersonas = async(req: Request, res: Response) => {
-    let body = Array.isArray(req.body) ? req.body : [req.body]; //Hacemos que personas sea un array si o si
-    let code = 201;
-    let message = 'creadas';
-        
-    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id);
-
-    if (!await Persona.all_exists(body.map(p => ({id: p.id})))){
-        throw new NotFound("Alguna persona no existe");
-    }
-
-    body = body.map(p => ({...p, isbn: libro.isbn}));
-    const personas = libroPersonaSchema.array().parse(req.body);
-
-    switch (req.method) {
-        case "POST":
-            if (await LibroPersona.any_exists(personas)){
-                throw new Duplicated("Alguna persona ya trabaja en ese libro");
-            }
-                
-            await LibroPersona.insert(personas);
-            break;
-        case "PUT":
-            if (!await LibroPersona.all_exists(personas)){
-                throw new NotFound("Alguna persona no trabaja en este libro");
-            }
-
-            await LibroPersona.update(personas);
-            message = 'actualizadas'
-
-            break;
-        case "DELETE":
-
-            if (!await LibroPersona.any_exists(personas)){
-                throw new Duplicated("Alguna persona ya trabaja en ese libro");
-            }
-
-            await LibroPersona.remove(personas);
-            message = 'borradas'
-            code = 200
-            
-            break;
-    }
-
-    return res.status(code).json({
-        success: true,
-        message: `Personas ${message} con exito`,
-        data: {
-            ...libro,
-            personas: personas,
-        }
-    });
-}
-
 const getVentas = async(req: Request, res: Response) => {
     const ventas = await Libro.getVentas(req.params.isbn, res.locals.user.id);
     return res.json(ventas);
@@ -221,7 +166,6 @@ export default{
     getOne,
     getVentas,
     getPrecios,
-    managePersonas,
     create,
     remove,
     update,

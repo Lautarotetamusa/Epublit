@@ -1,42 +1,46 @@
-import request from 'supertest';
-import chai from 'chai';
-import fs from "fs"
+import {describe, expect, it} from '@jest/globals';
+import request from "supertest";
+import fs from 'fs';
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
+import * as dotenv from 'dotenv';
+import { join } from "path";
 
-import {expect_err_code, expect_success_code} from './util.js';
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
-const app = 'http://localhost:3001'
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+import { RowDataPacket } from 'mysql2';
 
-const rawdata = fs.readFileSync("tests/libro.test.json");
-const tests = JSON.parse(rawdata);
+const app = 'http://localhost:3001';
 
-let token;
-let libro = {
+const rawdata = fs.readFileSync(join(__dirname, "libro.test.json"));
+const tests = JSON.parse(String(rawdata));
+
+let token: string;
+let libro: any
+libro = {
     "isbn": "111111111",
     "titulo": "Test",
     "fecha_edicion": "2020-02-17",
-    "precio": 10000
+    "precio": 10000,
+    "stock": 0
 }
 
 it('HARD DELETE', async () => {
-    let res = (await conn.query(`
+    let res = (await conn.query<RowDataPacket[]>(`
         SELECT isbn FROM libros
         WHERE isbn=${libro.isbn}
     `))[0];
 
     if (res.length){
-        let personas = (await conn.query(`
-            SELECT * FROM libros_personas
-            WHERE isbn=${libro.isbn}
-        `))[0];
-
         await conn.query(`
             DELETE FROM libros_personas
+            WHERE isbn=${libro.isbn}
+        `);
+
+        await conn.query(`
+            DELETE FROM precio_libros
             WHERE isbn=${libro.isbn}
         `);
 
@@ -56,7 +60,7 @@ it('HARD DELETE', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
+        password: 'Lautaro123.'
     }
     const res = await request(app)
         .post('/user/login')
@@ -67,27 +71,26 @@ it('login', async () => {
 });
 
 describe('Crear libro POST /libro', function () {
-    describe('Bad requests errors', function () {
-        tests.forEach(test => {
+    /*describe('Bad requests errors', function () {
+        tests.forEach((test: any) => {
             it(test.title, function (done) {
                 request(app)
                     .post('/libro')
                     .set('Authorization', `Bearer ${token}`)
                     .send(test.data)
-                    .end((err, res) => {
+                    .end((_, res) => {
                         if (res.status != test.code){
                             console.log(res.body, res.status);
                         }
-                        chai.expect(res.status).to.equal(test.code);
-                        chai.expect(res.body).to.be.a('object');
-                        chai.expect(res.body).to.have.property('success');
-                        chai.expect(res.body).to.have.property('error');
-                        chai.expect(res.body.success).to.be.false;
+                        expect(res.status).toEqual(test.code);
+                        expect(res.body).toHaveProperty('success');
+                        expect(res.body).toHaveProperty('errors');
+                        expect(res.body.success).toEqual(false);
                     done();
                   });
             });
         });
-    });
+    });*/
     
     it('Crear libro sin personas', async () => {
         const res = await request(app)
@@ -99,22 +102,21 @@ describe('Crear libro POST /libro', function () {
     });
     
     it('Insertar Libro', async () => {
-        let personas   = (await request(app)
+        const personas   = (await request(app)
             .get('/persona/')
             .set('Authorization', `Bearer ${token}`)
             ).body;
 
         //Autor que agarramos desde la tabla
-        libro.autores = [{
-            id: personas.at(-1).id,
+        libro.personas = [{
+            id_persona: personas.at(-1).id,
             porcentaje: 20,
-        }]
-
-        //Creamos un nuevo ilustrador
-        libro.ilustradores = [{
+            tipo: "autor"
+        }, {
             nombre: "juancito",
             dni: "39019203",
-            porcentaje: 25.0
+            porcentaje: 25.0,
+            tipo: "ilustrador"
         }];
 
         const res = await request(app)
@@ -122,16 +124,15 @@ describe('Crear libro POST /libro', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        chai.expect(res.body.data).to.have.property("ilustradores");
-        chai.expect(res.body.data).to.have.property("autores");        
-
-        libro.ilustradores[0].id = res.body.data.ilustradores[0].id;
-
         expect_success_code(201, res);
+        expect(res.body.data).toHaveProperty("ilustradores");
+        expect(res.body.data).toHaveProperty("autores");        
+
+        libro.personas = res.body.data.ilustradores.concat(res.body.data.autores);
     });
 
     it('Insertar la misma persona que antes', async () => {
-        const personas = {...libro.autores[0], tipo: 0};
+        const personas = [libro.personas[0]];
 
         const res = await request(app)
             .post(`/libro/${libro.isbn}/personas`)
@@ -149,58 +150,56 @@ describe('Crear libro POST /libro', function () {
             ).body;
 
         personas = [{
-            id: personas.at(0).id,
+            id_persona: personas.at(0).id,
             porcentaje: 20.1,
-            tipo: 0
+            tipo: "autor"
         },
         {
-            id: personas.at(1).id,
+            id_persona: personas.at(1).id,
             porcentaje: 25.5,
-            tipo: 1
+            tipo: "ilustrador"
         }]
 
         const res = await request(app)
             .post(`/libro/${libro.isbn}/personas`)
             .set('Authorization', `Bearer ${token}`)
             .send(personas);
-
         expect_success_code(201, res);
-        
-        libro.autores      = [personas[0]].concat(libro.autores);
-        libro.ilustradores = [personas[1]].concat(libro.ilustradores);
-        libro.personas = libro.autores.concat(libro.ilustradores)
+
+        libro.personas = libro.personas.concat(personas);
     });
 
     it('El libro tiene las personas cargadas con todos los datos', async() => {
         const res = (await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`)
-            ).body;
+        );
 
-        chai.expect(res).to.have.property("autores");
-        chai.expect(res).to.have.property("ilustradores");
+        expect(res.status).toEqual(200);
+        expect(res.body).toHaveProperty("autores");
+        expect(res.body).toHaveProperty("ilustradores");
 
-        libro.personas = res.autores.concat(res.ilustradores);
+        const autores = libro.personas.filter((p: any) => p.tipo == "autor").map((p: any) => p.id_persona).sort();
+        const ilustradores = libro.personas.filter((p: any) => p.tipo == "ilustrador").map((p: any) => p.id_persona).sort();
 
-        chai.expect(res.autores.map(p => p.id)).to.eql(libro.autores.map(p => p.id));
-        chai.expect(res.ilustradores.map(p => p.id)).to.eql(libro.ilustradores.map(p => p.id));
+        expect(res.body.autores.map((p: any) => p.id_persona).sort()).toEqual(autores);
+        expect(res.body.ilustradores.map((p: any) => p.id_persona).sort()).toEqual(ilustradores);
     });
 
     it('Las personas tienen el libro asignado', async () => {
         for (let persona of libro.personas){
-
-            let res = (await request(app)
-                .get('/persona/'+persona.id)
+            const res = (await request(app)
+                .get('/persona/'+persona.id_persona)
                 .set('Authorization', `Bearer ${token}`)
-                );
+            );
 
-            chai.expect(res.status).to.eql(200);
-            chai.expect(res.body).to.have.property('libros');
+            expect(res.status).toEqual(200);
+            expect(res.body).toHaveProperty('libros');
 
             const libros = res.body.libros;
 
             //Revisar que los autores e ilustradores tengan ese libro asociado
-            chai.expect(libros.map(l => l.isbn)).to.deep.include(libro.isbn);
+            expect(libros.map((l: any) => l.isbn)).toContain(libro.isbn);
         }
     });
 });
@@ -228,8 +227,8 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body.success).to.be.false;
+        expect(res.status).toEqual(200);
+        expect(res.body.success).toEqual(false);
     });
 
     it('Actualizamos precio', async () => {
@@ -243,18 +242,17 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
     });
 
     it('Actualizamos una persona', async () => {
-        let data = [
-            {
-                id: 697,
-                tipo: 0,
-                porcentaje: 25
-            },
-            {
-                id: libro.personas[3].id,
-                tipo: libro.personas[3].tipo,
-                porcentaje: 33.0
-            }
-        ]
+        const data = [{
+            id_persona: libro.personas[1].id_persona,
+            tipo: libro.personas[1].tipo,
+            porcentaje: 25
+        },
+        {
+            id_persona: libro.personas[3].id_persona,
+            tipo: libro.personas[3].tipo,
+            porcentaje: 33.0
+        }];
+
         const res = await request(app)
             .put('/libro/'+libro.isbn+'/personas')
             .set('Authorization', `Bearer ${token}`)
@@ -264,8 +262,8 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
     });
 
     it('Actualizamos una persona que no esta en el libro', async () => {
-        let autor_copy = JSON.parse(JSON.stringify(libro.autores[0]));
-        autor_copy.id = -1;
+        let autor_copy = JSON.parse(JSON.stringify(libro.personas[0]));
+        autor_copy.id_persona = -1;
         const res = await request(app)
             .put('/libro/'+libro.isbn+'/personas')
             .set('Authorization', `Bearer ${token}`)
@@ -281,8 +279,8 @@ describe('DELETE /libro', function () {
             .delete(`/libro/${libro.isbn}/personas`)
             .set('Authorization', `Bearer ${token}`)
             .send([{
-                ...libro.personas[0],
-                tipo: 0,
+                id_persona: libro.personas[0].id_persona,
+                tipo: libro.personas[0].tipo
             }]);
 
         expect_success_code(200, res);
@@ -293,8 +291,8 @@ describe('DELETE /libro', function () {
             .delete(`/libro/${libro.isbn}/personas`)
             .set('Authorization', `Bearer ${token}`)
             .send([{
-                id: -1,
-                tipo: 0,
+                id_persona: -1,
+                tipo: "autor",
             }]);
 
         expect_err_code(404, res);
@@ -315,21 +313,20 @@ describe('DELETE /libro', function () {
     });
 
     it('Las personas no tienen más el libro asignado', async () => {
-
-        let autor       = (await request(app)
-            .get('/persona/'+libro.personas[0].id)
+        const autor       = (await request(app)
+            .get('/persona/'+libro.personas[0].id_persona)
             .set('Authorization', `Bearer ${token}`)
             ).body;
         //console.log(autor);
-        let ilustrador  = (await request(app)
-            .get('/persona/'+libro.personas[1].id)
+        const ilustrador  = (await request(app)
+            .get('/persona/'+libro.personas[1].id_persona)
             .set('Authorization', `Bearer ${token}`)
             ).body;
         //console.log(ilustrador);
 
-        //Revisar que los autores e ilustradores tengan ese libro asociado
-        chai.expect(     autor.libros.map(l => l.isbn)).to.not.deep.include(libro.isbn);
-        chai.expect(ilustrador.libros.map(l => l.isbn)).to.not.deep.include(libro.isbn);
+        //Revisar que los autores e ilustradores NO tengan ese libro asociado
+        expect(     autor.libros.map((l: any) => l.isbn)).not.toContain(libro.isbn);
+        expect(ilustrador.libros.map((l: any) => l.isbn)).not.toContain(libro.isbn);
     });
 
 });

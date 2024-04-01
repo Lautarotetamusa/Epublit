@@ -19,20 +19,14 @@ export type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
 const personaLibroPersonaSchema = personaSchema.and(libroPersonaSchema);
 export type PersonaLibroPersonaSchema = z.infer<typeof personaLibroPersonaSchema>;
 
-const libroPersonaKey = libroPersonaSchema.omit({
+export const libroPersonaKey = libroPersonaSchema.omit({
     porcentaje: true
 });
 export type LibroPersonaKey = z.infer<typeof libroPersonaKey>;
 
-const updateLibroPersona = libroPersonaSchema.pick({
-    porcentaje: true
-});
-type UpdateLibroPersona = z.infer<typeof updateLibroPersona>;
-
 export const createlibroPersonaInDB = libroPersonaSchema.omit({
     isbn: true
 });
-
 export const createLibroPersona = createPersona.and(libroPersonaSchema.omit({
     id_persona: true,
     isbn: true

@@ -1,6 +1,7 @@
 import {conn} from '../db'
 import { OkPacket, RowDataPacket } from "mysql2/promise";
 import { NotFound, NothingChanged } from './errors';
+import assert from 'assert';
 
 export class BaseModel{
     /*
@@ -114,6 +115,30 @@ export class BaseModel{
         //await this._update({is_deleted: 1}, _where);
     }
 
+    /**
+     * 
+     * @param _req 
+     * @returns
+     *  return true if all objects exists in the db \
+     *  return false if any object not exists
+     */
+    static async all_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(_req);
+        return rows.length == _req.length;
+    }
+
+    /**
+     * 
+     * @param _req 
+     * @returns
+     *  return true if any objects exists in the db \
+     *  return false if all the object not exists
+     */
+    static async any_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(_req);
+        return rows.length > 0;
+    }
+
     protected static async _bulk_insert<CT extends {}>(_req: CT[]){
         if (_req.length == 0) return
 
@@ -130,59 +155,41 @@ export class BaseModel{
 
     protected static async _bulk_select<RT extends {}>(_req: object[]): Promise<RT[]>{
         if (_req.length == 0) return [] as RT[];
+        if ((typeof _req[0]) != 'object') return [] as RT[];
 
         const keys = Object.keys(_req[0]).join(",");
-        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = _req.map(obj => Object.values(obj)).flat();
+
+        assert(value_list.length > 0, "El value es vacio");
 
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
             FROM ${this.table_name} 
-            WHERE (${keys}) IN (${values})`
+            WHERE (${keys}) IN (${parameters})`;
 
-        const [rows] = await conn.query<RowDataPacket[]>(query, _req);
+        const [rows] = await conn.query<RowDataPacket[]>(query, value_list);
         return rows as RT[];
     }
 
-    /**
-     * 
-     * @param _req 
-     * @returns
-     *  return true if all objects exists in the db \
-     *  return false if any object not exists
-     */
-    static async all_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
-        const rows = await this._bulk_select(_req);
-        return rows.length == _req.length;
-            throw new NotFound(`El item de la tabla ${this.table_name} no se encontro`);
-    }
-
-    /**
-     * 
-     * @param _req 
-     * @returns
-     *  return true if any objects exists in the db \
-     *  return false if all the object not exists
-     */
-    static async any_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
-        const rows = await this._bulk_select(_req);
-        console.log("ROWS: ", rows);
-        
-        return rows.length > 0;
-    }
-
     protected static async _bulk_remove<DT extends {}>(_req: DT[]){
-        if (_req.length == 0) return
+        if (_req.length == 0) return [] as DT[];
+        if ((typeof _req[0]) != 'object') return [] as DT[];
 
         const keys = Object.keys(_req[0]).join(",");
-        const values = _req.map(obj => `(${Object.values(obj).join(",")})`).join(",");
+        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = _req.map(obj => Object.values(obj)).flat();
+
+        assert(value_list.length > 0, "El value es vacio");
 
         const query = `
             DELETE FROM ${this.table_name}
-            WHERE (${keys}) in (${values})`;
+            WHERE (${keys}) in (${parameters})`;
 
-        const [rows] = await conn.query<OkPacket>(query);
+        const [rows] = await conn.query<OkPacket>(query, value_list);
 
-        if (rows.affectedRows == 0)
+        if (rows.affectedRows == 0){
             throw new NotFound(`No se encontró ningun item de la tabla ${this.table_name} para eliminar`);
+        }
     }
 }

@@ -117,7 +117,7 @@ export class Libro extends BaseModel{
 
     async getPersonas(userId: number){
         const query = `
-            SELECT personas.id, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
+            SELECT id_persona, dni, nombre, email, libros_personas.tipo, libros_personas.porcentaje
             FROM personas 
             INNER JOIN libros_personas
                 ON personas.id  = libros_personas.id_persona
