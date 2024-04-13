@@ -100,7 +100,7 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 		'ImpTotal' 	: venta.total, 							//Importe total del comprobante
 		'ImpTotConc': 0,   									//Importe neto no gravado2
 		'ImpNeto' 	: venta.total, 							//Importe neto gravado
-		'ImpOpEx' 	: 0,   									//Importe exento de IVA
+		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total, //Importe exento de IVA
 		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0, //Importe total de IVA. Para facturas A el importe de iva no puede ser 0
 		'ImpTrib' 	: 0,   									//Importe total de tributos
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 

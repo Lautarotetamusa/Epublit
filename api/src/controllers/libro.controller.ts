@@ -28,9 +28,17 @@ function removeDuplicateds(list: any[]) {
 }
 
 const create = async (req: Request, res: Response) => { 
-    const {personas, ...libroBody} = createLibro.parse(req.body);
+    const {autores, ilustradores, ...libroBody} = createLibro.parse(req.body);
     let indb: LibroPersonaSchema[] = [];
-    let notIndb: CreateLibroPersona[] = [];
+    let notIndb = [];
+
+    let personas = [];
+    for (const a of autores){
+        personas.push({...a, tipo: tipoPersona.autor});
+    }
+    for (const i of ilustradores){
+        personas.push({...i, tipo: tipoPersona.ilustrador});
+    }
 
     for (const persona of personas){
         if ("id_persona" in persona){
@@ -64,8 +72,8 @@ const create = async (req: Request, res: Response) => {
 
         indb.push({
             porcentaje: personaBody.porcentaje, 
-            tipo: personaBody.tipo, 
             id_persona: persona.id,
+            tipo: personaBody.tipo, 
             isbn: libroBody.isbn
         });
     }

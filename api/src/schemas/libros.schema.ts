@@ -19,7 +19,8 @@ export const libroCantidad = libroSchema.pick({
 export type LibroCantidad = z.infer<typeof libroCantidad>;
 
 export const createLibro = libroSchema.extend({
-    personas: z.array(createlibroPersonaInDB.or(createLibroPersona))
+    autores: z.array(createlibroPersonaInDB.or(createLibroPersona)),
+    ilustradores: z.array(createlibroPersonaInDB.or(createLibroPersona))
 }).omit({
     user: true
 });

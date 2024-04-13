@@ -16,7 +16,7 @@ const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto 
 const host = process.env.HOST ? process.env.HOST : "localhost";
 const env = process.env.env || "dev";
 
-const route = `${env == "dev" ? 'api/v1/': ''}files` as const;
+const route = `${env != "dev" ? 'api/v1/': ''}files` as const;
 export const filesUrl  = `http://${host}:${publicPort}/${route}` as const;
 export const filesPath = join(__dirname, "../files");
 

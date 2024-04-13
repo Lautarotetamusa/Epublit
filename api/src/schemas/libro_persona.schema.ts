@@ -25,10 +25,12 @@ export const libroPersonaKey = libroPersonaSchema.omit({
 export type LibroPersonaKey = z.infer<typeof libroPersonaKey>;
 
 export const createlibroPersonaInDB = libroPersonaSchema.omit({
-    isbn: true
+    isbn: true,
+    tipo: true
 });
 export const createLibroPersona = createPersona.and(libroPersonaSchema.omit({
     id_persona: true,
-    isbn: true
+    isbn: true,
+    tipo: true
 }));
 export type CreateLibroPersona = z.infer<typeof createLibroPersona>;

@@ -72,10 +72,15 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
 
 const getOne = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
+    const userId = res.locals.user.id;
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     const venta = await Venta.getById(id, res.locals.user.id);
-    return res.json(venta);
+    const libros = await venta.getLibros(userId);
+    return res.json({
+        ...venta,
+        libros: libros
+    });
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response> => {

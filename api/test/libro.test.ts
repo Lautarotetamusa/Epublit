@@ -108,15 +108,15 @@ describe('Crear libro POST /libro', function () {
             ).body;
 
         //Autor que agarramos desde la tabla
-        libro.personas = [{
+        libro.autores = [{
             id_persona: personas.at(-1).id,
             porcentaje: 20,
-            tipo: "autor"
-        }, {
+        }];
+
+        libro.ilustradores = [{
             nombre: "juancito",
             dni: "39019203",
             porcentaje: 25.0,
-            tipo: "ilustrador"
         }];
 
         const res = await request(app)

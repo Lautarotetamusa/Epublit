@@ -150,6 +150,9 @@ export class BaseModel{
             INSERT INTO ${this.table_name} (${keys})
             VALUES ${parameters}`;
 
+        console.log(query);
+        console.log(value_list);
+
         const [result] = await conn.query<OkPacket>(query, value_list);
     }
 
