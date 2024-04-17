@@ -28,6 +28,8 @@ function removeDuplicateds(list: any[]) {
 }
 
 const create = async (req: Request, res: Response) => { 
+    const userId = res.locals.user.id;
+
     const {autores, ilustradores, ...libroBody} = createLibro.parse(req.body);
     let indb: LibroPersonaSchema[] = [];
     let notIndb = [];
@@ -67,7 +69,7 @@ const create = async (req: Request, res: Response) => {
             nombre: personaBody.nombre,
             email: personaBody.email,
             dni: personaBody.dni,
-            user: res.locals.user.id
+            user: userId
         });
 
         indb.push({
@@ -79,10 +81,10 @@ const create = async (req: Request, res: Response) => {
     }
     const libro = await Libro.insert({
         ...libroBody,
-        user: res.locals.user.id
+        user: userId
     });
     
-    await LibroPrecio.insert(libroBody.isbn, libroBody.precio);
+    await LibroPrecio.insert(libroBody.isbn, libroBody.precio, userId);
 
     await LibroPersona.insert(indb);
 
@@ -115,7 +117,7 @@ const update = async(req: Request, res: Response) => {
 
     //Solamente creamos un nuevo precio si el precio es distinto
     if ('precio' in body && body.precio && libro.precio != body.precio){
-        await LibroPrecio.insert(isbn, body.precio);
+        await LibroPrecio.insert(isbn, body.precio, user);
     }
     await libro.update(body, user);
 

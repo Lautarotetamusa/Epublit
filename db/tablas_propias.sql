@@ -2,7 +2,9 @@ ALTER TABLE libros
     add column user INT(11) DEFAULT 1,
     add constraint foreign key (user) references users(id);
 ALTER TABLE libros
-    modify column user INT(11) NOT NULL;
+    modify column user INT(11) NOT NULL,
+    drop primary key,
+    add primary key(isbn, user);
 
 ALTER TABLE ventas
     add column user INT(11) DEFAULT 1,
@@ -17,8 +19,10 @@ ALTER TABLE personas
     modify column user INT(11) NOT NULL;
 
 ALTER TABLE clientes
-    add column user INT(11) NOT NULL,
+    add column user INT(11) DEFAULT 1,
     add constraint foreign key (user) references users(id);
+ALTER TABLE personas
+    modify column user INT(11) NOT NULL;
 
 ALTER TABLE consignaciones
     add column user INT(11) NOT NULL,

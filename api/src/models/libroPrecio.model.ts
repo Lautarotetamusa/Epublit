@@ -6,8 +6,8 @@ export class LibroPrecio extends BaseModel{
     static table_name = "precio_libros";
     static fields = ["isbn", "precio", "created_at"];
 
-    static insert(isbn: string, precio: number){
-        return this._insert({precio: precio, isbn: isbn});
+    static insert(isbn: string, precio: number, userId: number){
+        return this._insert({precio: precio, isbn: isbn, user: userId});
     }
 
     static async getPreciosLibro(isbn: string){

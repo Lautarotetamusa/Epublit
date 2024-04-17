@@ -1,8 +1,8 @@
 CREATE USER 'teti'@'%' IDENTIFIED BY 'Lautaro123.';
 GRANT ALL PRIVILEGES ON *.* TO 'teti'@'%' WITH GRANT OPTION;
 
-CREATE DATABASE IF NOT EXISTS librossilvestres;
-USE librossilvestres;
+CREATE DATABASE IF NOT EXISTS epublit;
+USE epublit;
 
 CREATE TABLE users(
     id INT(11) NOT NULL AUTO_INCREMENT,
@@ -29,17 +29,20 @@ CREATE TABLE libros(
 
     is_deleted BOOLEAN DEFAULT false,
 
-    PRIMARY KEY (isbn),
+    PRIMARY KEY (isbn, user),
     FOREIGN KEY (user) REFERENCES users(id)
 );
 
 CREATE TABLE precio_libros(
+    user INT(11) NOT NULL,
+
     id INT NOT NULL AUTO_INCREMENT,
     isbn VARCHAR(13) NOT NULL,
     precio FLOAT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id),
+    FOREIGN KEY (user) REFERENCES users(id),
     FOREIGN KEY (isbn) REFERENCES libros(isbn)
 );
 
@@ -60,7 +63,7 @@ CREATE TABLE personas(
 CREATE TABLE libros_personas(
     isbn VARCHAR(13) NOT NULL,
     id_persona INT(11) NOT NULL,
-    tipo TINYINT DEFAULT 0 NOT NULL,
+    tipo enum ("autor", "ilustrador")
     porcentaje FLOAT DEFAULT 0,
 
     PRIMARY KEY (isbn, id_persona, tipo),
