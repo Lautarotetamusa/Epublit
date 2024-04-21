@@ -9,5 +9,8 @@ src/afip/ClavesLibrosSilvestres/*
 files/facturas/*
 files/remitos/*
 
+#Tokens de afip
+afipkeys/*
+
 #Ts build folder
 dist/

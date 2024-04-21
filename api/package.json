@@ -43,7 +43,7 @@
     "license": "ISC",
     "description": "",
     "scripts": {
-        "dev": "nodemon src/app.ts",
+        "dev": "nodemon --ignore afipkeys/ src/app.ts",
         "build": "tsc .",
         "test": "jest"
     }

@@ -12,10 +12,13 @@ RUN apt-get update && apt-get install curl gnupg -y \
   && apt-get install google-chrome-stable -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
+#Poner el timezone de buenos aires para que el servicio de Afip funcione bien
+ENV TZ="America/Buenos_Aires"
+RUN date
+RUN cp /usr/share/zoneinfo/$TZ etc/localtime
+
 WORKDIR app/
 
 COPY ./api .
 RUN npm install
 RUN npm install typescript -g
-
-COPY ./api/src/afip/Claves dist/afip/Claves

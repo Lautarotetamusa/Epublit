@@ -31,6 +31,7 @@ services:
     volumes:
      - ./api/files:/app/files
      - ./api/src:/app/src
+     - ./api/afipkeys:/app/afipkeys
 
   front:
     depends_on:
