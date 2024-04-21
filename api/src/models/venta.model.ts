@@ -1,7 +1,7 @@
 import {conn} from '../db'
 import { Libro } from './libro.model';
 import { ValidationError } from './errors';
-import { BaseModel } from './base.model';
+import { BaseModel, DBConnection } from './base.model';
 import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
 import { LibroCantidad } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
@@ -44,14 +44,14 @@ export class LibroVenta extends Libro{
         return libros;
     }
 
-    static async save(body: LibroVenta[], id_venta: number){
+    static async save(body: LibroVenta[], id_venta: number, conn: DBConnection){
         const libros = body.map(libro => ({
             cantidad: libro.cantidad,
             precio_venta: libro.precio_venta,
             isbn: libro.isbn,
             id_venta: id_venta
         }));
-        await this._bulk_insert<libroVentaSchema>(libros);
+        await this._bulk_insert<libroVentaSchema>(libros, conn);
     }
 }
 
@@ -99,8 +99,8 @@ export class Venta extends BaseModel{
         this.file_path = this.file_path ? `${filesUrl}/${Venta.filesFolder}/${this.file_path}` : this.file_path;
     }
 
-    static async insert(body: SaveVenta){
-        return await this._insert<SaveVenta, Venta>(body);
+    static async insert(body: SaveVenta, conn: DBConnection){
+        return await this._insert<SaveVenta, Venta>(body, conn);
     }
 
     static async getById(id: number, userId: number){

@@ -30,9 +30,11 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
             file_path: c.generatePath(),
             user: user
-        });
+        }, connection);
+        connection.release();
 
-        await LibroVenta.save(librosModel, venta.id);
+        await LibroVenta.save(librosModel, venta.id, connection);
+        connection.release();
 
         for (const libro of librosModel){
             await libro.updateStock(-libro.cantidad, user);
@@ -67,6 +69,8 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         connection.rollback();
         console.log("Se realizo un rollback");
         throw err;
+    }finally{
+        connection.release()
     }
 }
 

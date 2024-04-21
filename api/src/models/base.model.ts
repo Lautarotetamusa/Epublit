@@ -1,7 +1,15 @@
 import {conn} from '../db'
-import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { NotFound, NothingChanged } from './errors';
+
+import { RowDataPacket } from "mysql2/promise";
+import { ResultSetHeader } from "mysql2";
+
+import { NotFound } from './errors';
+
 import assert from 'assert';
+
+export interface DBConnection{
+    query<T>(sql: string, value: any): Promise<T>;
+}
 
 export class BaseModel{
     /*
@@ -12,7 +20,7 @@ export class BaseModel{
     /*
         IMPLEMENTATIONS
     */
-    protected static format_where(req: object | undefined){
+    protected static formatWhere(req: object | undefined){
         let where_query = "";
         let where_list: any[] = []
         if (req){
@@ -34,7 +42,7 @@ export class BaseModel{
     }
 
     protected static async _exists(req?: object): Promise<boolean>{
-        let {where_query, where_list} = this.format_where(req);
+        let {where_query, where_list} = this.formatWhere(req);
 
         const query = `
             SELECT COUNT(*) AS count
@@ -48,7 +56,7 @@ export class BaseModel{
     }
 
     protected static async find_one<RT, MT>(req?: object): Promise<MT>{
-        let {where_query, where_list} = this.format_where(req);
+        let {where_query, where_list} = this.formatWhere(req);
         
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"}
@@ -64,7 +72,7 @@ export class BaseModel{
     }
 
     protected static async find_all<RT>(req?: object): Promise<RT[]>{
-        let {where_query, where_list} = this.format_where(req);
+        let {where_query, where_list} = this.formatWhere(req);
 
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
@@ -75,94 +83,89 @@ export class BaseModel{
         return rows as RT[];
     }
 
-    protected static async _insert<CT, MT>(_req: CT): Promise<MT>{
+    protected static async _insert<CT, MT>(req: CT, connection: DBConnection = conn): Promise<MT>{
         const query = `INSERT INTO ${this.table_name} SET ?`;
 
-        const [result] = await conn.query<OkPacket>(query, _req);
+        const [result] = await connection.query<ResultSetHeader[]>(query, req);
 
         return new (this as any)({
-            ..._req,
+            ...req,
             id: result.insertId            
         }) as MT;
     }
 
-    protected static async _update<UT>(_req: UT, _where: object){        
-        let {where_query, where_list} = this.format_where(_where);
+    protected static async _update<UT>(req: UT, where: object, connection: DBConnection = conn){        
+        let {where_query, where_list} = this.formatWhere(where);
 
         const query = `
             UPDATE ${this.table_name}
             SET ?
             ${where_query}`
 
-        const [result] = await conn.query<OkPacket>(query, [_req].concat(where_list));
+        const [result] = await connection.query<ResultSetHeader[]>(query, [req].concat(where_list));
 
-        if (result.affectedRows == 0)
+        if (result.affectedRows == 0){
             throw new NotFound(`No se encontro el item de la tabla ${this.table_name}`);
-
-        if (result.changedRows == 0)
-            throw new NothingChanged('Ningun valor es distinto a lo que ya existia en la base de datos');
+        }
     }
 
-    protected static async _delete(_where: object){
-        let {where_query, where_list} = this.format_where(_where);
+    protected static async _delete(where: object, connection: DBConnection = conn){
+        let {where_query, where_list} = this.formatWhere(where);
 
         const query = `
             DELETE FROM ${this.table_name}
             ${where_query}`
 
-        const [result] = await conn.query<OkPacket>(query, where_list);
+        const [result] = await connection.query<ResultSetHeader[]>(query, where_list);
         return result;
-        //await this._update({is_deleted: 1}, _where);
     }
 
     /**
      * 
-     * @param _req 
+     * @param req 
      * @returns
      *  return true if all objects exists in the db \
      *  return false if any object not exists
      */
-    static async all_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
-        const rows = await this._bulk_select(_req);
-        return rows.length == _req.length;
+    static async all_exists<RT extends {}>(req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(req);
+        return rows.length == req.length;
     }
 
     /**
      * 
-     * @param _req 
+     * @param req 
      * @returns
      *  return true if any objects exists in the db \
      *  return false if all the object not exists
      */
-    static async any_exists<RT extends {}>(_req: RT[]): Promise<boolean>{
-        const rows = await this._bulk_select(_req);
+    static async any_exists<RT extends {}>(req: RT[]): Promise<boolean>{
+        const rows = await this._bulk_select(req);
         return rows.length > 0;
     }
 
-    protected static async _bulk_insert<CT extends {}>(_req: CT[]){
-        if (_req.length == 0) return
+    protected static async _bulk_insert<CT extends {}>(req: CT[], connection: DBConnection = conn){
+        if (req.length == 0) return
 
-        const keys = Object.keys(_req[0]).join(",");
-        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
-        const value_list = _req.map(obj => Object.values(obj)).flat();
+        const keys = Object.keys(req[0]).join(",");
+        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = req.map(obj => Object.values(obj)).flat();
 
         const query = `
             INSERT INTO ${this.table_name} (${keys})
             VALUES ${parameters}`;
 
-        console.log(query);
-        console.log(value_list);
-
-        const [result] = await conn.query<OkPacket>(query, value_list);
+        const [result] = await connection.query<ResultSetHeader[]>(query, value_list);
+        return result;
     }
 
-    protected static async _bulk_select<RT extends {}>(_req: object[]): Promise<RT[]>{
-        if (_req.length == 0) return [] as RT[];
-        if ((typeof _req[0]) != 'object') return [] as RT[];
+    protected static async _bulk_select<RT extends {}>(req: object[]): Promise<RT[]>{
+        if (req.length == 0) return [] as RT[];
+        if ((typeof req[0]) != 'object') return [] as RT[];
 
-        const keys = Object.keys(_req[0]).join(",");
-        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
-        const value_list = _req.map(obj => Object.values(obj)).flat();
+        const keys = Object.keys(req[0]).join(",");
+        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = req.map(obj => Object.values(obj)).flat();
 
         assert(value_list.length > 0, "El value es vacio");
 
@@ -175,13 +178,13 @@ export class BaseModel{
         return rows as RT[];
     }
 
-    protected static async _bulk_remove<DT extends {}>(_req: DT[]){
-        if (_req.length == 0) return [] as DT[];
-        if ((typeof _req[0]) != 'object') return [] as DT[];
+    protected static async _bulk_remove<DT extends {}>(req: DT[], connection: DBConnection = conn){
+        if (req.length == 0) return [] as DT[];
+        if ((typeof req[0]) != 'object') return [] as DT[];
 
-        const keys = Object.keys(_req[0]).join(",");
-        const parameters = _req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
-        const value_list = _req.map(obj => Object.values(obj)).flat();
+        const keys = Object.keys(req[0]).join(",");
+        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const value_list = req.map(obj => Object.values(obj)).flat();
 
         assert(value_list.length > 0, "El value es vacio");
 
@@ -189,7 +192,7 @@ export class BaseModel{
             DELETE FROM ${this.table_name}
             WHERE (${keys}) in (${parameters})`;
 
-        const [rows] = await conn.query<OkPacket>(query, value_list);
+        const [rows] = await connection.query<ResultSetHeader[]>(query, value_list);
 
         if (rows.affectedRows == 0){
             throw new NotFound(`No se encontró ningun item de la tabla ${this.table_name} para eliminar`);

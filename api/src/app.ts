@@ -20,7 +20,7 @@ const route = `${env != "dev" ? 'api/v1/': ''}files` as const;
 export const filesUrl  = `http://${host}:${publicPort}/${route}` as const;
 export const filesPath = join(__dirname, "../files");
 
-app.use((req, res, next) => {
+app.use((req, _, next) => {
     const message = `[server]: ${req.method} ${req.url}`;
     console.log(message);
     next();
@@ -39,7 +39,7 @@ app.use('/files', fileRouter);
 app.use(router);
 
 //Cualquier otra ruta no especificada
-app.use('*', (req, res) => res.status(404).json({
+app.use('*', (_, res) => res.status(404).json({
     success: false,
     error: "Esta ruta no hace nada"
 }));

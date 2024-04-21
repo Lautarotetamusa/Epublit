@@ -7,6 +7,7 @@ import { ValidationError } from "../models/errors"
 import { emitirComprobante } from "../comprobantes/comprobante"
 import { createConsignacion } from "../schemas/consignaciones.schema";
 import { tipoCliente } from "../schemas/cliente.schema";
+import { conn } from "../db";
 
 const consignar = async(req: Request, res: Response): Promise<Response> => {
     const body = createConsignacion.parse(req.body);
@@ -95,7 +96,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
         total: 0,//Venta.calcTotal(librosModel, 0),
         file_path: cliente.generatePath(),
         user: user 
-    });
+    }, conn);
 
     //Insertar todos los libros de esa venta
     await LibroConsignacion.bulk_insert(body.libros.map(l => ({
