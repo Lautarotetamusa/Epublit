@@ -1,18 +1,29 @@
-import { getAfipClient, getAfipData } from "../src/afip/Afip";
-import Afip from "../src/afip/afip.js/src/Afip";
-import { User } from "../src/models/user.model";
+import {expect, it} from '@jest/globals';
 
-(async function main(){
-    const cuitProd = "27249804024";
-    const afip = new Afip({
-        CUIT: cuitProd,
-        ta_folder: `./src/afip/Claves/${cuitProd}Tokens/`,
-        res_folder: `./src/afip/Claves/${cuitProd}/`,
-        key: 'private_key.key',
-        cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
-        //cert: 'cert.pem',
-        production: true,
-    });
+import { getAfipData } from "../src/afip/Afip";
 
-    afip.ElectronicBilling?.getVoucherTypes().then(data => console.log(data));
-})();
+type Expecteds = {[key: string]: {
+    domicilio: string,
+    razon_social: string,
+    cond_fiscal: string
+}}
+
+const expecteds: Expecteds = {
+    "20434919798": {
+        domicilio: "URQUIZA 1159 Piso:4 Dpto:4 - ROSARIO NORTE",
+        razon_social: "LAUTARO TETA MUSA",
+        cond_fiscal: " - "
+    },
+    "30709354082": {
+        domicilio: " - ",
+        razon_social: "EL GRAN HERMANO",
+        cond_fiscal: " - "
+    },
+}
+
+it('Obtener datos cliente', async () => {
+    for (const cuit in expecteds){
+        const data = await getAfipData(cuit)
+        expect(data).toEqual(expecteds[cuit])
+    }
+}, 40000);

@@ -11,6 +11,8 @@ import { join } from 'path';
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
+const afipKeysPath = join(__dirname, '../../afipkeys/');
+
 export type Comprobante = {
     nro: string,
     qr: string,
@@ -23,10 +25,10 @@ export type Comprobante = {
 
 // cuenta madre
 const cuitProd = "27249804024";
-export const afip_madre = new Afip({
+const afipMadre = new Afip({
 	CUIT: cuitProd,
-	ta_folder: `./src/afip/Claves/${cuitProd}Tokens/`,
-	res_folder: `./src/afip/Claves/${cuitProd}/`,
+	ta_folder: join(afipKeysPath, cuitProd+'/Tokens/'),
+	res_folder: join(afipKeysPath, cuitProd),
 	key: 'private_key.key',
 	//cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
     cert: 'cert.pem',
@@ -34,19 +36,20 @@ export const afip_madre = new Afip({
 });
 
 export function getAfipClient(user: User){
-    const path = join(__dirname, `/Claves/${user.cuit}`);
+    const path = join(afipKeysPath, user.cuit);
+    console.log("res folder:", path);
+    console.log("ta_folder:", join(path, 'Tokens'));
+
     if (!(fs.existsSync(path+'/private_key.key'))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
     }
     if (!(fs.existsSync(path+'/cert.pem'))){
         throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
     }
-    console.log("res folder:", path);
-    console.log("ta_folder:", `${path}/Tokens/`);
 
     return new Afip({
         CUIT: user.cuit,
-        ta_folder:  `${path}/Tokens/`,
+        ta_folder:  join(path, 'Tokens'),
         res_folder: path,
         key: 'private_key.key',
         cert: 'cert.pem',
@@ -73,8 +76,6 @@ function qr_url(voucher: any){
 	}
 
 	const buff = Buffer.from(JSON.stringify(datosComprobante)).toString("base64");
-	console.log(url+buff);
-
 	return url+buff;
 }
 
@@ -127,8 +128,8 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 }
 
 export async function getAfipData(cuit: string): Promise<AfipData>{
-	const afip_data = await afip_madre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
-	if (afip_data === null){
+	const afipData = await afipMadre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
+	if (afipData === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
 
@@ -137,41 +138,38 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		domicilio: " - ",
 		razon_social: " - "
 	};
-
-	if (!afip_data.datosGenerales.domicilioFiscal.localidad){
-		afip_data.datosGenerales.domicilioFiscal.localidad = 'CAPITAL FEDERAL'
-    }
+    console.log(afipData);
 
 	let impuestos = null;
-	if (afip_data.datosRegimenGeneral){
-		impuestos = afip_data.datosRegimenGeneral.impuesto
-    }
-	else if(afip_data.datosMonotributo){
-		impuestos = afip_data.datosMonotributo.impuesto
+	if (afipData.datosRegimenGeneral){
+		impuestos = afipData.datosRegimenGeneral.impuesto
+    }else if(afipData.datosMonotributo){
+		impuestos = afipData.datosMonotributo.impuesto
     }
 
 	if (impuestos){
-		var iva = (impuestos as {
+		const iva = (impuestos as {
 			idImpuesto: number,
 			descripcionImpuesto: string
 		}[]).find(i => i.idImpuesto == 32);
 
-		if (iva)
-		data.cond_fiscal = iva.descripcionImpuesto;
-	}else{
-		data.cond_fiscal = " - ";
-	}
-	
-	if (afip_data.datosGenerales.tipoPersona == 'JURIDICA'){
-		data.razon_social = afip_data.datosGenerales.razonSocial;
+		if (iva){
+            data.cond_fiscal = iva.descripcionImpuesto;
+        }
+	}	
+
+	if (afipData.datosGenerales.tipoPersona == 'JURIDICA'){
+		data.razon_social = afipData.datosGenerales.razonSocial;
     }else {
-		data.razon_social = afip_data.datosGenerales.nombre+' '+afip_data.datosGenerales.apellido;
+		data.razon_social = afipData.datosGenerales.nombre+' '+afipData.datosGenerales.apellido;
     }
 
-	data.domicilio = ''
-		+ afip_data.datosGenerales.domicilioFiscal.direccion+' - '
-		+ afip_data.datosGenerales.domicilioFiscal.localidad+ ' ' 
-		+ afip_data.datosGenerales.domicilioFiscal.descripcionProvincia;
+    if (afipData.datosGenerales.domicilioFiscal){
+        data.domicilio = ''
+            + afipData.datosGenerales.domicilioFiscal.direccion+' - '
+            + afipData.datosGenerales.domicilioFiscal.localidad || 'CAPITAL FEDERAL' + ' ' 
+            + afipData.datosGenerales.domicilioFiscal.descripcionProvincia;
+    }
 
 	return data;
 }
