@@ -58,8 +58,8 @@ export class Cliente extends BaseModel{
             .replace(' ', '')+'_'+date+'.pdf';
     }
 
-    static async getAll() {
-        return await this.find_all();
+    static async getAll(userId: number) {
+        return await this.find_all({user: userId});
     }
 
     static async getById(id: number): Promise<Cliente> {
@@ -70,15 +70,16 @@ export class Cliente extends BaseModel{
         return await this.find_one({tipo: tipoCliente.particular});
     }
 
-    static async cuilExists(cuit: string): Promise<Boolean>{
-        return await this._exists({cuit: cuit, tipo: tipoCliente.inscripto})
+    static async cuilExists(cuit: string, userId: number): Promise<Boolean>{
+        return await this._exists({cuit: cuit, tipo: tipoCliente.inscripto, user: userId})
     }
 
-    static async insert(body: CreateCliente): Promise<Cliente> {
-        const afip_data: AfipData = await getAfipData(body.cuit);
+    static async insert(body: CreateCliente, userId: number): Promise<Cliente> {
+        const afipData: AfipData = await getAfipData(body.cuit);
         return await this._insert<SaveClienteInscripto, Cliente>({
             ...body,
-            ...afip_data,
+            ...afipData,
+            user: userId,
             tipo: "inscripto" //No se puede crear un cliente que no sea inscripto
         });
     }
@@ -90,10 +91,10 @@ export class Cliente extends BaseModel{
 
         // Update cuit 
         if (data.cuit && (data.cuit != this.cuit)){
-            const afip_data = await getAfipData(data.cuit);
-            this.cond_fiscal = afip_data.cond_fiscal;
-            this.razon_social = afip_data.razon_social;
-            this.domicilio = afip_data.cond_fiscal;
+            const afipData = await getAfipData(data.cuit);
+            this.cond_fiscal = afipData.cond_fiscal;
+            this.razon_social = afipData.razon_social;
+            this.domicilio = afipData.cond_fiscal;
         }
 
         this.cuit   = data.cuit     || this.cuit;
@@ -103,21 +104,20 @@ export class Cliente extends BaseModel{
         await Cliente._update<UpdateCliente>(this, {id: this.id});
     }
 
-    static async delete(id: number){
-        const res = await this._delete({id: id});
+    static async delete(id: number, userId: number){
+        const res = await this._delete({id: id, user: userId});
         if (res.affectedRows == 0)
             throw new NotFound(`No se encuentra el cliente con id ${id}`);
     }
 
-    async getVentas(userId: number): Promise<Venta[]>{
+    async getVentas(): Promise<Venta[]>{
         const query = `
             SELECT *, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', ventas.file_path) AS file_path
             FROM ventas
             WHERE id_cliente = ?
-            AND user = ?
             ORDER BY id DESC
         `;
-        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id, userId]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
         return rows as Venta[];
     }
 

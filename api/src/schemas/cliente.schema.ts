@@ -15,7 +15,8 @@ const clienteSchema = z.object({
     email: z.string().optional(),
     cuit: z.string(),
     tipo: z.enum(Object.keys(tipoCliente)as [TipoCliente]),
-    id: z.number()
+    id: z.number(),
+    user: z.number()
 });
 export type ClienteSchema = z.infer<typeof clienteSchema>;
 
@@ -29,7 +30,7 @@ export type AfipData = z.infer<typeof afipSchema>;
 const saveClienteInscripto = clienteSchema.omit({id: true});
 export type SaveClienteInscripto = z.infer<typeof saveClienteInscripto>; 
 
-export const updateCliente = saveClienteInscripto.partial();
+export const updateCliente = saveClienteInscripto.omit({user: true}).partial();
 export type UpdateCliente = z.infer<typeof updateCliente>;
 
 export const createCliente = clienteSchema.pick({

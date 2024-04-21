@@ -21,7 +21,7 @@ ALTER TABLE personas
 ALTER TABLE clientes
     add column user INT(11) DEFAULT 1,
     add constraint foreign key (user) references users(id);
-ALTER TABLE personas
+ALTER TABLE clientes
     modify column user INT(11) NOT NULL;
 
 ALTER TABLE consignaciones

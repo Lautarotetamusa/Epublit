@@ -17,11 +17,11 @@ async function getCliente(req: Request): Promise<Cliente>{
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createCliente.parse(req.body);
 
-    if(await Cliente.cuilExists(body.cuit)){
+    if(await Cliente.cuilExists(body.cuit, res.locals.user.id)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`)
     }
 
-    const cliente = await Cliente.insert(body);
+    const cliente = await Cliente.insert(body, res.locals.user.id);
 
     return res.status(201).json({
         success: true,
@@ -37,7 +37,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     const body = updateCliente.parse(req.body); 
     const cliente = await Cliente.getById(id);
     
-    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuilExists(body.cuit)){
+    if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuilExists(body.cuit, res.locals.user.id)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`);
     }
     
@@ -58,7 +58,7 @@ const getStock = async (req: Request, res: Response): Promise<Response> => {
 
 const getVentas = async (req: Request, res: Response): Promise<Response> => {
     const cliente = await getCliente(req);
-    const ventas = await cliente.getVentas(res.locals.user.id);
+    const ventas = await cliente.getVentas();
     return res.json(ventas);
 }
 
@@ -66,7 +66,7 @@ const delet = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id debe ser un numero");
 
-    await Cliente.delete(id)
+    await Cliente.delete(id, res.locals.user.id)
 
     return res.json({
         success: true,
@@ -75,7 +75,7 @@ const delet = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response> => {
-    const clientes = await Cliente.getAll()
+    const clientes = await Cliente.getAll(res.locals.user.id)
     return res.json(clientes);
 }
 
