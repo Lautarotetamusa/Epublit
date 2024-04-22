@@ -23,7 +23,8 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
 
     const consignacion = await Consignacion.insert({
         id_cliente: body.cliente,
-        remito_path: cliente.generatePath()
+        remito_path: cliente.generatePath(),
+        user: res.locals.user.id
     });
 
     await LibroConsignacion.bulk_insert(body.libros.map(l => ({
@@ -64,8 +65,8 @@ const getOne = async (req: Request, res: Response): Promise<Response> => {
     return res.json(cons);
 }
 
-const getAll = async (req: Request, res: Response): Promise<Response> => {
-    const cons = await Consignacion.getAll();
+const getAll = async (_: Request, res: Response): Promise<Response> => {
+    const cons = await Consignacion.getAll(res.locals.user.id);
     return res.json(cons);
 }
 

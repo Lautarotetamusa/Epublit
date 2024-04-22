@@ -55,7 +55,7 @@ export class Cliente extends BaseModel{
 
         return this.razon_social
             .replace('/-/g', '')
-            .replace(' ', '')+'_'+date+'.pdf';
+            .replaceAll(' ', '')+'_'+date+'.pdf';
     }
 
     static async getAll(userId: number) {

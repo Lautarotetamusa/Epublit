@@ -25,10 +25,12 @@ ALTER TABLE clientes
     modify column user INT(11) NOT NULL;
 
 ALTER TABLE consignaciones
-    add column user INT(11) NOT NULL,
+    add column user INT(11) DEFAULT 1,
     add constraint foreign key (user) references users(id);
+ALTER TABLE consignaciones
+    modify column user INT(11) NOT NULL;
 
-
+/* No está todavía */
 ALTER TABLE liquidaciones
     add column user INT(11) NOT NULL,
     add constraint foreign key (user) references users(id);

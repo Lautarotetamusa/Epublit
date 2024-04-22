@@ -8,6 +8,7 @@ import { StockCliente } from '../schemas/cliente.schema';
 import { conn } from '../db';
 import { RowDataPacket } from 'mysql2';
 import { filesUrl } from '../app';
+import { Cliente } from './cliente.model';
 
 export class LibroConsignacion extends Libro {
     cantidad: number;
@@ -89,24 +90,25 @@ export class Consignacion extends BaseModel{
         const [libros] = await conn.query<RowDataPacket[]>(`
             SELECT libros.isbn, titulo, cantidad 
             FROM libros
-            INNER JOIN libros_consignaciones
-                ON libros_consignaciones.isbn = libros.isbn
-            WHERE libros_consignaciones.id_consignacion = ?
+            INNER JOIN ${LibroConsignacion.table_name} LC
+                ON LC.isbn = libros.isbn
+            WHERE LC.id_consignacion = ?
         `, [this.id]);
         return libros as LibroConsignacion[];
     }
 
-    static async getAll(){
+    static async getAll(userId: number){
         const [rows] = await conn.query(`
             SELECT 
-                consignaciones.id, fecha, 
+                Con.id, fecha, 
                 CONCAT ('${filesUrl}', '/', '${Consignacion.filesFolder}', '/', remito_path) AS remito_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
-            FROM consignaciones
-            INNER JOIN clientes
-                ON consignaciones.id_cliente = clientes.id
-        `);
+            FROM ${Consignacion.table_name} Con
+            INNER JOIN ${Cliente.table_name} Cli
+                ON Con.id_cliente = Cli.id
+            WHERE Con.user = ?
+            ORDER BY Con.id DESC
+        `, [userId]);
         return rows;
     }
 }
-

@@ -5,7 +5,8 @@ const consignacionSchema = z.object({
    id: z.number(),
    id_cliente: z.number(),
    fecha: z.date(),
-   remito_path: z.string()
+   remito_path: z.string(),
+   user: z.number()
 });
 export type ConsignacionSchema = z.infer<typeof consignacionSchema>;
 
