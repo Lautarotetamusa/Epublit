@@ -62,7 +62,11 @@ const getOne = async (req: Request, res: Response): Promise<Response> => {
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     const cons = await Consignacion.getById(id);
-    return res.json(cons);
+    const libros = await cons.getLibros();
+    return res.json({
+        ...cons,
+        libros: libros
+    });
 }
 
 const getAll = async (_: Request, res: Response): Promise<Response> => {
