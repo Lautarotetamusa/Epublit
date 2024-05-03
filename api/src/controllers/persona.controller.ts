@@ -3,6 +3,7 @@ import { Persona } from "../models/persona.model";
 import { ValidationError, Duplicated } from '../models/errors';
 import { createPersona, updatePersona} from "../schemas/persona.schema";
 import { libroPersonaSchema} from "../schemas/libro_persona.schema";
+import { conn } from "../db";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createPersona.parse(req.body);
@@ -14,7 +15,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     const persona = await Persona.insert({
         ...body,
         user: res.locals.user.id
-    });
+    }, conn);
 
     return res.status(201).json({
         success: true,
@@ -35,7 +36,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
         throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
     }
 
-    await persona.update(body);
+    await persona.update(body, conn);
 
     return res.status(201).json({
         success: true,
@@ -48,7 +49,7 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
     const id = Number(req.params.id);
     if (!id) throw new ValidationError("El id de la persona debe ser un integer");
 
-    await Persona.delete({id: id})
+    await Persona.delete({id: id}, conn)
 
     return res.json({
         success: true,

@@ -58,6 +58,7 @@ export class LibroVenta extends Libro{
 export class Venta extends BaseModel{
     static table_name = 'ventas';
     static filesFolder = 'facturas';
+    static pk = 'id';
 
     id: number;
     descuento: number;

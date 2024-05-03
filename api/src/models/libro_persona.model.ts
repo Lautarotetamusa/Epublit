@@ -1,5 +1,5 @@
 import { LibroPersonaKey, TipoPersona, LibroPersonaSchema} from "../schemas/libro_persona.schema";
-import { BaseModel } from "./base.model";
+import { BaseModel, DBConnection } from "./base.model";
 
 export class LibroPersona extends BaseModel{
     tipo: TipoPersona;
@@ -9,7 +9,7 @@ export class LibroPersona extends BaseModel{
 
     static table_name: string = "libros_personas";
     static fields = ["tipo", "porcentaje"];
-    static pk = ["tipo", "isbn", "id_persona"];
+    static pks = ["tipo", "isbn", "id_persona"];
 
     //Validamos al momento de crear un objeto
     constructor(body: LibroPersonaSchema) {
@@ -30,11 +30,11 @@ export class LibroPersona extends BaseModel{
         return rows.length > 0;
     }
 
-    static async insert(personas: LibroPersonaSchema[]){
-        await super._bulk_insert(personas);
+    static async insert(personas: LibroPersonaSchema[], connection: DBConnection){
+        await super._bulk_insert(personas, connection);
     }
     
-    static async update(personas: LibroPersonaSchema[]){
+    static async update(personas: LibroPersonaSchema[], connection: DBConnection){
         for (let persona of personas) {
             if (persona.porcentaje){
                 await LibroPersona._update({
@@ -43,13 +43,13 @@ export class LibroPersona extends BaseModel{
                     isbn: persona.isbn, 
                     id_persona: persona.id_persona, 
                     tipo: persona.tipo
-                });
+                }, connection);
             }
         }
     }
 
-    static async remove(personas: LibroPersonaKey[]){
-        await super._bulk_remove(personas);
+    static async remove(personas: LibroPersonaKey[], connection: DBConnection){
+        await super._bulk_remove(personas, connection);
     }
 }
 

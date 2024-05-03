@@ -20,6 +20,7 @@ import { filesUrl } from '../app';
 export class Cliente extends BaseModel{
     static table_name = "clientes";
     static fields = ["id", "nombre", "tipo", "email", "cuit", "cond_fiscal", "razon_social", "domicilio"];
+    static pk = 'id';
 
     id: number;
     nombre: string;

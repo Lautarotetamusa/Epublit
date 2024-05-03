@@ -2,7 +2,7 @@ import {conn} from "../db";
 import { RowDataPacket } from "mysql2/promise";
 import {PersonaSchema, UpdatePersona, SavePersona} from "../schemas/persona.schema";
 
-import { BaseModel } from "./base.model";
+import { BaseModel, DBConnection } from "./base.model";
 import { TipoPersona } from "../schemas/libro_persona.schema";
 import { LibroSchema } from "../schemas/libros.schema";
 
@@ -14,6 +14,7 @@ export class Persona extends BaseModel{
 
     static table_name: string = "personas";
     static fields = ["id", "dni", "nombre", "email"]
+    static pk = 'id';
 
     constructor(persona: PersonaSchema) {
         super();
@@ -36,19 +37,19 @@ export class Persona extends BaseModel{
         return await super._exists({dni: dni, is_deleted: 0, user: userId});
     }
 
-    static async insert(body: SavePersona) {
-        return await super._insert<SavePersona, Persona>(body);
+    static async insert(body: SavePersona, connection: DBConnection) {
+        return await super._insert<SavePersona, Persona>(body, connection);
     }
 
-    static async update(body: UpdatePersona, where: object){
-        await this._update<UpdatePersona>(body, where);    
+    static async update(body: UpdatePersona, where: object, connection: DBConnection){
+        await this._update<UpdatePersona>(body, where, connection);    
     }
 
-    async update(body: UpdatePersona){
+    async update(body: UpdatePersona, connection: DBConnection){
         await Persona._update<UpdatePersona>(body, {
             id: this.id, 
             is_deleted: 0
-        });    
+        }, connection);    
 
         for (let i in body){
             const value = body[i as keyof typeof body];
@@ -58,8 +59,8 @@ export class Persona extends BaseModel{
         }
     }
 
-    static async delete(where: object){
-        await this._update({is_deleted: 1}, where);
+    static async delete(where: object, connection: DBConnection){
+        await this._update({is_deleted: 1}, where, connection);
     }
 
     static async getAllByTipo(tipo: TipoPersona, userId: number): Promise<PersonaSchema[]> {

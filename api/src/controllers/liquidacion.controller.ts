@@ -12,6 +12,8 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createLiquidacion.parse(req.body); 
     const user = res.locals.user.id;
 
+    const libro = await Libro.getByIsbn(body.isbn, user);
+
     if (!(await Liquidacion.valid_period(body.fecha_inicial, body.fecha_final, user))){
         throw new ValidationError("Ya existe una liquidacion en el periodo seleccionado");
     }
@@ -20,7 +22,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     if (!await LibroPersona.exists({
         id_persona: body.id_persona,
         tipo: body.tipo_persona,
-        isbn: body.isbn
+        id_libro: libro.id_libro
     })){
         throw new ValidationError(`La persona con id ${body.id_persona} no trabaja en el libro ${body.isbn}`);
     }
@@ -33,6 +35,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         ...body,
         total: total, 
         file_path: file_path,
+        id_libro: libro.id_libro
     });
 
     return res.status(201).json({

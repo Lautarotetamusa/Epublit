@@ -12,6 +12,7 @@ import { LibroPersona } from "../models/libro_persona.model";
 import fs from 'fs';
 import {  createLibro, updateLibro } from "../schemas/libros.schema";
 import { LibroPrecio } from "../models/libroPrecio.model";
+import { conn } from "../db";
 
 function removeDuplicateds(list: any[]) {
     const uniqueIds: number[] = [];
@@ -29,6 +30,7 @@ function removeDuplicateds(list: any[]) {
 
 const create = async (req: Request, res: Response) => { 
     const userId = res.locals.user.id;
+    const connection = await conn.getConnection();
 
     const {autores, ilustradores, ...libroBody} = createLibro.parse(req.body);
     let indb: LibroPersonaSchema[] = [];
@@ -41,62 +43,86 @@ const create = async (req: Request, res: Response) => {
     for (const i of ilustradores){
         personas.push({...i, tipo: tipoPersona.ilustrador});
     }
-
-    for (const persona of personas){
-        if ("id_persona" in persona){
-            indb.push({
-                ...persona,
-                isbn: libroBody.isbn
-            });
-        }else{
-            notIndb.push(persona);
-        }
-    }
-
-    indb = removeDuplicateds(indb);       
-    await Libro.is_duplicated(libroBody.isbn);
-
-    if (!await Persona.all_exists(indb.map(p => ({id: p.id_persona})))){
-        throw new ValidationError("Alguna persona no existe");
-    }
-
-    if(await Persona.any_exists(notIndb.map(p => ({dni: p.dni})))){
-        throw new ValidationError("Alguna persona ya se encuentra cargada");
-    }
-
-    for (const personaBody of notIndb){
-        const persona = await Persona.insert({
-            nombre: personaBody.nombre,
-            email: personaBody.email,
-            dni: personaBody.dni,
-            user: userId
-        });
-
-        indb.push({
-            porcentaje: personaBody.porcentaje, 
-            id_persona: persona.id,
-            tipo: personaBody.tipo, 
-            isbn: libroBody.isbn
-        });
-    }
-    const libro = await Libro.insert({
-        ...libroBody,
-        user: userId
-    });
     
-    await LibroPrecio.insert(libroBody.isbn, libroBody.precio, userId);
+    try{
+        await connection.beginTransaction();
 
-    await LibroPersona.insert(indb);
+        await Libro.is_duplicated(libroBody.isbn, userId);
+        const libro = await Libro.insert({
+            ...libroBody,
+            user: userId
+        }, connection);
+        console.log("libro:", libro);
+        connection.release();
 
-    return res.status(201).json({
-        success: true,
-        message: `Libro con isbn ${libroBody.isbn} creado correctamente`,
-        data: {
-            ...libro,
-            autores:      indb.filter(p => p.tipo == tipoPersona.autor),
-            ilustradores: indb.filter(p => p.tipo == tipoPersona.ilustrador),
+        for (const persona of personas){
+            if ("id_persona" in persona){
+                indb.push({
+                    ...persona,
+                    isbn: libroBody.isbn,
+                    id_libro: libro.id_libro 
+                });
+            }else{
+                notIndb.push(persona);
+            }
         }
-    });
+
+        indb = removeDuplicateds(indb);       
+
+        if (!await Persona.all_exists(indb.map(p => ({id: p.id_persona, user: userId})))){
+            throw new ValidationError("Alguna persona no existe");
+        }
+
+        if(await Persona.any_exists(notIndb.map(p => ({dni: p.dni, user: userId})))){
+            throw new ValidationError("Alguna persona ya se encuentra cargada");
+        }
+
+        for (const personaBody of notIndb){
+            const persona = await Persona.insert({
+                nombre: personaBody.nombre,
+                email: personaBody.email,
+                dni: personaBody.dni,
+                user: userId
+            }, connection);
+            connection.release();
+
+            indb.push({
+                porcentaje: personaBody.porcentaje, 
+                id_persona: persona.id,
+                tipo: personaBody.tipo, 
+                isbn: libroBody.isbn,
+                id_libro: libro.id_libro
+            });
+        }
+
+        await LibroPrecio.insert({
+            isbn: libroBody.isbn, 
+            precio: libroBody.precio, 
+            user: userId,
+            id_libro: libro.id_libro
+        }, connection);
+        connection.release();
+
+        await LibroPersona.insert(indb, connection);
+        connection.release();
+
+        await connection.commit();
+
+        return res.status(201).json({
+            success: true,
+            message: `Libro con isbn ${libroBody.isbn} creado correctamente`,
+            data: {
+                ...libro,
+                autores:      indb.filter(p => p.tipo == tipoPersona.autor),
+                ilustradores: indb.filter(p => p.tipo == tipoPersona.ilustrador),
+            }
+        });
+    }catch(err: any) {
+        await connection.rollback();
+        throw err;
+    }finally{
+        connection.release();
+    }
 }
 
 const remove = async(req: Request, res: Response) => {
@@ -117,9 +143,14 @@ const update = async(req: Request, res: Response) => {
 
     //Solamente creamos un nuevo precio si el precio es distinto
     if ('precio' in body && body.precio && libro.precio != body.precio){
-        await LibroPrecio.insert(isbn, body.precio, user);
+        await LibroPrecio.insert({
+            isbn: isbn, 
+            precio: body.precio, 
+            user: user,
+            id_libro: libro.id_libro
+        }, conn);
     }
-    await libro.update(body, user);
+    await libro.update(body, user, conn);
 
     return res.status(201).json({
         success: true,

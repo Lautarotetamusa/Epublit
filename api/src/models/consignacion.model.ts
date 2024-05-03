@@ -59,6 +59,7 @@ export class LibroConsignacion extends Libro {
 export class Consignacion extends BaseModel{
     static table_name = "consignaciones";
     static filesFolder = "remitos";
+    static pk = 'id';
 
     id: number;
     remito_path: string;

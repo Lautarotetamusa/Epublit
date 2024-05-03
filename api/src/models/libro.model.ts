@@ -1,19 +1,20 @@
 import { conn } from "../db"
-import { OkPacket, RowDataPacket } from "mysql2/promise";
-import { LibroSchema, UpdateLibro } from "../schemas/libros.schema";
+import { OkPacket, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { LibroSchema, SaveLibro, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
-import { BaseModel } from "./base.model";
+import { BaseModel, DBConnection } from "./base.model";
 import { LibroPersona } from "./libro_persona.model";
 import { PersonaLibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
 
 export class Libro extends BaseModel{
     static table_name = "libros";
-    static fields = ["titulo", "isbn", "fecha_edicion", "precio", "stock"];
-    static pk = ["isbn"];
+    static fields = ["id_libro", "titulo", "isbn", "fecha_edicion", "precio", "stock"];
+    static pk = "id_libro";
 
     titulo: string;
     isbn: string;
+    id_libro: number;
     fecha_edicion: Date;
     precio: number;
     stock: number;
@@ -24,6 +25,7 @@ export class Libro extends BaseModel{
 
         this.titulo = request.titulo;
         this.isbn   = request.isbn;
+        this.id_libro = request.id_libro;
         this.fecha_edicion = request.fecha_edicion;
         this.precio = request.precio;
         this.stock  = request.stock || 0
@@ -39,19 +41,19 @@ export class Libro extends BaseModel{
         }
         return await super.find_all<LibroSchema>({...req, is_deleted: 0, user: userId})
     }
-    static async insert(body: LibroSchema): Promise<Libro> {
-        return await super._insert<LibroSchema, Libro>(body);
+    static async insert(body: SaveLibro, connection: DBConnection): Promise<Libro> {
+        return await Libro._insert<SaveLibro, Libro>(body, connection);
     }
 
-    static async is_duplicated(isbn: string){
-        const exists = await super._exists({isbn: isbn, is_deleted: 0});
+    static async is_duplicated(isbn: string, userId: number){
+        const exists = await super._exists({isbn: isbn, is_deleted: 0, user: userId});
         if (exists){
             throw new Duplicated(`El libro con isbn ${isbn} ya existe`);
         }
     }
     
-    async update(body: UpdateLibro, userId: number){
-        await Libro._update(body, {isbn: this.isbn, is_deleted: 0, user: userId});
+    async update(body: UpdateLibro, userId: number, connection: DBConnection){
+        await Libro._update(body, {isbn: this.isbn, is_deleted: 0, user: userId}, connection);
 
         for (let i in body){
             let value = body[i as keyof typeof body];
@@ -60,24 +62,24 @@ export class Libro extends BaseModel{
         }
     }
 
-    async updateStock(cantidad: number, userId: number){
+    async updateStock(cantidad: number, userId: number, connection: DBConnection){
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${cantidad}
             WHERE isbn = ?
             AND user = ?`
 
-        const [result] = await conn.query<OkPacket>(query, [this.isbn, userId]);
+        const result = await connection.query<ResultSetHeader>(query, [this.isbn, userId]);
         return result;
     }
-    static async updateStock(isbn: string, cantidad: number, userId: number){
+    static async updateStock(isbn: string, cantidad: number, userId: number, connection: DBConnection){
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${cantidad}
             WHERE isbn = ?
             AND user = ?`
 
-        const [result] = await conn.query<OkPacket>(query, [isbn, userId]);
+        const result = await connection.query<ResultSetHeader>(query, [isbn, userId]);
         return result;
     }
 

@@ -34,7 +34,7 @@ const consignar = async(req: Request, res: Response): Promise<Response> => {
     })));
         
     for (const libro of libros) {
-        await libro.updateStock(-libro.cantidad, res.locals.user.id);
+        await libro.updateStock(-libro.cantidad, res.locals.user.id, conn);
     }
 
     await cliente.updateStock(body.libros);
@@ -111,7 +111,7 @@ const liquidar = async(req: Request, res: Response): Promise<Response> => {
 
     //Actualizar el stock del cliente y del libro
     for (const libro of librosModel){
-        await libro.updateStock(libro.cantidad, res.locals.user.id);
+        await libro.updateStock(libro.cantidad, res.locals.user.id, conn);
     }
     const substactedStock = body.libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
     await cliente.updateStock(substactedStock);

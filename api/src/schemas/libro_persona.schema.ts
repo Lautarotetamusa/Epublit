@@ -12,7 +12,8 @@ export const libroPersonaSchema = z.object({
     porcentaje: z.number().min(0).max(100),
     tipo: z.enum(tipoPersonaKeys),
     isbn: z.string(),
-    id_persona: z.number()
+    id_persona: z.number(),
+    id_libro: z.number()
 });
 export type LibroPersonaSchema = z.infer<typeof libroPersonaSchema>;
 
@@ -20,17 +21,20 @@ const personaLibroPersonaSchema = personaSchema.and(libroPersonaSchema);
 export type PersonaLibroPersonaSchema = z.infer<typeof personaLibroPersonaSchema>;
 
 export const libroPersonaKey = libroPersonaSchema.omit({
-    porcentaje: true
+    porcentaje: true,
+    isbn: true
 });
 export type LibroPersonaKey = z.infer<typeof libroPersonaKey>;
 
 export const createlibroPersonaInDB = libroPersonaSchema.omit({
     isbn: true,
-    tipo: true
+    tipo: true,
+    id_libro: true
 });
 export const createLibroPersona = createPersona.and(libroPersonaSchema.omit({
     id_persona: true,
     isbn: true,
-    tipo: true
+    tipo: true,
+    id_libro: true
 }));
 export type CreateLibroPersona = z.infer<typeof createLibroPersona>;

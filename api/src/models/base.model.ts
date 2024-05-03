@@ -3,7 +3,7 @@ import {conn} from '../db'
 import { RowDataPacket } from "mysql2/promise";
 import { ResultSetHeader } from "mysql2";
 
-import { NotFound } from './errors';
+import { NotFound, ValidationError } from './errors';
 
 import assert from 'assert';
 
@@ -17,6 +17,7 @@ export class BaseModel{
     */
     static table_name: string;
     static fields?: string[];
+    static pk: string = "id";
     /*
         IMPLEMENTATIONS
     */
@@ -86,12 +87,19 @@ export class BaseModel{
     protected static async _insert<CT, MT>(req: CT, connection: DBConnection = conn): Promise<MT>{
         const query = `INSERT INTO ${this.table_name} SET ?`;
 
-        const [result] = await connection.query<ResultSetHeader[]>(query, req);
+        try {
+            const [result] = await connection.query<ResultSetHeader[]>(query, req);
 
-        return new (this as any)({
-            ...req,
-            id: result.insertId            
-        }) as MT;
+            const model = new (this as any)(req) as MT;
+            if (this.pk){
+                model[this.pk as keyof typeof model] = result.insertId as any;
+            }
+            return model;
+        } catch (error: any) {
+            if ('code' in error && error.code == "ER_DUP_ENTRY")
+                throw new ValidationError(`Ya existe una ${this.table_name} con esta clave`);
+            throw new Error(error.message);
+        }
     }
 
     protected static async _update<UT>(req: UT, where: object, connection: DBConnection = conn){        

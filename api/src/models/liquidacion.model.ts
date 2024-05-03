@@ -10,7 +10,7 @@ import { TipoPersona } from "../schemas/libro_persona.schema";
 export class Liquidacion extends BaseModel{
     static table_name = "liquidaciones";
     static fields = ["id", "isbn", "fecha_inicial", "fecha_final", "total", "file_path"];
-    static pk = ["id", "isbn", "id_persona", "tipo_persona"];
+    static clave = ["id", "isbn", "id_persona", "tipo_persona"];
 
     id: number;
     isbn: string;

@@ -4,9 +4,9 @@ import {createServer} from 'http';
 import cors from 'cors';
 import "express-async-errors";
 
-import { handleErrors } from "./models/errors";
 import { router } from "./routes";
 import {join} from "path"; //Crear path para los archivos estaticos
+import { handleErrors } from "./models/errors";
 
 export const app = express();
 const server = createServer(app);
@@ -37,14 +37,13 @@ import { fileRouter } from "./routes/files.routes";
 app.use('/files', fileRouter);
 
 app.use(router);
+app.use(handleErrors);
 
 //Cualquier otra ruta no especificada
 app.use('*', (_, res) => res.status(404).json({
     success: false,
     error: "Esta ruta no hace nada"
 }));
-
-app.use(handleErrors);
 
 server.listen(backPort, () => {
     console.log(`[server]: Server is running at http://${host}:${backPort}`);

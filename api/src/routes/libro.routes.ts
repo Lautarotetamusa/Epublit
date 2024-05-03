@@ -2,11 +2,12 @@ import express from "express"
 
 import LibroController from "../controllers/libro.controller"
 import LibroPersonaController from "../controllers/libro_persona.controller"
+import { transactional } from "../middleware/transaction";
 
 const router = express.Router();
 
 // Create new libro
-router.post('/', LibroController.create);
+router.post('/', transactional, LibroController.create);
 
 router.get('/lista_libros', LibroController.listaLibros); 
 
