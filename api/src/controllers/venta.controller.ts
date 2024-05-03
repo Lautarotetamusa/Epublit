@@ -66,11 +66,12 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         if (err instanceof Error){
             console.log("ERROR:", err.message);
         }
-        connection.rollback();
+        await connection.rollback();
         console.log("Se realizo un rollback");
         throw err;
     }finally{
         connection.release()
+        await connection.end()
     }
 }
 
