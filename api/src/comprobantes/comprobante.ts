@@ -1,13 +1,14 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
-import { LibroVenta, Venta } from '../models/venta.model';
-import { Consignacion, LibroConsignacion } from '../models/consignacion.model';
+import { Venta } from '../models/venta.model';
+import { Consignacion } from '../models/transaccion.model';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
 import { Comprobante } from '../afip/Afip';
 import { filesPath } from '../app';
 import { join } from 'path';
 import { tiposComprobantes } from '../schemas/venta.schema';
+import { LibroTransaccion, Transaccion } from '../models/transaccion.model';
 
 const path = './src/comprobantes';
 
@@ -15,13 +16,13 @@ type CreateFactura = {
     venta: Venta
     comprobante: Comprobante
     cliente: Cliente,
-    libros: LibroVenta[] 
+    libros: LibroTransaccion[] 
 };
 
 type CreateRemito = {
-    consignacion: Consignacion,
+    consignacion: Transaccion,
     cliente: Cliente,
-    libros: LibroConsignacion[]
+    libros: LibroTransaccion[]
 };
 
 type args = {
@@ -51,12 +52,11 @@ export async function emitirComprobante({data, user}: args){
 
     let filePath: string;
     if ('venta' in data){
-        console.log(data.venta);
         filePath = join(filesPath, Venta.filesFolder, data.venta.file_path);
         html = factura(html, data);
     }else{
-        filePath = data.consignacion.remito_path
-        filePath = join(filesPath, Consignacion.filesFolder, data.consignacion.remito_path);
+        filePath = data.consignacion.file_path
+        filePath = join(filesPath, Consignacion.filesFolder, data.consignacion.file_path);
         html = remito(html, data);
     }
 
@@ -125,25 +125,14 @@ function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     var table = '';
 
     for (let libro of libros) {
-        if (libro.autores.length > 0){
-            table += 
-                `<tr>
-                <td>${libro.titulo}</td>
-                <td>${libro.autores[0].nombre}</td>
-                <td>${libro.isbn}</td>
-                <td>${libro.cantidad}</td>
-                <td>${libro.precio}</td>
-                </tr>`;
-        }else{
-            table += 
-                `<tr>
-                <td>${libro.titulo}</td>
-                <td> - </td>
-                <td>${libro.isbn}</td>
-                <td>${libro.cantidad}</td>
-                <td>${libro.precio}</td>
-                </tr>`;
-        }   
+        table += 
+            `<tr>
+        <td>${libro.titulo}</td>
+        <td> - </td>
+        <td>${libro.isbn}</td>
+        <td>${libro.cantidad}</td>
+        <td>${libro.precio}</td>
+        </tr>`;
     }
 
     html = html.replace('{{LIBROS}}', table);

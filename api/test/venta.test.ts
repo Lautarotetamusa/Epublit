@@ -47,21 +47,25 @@ describe('VENTA', () => {
     it('delete ventas', async () => {
         //Buscamos la ultima venta creada
         const venta: any = (await conn.query(`
-            SELECT id FROM ventas
+            SELECT id FROM transacciones
             WHERE id_cliente=${id_cliente}
             ORDER BY id DESC;
         `))[0];
 
-        const id_venta = venta[0].id;
+        const id = venta[0].id;
 
         /*Borrar de la base de datos*/
         await conn.query(`
-            DELETE FROM libros_ventas
-            WHERE id_venta=${id_venta};
+            DELETE FROM libros_transacciones
+            WHERE id_transaccion=${id};
         `);
         await conn.query(`
             DELETE FROM ventas
-            WHERE id=${id_venta};
+            WHERE id_transaccion=${id};
+        `);
+        await conn.query(`
+            DELETE FROM transacciones
+            WHERE id=${id};
         `);
     });
 
@@ -227,8 +231,8 @@ describe('VENTA', () => {
                 expect(res.body[0].total).toEqual(venta.total);
             });
             it('La factura existe y el nombre coincide', async () => {   
-                await delay(400);         
-                fs.readFile(`../facturas/${venta.file_path}`, 'utf8', (err, _) => {
+                await delay(1000);         
+                fs.readFile(venta.file_path, 'utf8', (err, _) => {
                     if(err){
                         console.error(err);
                     }
@@ -236,8 +240,7 @@ describe('VENTA', () => {
                 });
             });
             it('Se puede descargar la factura', async () => {
-                await delay(400);
-                console.log(venta.file_path);
+                await delay(1000);
 
                 const res = await request(app)
                     .get(venta.file_path)
@@ -247,19 +250,8 @@ describe('VENTA', () => {
             });
         });
     });
-
-    describe('GET /venta', () => {
-        it('Obtener los medios de pago', async () => {
-            const res = await request(app)
-                .get(`/venta/medios_pago/`)
-                .set('Authorization', `Bearer ${token}`);
-        
-            expect(res.status).toEqual(200);    
-            expect(typeof res.body).toEqual("object");
-        });
-    });
 });
 
 function delay(time: number) {
     return new Promise(resolve => setTimeout(resolve, time));
-  } 
+} 

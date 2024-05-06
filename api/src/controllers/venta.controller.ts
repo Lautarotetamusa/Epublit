@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { LibroVenta, Venta } from "../models/venta.model";
+import { Venta } from "../models/venta.model";
 import { ValidationError } from "../models/errors"
 import { facturar } from "../afip/Afip";
 import { createVenta } from "../schemas/venta.schema";
@@ -7,6 +7,8 @@ import { tipoCliente } from "../schemas/cliente.schema";
 import { Cliente } from "../models/cliente.model";
 import { emitirComprobante } from "../comprobantes/comprobante";
 import { conn } from "../db";
+import { LibroTransaccion } from "../models/transaccion.model";
+import { tipoTransaccion } from "../schemas/transaccion.schema";
 
 const vender = async (req: Request, res: Response): Promise<Response> => {
     const connection = await conn.getConnection();
@@ -15,17 +17,18 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
     const {libros, cliente, ...ventaBody} = createVenta.parse(req.body);
     const c = await Cliente.getById(cliente);
 
-    const librosModel = await LibroVenta.setLibros(libros, user);
-    if (librosModel.length < libros.length){
-        throw new ValidationError("Algun libro no existe");
+    const librosModel = await LibroTransaccion.setLibros(libros, user);
+    for (const libro of librosModel){
+        if (libro.stock < libro.cantidad){
+            throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+        }
     }
-
-    await c.haveStock(libros);
 
     try{
         await connection.beginTransaction();
         const venta = await Venta.insert({
             ...ventaBody,
+            type: tipoTransaccion.venta,
             id_cliente: c.id,
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
             file_path: c.generatePath(),
@@ -33,11 +36,11 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         }, connection);
         connection.release();
 
-        await LibroVenta.save(librosModel, venta.id, connection);
+        await LibroTransaccion.save(librosModel, venta.id, connection);
         connection.release();
 
         for (const libro of librosModel){
-            await libro.updateStock(-libro.cantidad, user, connection);
+            await libro.updateStock(-libro.cantidad, connection);
             connection.release();
         }
 
@@ -56,7 +59,7 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
             });
         }
         await connection.commit();
-        venta.parsePath();
+        venta.parsePath(Venta.filesFolder);
 
         return res.status(201).json({
             success: true,
@@ -65,37 +68,16 @@ const vender = async (req: Request, res: Response): Promise<Response> => {
         });
     }catch(err){
         if (err instanceof Error){
-            console.log("ERROR:", err.message);
+            console.log("ERROR:", err.message, err.stack);
         }
         await connection.rollback();
         console.log("Se realizo un rollback");
         throw err;
     }finally{
         connection.release()
-        await connection.end()
     }
-}
-
-const getOne = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    const userId = res.locals.user.id;
-    if (!id) throw new ValidationError("El id debe ser un numero");
-
-    const venta = await Venta.getById(id, res.locals.user.id);
-    const libros = await venta.getLibros(userId);
-    return res.json({
-        ...venta,
-        libros: libros
-    });
-}
-
-const getAll = async (req: Request, res: Response): Promise<Response> => {
-    const ventas = await Venta.getAll(res.locals.user.id);
-    return res.json(ventas);
 }
 
 export default{
     vender,
-    getOne,
-    getAll
 }

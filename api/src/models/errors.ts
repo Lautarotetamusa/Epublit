@@ -49,7 +49,7 @@ export class Unauthorized extends ApiError {
 }
 
 export function handleErrors(err: Error, req: Request, res: Response, next: NextFunction): Response{
-    console.log("ERROR: ", err.message);
+    console.log("ERROR: ", err.message, err.stack);
     
     if (err instanceof ZodError){
         const errors = err.errors;

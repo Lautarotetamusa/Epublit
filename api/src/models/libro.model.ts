@@ -62,24 +62,13 @@ export class Libro extends BaseModel{
         }
     }
 
-    async updateStock(cantidad: number, userId: number, connection: DBConnection){
+    async updateStock(cantidad: number, connection: DBConnection){
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${cantidad}
-            WHERE isbn = ?
-            AND user = ?`
+            WHERE id_libro = ?`
 
-        const result = await connection.query<ResultSetHeader>(query, [this.isbn, userId]);
-        return result;
-    }
-    static async updateStock(isbn: string, cantidad: number, userId: number, connection: DBConnection){
-        const query = `
-            UPDATE ${Libro.table_name}
-            SET stock = stock + ${cantidad}
-            WHERE isbn = ?
-            AND user = ?`
-
-        const result = await connection.query<ResultSetHeader>(query, [isbn, userId]);
+        const result = await connection.query<ResultSetHeader>(query, [this.id_libro]);
         return result;
     }
 

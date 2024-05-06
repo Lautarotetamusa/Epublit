@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import { libroCantidad } from "./libros.schema";
+import { createTransaccion, transaccionSchema } from './transaccion.schema';
 
 export const medioPago = {
     efectivo: "efectivo",
@@ -30,14 +31,10 @@ export const tiposComprobantes = {
 } as const;
 
 const ventaSchema = z.object({
-    id: z.number(),
-    fecha: z.date(),
+    id_transaccion: z.number(),
     descuento: z.number().max(100).default(0),
     medio_pago: z.enum(Object.keys(medioPago) as [MedioPago]),
-    id_cliente: z.number(),
     total: z.number(),
-    file_path: z.string(),
-    user: z.number(),
     tipo_cbte: z.number().refine((val) => val in tiposComprobantes, {
         message: "El tipo de comprobante no es valido"
     })
@@ -48,25 +45,8 @@ export const createVenta = ventaSchema.pick({
     descuento: true,
     medio_pago: true,
     tipo_cbte: true,
-}).and(z.object({
-    libros: libroCantidad.array().transform(items => { //Si un libro esta dos veces se suman las cantidades
-
-        let isbns: Record<string, number> = {};
-        for (const item of items){
-            if (item.isbn in isbns){
-                isbns[item.isbn] += item.cantidad;
-            }else{
-                isbns[item.isbn] = item.cantidad;
-            }
-        }
-        return Object.keys(isbns).map(i => ({isbn: i, cantidad: isbns[i]}));
-    }),
-    cliente: z.number()
-}));
+}).and(createTransaccion);
 export type CreateVenta = z.infer<typeof createVenta>;
 
-const saveVenta = ventaSchema.omit({
-    id: true,
-    fecha: true
-});
+const saveVenta = ventaSchema;
 export type SaveVenta = z.infer<typeof saveVenta>;

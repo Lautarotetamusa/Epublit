@@ -16,6 +16,7 @@ import { Venta } from './venta.model';
 
 import { getAfipData } from "../afip/Afip";
 import { filesUrl } from '../app';
+import { tipoTransaccion } from '../schemas/transaccion.schema';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -113,9 +114,12 @@ export class Cliente extends BaseModel{
 
     async getVentas(): Promise<Venta[]>{
         const query = `
-            SELECT *, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', ventas.file_path) AS file_path
-            FROM ventas
+            SELECT T.*, V.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', file_path) AS file_path
+            FROM transacciones T
+            INNER JOIN ventas V
+                ON V.id_transaccion = T.id
             WHERE id_cliente = ?
+            AND type = '${tipoTransaccion.venta}'
             ORDER BY id DESC
         `;
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);
