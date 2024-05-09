@@ -5,6 +5,10 @@ import { SaveTransaccion, TipoTransaccion, TransaccionSchema, tipoTransaccion } 
 import { LibroCantidad } from '../schemas/libros.schema';
 import { RowDataPacket } from 'mysql2';
 import { filesUrl } from '../app';
+import { Cliente } from './cliente.model';
+import { ValidationError } from './errors';
+import { User } from './user.model';
+import { emitirComprobante } from '../comprobantes/comprobante';
 
 type libroTransaccionSchema = {
     cantidad: number, 
@@ -74,8 +78,12 @@ export abstract class Transaccion extends BaseModel{
         this.user = request.user;
     }
 
+    static async stockValidation(libros: LibroTransaccion[], cliente: Cliente): Promise<void>{};
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente): Promise<void>{};
+    static comprobante(libros: LibroTransaccion[], cliente: Cliente): void{};
+
     parsePath(filesFolder: string){
-        this.file_path = this.file_path ? `${filesUrl}/${filesFolder}/${this.file_path}` : this.file_path;
+        this.file_path = this.file_path && this.file_path != "" ? `${filesUrl}/${filesFolder}/${this.file_path}` : this.file_path;
     }
 
     static async insert(body: SaveTransaccion, connection: DBConnection){
@@ -118,16 +126,82 @@ export abstract class Transaccion extends BaseModel{
     }
 }
 
-
 export class Consignacion extends Transaccion{
     static filesFolder = "remitos";
     static type = tipoTransaccion.consignacion;
+
+    stockValidation(libros: LibroTransaccion[], _:Cliente){
+        for (const libro of libros){
+            if (libro.stock < libro.cantidad){
+                throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+            }
+        }
+    }
+
+    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+        for (const libro of libros) {
+            await libro.updateStock(-libro.cantidad, conn);
+        }
+
+        await cliente.updateStock(libros, connection);
+    }
+
+    comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User){
+        console.log("generando comprobante dentro");
+        emitirComprobante({
+            data: {
+                consignacion: this,
+                cliente: cliente,
+                libros: libros
+            }, 
+            user: user, 
+        });
+        this.parsePath(Consignacion.filesFolder);
+    }
 }
 
 export class Devolucion extends Transaccion{
     static type = tipoTransaccion.devolucion;
+
+    stockValidation(libros: LibroTransaccion[], cliente: Cliente){
+        cliente.haveStock(libros);
+    }
+
+    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+        if (this.type == tipoTransaccion.ventaConsignacion){
+            for (const libro of libros){
+                await libro.updateStock(libro.cantidad, conn);
+            }
+        }
+
+        const substactedStock = libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
+        await cliente.updateStock(substactedStock, connection);
+    }
+
+    comprobante(){
+        this.file_path = "";
+    }
 }
 
 export class VentaConsignado extends Transaccion{
     static type = tipoTransaccion.ventaConsignacion;
+
+    stockValidation(libros: LibroTransaccion[], cliente: Cliente){
+        cliente.haveStock(libros);
+    }
+
+    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+        if (this.type == tipoTransaccion.ventaConsignacion){
+            for (const libro of libros){
+                await libro.updateStock(libro.cantidad, conn);
+            }
+        }
+
+        const substactedStock = libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
+        await cliente.updateStock(substactedStock, connection);
+    }
+
+    comprobante(){
+        this.file_path = "";
+    }
 }

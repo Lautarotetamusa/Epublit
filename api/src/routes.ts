@@ -2,7 +2,6 @@ import PersonaRouter from "./routes/persona.routes";
 import LibroRouter from "./routes/libro.routes";
 import ClienteRouter from "./routes/cliente.routes";
 import VentaRouter from "./routes/venta.routes";
-import ConsignacionRouter from "./routes/consignacion.routes";
 import TransaccionRouter from "./routes/transaccion.routes";
 import UserRouter from "./routes/user.routes"
 import LiquidacionRouter from "./routes/liquidacion.routes"
@@ -21,7 +20,6 @@ router.use('/cliente', auth, ClienteRouter);
 router.use('/', TransaccionRouter);
 
 router.use('/venta', auth, VentaRouter);
-router.use('/consignacion', auth, ConsignacionRouter);
 
 router.use('/liquidacion', auth, LiquidacionRouter);
 

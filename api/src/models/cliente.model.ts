@@ -1,6 +1,6 @@
 import { conn } from '../db';
 import { ValidationError, NotFound } from './errors';
-import { BaseModel } from './base.model';
+import { BaseModel, DBConnection } from './base.model';
 import { 
     AfipData, 
     TipoCliente, 
@@ -11,7 +11,7 @@ import {
     SaveClienteInscripto,
     UpdateCliente, 
 } from '../schemas/cliente.schema';
-import { RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model';
 
 import { getAfipData } from "../afip/Afip";
@@ -138,9 +138,9 @@ export class Cliente extends BaseModel{
         return rows;
     }
 
-    async updateStock(libros: StockCliente){
+    async updateStock(libros: StockCliente, connection: DBConnection){
         const stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
-        await conn.query(`
+        await connection.query<ResultSetHeader>(`
             INSERT INTO stock_cliente
                 (id_cliente, stock, isbn)
                 VALUES ?
