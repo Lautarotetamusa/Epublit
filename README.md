@@ -1,3 +1,4 @@
+[[./epublit.png]]
 # Epublit
 Epublit es un sistema de gestión integral diseñado específicamente para el negocio editorial.
 
