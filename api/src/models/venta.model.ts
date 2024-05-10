@@ -5,6 +5,7 @@ import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
 import { RowDataPacket } from 'mysql2';
 import { LibroTransaccion, Transaccion } from './transaccion.model';
 import { SaveTransaccion, TransaccionSchema, tipoTransaccion } from '../schemas/transaccion.schema';
+import { filesUrl } from '../app';
 
 export class Venta extends Transaccion{
     static table_name = 'ventas';
@@ -84,5 +85,21 @@ export class Venta extends Transaccion{
         const venta = new Venta(rows[0] as (VentaSchema & TransaccionSchema));
         venta.parsePath(this.filesFolder);
         return venta;
+    }
+
+    static async getAll(userId: number){
+        const [rows] = await conn.query<RowDataPacket[]>(`
+            SELECT 
+                V.id_transaccion as id, V.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
+                cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
+            FROM ventas V
+            INNER JOIN transacciones T
+                ON V.id_transaccion = T.id
+            INNER JOIN clientes C
+                ON T.id_cliente = C.id
+            WHERE T.user = ?
+            ORDER BY V.id_transaccion DESC
+        `, [userId]);
+        return rows;
     }
 }
