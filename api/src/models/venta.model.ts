@@ -90,7 +90,7 @@ export class Venta extends Transaccion{
     static async getAll(userId: number){
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                V.id_transaccion as id, V.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
+                V.id_transaccion as id, V.*, T.fecha, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM ventas V
             INNER JOIN transacciones T
