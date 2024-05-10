@@ -8,6 +8,7 @@ import LiquidacionRouter from "./routes/liquidacion.routes"
 import { auth } from "./middleware/auth";
 
 import { Router } from "express"
+import { medioPago } from "./schemas/venta.schema";
 
 export const router = Router();
 
@@ -17,6 +18,9 @@ router.use('/libro', auth, LibroRouter);
 
 router.use('/cliente', auth, ClienteRouter);
 
+router.get('/venta/medios_pago', async (_, res) => {
+    return res.json(Object.keys(medioPago));
+});
 router.use('/', TransaccionRouter);
 
 router.use('/venta', auth, VentaRouter);
