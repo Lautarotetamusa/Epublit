@@ -15,7 +15,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [21.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -25,7 +25,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
-        node-version: 16.9  # Cambia "14" por la versión de Node.js que estás utilizando
+        node-version: 21.6  # Cambia "14" por la versión de Node.js que estás utilizando
         
     - name: Prepare .env file
       run: echo "$ENV_FILE_CONTENT" > .env
@@ -37,11 +37,6 @@ jobs:
         cd api
         npm install
     
-    - name: Compile typescript
-      run: | 
-        cd api
-        npm run compile
-
     - name: Build and start backend services
       run: |
         docker compose build app
