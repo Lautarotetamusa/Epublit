@@ -160,8 +160,8 @@ export class Consignacion extends Transaccion {
     static filesFolder = "remitos";
     static type = tipoTransaccion.consignacion;
 
-    clientValidation(tipo: TipoCliente): boolean {
-        return tipo == tipoCliente.particular   
+    static clientValidation(tipo: TipoCliente): boolean {
+        return tipo == tipoCliente.inscripto   
     }
 
     static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
@@ -169,7 +169,7 @@ export class Consignacion extends Transaccion {
             await Libro.updateStock(libro.id_libro, -libro.cantidad, conn);
         }
 
-        await cliente.reduceStock(libros, connection);
+        await cliente.addStock(libros, connection);
     }
 
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User){

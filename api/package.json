@@ -46,6 +46,6 @@
     "scripts": {
         "dev": "nodemon --ignore afipkeys/ src/app.ts",
         "build": "tsc .",
-        "test": "jest .",
+        "test": "jest"
     }
 }

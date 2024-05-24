@@ -41,6 +41,7 @@ export const vender = (ventaModel: typeof Venta) => {
             await LibroTransaccion.save(librosModel, venta.id, connection);
             connection.release();
 
+            console.log(ventaModel.stockMovement)
             await ventaModel.stockMovement(librosModel, c, connection);
 
             //Solo facturamos para clientes que no son en negro

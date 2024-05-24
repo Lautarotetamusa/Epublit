@@ -43,9 +43,9 @@ export class Venta extends Transaccion{
         this.id_transaccion = request.id_transaccion;
     }
 
-    async stockValidation(libros: LibroTransaccion[], cliente: Cliente){}
+    static async stockValidation(libros: LibroTransaccion[], cliente: Cliente){}
     clientValidation(tipo: TipoCliente) {return true}
-    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){console.log("UNEXPECTED")}
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){console.log("UNEXPECTED, venta")}
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
 
     static calcTotal(libros: LibroTransaccion[], descuento: number){
@@ -125,14 +125,13 @@ export class VentaFirme extends Venta {
         }
     }
 
-    clientValidation(tipo: TipoCliente): boolean {
+    static clientValidation(tipo: TipoCliente): boolean {
         return true;
     }
 
-    async stockMovement(libros: LibroTransaccion[], _: Cliente, connection: DBConnection){
-        console.log("VV");
+    static async stockMovement(libros: LibroTransaccion[], _: Cliente, conn: DBConnection){
         for (const libro of libros){
-            await Libro.updateStock(libro.id_libro, libro.cantidad, conn);
+            await Libro.updateStock(libro.id_libro, -libro.cantidad, conn);
         }
     }
     comprobante(){
@@ -172,8 +171,8 @@ export class VentaConsignado extends Venta {
     }
 
     // Se reduce el stock del cliente
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
-        await cliente.reduceStock(libros, connection);
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){
+        await cliente.reduceStock(libros, conn);
     }
 
     comprobante(){

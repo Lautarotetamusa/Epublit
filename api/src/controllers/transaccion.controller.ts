@@ -41,7 +41,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
             await connection.beginTransaction();
 
             if (!transaccion.clientValidation(cliente.tipo)){
-                throw new ValidationError(`No se le puede hacer una ${transaccion.type} a este cliente`);
+                throw new ValidationError(`No se le puede hacer una ${transaccion.type} a un cliente de tipo ${cliente.tipo}`);
             }
 
             const libros = await transaccion.setLibros(body.libros, cliente, user);
@@ -58,8 +58,10 @@ export const transaccion = (transaccion: typeof Transaccion) => {
                 user: user 
             }, connection);
             await LibroTransaccion.save(libros, transaction.id, connection);
+            connection.release();
 
             await transaccion.stockMovement(libros, cliente, connection);
+            connection.release();
             emitirComprobante({
                 data: {
                     consignacion: Object.assign({}, transaction),
