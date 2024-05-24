@@ -10,10 +10,11 @@ dotenv.config({path: path});
 import {conn} from '../src/db'
 import {expect_err_code, expect_success_code} from './util';
 
-const app = 'http://localhost:3001';
-import {Cliente} from '../src/models/cliente.model.js';
+const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
+console.log(app);
 import { tipoCliente } from '../src/schemas/cliente.schema';
 
+const cuit = "30500001735"
 let cliente: any = {};
 let token: string;
 
@@ -33,6 +34,10 @@ let token: string;
 it('Hard delete', async () => {
     let [cliente]: any = await conn.query(`
         SELECT * FROM clientes
+        WHERE cuit='30710813082'`
+    );
+    await conn.query(`
+        DELETE FROM clientes
         WHERE cuit='30500001735'`
     );
 
@@ -40,28 +45,29 @@ it('Hard delete', async () => {
         return 0;
     }
     let [consignaciones]: any = await conn.query(`
-        SELECT * FROM consignaciones
+        SELECT * FROM transacciones
         WHERE id_cliente=${cliente[0].id}
+        AND type = 'consignacion'
     `);
 
     for (let consigna of consignaciones){
         await conn.query(`
-            DELETE FROM libros_consignaciones
-            WHERE id_consignacion=${consigna.id}
+            DELETE FROM libros_transacciones
+            WHERE id_transaccion=${consigna.id}
         `);
         await conn.query(`
-            DELETE FROM consignaciones
+            DELETE FROM transacciones
             WHERE id=${consigna.id}
         `);
     }
     await conn.query(`
-        DELETE FROM stock_cliente
+        DELETE FROM libro_cliente
         WHERE id_cliente=${cliente[0].id}
     `);
 
     await conn.query(`
         DELETE FROM clientes
-        WHERE cuit=30500001735`
+        WHERE cuit='30710813082'`
     );
 });
 
@@ -159,6 +165,17 @@ describe('GET cliente/', () => {
         expect(res.body).toMatchObject(cliente);
     });
 
+    it('Obtener clientes de un tipo', async () => {
+        const res = await request(app)
+            .get('/cliente?tipo=inscripto')
+            .set('Authorization', `Bearer ${token}`);
+        
+        expect(res.status).toEqual(200);
+        for (const c of res.body){
+            expect(c.tipo).toBe("inscripto")
+        }
+    });
+
     it('La cliente está en la lista', async () => {
         const res = await request(app)
             .get('/cliente/')
@@ -185,7 +202,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        expect(res.status).toEqual(200);
+        expect(res.status).toEqual(201);
     });
 
     it('Actualizar nombre y email', async () => {
@@ -242,7 +259,7 @@ describe('PUT cliente/{id}', () => {
     });
 
     it('Actualizar el cuit', async () => {
-        cliente.cuit = '30500001735';
+        cliente.cuit = cuit;
         cliente.este_campo_no_va = "anashe23";
 
         const res = await request(app)
@@ -253,16 +270,14 @@ describe('PUT cliente/{id}', () => {
         cliente = res.body.data;
 
         expect_success_code(201, res);
-    });
 
-    it('El cuit se actualizo correctamente', async () => {
-        const res = await request(app)
+        const res2 = await request(app)
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
 
-        expect(res.status).toEqual(200);
+        expect(res2.status).toEqual(200);
 
         delete cliente.tipo;
-        expect(res.body).toMatchObject(cliente);       
+        expect(res2.body).toMatchObject(cliente);       
     });
 });

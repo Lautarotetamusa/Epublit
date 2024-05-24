@@ -18,3 +18,7 @@ export function expect_success_code(code: number, res: any){
     expect(res.body.success).toEqual(true);
     expect(res.body.error).not.toBeDefined;
 }
+
+export function delay(time: number) {
+    return new Promise(resolve => setTimeout(resolve, time));
+} 
