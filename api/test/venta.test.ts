@@ -11,7 +11,7 @@ dotenv.config({path: path});
 import {conn} from '../src/db'
 import {expect_err_code, expect_success_code} from './util';
 
-const app = 'http://localhost:3001';
+const app = 'http://epublit.com/api/v1';
 let token: string;
 
 let cliente: any = {}; 
@@ -32,7 +32,7 @@ const id_cliente = 1;
 
 it.concurrent('login', async () => {
     let data = {
-        username: 'teti',
+        username: 'test',
         password: 'Lautaro123.'
     }
     const res = await request(app)

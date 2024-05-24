@@ -1,6 +1,5 @@
 import {z} from 'zod';
-import { libroCantidad } from "./libros.schema";
-import { createTransaccion, transaccionSchema } from './transaccion.schema';
+import { createTransaccion } from './transaccion.schema';
 
 export const medioPago = {
     efectivo: "efectivo",

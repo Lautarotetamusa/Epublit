@@ -35,12 +35,21 @@ export class Libro extends BaseModel{
     static async getByIsbn(isbn: string, userId: number): Promise<Libro> {
         return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0, user: userId})
     }
-    static async getAll(userId: number, req?: Partial<LibroSchema> | Partial<LibroSchema>[]): Promise<LibroSchema[]>{        
-        if (req && Array.isArray(req)){
-            return await super._bulk_select<LibroSchema>(req);
+
+    static async getAll(userId: number, withStock: boolean = false): Promise<LibroSchema[]>{        
+        let query = `
+            SELECT ${this.fields.join(', ')} 
+            FROM ${this.table_name}
+            WHERE is_deleted = 0
+            AND user = ?`
+
+        if (withStock){
+            query += ' AND stock IS NOT NULL AND stock > 0'
         }
-        return await super.find_all<LibroSchema>({...req, is_deleted: 0, user: userId})
+        const [libros] = await conn.query<RowDataPacket[]>(query, [userId]);
+        return libros as LibroSchema[];
     }
+
     static async insert(body: SaveLibro, connection: DBConnection): Promise<Libro> {
         return await Libro._insert<SaveLibro, Libro>(body, connection);
     }
@@ -62,13 +71,13 @@ export class Libro extends BaseModel{
         }
     }
 
-    async updateStock(cantidad: number, connection: DBConnection){
+    static async updateStock(id_libro: number, cantidad: number, connection: DBConnection){
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${cantidad}
             WHERE id_libro = ?`
 
-        const result = await connection.query<ResultSetHeader>(query, [this.id_libro]);
+        const result = await connection.query<ResultSetHeader>(query, [id_libro]);
         return result;
     }
 

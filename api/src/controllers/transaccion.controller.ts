@@ -1,6 +1,6 @@
 import {Request, Response} from "express";
 import { ValidationError } from "../models/errors"
-import { LibroTransaccion, Transaccion } from "../models/transaccion.model";
+import { ITransaccion, LibroTransaccion, Transaccion } from "../models/transaccion.model";
 import { createTransaccion } from "../schemas/transaccion.schema";
 import { Cliente } from "../models/cliente.model";
 import { tipoCliente } from "../schemas/cliente.schema";
@@ -40,12 +40,16 @@ export const transaccion = (transaccion: typeof Transaccion) => {
         try{
             await connection.beginTransaction();
 
-            if(tipoCliente[cliente.tipo] == tipoCliente.particular){
-                throw new ValidationError(`No se puede hacer una ${transaccion.type} a un cliente CONSUMIDOR FINAL`);
+            if (!transaccion.clientValidation(cliente.tipo)){
+                throw new ValidationError(`No se le puede hacer una ${transaccion.type} a este cliente`);
             }
 
-            const libros = await LibroTransaccion.setLibros(body.libros, user);
-            await transaccion.stockValidation(libros, cliente)
+            const libros = await transaccion.setLibros(body.libros, cliente, user);
+            for (const libro of libros){
+                if (libro.stock < libro.cantidad){
+                    throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+                }
+            }
 
             const transaction = await Transaccion.insert({
                 type: transaccion.type,
@@ -55,7 +59,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
             }, connection);
             await LibroTransaccion.save(libros, transaction.id, connection);
 
-            await transaccion.stockMovement(libros, cliente);
+            await transaccion.stockMovement(libros, cliente, connection);
             emitirComprobante({
                 data: {
                     consignacion: Object.assign({}, transaction),
@@ -73,9 +77,6 @@ export const transaccion = (transaccion: typeof Transaccion) => {
                 data: transaction
             });
         }catch(err){
-            if (err instanceof Error){
-                console.log("ERROR:", err.stack);
-            }
             await connection.rollback();
             console.log("Se realizo un rollback");
             throw err;

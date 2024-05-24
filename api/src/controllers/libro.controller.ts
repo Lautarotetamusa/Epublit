@@ -2,7 +2,6 @@ import {Request, Response} from "express";
 import { Persona } from "../models/persona.model";
 import { Libro } from "../models/libro.model";
 import { 
-    CreateLibroPersona,
     LibroPersonaSchema,
     tipoPersona, 
 } from "../schemas/libro_persona.schema";
@@ -198,7 +197,9 @@ const getAll = async(req: Request, res: Response) => {
         return res.json(libros);
     }
 
-    const libros = await Libro.getAll(res.locals.user.id);
+    const withStock = (String(req.query.stock).toLowerCase() === 'true')
+
+    const libros = await Libro.getAll(res.locals.user.id, withStock);
     return res.json(libros);
 }
 

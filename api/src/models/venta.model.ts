@@ -1,22 +1,25 @@
 import {conn} from '../db'
-import { NotFound } from './errors';
+import { NotFound, ValidationError } from './errors';
 import { DBConnection } from './base.model';
 import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
 import { RowDataPacket } from 'mysql2';
 import { LibroTransaccion, Transaccion } from './transaccion.model';
 import { SaveTransaccion, TransaccionSchema, tipoTransaccion } from '../schemas/transaccion.schema';
 import { filesUrl } from '../app';
+import { Cliente } from './cliente.model';
+import { LibroCantidad } from '../schemas/libros.schema';
+import { Libro } from './libro.model';
+import { User } from './user.model';
+import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 
 export class Venta extends Transaccion{
     static table_name = 'ventas';
     static filesFolder = 'facturas';
-    static pk = 'id_transaccion';
-    static type = tipoTransaccion.venta;
 
     id_transaccion: number;
     descuento: number;
-    medio_pago: MedioPago;
     total: number;
+    medio_pago: MedioPago;
 
     punto_venta: number;
     tipo_cbte: number;
@@ -39,6 +42,11 @@ export class Venta extends Transaccion{
         this.total = request.total;
         this.id_transaccion = request.id_transaccion;
     }
+
+    async stockValidation(libros: LibroTransaccion[], cliente: Cliente){}
+    clientValidation(tipo: TipoCliente) {return true}
+    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){console.log("UNEXPECTED")}
+    comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
 
     static calcTotal(libros: LibroTransaccion[], descuento: number){
         let total = libros.reduce((acumulador, libro) => 
@@ -63,10 +71,10 @@ export class Venta extends Transaccion{
             descuento: body.descuento,
             medio_pago: body.medio_pago,
             total: body.total,
-            tipo_cbte: body.tipo_cbte 
+            tipo_cbte: body.tipo_cbte,
         }, connection);
 
-        return new Venta({...venta, ...transaction});
+        return new this({...venta, ...transaction});
     }
 
     static async getById(id: number){
@@ -76,8 +84,9 @@ export class Venta extends Transaccion{
             INNER JOIN transacciones T
                 ON V.id_transaccion = T.id
             WHERE T.id = ?
+            AND T.type = ?
         `;
-        const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [id, this.type]);
         if (rows.length !== 1){
             throw new NotFound(`No se encontró la venta con id ${id}`);
         }
@@ -90,16 +99,84 @@ export class Venta extends Transaccion{
     static async getAll(userId: number){
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                V.id_transaccion as id, V.*, T.fecha, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
+                V.id_transaccion as id, T.type, V.*, T.fecha, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM ventas V
             INNER JOIN transacciones T
                 ON V.id_transaccion = T.id
             INNER JOIN clientes C
                 ON T.id_cliente = C.id
-            WHERE T.user = ?
+            WHERE T.type = ?
+            AND T.user = ?
             ORDER BY V.id_transaccion DESC
-        `, [userId]);
+        `, [this.type, userId]);
         return rows;
+    }
+}
+
+export class VentaFirme extends Venta {
+    static type = tipoTransaccion.venta;
+
+    async stockValidation(libros: LibroTransaccion[]){
+        for (const libro of libros){
+            if (libro.stock < libro.cantidad){
+                throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
+            }
+        }
+    }
+
+    clientValidation(tipo: TipoCliente): boolean {
+        return true;
+    }
+
+    async stockMovement(libros: LibroTransaccion[], _: Cliente, connection: DBConnection){
+        console.log("VV");
+        for (const libro of libros){
+            await Libro.updateStock(libro.id_libro, libro.cantidad, conn);
+        }
+    }
+    comprobante(){
+        this.file_path = "";
+    }
+}
+
+export class VentaConsignado extends Venta {
+    static type = tipoTransaccion.ventaConsignacion;
+
+    //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number): Promise<LibroTransaccion[]>{
+        let libros: LibroTransaccion[] = [];
+
+        const librosCliente = await cliente.getLibros(); 
+
+        console.log(librosCliente);
+        for (const _libro of body) {
+            const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);
+            console.log(libroCliente);
+            if (libroCliente === undefined){
+                throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} para esta fecha`)
+            }
+
+            libros.push(new LibroTransaccion({
+                ...libroCliente,
+                cantidad: _libro.cantidad,
+                precio: libroCliente.precio,
+            }))
+        }
+
+        return libros;
+    }
+
+    static clientValidation(tipo: TipoCliente): boolean {
+        return tipo == tipoCliente.inscripto;
+    }
+
+    // Se reduce el stock del cliente
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+        await cliente.reduceStock(libros, connection);
+    }
+
+    comprobante(){
+        this.file_path = "";
     }
 }

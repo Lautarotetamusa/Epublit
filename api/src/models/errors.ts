@@ -65,6 +65,11 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
         });
     }
 
+    if (err instanceof NothingChanged) return res.status(err.status).json({
+        success: true,
+        message: err.message
+    });
+
     if (err instanceof ApiError) return res.status(err.status).json({
         success: false,
         errors: [{

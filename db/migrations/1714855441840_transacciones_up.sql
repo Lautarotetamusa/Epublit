@@ -92,6 +92,7 @@ insert into libros_transacciones (id_libro, id_transaccion, cantidad, precio)
 
 drop table liquidaciones;
 drop table if exists libros_ventas;
+drop table if exists libros_consignaciones;
 alter table ventas
     drop column file_path,
     drop constraint ventas_ibfk_1,

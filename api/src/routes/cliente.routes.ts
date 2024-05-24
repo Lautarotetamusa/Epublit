@@ -9,6 +9,8 @@ router.post('/', ClienteController.create);
 router.get('/', ClienteController.getAll);
 
 router.get('/:id/stock', ClienteController.getStock);
+router.put('/:id/stock', ClienteController.updatePrecios);
+
 router.get('/:id/ventas', ClienteController.getVentas);
 
 router.get('/:id', ClienteController.getOne);

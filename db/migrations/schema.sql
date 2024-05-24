@@ -60,6 +60,26 @@ CREATE TABLE `consignaciones` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `libro_cliente`
+--
+
+DROP TABLE IF EXISTS `libro_cliente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `libro_cliente` (
+  `id_cliente` int(11) NOT NULL,
+  `isbn` varchar(13) NOT NULL,
+  `stock` int(11) NOT NULL,
+  `id_libro` int(11) NOT NULL,
+  `precio` float NOT NULL,
+  PRIMARY KEY (`id_libro`,`id_cliente`),
+  KEY `id_cliente` (`id_cliente`),
+  CONSTRAINT `libro_cliente_ibfk_2` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`),
+  CONSTRAINT `libro_cliente_ibfk_3` FOREIGN KEY (`id_libro`) REFERENCES `libros` (`id_libro`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `libros`
 --
 
@@ -79,7 +99,7 @@ CREATE TABLE `libros` (
   KEY `user` (`user`),
   KEY `isbn` (`isbn`,`user`),
   CONSTRAINT `libros_ibfk_1` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=76 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -122,49 +142,24 @@ CREATE TABLE `libros_personas` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `libros_ventas`
+-- Table structure for table `libros_transacciones`
 --
 
-DROP TABLE IF EXISTS `libros_ventas`;
+DROP TABLE IF EXISTS `libros_transacciones`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `libros_ventas` (
-  `isbn` varchar(13) NOT NULL,
-  `id_venta` int(11) NOT NULL,
+CREATE TABLE `libros_transacciones` (
+  `id_transaccion` int(11) NOT NULL,
+  `id_libro` int(11) NOT NULL,
   `cantidad` int(11) NOT NULL,
-  `precio_venta` float NOT NULL,
-  `id_libro` int(11) NOT NULL,
-  KEY `id_venta` (`id_venta`),
-  KEY `isbn` (`isbn`),
-  KEY `id_libro` (`id_libro`),
-  CONSTRAINT `libros_ventas_ibfk_1` FOREIGN KEY (`id_venta`) REFERENCES `ventas` (`id`),
-  CONSTRAINT `libros_ventas_ibfk_2` FOREIGN KEY (`id_libro`) REFERENCES `libros` (`id_libro`)
+  `precio` float NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id_libro`,`id_transaccion`),
+  KEY `id_transaccion` (`id_transaccion`),
+  CONSTRAINT `libros_transacciones_ibfk_1` FOREIGN KEY (`id_transaccion`) REFERENCES `transacciones` (`id`),
+  CONSTRAINT `libros_transacciones_ibfk_2` FOREIGN KEY (`id_libro`) REFERENCES `libros` (`id_libro`),
+  CONSTRAINT `CONSTRAINT_2` CHECK (`cantidad` > 0),
+  CONSTRAINT `CONSTRAINT_1` CHECK (`precio` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `liquidaciones`
---
-
-DROP TABLE IF EXISTS `liquidaciones`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `liquidaciones` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `isbn` varchar(13) NOT NULL,
-  `id_persona` int(11) NOT NULL,
-  `fecha_inicial` date NOT NULL,
-  `fecha_final` date NOT NULL,
-  `total` float NOT NULL,
-  `file_path` varchar(80) NOT NULL,
-  `tipo_persona` enum('autor','ilustrador') NOT NULL,
-  `id_libro` int(11) NOT NULL,
-  PRIMARY KEY (`id`,`isbn`,`id_persona`,`tipo_persona`),
-  KEY `isbn` (`isbn`,`id_persona`,`tipo_persona`),
-  KEY `id_libro` (`id_libro`,`id_persona`,`tipo_persona`),
-  CONSTRAINT `liquidaciones_ibfk_1` FOREIGN KEY (`isbn`) REFERENCES `libros_ventas` (`isbn`),
-  CONSTRAINT `liquidaciones_ibfk_2` FOREIGN KEY (`id_libro`, `id_persona`, `tipo_persona`) REFERENCES `libros_personas` (`id_libro`, `id_persona`, `tipo`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -197,7 +192,29 @@ CREATE TABLE `personas` (
   PRIMARY KEY (`id`),
   KEY `user` (`user`),
   CONSTRAINT `personas_ibfk_1` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1030 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1043 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `precio_libro_cliente`
+--
+
+DROP TABLE IF EXISTS `precio_libro_cliente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `precio_libro_cliente` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_libro` int(11) NOT NULL,
+  `id_cliente` int(11) NOT NULL,
+  `precio` float NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_libro` (`id_libro`),
+  KEY `id_cliente` (`id_cliente`),
+  CONSTRAINT `precio_libro_cliente_ibfk_1` FOREIGN KEY (`id_libro`) REFERENCES `libros` (`id_libro`),
+  CONSTRAINT `precio_libro_cliente_ibfk_2` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`),
+  CONSTRAINT `CONSTRAINT_1` CHECK (`precio` >= 0)
+) ENGINE=InnoDB AUTO_INCREMENT=167 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -218,25 +235,29 @@ CREATE TABLE `precio_libros` (
   KEY `isbn` (`isbn`),
   KEY `id_libro` (`id_libro`),
   CONSTRAINT `precio_libros_ibfk_1` FOREIGN KEY (`id_libro`) REFERENCES `libros` (`id_libro`)
-) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=190 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `stock_cliente`
+-- Table structure for table `transacciones`
 --
 
-DROP TABLE IF EXISTS `stock_cliente`;
+DROP TABLE IF EXISTS `transacciones`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `stock_cliente` (
+CREATE TABLE `transacciones` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `fecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `id_cliente` int(11) NOT NULL,
-  `isbn` varchar(13) NOT NULL,
-  `stock` int(11) NOT NULL,
-  PRIMARY KEY (`isbn`,`id_cliente`),
+  `file_path` varchar(80) NOT NULL,
+  `type` enum('venta','consignacion','ventaConsignacion','devolucion') NOT NULL,
+  `user` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
   KEY `id_cliente` (`id_cliente`),
-  CONSTRAINT `stock_cliente_ibfk_1` FOREIGN KEY (`isbn`) REFERENCES `libros` (`isbn`),
-  CONSTRAINT `stock_cliente_ibfk_2` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `user` (`user`),
+  CONSTRAINT `transacciones_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`),
+  CONSTRAINT `transacciones_ibfk_2` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=333 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -266,21 +287,15 @@ DROP TABLE IF EXISTS `ventas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `ventas` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `fecha` timestamp NOT NULL DEFAULT current_timestamp(),
   `descuento` float DEFAULT 0,
-  `id_cliente` int(11) NOT NULL,
   `total` float NOT NULL,
-  `file_path` varchar(80) NOT NULL,
   `medio_pago` enum('efectivo','debito','credito','mercadopago','transferencia') DEFAULT NULL,
-  `user` int(11) NOT NULL,
   `tipo_cbte` int(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `id_cliente` (`id_cliente`),
-  KEY `user` (`user`),
-  CONSTRAINT `ventas_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`),
-  CONSTRAINT `ventas_ibfk_2` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=249 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `id_transaccion` int(11) NOT NULL,
+  `type_venta` enum('firme','consignado') NOT NULL,
+  PRIMARY KEY (`id_transaccion`),
+  CONSTRAINT `ventas_ibfk_3` FOREIGN KEY (`id_transaccion`) REFERENCES `transacciones` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -292,4 +307,4 @@ CREATE TABLE `ventas` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-05-03  7:49:59
+-- Dump completed on 2024-05-22 22:58:22
