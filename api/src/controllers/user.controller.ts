@@ -18,7 +18,8 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 
     const user = await User.insert({
         ...body,
-        ...afipData
+        ...afipData,
+        production: false //Si lo quiero hacer true lo tengo que hacer manualmente 
     });
     return res.status(201).json({
         success: true,

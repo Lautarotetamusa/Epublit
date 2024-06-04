@@ -13,6 +13,7 @@ export class User extends BaseModel{
     cond_fiscal: string;
     razon_social: string;
     domicilio: string;
+    production: boolean;
 
     static table_name = "users"; 
 
@@ -26,6 +27,7 @@ export class User extends BaseModel{
         this.razon_social = body.razon_social;
         this.domicilio = body.domicilio;
         this.id = body.id;
+        this.production = body.production;
     }
 
     static async exists(username: string): Promise<boolean>{

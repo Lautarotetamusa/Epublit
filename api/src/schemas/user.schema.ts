@@ -5,7 +5,8 @@ const userSchema = z.object({
     id: z.number(),
     username: z.string(),
     password: z.string(),
-    cuit: z.string()
+    cuit: z.string(),
+    production: z.boolean()
 }).and(afipSchema);
 export type UserSchema = z.infer<typeof userSchema>; 
 
@@ -13,7 +14,6 @@ export const loginUser = z.object({
     username: z.string(),
     password: z.string(),
 });
-type LoginUser = z.infer<typeof loginUser>;
 
 export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
 

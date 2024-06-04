@@ -55,8 +55,8 @@ export function getAfipClient(user: User){
         ta_folder:  join(path, 'Tokens'),
         res_folder: path,
         key: 'private_key.key',
-        cert: 'cert.pem',
-        production: false,
+        cert: 'cert.crt',
+        production: user.production,
     });
 }
 
