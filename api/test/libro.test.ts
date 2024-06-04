@@ -12,7 +12,8 @@ import {conn} from '../src/db'
 import {expect_err_code, expect_success_code} from './util';
 import { RowDataPacket } from 'mysql2';
 
-const app = 'http://localhost:3001';
+const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
+console.log(app);
 
 const rawdata = fs.readFileSync(join(__dirname, "libro.test.json"));
 const tests = JSON.parse(String(rawdata));
@@ -212,6 +213,17 @@ describe('Obtener libro GET /libro/:isbn', function () {
         .expect(200, done)
     });
 
+    it("Listar libros con stock", async function () {
+        const res = await request(app)
+            .get('/libro?stock=true'+libro.isbn)
+            .set('Authorization', `Bearer ${token}`)
+
+        expect(res.status).toEqual(200);
+        for (const l of res.body){
+            expect(l.precio).toBeGreaterThan(-1)
+        }
+    });
+
     it("Intentar obtener libro que no existe", function (done) {
         request(app)
         .get('/libro/'+libro.isbn+19999)
@@ -227,8 +239,8 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        expect(res.status).toEqual(200);
-        expect(res.body.success).toEqual(false);
+        expect(res.status).toEqual(201);
+        expect(res.body.success).toEqual(true);
     });
 
     it('Actualizamos precio', async () => {

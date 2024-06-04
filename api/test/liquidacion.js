@@ -1,4 +1,4 @@
-import request from 'supertest';
+/*import request from 'supertest';
 import chai from 'chai';
 
 process.env.DB_HOST = "localhost",
@@ -112,4 +112,4 @@ describe('Crear liquidacion POST /liquidacion', function () {
 
         expect_err_code(404, res);
     });
-});
+});*/

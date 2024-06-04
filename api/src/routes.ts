@@ -1,7 +1,6 @@
 import PersonaRouter from "./routes/persona.routes";
 import LibroRouter from "./routes/libro.routes";
 import ClienteRouter from "./routes/cliente.routes";
-import VentaRouter from "./routes/venta.routes";
 import TransaccionRouter from "./routes/transaccion.routes";
 import UserRouter from "./routes/user.routes"
 import LiquidacionRouter from "./routes/liquidacion.routes"
@@ -22,8 +21,6 @@ router.get('/venta/medios_pago', async (_, res) => {
     return res.json(Object.keys(medioPago));
 });
 router.use('/', TransaccionRouter);
-
-router.use('/venta', auth, VentaRouter);
 
 router.use('/liquidacion', auth, LiquidacionRouter);
 

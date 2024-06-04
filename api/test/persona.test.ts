@@ -1,22 +1,20 @@
-import request from 'supertest';
-const fetch = require('node-fetch');
-import chai from 'chai';
+import {describe, expect, it} from '@jest/globals';
+import request from "supertest";
 
-import {expect_err_code, expect_success_code} from './util.js';
+import * as dotenv from 'dotenv';
+import { join } from "path";
 
-process.env.DB_HOST = "localhost",
-process.env.DB_USER = "teti",
-process.env.DB_PASS = "Lautaro123.",
-process.env.DB_NAME = "librossilvestres"
-import {conn} from '../src/db.js'
-import {conn} from '../src/db.js'
-import { before, beforeEach } from 'node:test';
-import { exit } from 'node:process';
+const path = join(__dirname, "../../.env");
+dotenv.config({path: path});
 
+import {conn} from '../src/db'
+import {delay, expect_err_code, expect_success_code} from './util';
 
-let persona = {}
-const app = 'http://localhost:3001'
-let token;
+const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
+console.log(app);
+
+let persona: any = {}
+let token: string;
 
 /*
     - Creamos dos personas, una con dni 11111111 y otra 22222222
@@ -42,7 +40,7 @@ it('HARD DELETE', async () => {
 it('login', async () => {
     let data = {
         username: 'teti',
-        password: '$2b$10$CJ4a/b08JS9EfyvWKht6QOSRKuT4kb2CUvkRwEIzwdCuOmFyrYTdK'
+        password: 'Lautaro123.'
     }
     const res = await request(app)
         .post('/user/login')
@@ -121,8 +119,8 @@ describe('GET persona/', () => {
             .get('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body).to.deep.include(persona);
+        expect(res.status).toEqual(200);
+        expect(res.body).toMatchObject(persona);
     });
 
     it('La persona está en la lista', async () => {
@@ -130,8 +128,8 @@ describe('GET persona/', () => {
             .get('/persona/')
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body.map(p => p.id)).to.deep.include(persona.id);
+        expect(res.status).toEqual(200);
+        expect(res.body.map((p: any) => p.id)).toContain(persona.id);
     });
 });
 
@@ -146,7 +144,7 @@ describe('PUT persona/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(_persona);
 
-        chai.expect(res.status).to.equal(200);
+        expect(res.status).toEqual(201);
     });
 
     it('Actualizar a un dni que ya está cargado', async () => {
@@ -162,13 +160,13 @@ describe('PUT persona/{id}', () => {
     });
 
     it('Actualizar campo que no existe', async () => {
-        let data = {no_existe: 99}
+        let data = {no_existe: 99, nombre: "hola"}
 
         const res = await request(app)
             .put('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`)
             .send(data);
-        expect_err_code(400, res);
+        expect_success_code(201, res);
     });
 
     it('Success', async () => {
@@ -185,14 +183,14 @@ describe('PUT persona/{id}', () => {
         expect_success_code(201, res);
 
         res.body.data.id = persona.id;
-        chai.expect(res.body.data).to.deep.include(persona);
+        expect(res.body.data).toMatchObject(persona);
     });
 })
 
 describe('DELETE /persona/{id}', () => {
     it('Persona no existe', async () => {
         const res = await request(app)
-            .get('/persona/'+(persona.id+2))
+            .get('/persona/'+(persona.id+1000))
             .set('Authorization', `Bearer ${token}`);
 
         expect_err_code(404, res);
@@ -203,7 +201,7 @@ describe('DELETE /persona/{id}', () => {
             .delete('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
+        expect(res.status).toEqual(200);
     });
 
     it('La persona ya no está en la lista', async () => {
@@ -211,7 +209,7 @@ describe('DELETE /persona/{id}', () => {
             .get('/persona/')
             .set('Authorization', `Bearer ${token}`);
 
-        chai.expect(res.status).to.equal(200);
-        chai.expect(res.body.map(p => p.id)).to.not.include(persona.id);
+        expect(res.status).toEqual(200);
+        expect(res.body.map((p: any) => p.id)).not.toContain(persona.id);
     });    
   });

@@ -1,5 +1,5 @@
 import { conn } from '../db';
-import { ValidationError, NotFound } from './errors';
+import { ValidationError, NotFound, NothingChanged } from './errors';
 import { BaseModel, DBConnection } from './base.model';
 import { 
     AfipData, 
@@ -9,7 +9,8 @@ import {
     tipoCliente,
     CreateCliente,
     SaveClienteInscripto,
-    UpdateCliente, 
+    UpdateCliente,
+    LibroClienteSchema, 
 } from '../schemas/cliente.schema';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model';
@@ -17,9 +18,11 @@ import { Venta } from './venta.model';
 import { getAfipData } from "../afip/Afip";
 import { filesUrl } from '../app';
 import { tipoTransaccion } from '../schemas/transaccion.schema';
+import { LibroTransaccion } from './transaccion.model';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
+    static libros_table = "libro_cliente";
     static fields = ["id", "nombre", "tipo", "email", "cuit", "cond_fiscal", "razon_social", "domicilio"];
     static pk = 'id';
 
@@ -60,8 +63,11 @@ export class Cliente extends BaseModel{
             .replaceAll(' ', '')+'_'+date+'.pdf';
     }
 
-    static async getAll(userId: number) {
-        return await this.find_all({user: userId});
+    static getAll(userId: number, tipo?: TipoCliente) {
+        if (tipo){
+            return this.find_all<ClienteSchema>({user: userId, tipo: tipo});
+        }
+        return this.find_all<ClienteSchema>({user: userId});
     }
 
     static async getById(id: number): Promise<Cliente> {
@@ -82,7 +88,7 @@ export class Cliente extends BaseModel{
             ...body,
             ...afipData,
             user: userId,
-            tipo: "inscripto" //No se puede crear un cliente que no sea inscripto
+            tipo: "inscripto"//No se puede crear un cliente que no sea inscripto
         });
     }
   
@@ -126,37 +132,107 @@ export class Cliente extends BaseModel{
         return rows as Venta[];
     }
 
-    async getStock() {
-        const [rows] = await conn.query<RowDataPacket[]>(`
-            SELECT 
-                titulo, libros.isbn, sc.stock
-            FROM stock_cliente as sc
-            INNER JOIN libros
-                ON libros.isbn = sc.isbn
-            WHERE id_cliente=?
-        `, [this.id]);
-        return rows;
+    /*
+        * Actualiza los precios de los libros de este cliente a los nuevos precios
+        * */
+    async updatePrecios(){
+        const saveOldPrecio = `
+            INSERT INTO precio_libro_cliente 
+            (id_libro, id_cliente, precio) (
+                SELECT LC.id_libro, LC.id_cliente, LC.precio 
+                    FROM ${Cliente.libros_table} LC
+                INNER JOIN libros L
+                    ON L.id_libro = LC.id_libro
+                    AND L.precio != LC.precio
+                    AND LC.id_cliente = ?
+            );`;
+        await conn.query<ResultSetHeader>(saveOldPrecio, [this.id]);
+
+        const updatePrecios = `
+            UPDATE ${Cliente.libros_table} LC
+            INNER JOIN libros L
+                ON L.id_libro = LC.id_libro
+                AND L.precio != LC.precio
+                AND LC.id_cliente = ?
+            SET LC.precio = L.precio;
+            `;
+        const [res] = await conn.query<ResultSetHeader>(updatePrecios, [this.id]);
+
+        if (res.affectedRows < 0){
+            throw new NothingChanged("Todos los libros ya tienen el ultimo precio actualizado")
+        }
     }
 
-    async updateStock(libros: StockCliente, connection: DBConnection){
-        const stock_clientes = libros.map(l => [this.id, l.cantidad, l.isbn])
+    /*
+        * Obtiene la lista de libros
+        * Si se pasa una fecha, obtiene el precio que tenia el libro en esa fecha
+        */
+    async getLibros(fecha?: Date): Promise<LibroClienteSchema[]> {
+        if (!fecha){
+            const [rows] = await conn.query<RowDataPacket[]>(`
+                SELECT 
+                    titulo, L.id_libro, L.isbn, LC.precio, LC.stock
+                FROM ${Cliente.libros_table} as LC
+                INNER JOIN libros L
+                    ON L.id_libro = LC.id_libro
+                WHERE id_cliente = ?
+            `, [this.id]);
+            return rows as LibroClienteSchema[];
+        }
+
+        const [rows] = await conn.query<RowDataPacket[]>(`
+            SELECT 
+                titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
+            FROM precio_libro_cliente as PLC
+            INNER JOIN (
+                SELECT id_libro, MAX(created_at) as last_date
+                FROM precio_libro_cliente PLC
+                WHERE PLC.created_at < ?
+                AND PLC.id_cliente = ?
+                GROUP BY id_libro
+            ) AS LP
+                ON  LP.id_libro = PLC.id_libro
+                AND LP.last_date = PLC.created_at
+                AND PLC.id_cliente = ?
+            INNER JOIN libros L
+                ON L.id_libro = PLC.id_libro
+            INNER JOIN ${Cliente.libros_table} as LC
+                ON LC.id_libro = PLC.id_libro
+        `, [fecha, this.id, this.id]);
+        return rows as LibroClienteSchema[];
+    }
+
+    async addStock(libros: LibroTransaccion[], connection: DBConnection){
+        console.log("updating stock");
+        const stock_clientes = libros.map(l => [this.id, l.id_libro, l.cantidad, l.isbn, l.precio])
         await connection.query<ResultSetHeader>(`
-            INSERT INTO stock_cliente
-                (id_cliente, stock, isbn)
+            INSERT INTO ${Cliente.libros_table}
+                (id_cliente, id_libro, stock, isbn, precio)
                 VALUES ?
             ON DUPLICATE KEY UPDATE
                 stock = stock + VALUES(stock)
         `, [stock_clientes]);
     }
 
+    async reduceStock(libros: LibroTransaccion[], connection: DBConnection){
+        const stock_clientes = libros.map(l => [this.id, l.id_libro, l.cantidad, l.isbn, l.precio])
+        await connection.query<ResultSetHeader>(`
+            INSERT INTO ${Cliente.libros_table}
+                (id_cliente, id_libro, stock, isbn, precio)
+                VALUES ?
+            ON DUPLICATE KEY UPDATE
+                stock = stock - VALUES(stock)
+        `, [stock_clientes]);
+    }
+
     async haveStock(libros: StockCliente){
         for (const libro of libros){
             const [rows] = await conn.query<RowDataPacket[]>(`
-                SELECT COUNT(*) as count FROM stock_cliente
-                WHERE id_cliente=?
-                AND isbn = ?
+                SELECT COUNT(*) as count FROM ${Cliente.libros_table}
+                WHERE id_cliente = ?
+                AND id_libro = ?
                 AND stock < ?;
-            `, [this.id, libro.isbn, libro.cantidad]); 
+            `, [this.id, libro.id_libro, libro.cantidad]); 
             const count = rows[0].count;
 
             if (count > 0){

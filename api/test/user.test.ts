@@ -12,6 +12,7 @@ import {expect_err_code, expect_success_code} from './util';
 
 const app = 'http://localhost:3001';
 
+const cuit = "20173080329"
 let user: any;
 user = {
     username: "martinpdisalvo",
@@ -20,7 +21,7 @@ user = {
 
 it('Hard delete', async () => {
     await conn.query(`
-        delete from users where cuit=20434919798`
+        delete from users where cuit=${cuit} or username = '${user.username}'`
     );
 });
 
@@ -36,7 +37,7 @@ describe('POST user/register', () => {
     it('User no está en AFIP', async () => {
         const res = await request(app)
             .post('/user/register').send(user)
-        user.cuit = "20434919798";
+        user.cuit = cuit;
         
         expect_err_code(404, res);
     });
@@ -52,7 +53,7 @@ describe('POST user/register', () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expect_success_code(404, res);
+        expect_err_code(400, res);
     });
 });
 

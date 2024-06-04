@@ -1,6 +1,5 @@
 import {z} from 'zod';
-import { libroCantidad } from "./libros.schema";
-import { createTransaccion, transaccionSchema } from './transaccion.schema';
+import { createTransaccion } from './transaccion.schema';
 
 export const medioPago = {
     efectivo: "efectivo",
@@ -46,6 +45,11 @@ export const createVenta = ventaSchema.pick({
     medio_pago: true,
     tipo_cbte: true,
 }).and(createTransaccion);
+
+export const createVentaConsignado = createVenta.and(z.object({
+    fecha_venta: z.coerce.date()
+}));
+
 export type CreateVenta = z.infer<typeof createVenta>;
 
 const saveVenta = ventaSchema;

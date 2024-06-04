@@ -17,6 +17,10 @@ async function getCliente(req: Request): Promise<Cliente>{
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createCliente.parse(req.body);
 
+    if (body.cuit == res.locals.user.id){
+        throw new ValidationError("No podes cargarte a vos mismo como cliente");
+    }
+
     if(await Cliente.cuilExists(body.cuit, res.locals.user.id)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`)
     }
@@ -52,8 +56,19 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 
 const getStock = async (req: Request, res: Response): Promise<Response> => {
     const cliente = await getCliente(req);
-    let stock = await cliente.getStock();
-    return res.json(stock);
+    const libros = await cliente.getLibros();
+    return res.json(libros);
+}
+
+const updatePrecios = async (req: Request, res: Response): Promise<Response> => {
+    const cliente = await getCliente(req);
+    await cliente.updatePrecios();
+    const libros = await cliente.getLibros();
+    return res.json({
+        success: true,
+        message: `Libros del cliente ${cliente.id} actualizados correctamente`,
+        data: libros
+    });
 }
 
 const getVentas = async (req: Request, res: Response): Promise<Response> => {
@@ -75,7 +90,10 @@ const delet = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response> => {
-    const clientes = await Cliente.getAll(res.locals.user.id)
+    const parse = createCliente.shape.tipo.safeParse(req.query.tipo);
+    const tipo = parse.success ? parse.data : undefined;
+
+    const clientes = await Cliente.getAll(res.locals.user.id, tipo)
     return res.json(clientes);
 }
 
@@ -88,6 +106,7 @@ export default {
     create,
     update,
     getStock,
+    updatePrecios,
     getVentas,
     delet,
     getAll,

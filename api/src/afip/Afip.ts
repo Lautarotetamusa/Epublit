@@ -43,7 +43,10 @@ export function getAfipClient(user: User){
     if (!(fs.existsSync(path+'/private_key.key'))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
     }
-    if (!(fs.existsSync(path+'/cert.pem'))){
+    /*if (!(fs.existsSync(path+'/cert.pem'))){
+        throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
+    }*/
+    if (!(fs.existsSync(path+'/cert.crt'))){
         throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
     }
 

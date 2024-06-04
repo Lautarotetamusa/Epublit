@@ -41,7 +41,16 @@ export const createCliente = clienteSchema.pick({
 });
 export type CreateCliente = z.infer<typeof createCliente>;
 
+export type LibroClienteSchema = {
+    id_libro: number,
+    titulo: string,
+    precio: number,
+    stock: number, 
+    isbn: string,
+};
+
 export type StockCliente = {
     cantidad: number, 
-    isbn: string
+    id_libro: number,
+    isbn: string,
 }[]

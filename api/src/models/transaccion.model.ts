@@ -9,38 +9,38 @@ import { Cliente } from './cliente.model';
 import { ValidationError } from './errors';
 import { User } from './user.model';
 import { emitirComprobante } from '../comprobantes/comprobante';
+import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 
 type libroTransaccionSchema = {
-    cantidad: number, 
-    precio: number,
-};
-
-export class LibroTransaccion extends Libro{
     cantidad: number;
     precio: number;
+    id_libro: number;
+    isbn: string;
+    stock: number;
+    titulo: string;
+};
+
+export class LibroTransaccion extends BaseModel {
+    cantidad: number;
+    precio: number;
+    id_libro: number;
+    
+    isbn: string;
+    stock: number;
+    titulo: string;
 
     static table_name = "libros_transacciones";
 
-    constructor(req: {libro: Libro} & libroTransaccionSchema){
-        super(req.libro);
+    constructor(req: libroTransaccionSchema){
+        super();
 
         this.cantidad = req.cantidad;
         this.precio = req.precio;
-    }
-
-    static async setLibros(body: LibroCantidad[], userId: number): Promise<LibroTransaccion[]>{
-        let libros: LibroTransaccion[] = [];
-
-        for (const libroBody of body) {
-            const libro = await Libro.getByIsbn(libroBody.isbn, userId);
-
-            libros.push(new LibroTransaccion({
-                libro: libro,
-                cantidad: libroBody.cantidad,
-                precio: libro.precio 
-            }))
-        }
-        return libros;
+        
+        this.id_libro = req.id_libro;
+        this.isbn = req.isbn;
+        this.stock = req.stock;
+        this.titulo = req.titulo;
     }
 
     static async save(body: LibroTransaccion[], id_transaccion: number, connection: DBConnection){
@@ -50,11 +50,22 @@ export class LibroTransaccion extends Libro{
             id_libro: libro.id_libro,
             id_transaccion: id_transaccion
         }));
-        await this._bulk_insert<libroTransaccionSchema>(libros, connection);
+        await this._bulk_insert(libros, connection);
     }
 }
 
-export abstract class Transaccion extends BaseModel{
+export interface ITransaccion {
+    stockValidation(libros: LibroTransaccion[]): Promise<void>;
+    stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection): Promise<void>;
+    comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void;
+    clientValidation(tipo: TipoCliente): boolean
+
+    getById(id: number): Promise<ITransaccion>;
+    getLibros(): Promise<LibroTransaccion[]>;
+    setLibros(body: LibroCantidad[], cliente: Cliente, userId: number): Promise<LibroTransaccion[]>;
+}
+
+export abstract class Transaccion extends BaseModel {
     static table_name = 'transacciones';
     static type: TipoTransaccion;
     static filesFolder: string;
@@ -78,13 +89,13 @@ export abstract class Transaccion extends BaseModel{
         this.user = request.user;
     }
 
-    static async stockValidation(libros: LibroTransaccion[], cliente: Cliente): Promise<void>{};
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente): Promise<void>{};
-    static comprobante(libros: LibroTransaccion[], cliente: Cliente): void{};
-
     parsePath(filesFolder: string){
         this.file_path = this.file_path && this.file_path != "" ? `${filesUrl}/${filesFolder}/${this.file_path}` : this.file_path;
     }
+
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection): Promise<void>{console.error("UNEXPECTED")};
+    comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
+    static clientValidation(tipo: TipoCliente): boolean{return true};
 
     static async insert(body: SaveTransaccion, connection: DBConnection){
         return await this._insert<SaveTransaccion, Transaccion>(body, connection);
@@ -96,6 +107,25 @@ export abstract class Transaccion extends BaseModel{
         });
         transaccion.parsePath(this.filesFolder);
         return transaccion;
+    }
+
+    /* 
+        * Obtener los libros que se van a usar en la transaccion, con su precio y su stock
+    */
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: {}): Promise<LibroTransaccion[]>{
+        let libros: LibroTransaccion[] = [];
+
+        for (const libroBody of body) {
+            const libro = await Libro.getByIsbn(libroBody.isbn, userId);
+
+            libros.push(new LibroTransaccion({
+                ...libro,
+                cantidad: libroBody.cantidad,
+                precio: libro.precio,
+                id_libro: libro.id_libro
+            }))
+        }
+        return libros;
     }
 
     async getLibros(): Promise<LibroTransaccion[]>{
@@ -126,24 +156,20 @@ export abstract class Transaccion extends BaseModel{
     }
 }
 
-export class Consignacion extends Transaccion{
+export class Consignacion extends Transaccion {
     static filesFolder = "remitos";
     static type = tipoTransaccion.consignacion;
 
-    stockValidation(libros: LibroTransaccion[], _:Cliente){
-        for (const libro of libros){
-            if (libro.stock < libro.cantidad){
-                throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
-            }
-        }
+    static clientValidation(tipo: TipoCliente): boolean {
+        return tipo == tipoCliente.inscripto   
     }
 
-    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
         for (const libro of libros) {
-            await libro.updateStock(-libro.cantidad, conn);
+            await Libro.updateStock(libro.id_libro, -libro.cantidad, conn);
         }
 
-        await cliente.updateStock(libros, connection);
+        await cliente.addStock(libros, connection);
     }
 
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User){
@@ -160,48 +186,43 @@ export class Consignacion extends Transaccion{
     }
 }
 
-export class Devolucion extends Transaccion{
+export class Devolucion extends Transaccion {
     static type = tipoTransaccion.devolucion;
 
-    stockValidation(libros: LibroTransaccion[], cliente: Cliente){
-        cliente.haveStock(libros);
-    }
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: {}): Promise<LibroTransaccion[]>{
+        let libros: LibroTransaccion[] = [];
 
-    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
-        if (this.type == tipoTransaccion.ventaConsignacion){
-            for (const libro of libros){
-                await libro.updateStock(libro.cantidad, conn);
+        const librosCliente = await cliente.getLibros(); 
+
+        for (const _libro of body) {
+            const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);
+            if (libroCliente === undefined){
+                throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} para esta fecha`)
             }
+
+            libros.push(new LibroTransaccion({
+                ...libroCliente,
+                cantidad: _libro.cantidad,
+                precio: libroCliente.precio,
+            }))
         }
 
-        const substactedStock = libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
-        await cliente.updateStock(substactedStock, connection);
+        return libros;
     }
 
-    comprobante(){
-        this.file_path = "";
-    }
-}
-
-export class VentaConsignado extends Transaccion{
-    static type = tipoTransaccion.ventaConsignacion;
-
-    stockValidation(libros: LibroTransaccion[], cliente: Cliente){
-        cliente.haveStock(libros);
-    }
-
-    async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
-        if (this.type == tipoTransaccion.ventaConsignacion){
-            for (const libro of libros){
-                await libro.updateStock(libro.cantidad, conn);
-            }
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+        for (const libro of libros){
+            await Libro.updateStock(libro.id_libro, libro.cantidad, conn);
         }
 
-        const substactedStock = libros.map(l => ({cantidad: -l.cantidad, isbn: l.isbn}));
-        await cliente.updateStock(substactedStock, connection);
+        await cliente.reduceStock(libros, connection);
     }
 
-    comprobante(){
+    static clientValidation(tipo: TipoCliente): boolean {
+        return tipo == tipoCliente.inscripto 
+    }
+
+    comprobante(_: LibroTransaccion[], __: Cliente, ___: User){
         this.file_path = "";
     }
 }
