@@ -6,7 +6,7 @@ const userSchema = z.object({
     username: z.string(),
     password: z.string(),
     cuit: z.string(),
-    production: z.boolean()
+    production: z.number()
 }).and(afipSchema);
 export type UserSchema = z.infer<typeof userSchema>; 
 

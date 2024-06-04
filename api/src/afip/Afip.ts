@@ -59,7 +59,7 @@ export function getAfipClient(user: User){
         res_folder: path,
         key: 'private_key.key',
         cert: 'cert.crt',
-        production: user.production,
+        production: user.production === 1,
     });
 }
 

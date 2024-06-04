@@ -13,7 +13,7 @@ export class User extends BaseModel{
     cond_fiscal: string;
     razon_social: string;
     domicilio: string;
-    production: boolean;
+    production: number; //Pongo un numero porque mysql devuelve un numero
 
     static table_name = "users"; 
 
