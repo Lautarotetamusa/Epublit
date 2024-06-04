@@ -56,7 +56,8 @@ const login = async (req: Request, res: Response): Promise<Response> => {
         razon_social: user.razon_social,
         domicilio: user.domicilio,
         cond_fiscal: user.cond_fiscal,
-        cuit: user.cuit
+        cuit: user.cuit,
+        production: user.production,
     }, process.env.JWT_SECRET as Secret, 
     { expiresIn: process.env.JWT_EXPIRES_IN });
 

@@ -8,6 +8,7 @@ import { Cliente } from '../models/cliente.model';
 
 import fs from "fs";
 import { join } from 'path';
+import { assert } from "console";
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -30,12 +31,14 @@ const afipMadre = new Afip({
 	ta_folder: join(afipKeysPath, cuitProd+'/Tokens/'),
 	res_folder: join(afipKeysPath, cuitProd),
 	key: 'private_key.key',
-	//cert: 'FacturadorLibrosSilvestres_773cb8c416f11552.crt',
-    cert: 'cert.pem',
+	cert: 'cert.crt',
+    //cert: 'cert.pem',
 	production: true,
 });
 
 export function getAfipClient(user: User){
+    assert(user.production !== undefined, "El usuario no tiene seteada la variable 'production'");
+
     const path = join(afipKeysPath, user.cuit);
     console.log("res folder:", path);
     console.log("ta_folder:", join(path, 'Tokens'));
