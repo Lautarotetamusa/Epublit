@@ -112,7 +112,7 @@ export abstract class Transaccion extends BaseModel {
     /* 
         * Obtener los libros que se van a usar en la transaccion, con su precio y su stock
     */
-    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number): Promise<LibroTransaccion[]>{
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: {}): Promise<LibroTransaccion[]>{
         let libros: LibroTransaccion[] = [];
 
         for (const libroBody of body) {
@@ -189,7 +189,7 @@ export class Consignacion extends Transaccion {
 export class Devolucion extends Transaccion {
     static type = tipoTransaccion.devolucion;
 
-    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number): Promise<LibroTransaccion[]>{
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: {}): Promise<LibroTransaccion[]>{
         let libros: LibroTransaccion[] = [];
 
         const librosCliente = await cliente.getLibros(); 

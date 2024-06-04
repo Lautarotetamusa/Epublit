@@ -1,9 +1,8 @@
 import {Request, Response} from "express";
 import { ValidationError } from "../models/errors"
-import { ITransaccion, LibroTransaccion, Transaccion } from "../models/transaccion.model";
+import { LibroTransaccion, Transaccion } from "../models/transaccion.model";
 import { createTransaccion } from "../schemas/transaccion.schema";
 import { Cliente } from "../models/cliente.model";
-import { tipoCliente } from "../schemas/cliente.schema";
 import { conn } from "../db";
 import { emitirComprobante } from "../comprobantes/comprobante";
 

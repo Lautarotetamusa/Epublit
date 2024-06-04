@@ -182,7 +182,7 @@ export class Cliente extends BaseModel{
 
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                titulo, L.id_libro, L.isbn, PLC.precio, PLC.stock
+                titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
             FROM precio_libro_cliente as PLC
             INNER JOIN (
                 SELECT id_libro, MAX(created_at) as last_date

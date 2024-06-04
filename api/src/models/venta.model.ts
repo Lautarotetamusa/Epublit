@@ -1,7 +1,7 @@
 import {conn} from '../db'
 import { NotFound, ValidationError } from './errors';
 import { DBConnection } from './base.model';
-import { MedioPago, SaveVenta, VentaSchema } from '../schemas/venta.schema';
+import { MedioPago, SaveVenta, VentaSchema, createVenta, createVentaConsignado } from '../schemas/venta.schema';
 import { RowDataPacket } from 'mysql2';
 import { LibroTransaccion, Transaccion } from './transaccion.model';
 import { SaveTransaccion, TransaccionSchema, tipoTransaccion } from '../schemas/transaccion.schema';
@@ -15,6 +15,7 @@ import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 export class Venta extends Transaccion{
     static table_name = 'ventas';
     static filesFolder = 'facturas';
+    static parser = createVenta.parse;
 
     id_transaccion: number;
     descuento: number;
@@ -45,7 +46,7 @@ export class Venta extends Transaccion{
 
     static async stockValidation(libros: LibroTransaccion[], cliente: Cliente){}
     clientValidation(tipo: TipoCliente) {return true}
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){console.log("UNEXPECTED, venta")}
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){}
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
 
     static calcTotal(libros: LibroTransaccion[], descuento: number){
@@ -116,6 +117,7 @@ export class Venta extends Transaccion{
 
 export class VentaFirme extends Venta {
     static type = tipoTransaccion.venta;
+    static parser = createVenta.parse;
 
     async stockValidation(libros: LibroTransaccion[]){
         for (const libro of libros){
@@ -141,19 +143,21 @@ export class VentaFirme extends Venta {
 
 export class VentaConsignado extends Venta {
     static type = tipoTransaccion.ventaConsignacion;
+    static parser = createVentaConsignado.parse;
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha
-    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number): Promise<LibroTransaccion[]>{
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args: {}): Promise<LibroTransaccion[]>{
         let libros: LibroTransaccion[] = [];
 
-        const librosCliente = await cliente.getLibros(); 
+        //@ts-ignore
+        const librosCliente = await cliente.getLibros(args.date); 
 
         console.log(librosCliente);
         for (const _libro of body) {
             const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);
             console.log(libroCliente);
             if (libroCliente === undefined){
-                throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} para esta fecha`)
+                throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} anteriores a la fecha`)
             }
 
             libros.push(new LibroTransaccion({

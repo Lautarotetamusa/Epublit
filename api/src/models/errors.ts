@@ -49,8 +49,6 @@ export class Unauthorized extends ApiError {
 }
 
 export function handleErrors(err: Error, req: Request, res: Response, next: NextFunction): Response{
-    console.log("ERROR: ", err.message, err.stack);
-    
     if (err instanceof ZodError){
         const errors = err.errors;
         errors.map(e => {
@@ -64,6 +62,7 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
             errors: errors
         });
     }
+    console.error("ERROR: ", err.message, err.stack);
 
     if (err instanceof NothingChanged) return res.status(err.status).json({
         success: true,

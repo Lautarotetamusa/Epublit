@@ -26,6 +26,6 @@ for (const tipo in transacciones){
 };
 
 router.post(`/venta`, auth, VentaController.vender(VentaFirme));
-router.post(`/ventaConsignacion`, auth, VentaController.vender(VentaConsignado));
+router.post(`/ventaConsignacion`, auth, VentaController.ventaConsignado);
 
 export default router;
