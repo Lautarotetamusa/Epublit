@@ -152,10 +152,8 @@ export class VentaConsignado extends Venta {
         //@ts-ignore
         const librosCliente = await cliente.getLibros(args.date); 
 
-        console.log(librosCliente);
         for (const _libro of body) {
             const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);
-            console.log(libroCliente);
             if (libroCliente === undefined){
                 throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} anteriores a la fecha`)
             }

@@ -12,7 +12,6 @@ const getOne = (transaccion: typeof Transaccion) => {
         if (!id) throw new ValidationError("El id debe ser un numero");
 
         const t = await transaccion.getById(id);
-        console.log(t);
         const libros = await t.getLibros();
         return res.json({
             ...t,

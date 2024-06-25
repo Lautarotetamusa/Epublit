@@ -39,6 +39,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
         connection.release();
 
         await VentaConsignado.stockMovement(librosModel, c, connection);
+        connection.release();
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[c.tipo] != tipoCliente.negro){
@@ -97,13 +98,12 @@ export const vender = (ventaModel: typeof Venta) => {
                 user: user
             }, connection);
             connection.release();
-            console.log(venta);
 
             await LibroTransaccion.save(librosModel, venta.id, connection);
             connection.release();
 
-            console.log(ventaModel.stockMovement)
             await ventaModel.stockMovement(librosModel, c, connection);
+            connection.release();
 
             //Solo facturamos para clientes que no son en negro
             if (tipoCliente[c.tipo] != tipoCliente.negro){
@@ -132,7 +132,7 @@ export const vender = (ventaModel: typeof Venta) => {
             console.log("Se realizo un rollback");
             throw err;
         }finally{
-            connection.release()
+            connection.release();
         }
     }
 }

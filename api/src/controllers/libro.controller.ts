@@ -9,7 +9,7 @@ import { ValidationError } from "../models/errors"
 import { LibroPersona } from "../models/libro_persona.model";
 
 import fs from 'fs';
-import {  createLibro, updateLibro } from "../schemas/libros.schema";
+import {  createLibro, libroParams, updateLibro } from "../schemas/libros.schema";
 import { LibroPrecio } from "../models/libroPrecio.model";
 import { conn } from "../db";
 
@@ -196,10 +196,15 @@ const getAll = async(req: Request, res: Response) => {
         const libros = await Libro.getPaginated(Number(req.query.page) || 0, res.locals.user.id);
         return res.json(libros);
     }
+    
+    console.log(req.query);
+    console.log(req.query['precio>']);
 
     const withStock = (String(req.query.stock).toLowerCase() === 'true')
 
-    const libros = await Libro.getAll(res.locals.user.id, withStock);
+    const query = libroParams.parse(req.query);
+
+    const libros = await Libro.getAll(res.locals.user.id, query);
     return res.json(libros);
 }
 

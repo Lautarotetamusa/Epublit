@@ -11,6 +11,19 @@ export interface DBConnection{
     query<T>(sql: string, value: any): Promise<T>;
 }
 
+type Where<Schema> = Partial<{ 
+    [K in keyof Schema]: 
+        Schema[K] | 
+        Schema[K][] |
+        {
+            equal: Schema[K],
+        } | {
+            less: Schema[K]
+        } | {
+            greater: Schema[K]
+        }
+}>;
+
 export class BaseModel{
     /*
         DECLARATIONS
@@ -24,7 +37,7 @@ export class BaseModel{
     protected static formatWhere(req: object | undefined){
         let where_query = "";
         let where_list: any[] = []
-        if (req){
+        if (req && Object.keys(req).length > 0){
             type key = keyof typeof req;
             where_query = "WHERE ";
             for (let field in req){ 
@@ -42,6 +55,36 @@ export class BaseModel{
         }
     }
 
+    protected formatWhereImproved<Schema extends object>(req: Where<Schema>){
+        let whereQuery = "";
+        let whereList: any[] = [];
+
+        if (req && Object.keys(req).length > 0){
+            whereQuery = "WHERE ";
+
+            for (let key in req){ 
+                const field = req[key as keyof typeof req];
+
+                if (Array.isArray(field)){
+                    const values = field.join(', ');
+                    whereQuery += `(${key}) IN (${values}) AND `;
+                }else{
+                    if (field.less){
+
+                    }
+                    whereQuery += `${key} = ? AND `;
+                    whereList.push(field);
+                }
+            }
+            whereQuery = whereQuery.substring(0, whereQuery.length-4);
+        }
+
+        return {
+            whereQuery: whereQuery,
+            whereList: whereList
+        }
+    }
+    
     protected static async _exists(req?: object): Promise<boolean>{
         let {where_query, where_list} = this.formatWhere(req);
 
@@ -79,6 +122,7 @@ export class BaseModel{
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
             FROM ${this.table_name}
             ${where_query}`;
+        console.log(query);
 
         const [rows] = await conn.query<RowDataPacket[]>(query, where_list);
         return rows as RT[];
@@ -86,6 +130,7 @@ export class BaseModel{
 
     protected static async _insert<CT, MT>(req: CT, connection: DBConnection = conn): Promise<MT>{
         const query = `INSERT INTO ${this.table_name} SET ?`;
+        console.log("connection:", connection);
 
         try {
             const [result] = await connection.query<ResultSetHeader[]>(query, req);

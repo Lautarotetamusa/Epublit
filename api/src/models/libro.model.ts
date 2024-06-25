@@ -36,17 +36,12 @@ export class Libro extends BaseModel{
         return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0, user: userId})
     }
 
-    static async getAll(userId: number, withStock: boolean = false): Promise<LibroSchema[]>{        
-        let query = `
-            SELECT ${this.fields.join(', ')} 
-            FROM ${this.table_name}
-            WHERE is_deleted = 0
-            AND user = ?`
-
-        if (withStock){
-            query += ' AND stock IS NOT NULL AND stock > 0'
-        }
-        const [libros] = await conn.query<RowDataPacket[]>(query, [userId]);
+    static async getAll(userId: number, req?: object): Promise<LibroSchema[]>{        
+        const libros = await Libro.find_all({
+            ...req,
+            is_deleted: false,
+            user: userId
+        });
         return libros as LibroSchema[];
     }
 

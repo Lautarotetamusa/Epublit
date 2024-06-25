@@ -1,6 +1,19 @@
 import { createLibroPersona, createlibroPersonaInDB } from './libro_persona.schema';
 import {z} from 'zod';
 
+const transformStr = (val: string, ctx: any) => {
+  const parsed = parseInt(val);
+  if (isNaN(parsed)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Not a number",
+    });
+
+    return z.NEVER;
+  }
+  return parsed;
+}
+
 export const libroSchema = z.object({
     titulo: z.string(),
     isbn: z.string(),
@@ -11,6 +24,13 @@ export const libroSchema = z.object({
     user: z.number()
 });
 export type LibroSchema = z.infer<typeof libroSchema>;
+
+export const libroParams = libroSchema.extend({
+    id_libro: z.string().transform(transformStr),
+    precio: z.string().transform(transformStr),
+    stock: z.string().transform(transformStr),
+}).partial();
+export type LibroParams = z.infer<typeof libroParams>;
 
 export type SaveLibro = Omit<LibroSchema, 'id_libro'>;
 

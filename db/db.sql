@@ -83,7 +83,7 @@ CREATE TABLE clientes(
     razon_social VARCHAR(255) NOT NULL,
     domicilio VARCHAR(100) NOT NULL,
 
-    tipo TINYINT DEFAULT 0,
+    tipo TINYINT DEFAULT 0 NOT NULL,
 
     PRIMARY KEY(id),
     FOREIGN KEY (user) REFERENCES users(id)

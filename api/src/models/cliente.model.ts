@@ -19,6 +19,7 @@ import { getAfipData } from "../afip/Afip";
 import { filesUrl } from '../app';
 import { tipoTransaccion } from '../schemas/transaccion.schema';
 import { LibroTransaccion } from './transaccion.model';
+import { assert } from 'console';
 
 export class Cliente extends BaseModel{
     static table_name = "clientes";
@@ -136,26 +137,27 @@ export class Cliente extends BaseModel{
         * Actualiza los precios de los libros de este cliente a los nuevos precios
         * */
     async updatePrecios(){
+        assert(this.tipo == tipoCliente.inscripto, "Un cliente que no es inscripto no puede tener stock")
+
+        const join = `
+            INNER JOIN libros L
+                ON L.id_libro = LC.id_libro
+                AND L.precio != LC.precio
+                AND LC.id_cliente = ?`;
+
         const saveOldPrecio = `
             INSERT INTO precio_libro_cliente 
             (id_libro, id_cliente, precio) (
                 SELECT LC.id_libro, LC.id_cliente, LC.precio 
                     FROM ${Cliente.libros_table} LC
-                INNER JOIN libros L
-                    ON L.id_libro = LC.id_libro
-                    AND L.precio != LC.precio
-                    AND LC.id_cliente = ?
+                    ${join}
             );`;
         await conn.query<ResultSetHeader>(saveOldPrecio, [this.id]);
 
         const updatePrecios = `
             UPDATE ${Cliente.libros_table} LC
-            INNER JOIN libros L
-                ON L.id_libro = LC.id_libro
-                AND L.precio != LC.precio
-                AND LC.id_cliente = ?
-            SET LC.precio = L.precio;
-            `;
+            ${join}
+            SET LC.precio = L.precio; `;
         const [res] = await conn.query<ResultSetHeader>(updatePrecios, [this.id]);
 
         if (res.affectedRows < 0){
