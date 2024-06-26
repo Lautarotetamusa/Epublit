@@ -46,6 +46,7 @@ export async function emitirComprobante({data, user}: args){
     //TODO: no hardcodear esto
     if (user.cuit == "27249804024"){ // El de libros silvestres
         html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
+        html = html.replace('{{name}}', "");
     }else{
         html = html.replace('{{logo}}', "");
         html = html.replace('{{name}}', `<span><h2>${user.username.toUpperCase()}<h2></span>`);
@@ -144,6 +145,7 @@ function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     }
 
     html = html.replace('{{LIBROS}}', table);
+    //TODO:
     //El 0003 es un numero igual para todos los remitos, esto obviamente habría que cambiarlo en un futuro para que no este hardescrito
     html = html.replace('{{remito.nro}}', '0003/'+String(consignacion.id).padStart(5, '0'));
     
