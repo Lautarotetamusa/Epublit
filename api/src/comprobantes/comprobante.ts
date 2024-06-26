@@ -38,21 +38,24 @@ export async function emitirComprobante({data, user}: args){
     });
     const page = await browser.newPage();
 
-    var html = fs.readFileSync(`${path}/${tipo}/${tipo}.html`, 'utf8');
-    var css  = fs.readFileSync(`${path}/${tipo}/style.css`,    'utf8');
-    var logo = fs.readFileSync(`${path}/${tipo}/Logo.png`,   'base64');
-
+    let html    = fs.readFileSync(`${path}/${tipo}/${tipo}.html`, 'utf8');
+    const css   = fs.readFileSync(`${path}/${tipo}/style.css`,    'utf8');
     html = html.replace('<style></style>', `<style>${css}</style>`);
-    //TODO: no hardcodear esto
-    if (user.cuit == "27249804024"){ // El de libros silvestres
-        html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
-        html = html.replace('{{name}}', "");
-    }else{
-        html = html.replace('{{logo}}', "");
-        html = html.replace('{{name}}', `<span><h2>${user.username.toUpperCase()}<h2></span>`);
+
+    if (tipo == 'remito'){
+        const logoPath = join(filesPath, `logos/${user.cuit}.png`);
+        const haveLogo = fs.existsSync(logoPath);
+
+        if (haveLogo){
+            const logo = fs.readFileSync(logoPath, 'base64');
+            html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
+            html = html.replace('{{name}}', "");
+        }else{
+            html = html.replace('{{logo}}', "");
+            html = html.replace('{{name}}', `<span><h2>${user.username.toUpperCase()}<h2></span>`);
+        }
     }
 
-    console.log(user);
     html = html.replace(/\{\{user_razon_social\}\}/g, user.razon_social);
     html = html.replace('{{user_domicilio}}', user.domicilio);
     html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
@@ -80,10 +83,12 @@ export async function emitirComprobante({data, user}: args){
 };
 
 function factura(html: string, {venta, cliente, libros, comprobante}: CreateFactura){
-    /*Parse venta.libros*/
-    var table = '';
+    let table = '';
     console.log("generando factura");
+    const logoAfip = fs.readFileSync(`${path}/factura/logoAfip.png`, 'base64');
+    html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logoAfip}">`);
 
+    /*Parse venta.libros*/
     for (let libro of libros) {
         let bonif = venta.descuento * 0.01;
         let imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
@@ -131,7 +136,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
 
 function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     //parse libros
-    var table = '';
+    let table = '';
 
     for (let libro of libros) {
         table += 

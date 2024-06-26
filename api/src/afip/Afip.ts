@@ -43,13 +43,13 @@ export function getAfipClient(user: User){
     console.log("res folder:", path);
     console.log("ta_folder:", join(path, 'Tokens'));
 
-    if (!(fs.existsSync(path+'/private_key.key'))){
+    const certFileName = user.production == 1 ? 'cert.crt' : 'cert.pem';
+    const privateFileName = 'private_key.key';
+
+    if (!(fs.existsSync(join(path, privateFileName)))){
         throw new ValidationError(`El usuario ${user.username} no tiene la clave de afip`);
     }
-    /*if (!(fs.existsSync(path+'/cert.pem'))){
-        throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
-    }*/
-    if (!(fs.existsSync(path+'/cert.crt'))){
+    if (!(fs.existsSync(join(path, certFileName)))){
         throw new ValidationError(`El usuario ${user.username} no tiene el certificado de afip`);
     }
 
@@ -57,8 +57,8 @@ export function getAfipClient(user: User){
         CUIT: user.cuit,
         ta_folder:  join(path, 'Tokens'),
         res_folder: path,
-        key: 'private_key.key',
-        cert: 'cert.crt',
+        key: privateFileName,
+        cert: certFileName,
         production: user.production === 1,
     });
 }
