@@ -6,5 +6,9 @@
         "strict": true,
         "esModuleInterop": true,
         "allowJs": true
-    }
+    },
+    "include": [
+        "src/**/*",
+        "types/*.ts"
+    ]
 }

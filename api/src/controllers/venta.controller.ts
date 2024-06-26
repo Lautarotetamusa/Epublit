@@ -7,15 +7,16 @@ import { emitirComprobante } from "../comprobantes/comprobante";
 import { conn } from "../db";
 import { LibroTransaccion } from "../models/transaccion.model";
 import { ValidationError } from "../models/errors";
+import { User } from "../models/user.model";
 
 const ventaConsignado = async (req: Request, res: Response): Promise<Response> => {
     const connection = await conn.getConnection();
-    const user = res.locals.user.id;
+    const user = await User.getById(res.locals.user.id);
 
     const {libros, cliente, ...ventaBody} = VentaConsignado.parser(req.body);
     const c = await Cliente.getById(cliente);
 
-    const librosModel = await VentaConsignado.setLibros(libros, c, user, {date: ventaBody.fecha_venta});
+    const librosModel = await VentaConsignado.setLibros(libros, c, user.id, {date: ventaBody.fecha_venta});
     for (const libro of librosModel){
         if (libro.stock < libro.cantidad){
             throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
@@ -30,7 +31,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             id_cliente: c.id,
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
             file_path: c.generatePath(),
-            user: user
+            user: user.id
         }, connection);
         connection.release();
         console.log(venta);
@@ -43,7 +44,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[c.tipo] != tipoCliente.negro){
-            const comprobanteData = await facturar(venta, c, res.locals.user);
+            const comprobanteData = await facturar(venta, c, user);
 
             emitirComprobante({
                 data: {
@@ -52,7 +53,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
                     cliente: c,
                     comprobante: comprobanteData
                 },
-                user: res.locals.user,
+                user: user,
             });
         }
         await connection.commit();
@@ -75,12 +76,12 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
 export const vender = (ventaModel: typeof Venta) => {
     return async (req: Request, res: Response): Promise<Response> => {
         const connection = await conn.getConnection();
-        const user = res.locals.user.id;
+        const user = await User.getById(res.locals.user.id);
 
         const {libros, cliente, ...ventaBody} = ventaModel.parser(req.body);
         const c = await Cliente.getById(cliente);
 
-        const librosModel = await ventaModel.setLibros(libros, c, user);
+        const librosModel = await ventaModel.setLibros(libros, c, user.id);
         for (const libro of librosModel){
             if (libro.stock < libro.cantidad){
                 throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
@@ -95,7 +96,7 @@ export const vender = (ventaModel: typeof Venta) => {
                 id_cliente: c.id,
                 total: Venta.calcTotal(librosModel, ventaBody.descuento),
                 file_path: c.generatePath(),
-                user: user
+                user: user.id
             }, connection);
             connection.release();
 
@@ -107,7 +108,7 @@ export const vender = (ventaModel: typeof Venta) => {
 
             //Solo facturamos para clientes que no son en negro
             if (tipoCliente[c.tipo] != tipoCliente.negro){
-                const comprobanteData = await facturar(venta, c, res.locals.user);
+                const comprobanteData = await facturar(venta, c, user);
 
                 emitirComprobante({
                     data: {
@@ -116,7 +117,7 @@ export const vender = (ventaModel: typeof Venta) => {
                         cliente: c,
                         comprobante: comprobanteData
                     },
-                    user: res.locals.user,
+                    user: user,
                 });
             }
             await connection.commit();

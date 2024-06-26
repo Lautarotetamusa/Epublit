@@ -16,6 +16,8 @@ export const loginUser = z.object({
     password: z.string(),
 });
 
+export type TokenUser = Omit<UserSchema, 'email' | 'password'> 
+
 export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
 
 export const createUser = z.object({ //No ponemos pick porque no existe en el objecto zod.intersection

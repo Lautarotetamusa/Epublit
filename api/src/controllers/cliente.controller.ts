@@ -17,7 +17,7 @@ async function getCliente(req: Request): Promise<Cliente>{
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createCliente.parse(req.body);
 
-    if (body.cuit == res.locals.user.id){
+    if (body.cuit == res.locals.user.cuit){
         throw new ValidationError("No podes cargarte a vos mismo como cliente");
     }
 

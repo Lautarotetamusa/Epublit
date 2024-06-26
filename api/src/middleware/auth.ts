@@ -2,7 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { Secret } from "jsonwebtoken";
 
 import * as dotenv from 'dotenv'
+import { TokenUser } from "../schemas/user.schema";
 dotenv.config();
+
+
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
     const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
@@ -14,7 +17,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
 
     try{
         const decoded = jwt.verify(token, process.env.JWT_SECRET as Secret);
-        res.locals.user = decoded;
+        res.locals.user = decoded as TokenUser;
         next();
     }catch(err: any){
         return res.status(401).json({
