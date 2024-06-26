@@ -13,6 +13,7 @@ export class User extends BaseModel{
     cond_fiscal: string;
     razon_social: string;
     domicilio: string;
+    email: string;
     production: number; //Pongo un numero porque mysql devuelve un numero
 
     static table_name = "users"; 
@@ -26,6 +27,7 @@ export class User extends BaseModel{
         this.cuit = body.cuit;
         this.razon_social = body.razon_social;
         this.domicilio = body.domicilio;
+        this.email = body.email;
         this.id = body.id;
         this.production = body.production;
     }
@@ -57,5 +59,9 @@ export class User extends BaseModel{
 
     static async getOne(username: string): Promise<User>{
         return await super.find_one<UserSchema, User>({username: username})
+    }
+    
+    static getById(id: number): Promise<User>{
+        return super.find_one<UserSchema, User>({id: id})
     }
 }

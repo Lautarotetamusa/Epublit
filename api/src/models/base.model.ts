@@ -55,6 +55,7 @@ export class BaseModel{
         }
     }
 
+    /*
     protected formatWhereImproved<Schema extends object>(req: Where<Schema>){
         let whereQuery = "";
         let whereList: any[] = [];
@@ -84,6 +85,7 @@ export class BaseModel{
             whereList: whereList
         }
     }
+    */
     
     protected static async _exists(req?: object): Promise<boolean>{
         let {where_query, where_list} = this.formatWhere(req);

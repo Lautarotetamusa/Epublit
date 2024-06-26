@@ -43,12 +43,20 @@ export async function emitirComprobante({data, user}: args){
     var logo = fs.readFileSync(`${path}/${tipo}/Logo.png`,   'base64');
 
     html = html.replace('<style></style>', `<style>${css}</style>`);
-    html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
+    //TODO: no hardcodear esto
+    if (user.cuit == "27249804024"){ // El de libros silvestres
+        html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logo}">`);
+    }else{
+        html = html.replace('{{logo}}', "");
+        html = html.replace('{{name}}', `<span><h2>${user.username.toUpperCase()}<h2></span>`);
+    }
 
+    console.log(user);
     html = html.replace(/\{\{user_razon_social\}\}/g, user.razon_social);
     html = html.replace('{{user_domicilio}}', user.domicilio);
     html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
     html = html.replace('{{user_cuit}}', user.cuit);
+    html = html.replace('{{user_email}}', user.email);
 
     let filePath: string;
     if ('venta' in data){

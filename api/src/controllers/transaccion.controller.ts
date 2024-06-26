@@ -5,6 +5,7 @@ import { createTransaccion } from "../schemas/transaccion.schema";
 import { Cliente } from "../models/cliente.model";
 import { conn } from "../db";
 import { emitirComprobante } from "../comprobantes/comprobante";
+import { User } from "../models/user.model";
 
 const getOne = (transaccion: typeof Transaccion) => {
     return async (req: Request, res: Response): Promise<Response> => {
@@ -31,7 +32,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
     return async(req: Request, res: Response): Promise<Response> => {
         const connection = await conn.getConnection();
 
-        const user = res.locals.user.id;
+        const user: User = await User.getById(res.locals.user.id);
         const body = createTransaccion.parse(req.body);
         const cliente = await Cliente.getById(body.cliente);
     
@@ -42,7 +43,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
                 throw new ValidationError(`No se le puede hacer una ${transaccion.type} a un cliente de tipo ${cliente.tipo}`);
             }
 
-            const libros = await transaccion.setLibros(body.libros, cliente, user);
+            const libros = await transaccion.setLibros(body.libros, cliente, user.id);
             for (const libro of libros){
                 if (libro.stock < libro.cantidad){
                     throw new ValidationError(`El libro ${libro.titulo} con isbn ${libro.isbn} no tiene suficiente stock`)
@@ -53,7 +54,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
                 type: transaccion.type,
                 id_cliente: cliente.id,
                 file_path: cliente.generatePath(),
-                user: user 
+                user: user.id
             }, connection);
             await LibroTransaccion.save(libros, transaction.id, connection);
             connection.release();

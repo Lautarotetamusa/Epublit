@@ -6,6 +6,7 @@ const userSchema = z.object({
     username: z.string(),
     password: z.string(),
     cuit: z.string(),
+    email: z.string().email(),
     production: z.number()
 }).and(afipSchema);
 export type UserSchema = z.infer<typeof userSchema>; 
@@ -17,10 +18,11 @@ export const loginUser = z.object({
 
 export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
 
-export const createUser = z.object({
+export const createUser = z.object({ //No ponemos pick porque no existe en el objecto zod.intersection
     username: z.string(),
     password: z.string(),
-    cuit: z.string()
+    cuit: z.string(),
+    email: z.string().email()
 });
 export type CreateUser = z.infer<typeof createUser>;
 
