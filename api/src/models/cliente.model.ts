@@ -2,7 +2,6 @@ import { conn } from '../db';
 import { ValidationError, NotFound, NothingChanged } from './errors';
 import { BaseModel, DBConnection } from './base.model';
 import { 
-    AfipData, 
     TipoCliente, 
     ClienteSchema, 
     StockCliente,
@@ -12,6 +11,7 @@ import {
     UpdateCliente,
     LibroClienteSchema, 
 } from '../schemas/cliente.schema';
+import { AfipData } from '../schemas/afip.schema';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { Venta } from './venta.model';
 
@@ -79,15 +79,16 @@ export class Cliente extends BaseModel{
         return await this.find_one({tipo: tipoCliente.particular});
     }
 
-    static async cuilExists(cuit: string, userId: number): Promise<Boolean>{
-        return await this._exists({cuit: cuit, tipo: tipoCliente.inscripto, user: userId})
+    static cuilExists(cuit: string, userId: number): Promise<Boolean>{
+        return this._exists({cuit: cuit, tipo: tipoCliente.inscripto, user: userId})
     }
 
-    static async insert(body: CreateCliente, userId: number): Promise<Cliente> {
-        const afipData: AfipData = await getAfipData(body.cuit);
-        return await this._insert<SaveClienteInscripto, Cliente>({
+    static insert(body: CreateCliente, afipData: AfipData, userId: number): Promise<Cliente> {
+        return this._insert<SaveClienteInscripto, Cliente>({
             ...body,
-            ...afipData,
+            cond_fiscal: afipData.cond_fiscal,
+            domicilio: afipData.domicilio,
+            razon_social: afipData.razon_social,
             user: userId,
             tipo: "inscripto"//No se puede crear un cliente que no sea inscripto
         });

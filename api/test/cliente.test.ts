@@ -125,7 +125,7 @@ describe('POST cliente/', () => {
         cliente.cuit = '30710813082';
         
         expect_err_code(404, res);
-    });
+    }, 10000);
 
 
     it('Success', async () => {
@@ -136,7 +136,7 @@ describe('POST cliente/', () => {
         expect_success_code(201, res);
 
         cliente.id = res.body.data.id;
-    });
+    }, 10000);
 
     it('cuit repetido', async () => {
         const res = await request(app)
@@ -217,16 +217,13 @@ describe('PUT cliente/{id}', () => {
         
         expect_success_code(201, res);
         expect(res.body.data.nombre).toEqual(cliente.nombre);
-    });
 
-    it('Los datos fueron actualizados correctamente', async () => {
-        //console.log("PUT", cliente);
-        const res = await request(app)
+        const res1 = await request(app)
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
 
-        expect(res.status).toEqual(200);
-        expect(res.body).toMatchObject(cliente);       
+        expect(res1.status).toEqual(200);
+        expect(res1.body).toMatchObject(cliente);       
     });
 
     it('Actualizar a un cuit que no esta en afip', async () => {
@@ -237,7 +234,7 @@ describe('PUT cliente/{id}', () => {
             .send(cliente);
 
         expect_err_code(404, res);
-    });
+    }, 10000);
 
     it('Actualizar a un cuit que ya esta cargado', async () => {
         let res = await request(app)
@@ -279,5 +276,5 @@ describe('PUT cliente/{id}', () => {
 
         delete cliente.tipo;
         expect(res2.body).toMatchObject(cliente);       
-    });
+    }, 10000);
 });

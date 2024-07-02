@@ -57,9 +57,17 @@ export async function emitirComprobante({data, user}: args){
     }
 
     html = html.replace(/\{\{user_razon_social\}\}/g, user.razon_social);
+    html = html.replace(/\{\{user_cuit\}\}/g, user.cuit);
+
+    if (user.ingresos_brutos){
+        const initials = user.razon_social.split(' ').map(word => word.charAt(0).toUpperCase()).join('');
+        html = html.replace('{{user_name_initials}}', initials);
+        html = html.replace('{{user_cuit_iibb}}', user.cuit);
+    }
+
+    html = html.replace('{{user_activity_init_date}}', user.fecha_inicio); //dd/mm/yyyy
     html = html.replace('{{user_domicilio}}', user.domicilio);
     html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
-    html = html.replace('{{user_cuit}}', user.cuit);
     html = html.replace('{{user_email}}', user.email);
 
     let filePath: string;

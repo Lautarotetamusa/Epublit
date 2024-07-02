@@ -217,7 +217,7 @@ CREATE TABLE `transacciones` (
   KEY `user` (`user`),
   CONSTRAINT `transacciones_ibfk_1` FOREIGN KEY (`id_cliente`) REFERENCES `clientes` (`id`),
   CONSTRAINT `transacciones_ibfk_2` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=455 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=470 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -237,6 +237,8 @@ CREATE TABLE `users` (
   `domicilio` varchar(100) NOT NULL,
   `production` tinyint(1) DEFAULT 0,
   `email` varchar(255) DEFAULT '',
+  `ingresos_brutos` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_inicio` char(10) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -268,4 +270,4 @@ CREATE TABLE `ventas` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-06-26  9:11:52
+-- Dump completed on 2024-07-02 12:07:45

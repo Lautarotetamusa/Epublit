@@ -1,14 +1,16 @@
-import { afipSchema } from './cliente.schema';
+import { afipSchema } from './afip.schema';
 import {z} from 'zod';
 
-const userSchema = z.object({
+const baseSchema = z.object({
     id: z.number(),
     username: z.string(),
     password: z.string(),
     cuit: z.string(),
     email: z.string().email(),
     production: z.number()
-}).and(afipSchema);
+});
+
+const userSchema = baseSchema.and(afipSchema);
 export type UserSchema = z.infer<typeof userSchema>; 
 
 export const loginUser = z.object({
@@ -20,11 +22,11 @@ export type TokenUser = Omit<UserSchema, 'email' | 'password'>
 
 export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
 
-export const createUser = z.object({ //No ponemos pick porque no existe en el objecto zod.intersection
-    username: z.string(),
-    password: z.string(),
-    cuit: z.string(),
-    email: z.string().email()
+export const createUser = baseSchema.pick({ 
+    username: true,
+    password: true,
+    cuit: true,
+    email: true,
 });
 export type CreateUser = z.infer<typeof createUser>;
 

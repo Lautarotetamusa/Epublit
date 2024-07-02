@@ -2,7 +2,7 @@ import Afip from "../afip/afip.js/src/Afip";
 import QRcode from 'qrcode';
 import { Venta } from '../models/venta.model';
 import { NotFound, ValidationError } from '../models/errors';
-import { AfipData } from '../schemas/cliente.schema';
+import { AfipData } from '../schemas/afip.schema';
 import { User } from '../models/user.model';
 import { Cliente } from '../models/cliente.model';
 
@@ -14,6 +14,19 @@ const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).t
 
 const afipKeysPath = join(__dirname, '../../afipkeys/');
 
+type DescImpuesto = {
+    idImpuesto: number,
+    descripcionImpuesto: string
+};
+
+type DescActividad = {
+    descripcionActividad: string,
+    idActividad: number,
+    nomenclador: number,
+    orden: number,
+    periodo: number //yyyymm
+};
+
 export type Comprobante = {
     nro: string,
     qr: string,
@@ -23,6 +36,11 @@ export type Comprobante = {
 	FchVto: string,
 	CbteFch: string,
 };
+
+const idImpuestos = {
+    iva: 32,
+    iibb: 5900 //Ingresos brutos
+} as const;
 
 // cuenta madre
 const cuitProd = "27249804024";
@@ -143,44 +161,38 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 	let data: AfipData = {
 		cond_fiscal: " - ",
 		domicilio: " - ",
-		razon_social: " - "
+		razon_social: " - ",
+        fecha_inicio: " - ",
+        ingresos_brutos: false
 	};
 
-	let impuestos = null;
+	let impuestos: DescImpuesto[] = [];
+    let actividad: DescActividad[] = [];
 	if (afipData.datosRegimenGeneral){
-		impuestos = afipData.datosRegimenGeneral.impuesto
+		impuestos = afipData.datosRegimenGeneral.impuesto || [];
+		actividad = afipData.datosRegimenGeneral.actividad || [];
     }else if(afipData.datosMonotributo){
-		impuestos = afipData.datosMonotributo.impuesto
+		impuestos = afipData.datosMonotributo.impuesto || [];
+		actividad = afipData.datosMonotributo.actividad || [];
     }
 
-	let actividad = null;
-	if (afipData.datosRegimenGeneral){
-		actividad = afipData.datosRegimenGeneral.actividad
-    }else if(afipData.datosMonotributo){
-		actividad = afipData.datosMonotributo.actividad
-    }
+    console.log("impuestos:", impuestos);
+    console.log("actividad:", actividad);
+    const iva  = impuestos.find(i => i.idImpuesto == idImpuestos.iva);
+    const iibb = impuestos.find(i => i.idImpuesto == idImpuestos.iibb);
+    const actividadPrincipal = actividad.find(a => a.orden == 1);
 
-    if (afipData.datosRegimenGeneral){
-        if (afipData.datosRegimenGeneral.regimen){
-            console.log("regimen:", afipData.datosRegimenGeneral.regimen);
+    if (actividadPrincipal !== undefined){
+        const periodo = String(actividadPrincipal.periodo);
+        if (periodo.length >= 6){
+            const year = periodo.slice(0,4);
+            const month = periodo.slice(4,6);
+            data.fecha_inicio = `01/${month}/${year}`; //Siempre empiezan en el dia 01 del mes
         }
     }
 
-    if (actividad){
-        console.log("actividad:", actividad);
-    }
-
-	if (impuestos){
-        console.log("impuestos:", impuestos);
-		const iva = (impuestos as {
-			idImpuesto: number,
-			descripcionImpuesto: string
-		}[]).find(i => i.idImpuesto == 32);
-
-		if (iva){
-            data.cond_fiscal = iva.descripcionImpuesto;
-        }
-	}	
+    data.cond_fiscal = iva !== undefined ? iva.descripcionImpuesto : " - ";
+    data.ingresos_brutos = iibb !== undefined;
 
 	if (afipData.datosGenerales.tipoPersona == 'JURIDICA'){
 		data.razon_social = afipData.datosGenerales.razonSocial;
@@ -189,11 +201,24 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
     }
 
     if (afipData.datosGenerales.domicilioFiscal){
-        data.domicilio = ''
-            + afipData.datosGenerales.domicilioFiscal.direccion+' - '
-            + afipData.datosGenerales.domicilioFiscal.localidad || 'CAPITAL FEDERAL' + ' ' 
-            + afipData.datosGenerales.domicilioFiscal.descripcionProvincia;
-    }
+        const d = afipData.datosGenerales.domicilioFiscal;
+        const sep = " - ";
 
-	return data;
+        data.domicilio = ''
+            + (d.direccion + sep)
+            + (d.localidad !== undefined ? d.localidad + sep : '')
+            + (d.descripcionProvincia !== undefined ? d.descripcionProvincia : 'BUENOS AIRES');
+     }
+
+     return data;
 }
+
+/*
+const a = {
+    codPostal: '1416',
+    descripcionProvincia: 'CIUDAD AUTONOMA BUENOS AIRES',
+    direccion: 'ESPINOSA 1581',
+    idProvincia: 0,
+    tipoDomicilio: 'FISCAL'
+}
+    */

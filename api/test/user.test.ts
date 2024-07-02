@@ -16,7 +16,8 @@ const cuit = "20173080329"
 let user: any;
 user = {
     username: "martinpdisalvo",
-    password: "ANASHEEEEEEE"
+    password: "ANASHEEEEEEE",
+    email: "lauti@gmail.com"
 };
 
 it('Hard delete', async () => {
@@ -40,14 +41,14 @@ describe('POST user/register', () => {
         user.cuit = cuit;
         
         expect_err_code(404, res);
-    });
+    }, 10000);
 
     it('Creado con exito', async () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
         expect_success_code(201, res);
-    });
+    }, 10000);
 
     it('Crear usuario con el mismo cuit', async () => {
         const res = await request(app)

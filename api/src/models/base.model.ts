@@ -45,8 +45,6 @@ export class BaseModel{
                 where_list.push(req[field as key]);
             }
             where_query = where_query.substring(0, where_query.length-4);
-            console.log(where_query);
-            console.log(where_list);
         }
 
         return {
@@ -95,8 +93,6 @@ export class BaseModel{
             FROM ${this.table_name}
             ${where_query}`;
 
-        console.log(query);
-
         const [rows] = await conn.query<RowDataPacket[]>(query, where_list);
         return rows[0].count > 0;
     }
@@ -124,7 +120,6 @@ export class BaseModel{
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
             FROM ${this.table_name}
             ${where_query}`;
-        console.log(query);
 
         const [rows] = await conn.query<RowDataPacket[]>(query, where_list);
         return rows as RT[];

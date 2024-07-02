@@ -196,13 +196,11 @@ const getAll = async(req: Request, res: Response) => {
         const libros = await Libro.getPaginated(Number(req.query.page) || 0, res.locals.user.id);
         return res.json(libros);
     }
-    
-    console.log(req.query);
     console.log(req.query['precio>']);
 
-    const withStock = (String(req.query.stock).toLowerCase() === 'true')
-
     const query = libroParams.parse(req.query);
+    //TODO: Permitir stock=true en los parametros
+    const withStock = (String(query.stock).toLowerCase() === 'true')
 
     const libros = await Libro.getAll(res.locals.user.id, query);
     return res.json(libros);

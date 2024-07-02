@@ -2,6 +2,7 @@ import { Cliente } from "../models/cliente.model";
 import { Request, Response } from "express";
 import { Duplicated, ValidationError } from '../models/errors';
 import { createCliente, updateCliente } from "../schemas/cliente.schema";
+import { getAfipData } from "../afip/Afip";
 
 async function getCliente(req: Request): Promise<Cliente>{
     const id = Number(req.params.id);
@@ -25,7 +26,8 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`)
     }
 
-    const cliente = await Cliente.insert(body, res.locals.user.id);
+    const afipData = await getAfipData(body.cuit);
+    const cliente = await Cliente.insert(body, afipData, res.locals.user.id);
 
     return res.status(201).json({
         success: true,

@@ -1,39 +1,36 @@
 import {z} from 'zod';
+import { afipSchema } from './afip.schema';
 
 export const tipoCliente = {
     particular: "particular",
     inscripto: "inscripto",
     negro: "negro"
-}
+} as const;
 export type TipoCliente = keyof typeof tipoCliente;
 
-const clienteSchema = z.object({
-    cond_fiscal: z.string(),
-    razon_social: z.string(),
-    domicilio: z.string(),
+const baseSchema = z.object({
+    cuit: z.string(),
     nombre: z.string(),
     email: z.string().optional(),
-    cuit: z.string(),
     tipo: z.enum(Object.keys(tipoCliente)as [TipoCliente]),
     id: z.number(),
-    user: z.number()
+    user: z.number(),
 });
-export type ClienteSchema = z.infer<typeof clienteSchema>;
 
-export const afipSchema = clienteSchema.pick({
+const clienteSchema = afipSchema.pick({
     cond_fiscal: true,
     razon_social: true,
     domicilio: true
-});
-export type AfipData = z.infer<typeof afipSchema>;
+}).and(baseSchema);
 
-const saveClienteInscripto = clienteSchema.omit({id: true});
-export type SaveClienteInscripto = z.infer<typeof saveClienteInscripto>; 
+export type ClienteSchema = z.infer<typeof clienteSchema>;
 
-export const updateCliente = saveClienteInscripto.omit({user: true}).partial();
-export type UpdateCliente = z.infer<typeof updateCliente>;
+export type SaveClienteInscripto = Omit<ClienteSchema, 'id'>; 
 
-export const createCliente = clienteSchema.pick({
+export const updateCliente = baseSchema.omit({id: true, user: true}).partial(); 
+export type UpdateCliente = Partial<Omit<ClienteSchema, 'id' | 'user'>>;
+
+export const createCliente = baseSchema.pick({
     nombre: true,
     email: true,
     cuit: true,

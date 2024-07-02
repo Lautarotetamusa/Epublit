@@ -1,6 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
 import request from "supertest";
-import fs from 'fs';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -195,7 +194,7 @@ describe('VENTA', () => {
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
                 expect(res.body.data.id).toEqual(venta.id);
-            });
+            }, 10000);
             it('Los libros reducieron su stock', async () => {
                 //console.log("VENTA:", venta);
                 let total = 0;

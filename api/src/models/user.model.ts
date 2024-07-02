@@ -12,6 +12,9 @@ export class User extends BaseModel{
     cuit: string;
     cond_fiscal: string;
     razon_social: string;
+    fecha_inicio: string;
+    ingresos_brutos: boolean;
+
     domicilio: string;
     email: string;
     production: number; //Pongo un numero porque mysql devuelve un numero
@@ -21,6 +24,8 @@ export class User extends BaseModel{
     constructor(body: UserSchema){
         super();
 
+        this.fecha_inicio = body.fecha_inicio;
+        this.ingresos_brutos = body.ingresos_brutos;
         this.username = body.username;
         this.password = body.password;
         this.cond_fiscal = body.cond_fiscal;
@@ -32,12 +37,12 @@ export class User extends BaseModel{
         this.production = body.production;
     }
 
-    static async exists(username: string): Promise<boolean>{
-        return await super._exists({username: username});
+    static exists(username: string): Promise<boolean>{
+        return super._exists({username: username});
     }
 
-    static async insert(body: SaveUser): Promise<User>{
-        return await this._insert<SaveUser, User>(body);
+    static insert(body: SaveUser): Promise<User>{
+        return this._insert<SaveUser, User>(body);
     }
 
     async update(body: UpdateUser){
