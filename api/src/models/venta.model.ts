@@ -36,6 +36,7 @@ export class Venta extends Transaccion{
         });
 
         this.descuento   = request.descuento;
+        //TODO: No hardcodear esto
         this.punto_venta = 4;
         this.tipo_cbte   = request.tipo_cbte;
 

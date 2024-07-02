@@ -90,9 +90,9 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
 
     /*Parse venta.libros*/
     for (let libro of libros) {
-        let bonif = venta.descuento * 0.01;
-        let imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
-        let subtotal  = (libro.precio * libro.cantidad * (1 - bonif)).toFixed(2);
+        const bonif = venta.descuento * 0.01;
+        const imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
+        const subtotal  = (libro.precio * libro.cantidad * (1 - bonif)).toFixed(2);
 
         table += 
             `<tr>
