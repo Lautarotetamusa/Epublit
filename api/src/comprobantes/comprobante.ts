@@ -63,6 +63,9 @@ export async function emitirComprobante({data, user}: args){
         const initials = user.razon_social.split(' ').map(word => word.charAt(0).toUpperCase()).join('');
         html = html.replace('{{user_name_initials}}', initials);
         html = html.replace('{{user_cuit_iibb}}', user.cuit);
+    }else{
+        html = html.replace('{{user_name_initials}}', " - ");
+        html = html.replace('{{user_cuit_iibb}}', "");
     }
 
     html = html.replace('{{user_activity_init_date}}', user.fecha_inicio); //dd/mm/yyyy
