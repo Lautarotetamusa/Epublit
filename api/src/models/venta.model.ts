@@ -1,8 +1,7 @@
 import {conn} from '../db'
 import { NotFound, ValidationError } from './errors';
-import { DBConnection } from './base.model';
 import { MedioPago, SaveVenta, VentaSchema, createVenta, createVentaConsignado } from '../schemas/venta.schema';
-import { RowDataPacket } from 'mysql2';
+import { RowDataPacket, PoolConnection } from 'mysql2/promise';
 import { LibroTransaccion, Transaccion } from './transaccion.model';
 import { SaveTransaccion, TransaccionSchema, tipoTransaccion } from '../schemas/transaccion.schema';
 import { filesUrl } from '../app';
@@ -47,7 +46,7 @@ export class Venta extends Transaccion{
 
     static async stockValidation(libros: LibroTransaccion[], cliente: Cliente){}
     clientValidation(tipo: TipoCliente) {return true}
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){}
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn?: PoolConnection){}
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
 
     static calcTotal(libros: LibroTransaccion[], descuento: number){
@@ -60,7 +59,7 @@ export class Venta extends Transaccion{
         return total;
     }
 
-    static async insert(body: Omit<SaveVenta, 'id_transaccion'> & SaveTransaccion, connection: DBConnection){
+    static async insert(body: Omit<SaveVenta, 'id_transaccion'> & SaveTransaccion, connection: PoolConnection){
         const transaction = await Transaccion.insert({
             type: body.type,
             id_cliente: body.id_cliente,
@@ -132,9 +131,9 @@ export class VentaFirme extends Venta {
         return true;
     }
 
-    static async stockMovement(libros: LibroTransaccion[], _: Cliente, conn: DBConnection){
+    static async stockMovement(libros: LibroTransaccion[], _: Cliente, connection: PoolConnection){
         for (const libro of libros){
-            await Libro.updateStock(libro.id_libro, -libro.cantidad, conn);
+            await Libro.updateStock(libro.id_libro, -libro.cantidad, connection);
         }
     }
     comprobante(){
@@ -173,8 +172,8 @@ export class VentaConsignado extends Venta {
     }
 
     // Se reduce el stock del cliente
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection){
-        await cliente.reduceStock(libros, conn);
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: PoolConnection){
+        await cliente.reduceStock(libros, connection);
     }
 
     comprobante(){

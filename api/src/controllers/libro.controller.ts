@@ -147,9 +147,9 @@ const update = async(req: Request, res: Response) => {
             precio: body.precio, 
             user: user,
             id_libro: libro.id_libro
-        }, conn);
+        });
     }
-    await libro.update(body, user, conn);
+    await libro.update(body, user);
 
     return res.status(201).json({
         success: true,

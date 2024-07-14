@@ -1,6 +1,6 @@
 import { conn } from '../db';
 import { ValidationError, NotFound, NothingChanged } from './errors';
-import { BaseModel, DBConnection } from './base.model';
+import { BaseModel } from './base.model';
 import { 
     TipoCliente, 
     ClienteSchema, 
@@ -12,7 +12,7 @@ import {
     LibroClienteSchema, 
 } from '../schemas/cliente.schema';
 import { AfipData } from '../schemas/afip.schema';
-import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { ResultSetHeader, RowDataPacket, PoolConnection } from "mysql2/promise";
 import { Venta } from './venta.model';
 
 import { getAfipData } from "../afip/Afip";
@@ -137,7 +137,7 @@ export class Cliente extends BaseModel{
     /*
         * Actualiza los precios de los libros de este cliente a los nuevos precios
         * */
-    async updatePrecios(){
+    async updatePrecios(connection: PoolConnection){
         assert(this.tipo == tipoCliente.inscripto, "Un cliente que no es inscripto no puede tener stock")
 
         const join = `INNER JOIN libros L
@@ -151,16 +151,23 @@ export class Cliente extends BaseModel{
                 FROM ${Cliente.libros_table} LC
                 ${join}
             )`;
-        await conn.query<ResultSetHeader>(query, [this.id]);
 
-        const updatePrecios = `
-            UPDATE ${Cliente.libros_table} LC
-            ${join}
-            SET LC.precio = L.precio; `;
-        const [res] = await conn.query<ResultSetHeader>(updatePrecios, [this.id]);
+        try{
+            await connection.query<ResultSetHeader>(query, [this.id]);
+            connection.release();
 
-        if(res.affectedRows <= 0){
-            throw new NothingChanged("Todos los libros ya tienen el ultimo precio actualizado")
+            const updatePrecios = `
+                UPDATE ${Cliente.libros_table} LC
+                ${join}
+                SET LC.precio = L.precio; `;
+            const [res] = await connection.query<ResultSetHeader>(updatePrecios, [this.id]);
+
+            if(res.affectedRows <= 0){
+                throw new NothingChanged("Todos los libros ya tienen el ultimo precio actualizado")
+            }
+        }catch(e){
+            connection.release();
+            throw e;
         }
     }
 
@@ -203,41 +210,55 @@ export class Cliente extends BaseModel{
         return rows as LibroClienteSchema[];
     }
 
-    async addStock(libros: LibroTransaccion[], connection: DBConnection){
+    async addStock(libros: LibroTransaccion[], connection: PoolConnection){
         const stock_clientes = libros.map(l => [this.id, l.id_libro, l.cantidad, l.isbn, l.precio])
 
-        await connection.query<ResultSetHeader>(`
-            INSERT INTO ${Cliente.libros_table}
-                (id_cliente, id_libro, stock, isbn, precio)
-                VALUES ?
-            ON DUPLICATE KEY UPDATE
-                stock = stock + VALUES(stock)
-        `, [stock_clientes]);
+        try{
+            await connection.query<ResultSetHeader>(`
+                INSERT INTO ${Cliente.libros_table}
+                    (id_cliente, id_libro, stock, isbn, precio)
+                    VALUES ?
+                ON DUPLICATE KEY UPDATE
+                    stock = stock + VALUES(stock)
+            `, [stock_clientes]);
+            connection.release();
 
-        // Insertamos el precio en precio_libro_cliente
-        const res = await connection.query<ResultSetHeader>(`
-            INSERT INTO precio_libro_cliente (id_libro, id_cliente, precio)
-            SELECT LC.id_libro, LC.id_cliente, LC.precio 
-            FROM libro_cliente LC
-            INNER JOIN libros L 
-                ON L.id_libro = LC.id_libro
-            LEFT JOIN precio_libro_cliente PLC 
-                ON  PLC.id_libro = LC.id_libro 
-                AND PLC.id_cliente = LC.id_cliente
-            WHERE LC.id_cliente = ?
-              AND PLC.id_libro IS NULL
-        `, [this.id]);
+            // Insertamos el precio en precio_libro_cliente
+            const res = await connection.query<ResultSetHeader>(`
+                INSERT INTO precio_libro_cliente (id_libro, id_cliente, precio)
+                SELECT LC.id_libro, LC.id_cliente, LC.precio 
+                FROM libro_cliente LC
+                INNER JOIN libros L 
+                    ON L.id_libro = LC.id_libro
+                LEFT JOIN precio_libro_cliente PLC 
+                    ON  PLC.id_libro = LC.id_libro 
+                    AND PLC.id_cliente = LC.id_cliente
+                WHERE LC.id_cliente = ?
+                  AND PLC.id_libro IS NULL
+            `, [this.id]);
+            connection.release();
+        }catch(e){
+            connection.release();
+            throw e;
+        }
     }
 
-    async reduceStock(libros: LibroTransaccion[], connection: DBConnection){
+    async reduceStock(libros: LibroTransaccion[], connection: PoolConnection){
         const stock_clientes = libros.map(l => [this.id, l.id_libro, l.cantidad, l.isbn, l.precio])
-        await connection.query<ResultSetHeader>(`
-            INSERT INTO ${Cliente.libros_table}
-                (id_cliente, id_libro, stock, isbn, precio)
-                VALUES ?
-            ON DUPLICATE KEY UPDATE
-                stock = stock - VALUES(stock)
-        `, [stock_clientes]);
+
+        try{
+            await connection.query<ResultSetHeader>(`
+                INSERT INTO ${Cliente.libros_table}
+                    (id_cliente, id_libro, stock, isbn, precio)
+                    VALUES ?
+                ON DUPLICATE KEY UPDATE
+                    stock = stock - VALUES(stock)
+            `, [stock_clientes]);
+            connection.release();
+        }catch(e){
+            connection.release();
+            throw e;
+        }
     }
 
     async haveStock(libros: StockCliente){

@@ -1,9 +1,9 @@
 import {conn} from '../db'
 import { Libro } from './libro.model';
-import { BaseModel, DBConnection } from './base.model';
+import { BaseModel } from './base.model';
 import { SaveTransaccion, TipoTransaccion, TransaccionSchema, tipoTransaccion } from '../schemas/transaccion.schema';
 import { LibroCantidad } from '../schemas/libros.schema';
-import { RowDataPacket } from 'mysql2';
+import { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { filesUrl } from '../app';
 import { Cliente } from './cliente.model';
 import { ValidationError } from './errors';
@@ -43,7 +43,7 @@ export class LibroTransaccion extends BaseModel {
         this.titulo = req.titulo;
     }
 
-    static async save(body: LibroTransaccion[], id_transaccion: number, connection: DBConnection){
+    static async save(body: LibroTransaccion[], id_transaccion: number, connection: PoolConnection){
         const libros = body.map(libro => ({
             cantidad: libro.cantidad,
             precio: libro.precio,
@@ -56,7 +56,7 @@ export class LibroTransaccion extends BaseModel {
 
 export interface ITransaccion {
     stockValidation(libros: LibroTransaccion[]): Promise<void>;
-    stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection): Promise<void>;
+    stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: PoolConnection): Promise<void>;
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void;
     clientValidation(tipo: TipoCliente): boolean
 
@@ -93,11 +93,11 @@ export abstract class Transaccion extends BaseModel {
         this.file_path = this.file_path && this.file_path != "" ? `${filesUrl}/${filesFolder}/${this.file_path}` : this.file_path;
     }
 
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: DBConnection): Promise<void>{console.error("UNEXPECTED")};
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, conn: PoolConnection): Promise<void>{console.error("UNEXPECTED")};
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User): void{};
     static clientValidation(tipo: TipoCliente): boolean{return true};
 
-    static async insert(body: SaveTransaccion, connection: DBConnection){
+    static async insert(body: SaveTransaccion, connection: PoolConnection){
         return await this._insert<SaveTransaccion, Transaccion>(body, connection);
     }
 
@@ -164,9 +164,9 @@ export class Consignacion extends Transaccion {
         return tipo == tipoCliente.inscripto   
     }
 
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: PoolConnection){
         for (const libro of libros) {
-            await Libro.updateStock(libro.id_libro, -libro.cantidad, conn);
+            await Libro.updateStock(libro.id_libro, -libro.cantidad, connection);
         }
 
         await cliente.addStock(libros, connection);
@@ -210,9 +210,9 @@ export class Devolucion extends Transaccion {
         return libros;
     }
 
-    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: DBConnection){
+    static async stockMovement(libros: LibroTransaccion[], cliente: Cliente, connection: PoolConnection){
         for (const libro of libros){
-            await Libro.updateStock(libro.id_libro, libro.cantidad, conn);
+            await Libro.updateStock(libro.id_libro, libro.cantidad, connection);
         }
 
         await cliente.reduceStock(libros, connection);

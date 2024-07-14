@@ -1,8 +1,8 @@
 import {conn} from "../db";
-import { RowDataPacket } from "mysql2/promise";
+import { RowDataPacket, PoolConnection } from "mysql2/promise";
 import {PersonaSchema, UpdatePersona, SavePersona} from "../schemas/persona.schema";
 
-import { BaseModel, DBConnection } from "./base.model";
+import { BaseModel } from "./base.model";
 import { TipoPersona } from "../schemas/libro_persona.schema";
 import { LibroSchema } from "../schemas/libros.schema";
 
@@ -37,15 +37,15 @@ export class Persona extends BaseModel{
         return await super._exists({dni: dni, is_deleted: 0, user: userId});
     }
 
-    static async insert(body: SavePersona, connection: DBConnection) {
+    static async insert(body: SavePersona, connection?: PoolConnection) {
         return await super._insert<SavePersona, Persona>(body, connection);
     }
 
-    static async update(body: UpdatePersona, where: object, connection: DBConnection){
+    static async update(body: UpdatePersona, where: object, connection?: PoolConnection){
         await this._update<UpdatePersona>(body, where, connection);    
     }
 
-    async update(body: UpdatePersona, connection: DBConnection){
+    async update(body: UpdatePersona, connection?: PoolConnection){
         await Persona._update<UpdatePersona>(body, {
             id: this.id, 
             is_deleted: 0
@@ -59,7 +59,7 @@ export class Persona extends BaseModel{
         }
     }
 
-    static async delete(where: object, connection: DBConnection){
+    static async delete(where: object, connection?: PoolConnection){
         await this._update({is_deleted: 1}, where, connection);
     }
 

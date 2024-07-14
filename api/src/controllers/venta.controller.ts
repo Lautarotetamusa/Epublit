@@ -33,19 +33,14 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             file_path: c.generatePath(),
             user: user.id
         }, connection);
-        connection.release();
 
         await LibroTransaccion.save(librosModel, venta.id, connection);
-        connection.release();
 
         await VentaConsignado.stockMovement(librosModel, c, connection);
-        connection.release();
-        console.log("WTF!");
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[c.tipo] != tipoCliente.negro){
             const comprobanteData = await facturar(venta, c, user);
-            console.log("WTF!");
 
             emitirComprobante({
                 data: {
@@ -59,7 +54,6 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
         }
         await connection.commit();
         venta.parsePath(VentaConsignado.filesFolder);
-        console.log("WTF!");
 
         return res.status(201).json({
             success: true,
@@ -70,8 +64,6 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
         await connection.rollback();
         console.log("Se realizo un rollback");
         throw err;
-    }finally{
-        connection.release()
     }
 }
 

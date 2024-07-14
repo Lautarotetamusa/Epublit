@@ -1,9 +1,9 @@
 import { conn } from "../db"
-import { OkPacket, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { ResultSetHeader, RowDataPacket, PoolConnection} from "mysql2/promise";
 import { LibroSchema, SaveLibro, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
-import { BaseModel, DBConnection } from "./base.model";
+import { BaseModel } from "./base.model";
 import { LibroPersona } from "./libro_persona.model";
 import { PersonaLibroPersonaSchema, tipoPersona } from "../schemas/libro_persona.schema";
 
@@ -45,7 +45,7 @@ export class Libro extends BaseModel{
         return libros as LibroSchema[];
     }
 
-    static async insert(body: SaveLibro, connection: DBConnection): Promise<Libro> {
+    static async insert(body: SaveLibro, connection?: PoolConnection): Promise<Libro> {
         return await Libro._insert<SaveLibro, Libro>(body, connection);
     }
 
@@ -56,24 +56,33 @@ export class Libro extends BaseModel{
         }
     }
     
-    async update(body: UpdateLibro, userId: number, connection: DBConnection){
+    async update(body: UpdateLibro, userId: number, connection?: PoolConnection){
         await Libro._update(body, {isbn: this.isbn, is_deleted: 0, user: userId}, connection);
 
         for (let i in body){
             let value = body[i as keyof typeof body];
-            if (value !== undefined)
+            if (value !== undefined){
                 (this as any)[i] = value; 
+            }
         }
     }
 
-    static async updateStock(id_libro: number, cantidad: number, connection: DBConnection){
+    static async updateStock(id_libro: number, cantidad: number, connection?: PoolConnection){
+        if (connection === undefined){
+            connection = await conn.getConnection();
+        }
         const query = `
             UPDATE ${Libro.table_name}
             SET stock = stock + ${cantidad}
             WHERE id_libro = ?`
 
-        const result = await connection.query<ResultSetHeader>(query, [id_libro]);
-        return result;
+        try{
+            const result = await connection.query<ResultSetHeader>(query, [id_libro]);
+            return result;
+        }catch(e){
+            connection.release();
+            throw e;
+        }
     }
 
     static async delete(isbn: string, userId: number){

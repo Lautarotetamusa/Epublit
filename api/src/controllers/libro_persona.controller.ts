@@ -7,7 +7,6 @@ import {
 } from "../schemas/libro_persona.schema";
 import { Duplicated, NotFound } from "../models/errors"
 import { LibroPersona } from "../models/libro_persona.model";
-import { conn } from "../db";
 
 function makeResponse(res: Response, libro: Libro, personas: any[], method: "put" | "post" | "delete"): Response {
     let message: string;
@@ -51,7 +50,7 @@ const addLibroPersonas = async(req: Request, res: Response) => {
         throw new NotFound("Alguna persona no existe");
     }
 
-    await LibroPersona.insert(personas, conn);
+    await LibroPersona.insert(personas);
 
     return makeResponse(res, libro, personas, "post");
 };
@@ -72,7 +71,7 @@ const updateLibroPersonas = async(req: Request, res: Response) => {
         throw new NotFound("Alguna persona no trabaja en este libro");
     }
 
-    await LibroPersona.update(personas, conn);
+    await LibroPersona.update(personas);
 
     return makeResponse(res, libro, personas, "put");
 };
@@ -84,7 +83,7 @@ const deleteLibroPersonas = async(req: Request, res: Response) => {
     body = body.map((p: any) => ({...p, id_libro: libro.id_libro}));
     const personas = libroPersonaKey.array().parse(body);
 
-    await LibroPersona.remove(personas, conn);
+    await LibroPersona.remove(personas);
 
     return makeResponse(res, libro, personas, "delete");
 };

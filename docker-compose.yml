@@ -14,7 +14,7 @@ services:
       - ./db:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
       - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
   
-  app:
+  api:
     depends_on:
       mysqldb:
         condition: service_started

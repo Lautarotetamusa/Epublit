@@ -4,6 +4,7 @@ import { Duplicated, ValidationError } from '../models/errors';
 import { createCliente, updateCliente } from "../schemas/cliente.schema";
 import { getAfipData } from "../afip/Afip";
 import { z } from "zod";
+import { conn } from "../db";
 
 async function getCliente(req: Request, userId: number): Promise<Cliente>{
     const id = Number(req.params.id);
@@ -66,7 +67,8 @@ const getStock = async (req: Request, res: Response): Promise<Response> => {
 
 const updatePrecios = async (req: Request, res: Response): Promise<Response> => {
     const cliente = await getCliente(req, res.locals.user.id);
-    await cliente.updatePrecios();
+    const connection = await conn.getConnection();
+    await cliente.updatePrecios(connection);
     const libros = await cliente.getLibros();
     return res.json({
         success: true,

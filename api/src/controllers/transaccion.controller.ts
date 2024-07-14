@@ -57,10 +57,8 @@ export const transaccion = (transaccion: typeof Transaccion) => {
                 user: user.id
             }, connection);
             await LibroTransaccion.save(libros, transaction.id, connection);
-            connection.release();
 
             await transaccion.stockMovement(libros, cliente, connection);
-            connection.release();
             emitirComprobante({
                 data: {
                     consignacion: Object.assign({}, transaction),
@@ -81,8 +79,6 @@ export const transaccion = (transaccion: typeof Transaccion) => {
             await connection.rollback();
             console.log("Se realizo un rollback");
             throw err;
-        }finally{
-            connection.release()
         }
     }
 };

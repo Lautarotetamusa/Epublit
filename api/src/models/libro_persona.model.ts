@@ -1,5 +1,6 @@
 import { LibroPersonaKey, TipoPersona, LibroPersonaSchema} from "../schemas/libro_persona.schema";
-import { BaseModel, DBConnection } from "./base.model";
+import { BaseModel } from "./base.model";
+import { PoolConnection } from "mysql2/promise";
 
 export class LibroPersona extends BaseModel{
     tipo: TipoPersona;
@@ -30,11 +31,11 @@ export class LibroPersona extends BaseModel{
         return rows.length > 0;
     }
 
-    static async insert(personas: LibroPersonaSchema[], connection: DBConnection){
+    static async insert(personas: LibroPersonaSchema[], connection?: PoolConnection){
         await super._bulk_insert(personas, connection);
     }
     
-    static async update(personas: LibroPersonaSchema[], connection: DBConnection){
+    static async update(personas: LibroPersonaSchema[], connection?: PoolConnection){
         for (let persona of personas) {
             if (persona.porcentaje){
                 await LibroPersona._update({
@@ -48,7 +49,7 @@ export class LibroPersona extends BaseModel{
         }
     }
 
-    static async remove(personas: LibroPersonaKey[], connection: DBConnection){
+    static async remove(personas: LibroPersonaKey[], connection?: PoolConnection){
         await super._bulk_remove(personas, connection);
     }
 }
