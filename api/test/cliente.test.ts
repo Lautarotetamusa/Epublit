@@ -1,4 +1,4 @@
-import {describe, expect, it} from '@jest/globals';
+import {describe, expect, test} from '@jest/globals';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -13,6 +13,7 @@ import {expect_err_code, expect_success_code} from './util';
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
 console.log(app);
 import { tipoCliente } from '../src/schemas/cliente.schema';
+import { RowDataPacket } from 'mysql2';
 
 const cuit = "30500001735"
 let cliente: any = {};
@@ -31,22 +32,24 @@ let token: string;
     - Hard delete de las dos clientes para evitar que queden en la DB.
 */
 
-it('Hard delete', async () => {
-    let [cliente]: any = await conn.query(`
+afterAll(async () => {
+    conn.end();
+})
+
+test('Hard delete', async () => {
+    const [clientes] = await conn.query<RowDataPacket[]>(`
         SELECT * FROM clientes
-        WHERE cuit='30710813082'`
-    );
-    await conn.query(`
-        DELETE FROM clientes
-        WHERE cuit='30500001735'`
+        WHERE cuit='${cuit}'`
     );
 
-    if (cliente.length == 0){
+    if (clientes.length == 0){
         return 0;
     }
+    const id_cliente = clientes[0].id;
+
     let [consignaciones]: any = await conn.query(`
         SELECT * FROM transacciones
-        WHERE id_cliente=${cliente[0].id}
+        WHERE id_cliente=${id_cliente}
         AND type = 'consignacion'
     `);
 
@@ -62,16 +65,25 @@ it('Hard delete', async () => {
     }
     await conn.query(`
         DELETE FROM libro_cliente
-        WHERE id_cliente=${cliente[0].id}
+        WHERE id_cliente=${id_cliente}
+    `);
+
+    await conn.query(`
+        DELETE FROM precio_libro_cliente
+        WHERE id_cliente=${id_cliente}
     `);
 
     await conn.query(`
         DELETE FROM clientes
-        WHERE cuit='30710813082'`
+        WHERE id=${id_cliente}`
+    );
+    await conn.query(`
+        DELETE FROM clientes
+        WHERE cuit=${cuit}`
     );
 });
 
-it('login', async () => {
+test('login', async () => {
     let data = {
         username: 'teti',
         password: 'Lautaro123.'
@@ -85,7 +97,7 @@ it('login', async () => {
 });
 
 describe('POST cliente/', () => {
-    it('Sin nombre', async () => {
+    test('Sin nombre', async () => {
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
@@ -96,7 +108,7 @@ describe('POST cliente/', () => {
         expect_err_code(400, res);
     });
 
-    it('consumidor final', async () => {
+    test('consumidor final', async () => {
         cliente.tipo = tipoCliente.particular;
         const res = await request(app)
             .post('/cliente/').send(cliente)
@@ -107,7 +119,7 @@ describe('POST cliente/', () => {
         expect_err_code(400, res);
     });
 
-    it('Sin cuit', async () => {
+    test('Sin cuit', async () => {
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
@@ -117,18 +129,18 @@ describe('POST cliente/', () => {
         expect_err_code(400, res);
     });
 
-    it('Persona no está cargada en Afip', async () => {        
+    test('Persona no está cargada en Afip', async () => {        
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
-        
-        cliente.cuit = '30710813082';
         
         expect_err_code(404, res);
     }, 10000);
 
 
-    it('Success', async () => {
+    test('Success', async () => {
+        cliente.cuit = "30710813082";
+
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
@@ -138,7 +150,7 @@ describe('POST cliente/', () => {
         cliente.id = res.body.data.id;
     }, 10000);
 
-    it('cuit repetido', async () => {
+    test('cuit repetido', async () => {
         const res = await request(app)
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
@@ -148,7 +160,7 @@ describe('POST cliente/', () => {
 });
 
 describe('GET cliente/', () => {
-    it('cliente que no existe', async () => {
+    test('cliente que no existe', async () => {
         const res = await request(app)
             .get('/cliente/'+(cliente.id+2))
             .set('Authorization', `Bearer ${token}`);
@@ -156,7 +168,7 @@ describe('GET cliente/', () => {
         expect_err_code(404, res);
     });
 
-    it('Obtener cliente', async () => {
+    test('Obtener cliente', async () => {
         const res = await request(app)
             .get('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`);
@@ -165,7 +177,7 @@ describe('GET cliente/', () => {
         expect(res.body).toMatchObject(cliente);
     });
 
-    it('Obtener clientes de un tipo', async () => {
+    test('Obtener clientes de un tipo', async () => {
         const res = await request(app)
             .get('/cliente?tipo=inscripto')
             .set('Authorization', `Bearer ${token}`);
@@ -176,7 +188,7 @@ describe('GET cliente/', () => {
         }
     });
 
-    it('La cliente está en la lista', async () => {
+    test('La cliente está en la lista', async () => {
         const res = await request(app)
             .get('/cliente/')
             .set('Authorization', `Bearer ${token}`);
@@ -185,7 +197,7 @@ describe('GET cliente/', () => {
         expect(res.body.map((p: any) => p.id)).toContain(cliente.id);
     });
 
-    it('consumidor final', async () => {
+    test('consumidor final', async () => {
         const res = await request(app)
             .get('/cliente/consumidor_final')
             .set('Authorization', `Bearer ${token}`);
@@ -194,8 +206,102 @@ describe('GET cliente/', () => {
     });
 });
 
+describe('Stock cliente', () => {
+    test('El cliente no tiene stock', async () => {
+        const res = await request(app)
+            .get(`/cliente/${cliente.id}/stock`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toEqual(200);
+        expect(res.body).toHaveProperty('length');
+        expect(res.body.length).toBe(0);
+    });
+
+    test('Realizamos una consignacion', async () => {
+        const consignacion = {
+            libros: [{
+                isbn: "9789874201096",
+                cantidad: 3
+            }],
+            cliente: cliente.id
+        }
+
+        const res = await request(app)
+            .post('/consignacion/')
+            .set('Authorization', `Bearer ${token}`)
+            .send(consignacion);
+
+        expect_success_code(201, res);
+    });
+
+    let precio = 0;
+    let updateTime: string;
+    test('El cliente tiene el stock cargado', async () => {
+        let res = await request(app)
+            .get(`/cliente/${cliente.id}/stock/`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toEqual(200);
+
+        const res1 = await request(app)
+            .get(`/libro/9789874201096`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res1.status).toEqual(200);
+        expect(res1.body).toHaveProperty('precio');
+        precio = res1.body.precio;
+
+        for (const libro of res.body) {
+            expect(libro.stock).toEqual(3);
+            expect(libro.precio).toEqual(res1.body.precio);
+        }
+    });
+
+    test('Se actualiza el precio del cliente', async () => {
+        const libro = {
+            precio: precio + 100
+        }
+        const resLibro = await request(app)
+            .put('/libro/9789874201096')
+            .set('Authorization', `Bearer ${token}`)
+            .send(libro);
+
+        expect_success_code(201, resLibro);
+
+        let res = await request(app)
+            .put(`/cliente/${cliente.id}/stock/`)
+            .set('Authorization', `Bearer ${token}`);
+        updateTime = new Date().toISOString();
+
+        expect(res.status).toEqual(200);
+    });
+
+    test('Precio actualizado correctamente', async () => {
+        const res = await request(app)
+            .get(`/cliente/${cliente.id}/stock/`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toEqual(200);
+
+        for (const libro of res.body) {
+            expect(libro.stock).toEqual(3);
+            expect(libro.precio).toEqual(precio + 100);
+        }
+    });
+
+    test('Precio anterior a la fecha de actualizacion', async () => {
+        const res = await request(app)
+            .get(`/cliente/${cliente.id}/stock?fecha=${updateTime}`)
+            .set('Authorization', `Bearer ${token}`);
+        expect(res.status).toEqual(200);
+
+        for (const libro of res.body) {
+            expect(libro.stock).toEqual(3);
+            expect(libro.precio).toEqual(precio);
+        }
+    });
+});
+
 describe('PUT cliente/{id}', () => {
-    it('Nothing changed', async () => {
+    test('Nothing changed', async () => {
         delete cliente.cuit;
         const res = await request(app)
             .put('/cliente/'+cliente.id)
@@ -205,7 +311,7 @@ describe('PUT cliente/{id}', () => {
         expect(res.status).toEqual(201);
     });
 
-    it('Actualizar nombre y email', async () => {
+    test('Actualizar nombre y email', async () => {
         cliente.nombre = 'Test nro 2';
 
         let req = Object.assign({}, cliente);
@@ -226,7 +332,7 @@ describe('PUT cliente/{id}', () => {
         expect(res1.body).toMatchObject(cliente);       
     });
 
-    it('Actualizar a un cuit que no esta en afip', async () => {
+    test('Actualizar a un cuit que no esta en afip', async () => {
         cliente.cuit = '12345';
         const res = await request(app)
             .put('/cliente/'+cliente.id)
@@ -236,7 +342,7 @@ describe('PUT cliente/{id}', () => {
         expect_err_code(404, res);
     }, 10000);
 
-    it('Actualizar a un cuit que ya esta cargado', async () => {
+    test('Actualizar a un cuit que ya esta cargado', async () => {
         let res = await request(app)
             .get('/cliente/')
             .set('Authorization', `Bearer ${token}`);
@@ -255,7 +361,7 @@ describe('PUT cliente/{id}', () => {
         expect(res.body.errors[0].message).toEqual(`El cliente con cuit ${cliente.cuit} ya existe`);
     });
 
-    it('Actualizar el cuit', async () => {
+    test('Actualizar el cuit', async () => {
         cliente.cuit = cuit;
         cliente.este_campo_no_va = "anashe23";
 

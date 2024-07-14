@@ -71,8 +71,8 @@ export class Cliente extends BaseModel{
         return this.find_all<ClienteSchema>({user: userId});
     }
 
-    static async getById(id: number): Promise<Cliente> {
-        return await this.find_one<ClienteSchema, Cliente>({id: id});
+    static async getById(id: number, userId: number): Promise<Cliente> {
+        return await this.find_one<ClienteSchema, Cliente>({id: id, user: userId});
     }
 
     static async getConsumidorFinal(): Promise<Cliente>{
@@ -140,20 +140,18 @@ export class Cliente extends BaseModel{
     async updatePrecios(){
         assert(this.tipo == tipoCliente.inscripto, "Un cliente que no es inscripto no puede tener stock")
 
-        const join = `
-            INNER JOIN libros L
-                ON L.id_libro = LC.id_libro
-                AND L.precio != LC.precio
-                AND LC.id_cliente = ?`;
+        const join = `INNER JOIN libros L
+            ON L.id_libro = LC.id_libro
+            AND L.precio != LC.precio
+            AND LC.id_cliente = ? `;
 
-        const saveOldPrecio = `
-            INSERT INTO precio_libro_cliente 
-            (id_libro, id_cliente, precio) (
-                SELECT LC.id_libro, LC.id_cliente, LC.precio 
-                    FROM ${Cliente.libros_table} LC
-                    ${join}
-            );`;
-        await conn.query<ResultSetHeader>(saveOldPrecio, [this.id]);
+        const query = `
+            INSERT INTO precio_libro_cliente (id_libro, id_cliente, precio) (
+                SELECT L.id_libro, LC.id_cliente, L.precio 
+                FROM ${Cliente.libros_table} LC
+                ${join}
+            )`;
+        await conn.query<ResultSetHeader>(query, [this.id]);
 
         const updatePrecios = `
             UPDATE ${Cliente.libros_table} LC
@@ -161,7 +159,7 @@ export class Cliente extends BaseModel{
             SET LC.precio = L.precio; `;
         const [res] = await conn.query<ResultSetHeader>(updatePrecios, [this.id]);
 
-        if (res.affectedRows < 0){
+        if(res.affectedRows <= 0){
             throw new NothingChanged("Todos los libros ya tienen el ultimo precio actualizado")
         }
     }
@@ -171,7 +169,7 @@ export class Cliente extends BaseModel{
         * Si se pasa una fecha, obtiene el precio que tenia el libro en esa fecha
         */
     async getLibros(fecha?: Date): Promise<LibroClienteSchema[]> {
-        if (!fecha){
+        if (fecha === undefined){
             const [rows] = await conn.query<RowDataPacket[]>(`
                 SELECT 
                     titulo, L.id_libro, L.isbn, LC.precio, LC.stock
@@ -206,8 +204,8 @@ export class Cliente extends BaseModel{
     }
 
     async addStock(libros: LibroTransaccion[], connection: DBConnection){
-        console.log("updating stock");
         const stock_clientes = libros.map(l => [this.id, l.id_libro, l.cantidad, l.isbn, l.precio])
+
         await connection.query<ResultSetHeader>(`
             INSERT INTO ${Cliente.libros_table}
                 (id_cliente, id_libro, stock, isbn, precio)
@@ -215,6 +213,20 @@ export class Cliente extends BaseModel{
             ON DUPLICATE KEY UPDATE
                 stock = stock + VALUES(stock)
         `, [stock_clientes]);
+
+        // Insertamos el precio en precio_libro_cliente
+        const res = await connection.query<ResultSetHeader>(`
+            INSERT INTO precio_libro_cliente (id_libro, id_cliente, precio)
+            SELECT LC.id_libro, LC.id_cliente, LC.precio 
+            FROM libro_cliente LC
+            INNER JOIN libros L 
+                ON L.id_libro = LC.id_libro
+            LEFT JOIN precio_libro_cliente PLC 
+                ON  PLC.id_libro = LC.id_libro 
+                AND PLC.id_cliente = LC.id_cliente
+            WHERE LC.id_cliente = ?
+              AND PLC.id_libro IS NULL
+        `, [this.id]);
     }
 
     async reduceStock(libros: LibroTransaccion[], connection: DBConnection){

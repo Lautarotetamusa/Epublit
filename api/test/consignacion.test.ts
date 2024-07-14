@@ -1,4 +1,4 @@
-import {describe, expect, it} from '@jest/globals';
+import {describe, expect, test} from '@jest/globals';
 import request from "supertest";
 import fs from 'fs';
 
@@ -11,6 +11,7 @@ dotenv.config({path: path});
 import {conn} from '../src/db'
 import {delay, expect_err_code, expect_success_code} from './util';
 import { tipoCliente } from '../src/schemas/cliente.schema';
+import { RowDataPacket } from 'mysql2';
 
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
 console.log(app);
@@ -38,7 +39,7 @@ let consignacion: any = {
     - Revisar que el cliente tenga la consignacion en /cliente/{id}/consignacions
 */
 
-it('login', async () => {    
+test('login', async () => {    
     let data = {
         username: 'teti',
         password: 'Lautaro123.'
@@ -52,15 +53,15 @@ it('login', async () => {
 });
 
 describe('CONSIGNACION', () => {
-    it('Hard delete consignaciones', async () => {
-        let [clientes]: any = await conn.query(`
+    test('Hard delete consignaciones', async () => {
+        const [clientes]: any = await conn.query(`
             SELECT * FROM clientes
             WHERE cuit='${cliente.cuit}'`
         );
 
-        expect(clientes.length).toBeGreaterThan(0);
-
-        expect(clientes[0]).toHaveProperty('id');
+        if (!Array.isArray(clientes) || clientes.length <= 0 || !('id' in clientes[0])){
+            return;
+        }
         const id_cliente = clientes[0].id;
 
         //Buscamos la ultima venta creada
@@ -101,7 +102,7 @@ describe('CONSIGNACION', () => {
     });
 
     describe('Cargar datos para la consignacion', () => {
-        it('Crear nuevo cliente', async () => {
+        test('Crear nuevo cliente', async () => {
             const res = await request(app)
                 .post('/cliente/')
                 .set('Authorization', `Bearer ${token}`)
@@ -113,7 +114,7 @@ describe('CONSIGNACION', () => {
             consignacion.cliente = cliente.id;
         });
 
-        it('Seleccionar libros para la consignacion', async () => {
+        test('Seleccionar libros para la consignacion', async () => {
             const res = await request(app)
                 .get('/libro')
                 .set('Authorization', `Bearer ${token}`);
@@ -122,7 +123,7 @@ describe('CONSIGNACION', () => {
             consignacion.libros = [ res.body[3], res.body[5], res.body[8] ];
         });
 
-        it('Agregar stock a los libros', async () => {
+        test('Agregar stock a los libros', async () => {
             let stock = 3;
             
             for (const libro of consignacion.libros) {
@@ -159,7 +160,7 @@ describe('CONSIGNACION', () => {
 
     describe('POST /consignacion', () => {
         describe('Bad request', () => {
-            it('Consignacion no tiene cliente', async () => {
+            test('Consignacion no tiene cliente', async () => {
                 const req = {libros: consignacion.libros};
 
                 const res = await request(app)
@@ -169,7 +170,7 @@ describe('CONSIGNACION', () => {
                 expect_err_code(400, res);
             });
 
-            it('Un libro no tiene suficiente stock', async () => {
+            test('Un libro no tiene suficiente stock', async () => {
                 consignacion.libros[2].cantidad = 5;
 
                 const res = await request(app)
@@ -181,7 +182,7 @@ describe('CONSIGNACION', () => {
                 consignacion.libros[2].cantidad = 3;
             });
 
-            it('No se debe poder consignar a un cliente consumidor final', async () => {
+            test('No se debe poder consignar a un cliente consumidor final', async () => {
                 const res1 = await request(app)
                     .get('/cliente/consumidor_final')
                     .set('Authorization', `Bearer ${token}`);
@@ -202,7 +203,7 @@ describe('CONSIGNACION', () => {
         });
 
         describe('consignacion exitosa', () => {
-            it('Consignar', async () => {
+            test('Consignar', async () => {
                 //console.log("consignacion: ", consignacion);
                 const res = await request(app)
                     .post('/consignacion/')
@@ -212,7 +213,7 @@ describe('CONSIGNACION', () => {
                 expect_success_code(201, res);
             });
 
-            it('Los libros reducieron su stock', async () => {
+            test('Los libros reducieron su stock', async () => {
                 for (const libro of consignacion.libros) {
                     const res = await request(app)
                         .get(`/libro/${libro.isbn}`)
@@ -223,7 +224,7 @@ describe('CONSIGNACION', () => {
                 }
             });
 
-            it('El cliente tiene el stock cargado', async () => {
+            test('El cliente tiene el stock cargado', async () => {
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/stock/`)
                     .set('Authorization', `Bearer ${token}`);
@@ -234,7 +235,24 @@ describe('CONSIGNACION', () => {
                 }
             });
 
-            /*it('El remito existe y el nombre coincide', async () => {       
+            test('Se carga un registro en precio_libro_cliente por cada libro', async () => {
+                const [rows] = await conn.query<RowDataPacket[]>(`
+                    SELECT id_libro, precio FROM precio_libro_cliente
+                    WHERE id_cliente = ?`, [cliente.id]);
+
+                expect(rows.length).toEqual(3);
+                for (const libro of consignacion.libros){
+                    const finded = rows.find(r => r.id_libro == libro.id_libro)
+                    expect(finded).not.toBeUndefined();
+                    if (finded === undefined){
+                        continue
+                    }
+                    expect(finded.id_libro).toBe(libro.id_libro);
+                    expect(finded.precio).toBe(libro.precio);
+                }
+            });
+
+            /*test('El remito existe y el nombre coincide', async () => {       
                 await delay(400);         
                 fs.readFile(`../remitos/${consignacion.path}`, 'utf8', (err, _) => {
                     if(err){

@@ -14,7 +14,3 @@ const options = {
   }
 
 export const conn = createPool(options);
-
-(async function test(){
-    const c = conn.getConnection();
-})()

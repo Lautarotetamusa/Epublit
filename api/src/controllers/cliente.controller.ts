@@ -3,8 +3,9 @@ import { Request, Response } from "express";
 import { Duplicated, ValidationError } from '../models/errors';
 import { createCliente, updateCliente } from "../schemas/cliente.schema";
 import { getAfipData } from "../afip/Afip";
+import { z } from "zod";
 
-async function getCliente(req: Request): Promise<Cliente>{
+async function getCliente(req: Request, userId: number): Promise<Cliente>{
     const id = Number(req.params.id);
     console.log(req.params.id);
 
@@ -12,7 +13,7 @@ async function getCliente(req: Request): Promise<Cliente>{
         return await Cliente.getConsumidorFinal();
 
     if (!id) throw new ValidationError("El id debe ser un numero");
-    return await Cliente.getById(id);
+    return await Cliente.getById(id, userId);
 }
 
 const create = async (req: Request, res: Response): Promise<Response> => {
@@ -41,7 +42,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
     if (!id) throw new ValidationError("El id debe ser un numero");
 
     const body = updateCliente.parse(req.body); 
-    const cliente = await Cliente.getById(id);
+    const cliente = await Cliente.getById(id, res.locals.user.id);
     
     if(body.cuit && body.cuit != cliente.cuit && await Cliente.cuilExists(body.cuit, res.locals.user.id)){
         throw new Duplicated(`El cliente con cuit ${body.cuit} ya existe`);
@@ -57,13 +58,14 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getStock = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await getCliente(req);
-    const libros = await cliente.getLibros();
+    const query = z.object({fecha: z.coerce.date().optional()}).parse(req.query)
+    const cliente = await getCliente(req, res.locals.user.id);
+    const libros = await cliente.getLibros(query.fecha);
     return res.json(libros);
 }
 
 const updatePrecios = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await getCliente(req);
+    const cliente = await getCliente(req, res.locals.user.id);
     await cliente.updatePrecios();
     const libros = await cliente.getLibros();
     return res.json({
@@ -74,7 +76,7 @@ const updatePrecios = async (req: Request, res: Response): Promise<Response> => 
 }
 
 const getVentas = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await getCliente(req);
+    const cliente = await getCliente(req, res.locals.user.id);
     const ventas = await cliente.getVentas();
     return res.json(ventas);
 }
@@ -100,7 +102,7 @@ const getAll = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getOne = async (req: Request, res: Response): Promise<Response> => {
-    const cliente = await getCliente(req);
+    const cliente = await getCliente(req, res.locals.user.id);
     return res.json(cliente);
 }
 

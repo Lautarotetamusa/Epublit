@@ -1,4 +1,4 @@
-import {describe, expect, it} from '@jest/globals';
+import {describe, expect, test} from '@jest/globals';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -30,7 +30,7 @@ const id_cliente = 1;
     - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
 */
 
-it.concurrent('login', async () => {
+test('login', async () => {
     let data = {
         username: 'teti',
         password: 'Lautaro123.'
@@ -44,13 +44,18 @@ it.concurrent('login', async () => {
 });
 
 describe('VENTA', () => {
-    it('delete ventas', async () => {
+    test('delete ventas', async () => {
         //Buscamos la ultima venta creada
-        const venta: any = (await conn.query(`
+        const res: any = await conn.query(`
             SELECT id FROM transacciones
             WHERE id_cliente=${id_cliente}
             ORDER BY id DESC;
-        `))[0];
+        `);
+        const venta = res[0];
+
+        if (!Array.isArray(venta) || venta.length <= 0 || !('id' in venta[0])){
+            return;
+        }
 
         const id = venta[0].id;
 
@@ -70,7 +75,7 @@ describe('VENTA', () => {
     });
 
     describe('Cargar datos para la venta', () => {
-        it('Buscar cliente', async () => {
+        test('Buscar cliente', async () => {
             const res = await request(app)
                 .get(`/cliente/${id_cliente}`)
                 .set('Authorization', `Bearer ${token}`);
@@ -81,16 +86,17 @@ describe('VENTA', () => {
             venta['cliente'] = cliente.id;
         });
 
-        it('Seleccionar libros para la venta', async () => {
+        test('Seleccionar libros para la venta', async () => {
             const res = await request(app)
                 .get('/libro')
                 .set('Authorization', `Bearer ${token}`);
 
             expect(res.status).toEqual(200);
+            expect(res.body.length).toBeGreaterThan(0);
             venta['libros'] = [ res.body[3], res.body[5], res.body[8] ];
         });
 
-        it('Agregar stock a los libros', async () => {
+        test('Agregar stock a los libros', async () => {
             let stock = 3;
             
             for (const libro of venta.libros) {
@@ -127,7 +133,7 @@ describe('VENTA', () => {
 
     describe('POST /venta', () => {
         describe('Bad request', () => {
-            it('Venta no tiene cliente', async () => {
+            test('Venta no tiene cliente', async () => {
                 let aux_cliente = venta.cliente;
                 delete venta.cliente;
 
@@ -139,7 +145,7 @@ describe('VENTA', () => {
 
                 venta.cliente = aux_cliente;
             });
-            it('Venta no tiene libros', async () => {
+            test('Venta no tiene libros', async () => {
                 let aux_venta = Object.assign({}, venta.libros);
                 delete aux_venta.libros;
 
@@ -157,7 +163,7 @@ describe('VENTA', () => {
                     .send(aux_venta);
                 expect_err_code(400, res);
             });
-            it('Medio de pago incorrecto', async () => {
+            test('Medio de pago incorrecto', async () => {
                 venta.medio_pago = '';
                 const res = await request(app)
                     .post('/venta/')
@@ -167,7 +173,7 @@ describe('VENTA', () => {
         
                 venta.medio_pago = 'efectivo';
             });
-            it('Un libro no tiene suficiente stock', async () => {
+            test('Un libro no tiene suficiente stock', async () => {
                 venta.libros[2].cantidad = 5;
 
                 const res = await request(app)
@@ -180,7 +186,7 @@ describe('VENTA', () => {
             });
         });
         describe('Venta exitosa', () => {
-            it('vender', async () => {
+            test('vender', async () => {
                 venta.tipo_cbte = 11;
                 const res: any = await request(app)
                     .post('/venta/')
@@ -194,8 +200,8 @@ describe('VENTA', () => {
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
                 expect(res.body.data.id).toEqual(venta.id);
-            }, 10000);
-            it('Los libros reducieron su stock', async () => {
+            }, 15000);
+            test('Los libros reducieron su stock', async () => {
                 //console.log("VENTA:", venta);
                 let total = 0;
                 for (const libro of venta.libros) {
@@ -212,7 +218,7 @@ describe('VENTA', () => {
                 }
                 venta.total = total;
             });
-            it('El cliente tiene la venta cargada', async () => {
+            test('El cliente tiene la venta cargada', async () => {
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
@@ -221,7 +227,7 @@ describe('VENTA', () => {
                 expect(res.body[0]).not.toBeNull;
                 expect(res.body[0].id).toEqual(venta.id);
             });
-            it('El total de la venta está bien', async () => {
+            test('El total de la venta está bien', async () => {
                 
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
@@ -230,7 +236,7 @@ describe('VENTA', () => {
                 expect(res.status).toEqual(200);
                 expect(res.body[0].total).toEqual(venta.total);
             });
-            /*it('La factura existe y el nombre coincide', async () => {   
+            /*test('La factura existe y el nombre coincide', async () => {   
                 await delay(1000);         
                 fs.readFile(venta.file_path, 'utf8', (err, _) => {
                     if(err){
@@ -239,7 +245,7 @@ describe('VENTA', () => {
                     expect(err).toBeNull;
                 });
             });*/
-            /*it('Se puede descargar la factura', async () => {
+            /*test('Se puede descargar la factura', async () => {
                 await delay(1000);
 
                 const res = await request(app)

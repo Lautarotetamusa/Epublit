@@ -58,8 +58,6 @@ export function getAfipClient(user: User){
     assert(user.production !== undefined, "El usuario no tiene seteada la variable 'production'");
 
     const path = join(afipKeysPath, user.cuit);
-    console.log("res folder:", path);
-    console.log("ta_folder:", join(path, 'Tokens'));
 
     const certFileName = user.production == 1 ? 'cert.crt' : 'cert.pem';
     const privateFileName = 'private_key.key';
@@ -131,7 +129,8 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
 		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
 	};
-	const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
+
+    const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
 
 	let comprobante: Comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 

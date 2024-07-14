@@ -147,21 +147,20 @@ export class VentaConsignado extends Venta {
     static parser = createVentaConsignado.parse;
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha
-    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args: {}): Promise<LibroTransaccion[]>{
+    static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args: any): Promise<LibroTransaccion[]>{
         let libros: LibroTransaccion[] = [];
 
-        //@ts-ignore
         const librosCliente = await cliente.getLibros(args.date); 
 
-        for (const _libro of body) {
-            const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);
+        for (const libro of body) {
+            const libroCliente = librosCliente.find(l => l.isbn == libro.isbn);
             if (libroCliente === undefined){
-                throw new ValidationError(`El cliente no tiene registrados precios del libro ${_libro.isbn} anteriores a la fecha`)
+                throw new ValidationError(`El cliente no tiene registrados precios para el libro ${libro.isbn} en la fecha ${args.date}`)
             }
 
             libros.push(new LibroTransaccion({
                 ...libroCliente,
-                cantidad: _libro.cantidad,
+                cantidad: libro.cantidad,
                 precio: libroCliente.precio,
             }))
         }

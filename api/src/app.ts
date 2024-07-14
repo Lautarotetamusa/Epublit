@@ -20,11 +20,11 @@ const route = `${env != "dev" ? 'api/v1/': ''}files` as const;
 export const filesUrl  = `http://${host}:${publicPort}/${route}` as const;
 export const filesPath = join(__dirname, "../files");
 
-app.use((req, _, next) => {
+/*app.use((req, _, next) => {
     const message = `[server]: ${req.method} ${req.url}`;
     console.log(message);
     next();
-});
+});*/
 
 //Necesesario para que no tire error de CORS
 app.use(cors());

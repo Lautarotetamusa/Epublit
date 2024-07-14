@@ -34,7 +34,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
 
         const user: User = await User.getById(res.locals.user.id);
         const body = createTransaccion.parse(req.body);
-        const cliente = await Cliente.getById(body.cliente);
+        const cliente = await Cliente.getById(body.cliente, user.id);
     
         try{
             await connection.beginTransaction();

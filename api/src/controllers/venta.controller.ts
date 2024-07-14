@@ -14,7 +14,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
     const user = await User.getById(res.locals.user.id);
 
     const {libros, cliente, ...ventaBody} = VentaConsignado.parser(req.body);
-    const c = await Cliente.getById(cliente);
+    const c = await Cliente.getById(cliente, user.id);
 
     const librosModel = await VentaConsignado.setLibros(libros, c, user.id, {date: ventaBody.fecha_venta});
     for (const libro of librosModel){
@@ -34,17 +34,18 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             user: user.id
         }, connection);
         connection.release();
-        console.log(venta);
 
         await LibroTransaccion.save(librosModel, venta.id, connection);
         connection.release();
 
         await VentaConsignado.stockMovement(librosModel, c, connection);
         connection.release();
+        console.log("WTF!");
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[c.tipo] != tipoCliente.negro){
             const comprobanteData = await facturar(venta, c, user);
+            console.log("WTF!");
 
             emitirComprobante({
                 data: {
@@ -58,6 +59,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
         }
         await connection.commit();
         venta.parsePath(VentaConsignado.filesFolder);
+        console.log("WTF!");
 
         return res.status(201).json({
             success: true,
@@ -79,7 +81,7 @@ export const vender = (ventaModel: typeof Venta) => {
         const user = await User.getById(res.locals.user.id);
 
         const {libros, cliente, ...ventaBody} = ventaModel.parser(req.body);
-        const c = await Cliente.getById(cliente);
+        const c = await Cliente.getById(cliente, user.id);
 
         const librosModel = await ventaModel.setLibros(libros, c, user.id);
         for (const libro of librosModel){

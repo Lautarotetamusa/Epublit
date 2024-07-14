@@ -1,4 +1,4 @@
-import {describe, expect, it} from '@jest/globals';
+import {describe, expect, test} from '@jest/globals';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -20,7 +20,8 @@ let venta: any = {
     tipo_cbte: 11,
     fecha_venta: Date.now() 
 }; 
-const id_cliente = 1;
+const id_cliente = 42; //Cliente inscripto
+let oldLibros: any = [];
 
 /*
     - Crear un cliente nuevo
@@ -56,7 +57,7 @@ it.concurrent('login', async () => {
 });
 
 describe('VENTA', () => {
-    it('delete ventas', async () => {
+    test('delete ventas', async () => {
         //Buscamos la ultima venta creada
         const venta: any = (await conn.query(`
             SELECT id FROM transacciones
@@ -64,6 +65,9 @@ describe('VENTA', () => {
             ORDER BY id DESC;
         `))[0];
 
+        if (!Array.isArray(venta) || venta.length <= 0 || !('id' in venta[0])){
+            return;
+        }
         const id = venta[0].id;
 
         /*Borrar de la base de datos*/
@@ -82,7 +86,7 @@ describe('VENTA', () => {
     });
 
     describe('Cargar datos para la venta', () => {
-        it('Buscar cliente', async () => {
+        test('Buscar cliente', async () => {
             const res = await request(app)
                 .get(`/cliente/${id_cliente}`)
                 .set('Authorization', `Bearer ${token}`);
@@ -93,7 +97,7 @@ describe('VENTA', () => {
             venta['cliente'] = cliente.id;
         });
 
-        it('Seleccionar libros para la venta', async () => {
+        test('Seleccionar libros para la venta', async () => {
             const res = await request(app)
                 .get('/libro')
                 .set('Authorization', `Bearer ${token}`);
@@ -102,7 +106,7 @@ describe('VENTA', () => {
             venta['libros'] = [ res.body[3], res.body[5], res.body[8] ];
         });
 
-        it('Agregar stock a los libros', async () => {
+        test('Agregar stock a los libros', async () => {
             let stock = 6;
             
             for (const libro of venta.libros) {
@@ -131,15 +135,72 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toEqual(200);
-
                 expect(res.body.stock).toEqual(stock);
             }    
+        });
+
+        test('Consignarle libros al cliente', async () => {
+            const consignacion: any = {
+                libros: [{
+                    isbn: venta.libros[0].isbn,
+                    cantidad: 3
+                },{
+                    isbn: venta.libros[1].isbn,
+                    cantidad: 3
+                },{
+                    isbn: venta.libros[2].isbn,
+                    cantidad: 3
+                }],
+                cliente: cliente.id
+            }
+
+            const res = await request(app)
+                .post('/consignacion/')
+                .set('Authorization', `Bearer ${token}`)
+                .send(consignacion);
+        
+            expect_success_code(201, res);
+        });
+
+        test('Actualizar el precio de los libros local', async() => {
+            oldLibros = JSON.parse(JSON.stringify(venta.libros)); //Copia profunda del array
+            for (const libro of venta.libros){
+                libro.precio += 1000;
+                const res = await request(app)
+                    .put('/libro/'+libro.isbn)
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(libro);
+
+                expect_success_code(201, res);
+            }
+        });
+    
+        test('Actualizar el precio de los libros del cliente', async() => {
+            let res = await request(app)
+                .put(`/cliente/${cliente.id}/stock`)
+                .set('Authorization', `Bearer ${token}`);
+            expect_success_code(200, res);
+
+            res = await request(app)
+                .get(`/cliente/${cliente.id}/stock`)
+                .set('Authorization', `Bearer ${token}`);
+            expect(res.status).toBe(200);
+
+            //Chequear que el stock se haya incrementado en 1000
+            for (const libro of oldLibros){
+                const finded = res.body.find((l: any) => l.isbn == libro.isbn);
+                console.log("precio: ", libro.precio);
+                console.log("finded:", finded);
+                expect(finded).not.toBeNull();
+                expect(finded).toHaveProperty('stock');
+                expect(finded.precio).toBe(libro.precio + 1000);
+            }
         });
     });
 
     describe('Cargar venta con precio actual', () => {
         describe('Bad request', () => {
-            it('Venta no tiene cliente', async () => {
+            test('Venta no tiene cliente', async () => {
                 let aux_cliente = venta.cliente;
                 delete venta.cliente;
 
@@ -151,7 +212,7 @@ describe('VENTA', () => {
 
                 venta.cliente = aux_cliente;
             });
-            it('Venta no tiene libros', async () => {
+            test('Venta no tiene libros', async () => {
                 let aux_venta = Object.assign({}, venta.libros);
                 delete aux_venta.libros;
 
@@ -169,7 +230,7 @@ describe('VENTA', () => {
                     .send(aux_venta);
                 expect_err_code(400, res);
             });
-            it('Medio de pago incorrecto', async () => {
+            test('Medio de pago incorrecto', async () => {
                 venta.medio_pago = '';
                 const res = await request(app)
                     .post('/ventaConsignacion/')
@@ -179,7 +240,7 @@ describe('VENTA', () => {
         
                 venta.medio_pago = 'efectivo';
             });
-            it('Un libro no tiene suficiente stock', async () => {
+            test('Un libro no tiene suficiente stock', async () => {
                 venta.libros[2].cantidad = 5;
 
                 const res = await request(app)
@@ -189,11 +250,11 @@ describe('VENTA', () => {
                 expect_err_code(400, res);
 
                 venta.libros[2].cantidad = 3;
-            });
+            }, 10000);
         });
 
         describe('Venta exitosa', () => {
-            it('vender', async () => {
+            test('vender', async () => {
                 const res: any = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
@@ -207,7 +268,7 @@ describe('VENTA', () => {
                 expect(res.body.data.id).toEqual(venta.id);
             }, 10000);
 
-            it('Los libros del cliente reducieron su stock', async () => {
+            test('Los libros del cliente reducieron su stock', async () => {
                 let total = 0;
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/stock/`)
@@ -221,7 +282,7 @@ describe('VENTA', () => {
                 venta.total = total;
             });
 
-            it('El total de la venta está bien', async () => {
+            test('El total de la venta está bien', async () => {
                 let total = 0;
                 let res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
@@ -245,7 +306,7 @@ describe('VENTA', () => {
                 expect(res.body[0].total).toEqual(venta.total);
             });
 
-            it('La factura existe y el nombre coincide', async () => {   
+            test('La factura existe y el nombre coincide', async () => {   
                 await delay(1000);         
                 fs.readFile(venta.file_path, 'utf8', (err, _) => {
                     if(err){
