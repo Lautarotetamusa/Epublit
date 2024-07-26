@@ -175,7 +175,7 @@ export class Cliente extends BaseModel{
         * Obtiene la lista de libros
         * Si se pasa una fecha, obtiene el precio que tenia el libro en esa fecha
         */
-    async getLibros(fecha?: Date): Promise<LibroClienteSchema[]> {
+    async getLibros(userId: number, fecha?: Date): Promise<LibroClienteSchema[]> {
         if (fecha === undefined){
             const [rows] = await conn.query<RowDataPacket[]>(`
                 SELECT 
@@ -188,14 +188,15 @@ export class Cliente extends BaseModel{
             return rows as LibroClienteSchema[];
         }
 
+        //TODO: No hardcodear el datetime
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-                titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
+            titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
             FROM precio_libro_cliente as PLC
             INNER JOIN (
                 SELECT id_libro, MAX(created_at) as last_date
                 FROM precio_libro_cliente PLC
-                WHERE PLC.created_at < ?
+                WHERE PLC.created_at < DATE_SUB(?, INTERVAL 3 HOUR)
                 AND PLC.id_cliente = ?
                 GROUP BY id_libro
             ) AS LP
@@ -204,9 +205,11 @@ export class Cliente extends BaseModel{
                 AND PLC.id_cliente = ?
             INNER JOIN libros L
                 ON L.id_libro = PLC.id_libro
-            INNER JOIN ${Cliente.libros_table} as LC
+                AND L.user = ?
+            INNER JOIN libro_cliente as LC
                 ON LC.id_libro = PLC.id_libro
-        `, [fecha, this.id, this.id]);
+                AND LC.id_cliente = PLC.id_cliente
+        `, [fecha, this.id, this.id, userId]);
         return rows as LibroClienteSchema[];
     }
 

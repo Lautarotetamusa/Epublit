@@ -192,7 +192,7 @@ export class Devolucion extends Transaccion {
     static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: {}): Promise<LibroTransaccion[]>{
         let libros: LibroTransaccion[] = [];
 
-        const librosCliente = await cliente.getLibros(); 
+        const librosCliente = await cliente.getLibros(userId); 
 
         for (const _libro of body) {
             const libroCliente = librosCliente.find(l => l.isbn == _libro.isbn);

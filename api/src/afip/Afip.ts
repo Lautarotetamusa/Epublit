@@ -152,7 +152,6 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 
 export async function getAfipData(cuit: string): Promise<AfipData>{
 	const afipData = await afipMadre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
-    console.log(afipData);
 	if (afipData === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
@@ -175,8 +174,6 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		actividad = afipData.datosMonotributo.actividad || [];
     }
 
-    console.log("impuestos:", impuestos);
-    console.log("actividad:", actividad);
     const iva  = impuestos.find(i => i.idImpuesto == idImpuestos.iva);
     const iibb = impuestos.find(i => i.idImpuesto == idImpuestos.iibb);
     const actividadPrincipal = actividad.find(a => a.orden == 1);

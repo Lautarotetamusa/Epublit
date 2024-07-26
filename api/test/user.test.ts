@@ -15,7 +15,7 @@ const app = 'http://localhost:3001';
 const cuit = "20173080329"
 let user: any;
 user = {
-    username: "martinpdisalvo",
+    username: "testing",
     password: "ANASHEEEEEEE",
     email: "lauti@gmail.com"
 };

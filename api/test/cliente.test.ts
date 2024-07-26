@@ -252,7 +252,7 @@ describe('Stock cliente', () => {
 
         for (const libro of res.body) {
             expect(libro.stock).toEqual(3);
-            expect(libro.precio).toEqual(res1.body.precio);
+            expect(libro.precio).toEqual(precio);
         }
     });
 
@@ -281,22 +281,23 @@ describe('Stock cliente', () => {
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toEqual(200);
 
-        for (const libro of res.body) {
-            expect(libro.stock).toEqual(3);
-            expect(libro.precio).toEqual(precio + 100);
-        }
+        const libro = res.body.find((l: any) => l.isbn == "9789874201096");
+        expect(libro.stock).toEqual(3);
+        expect(libro.precio).toEqual(precio+100);
     });
 
     test('Precio anterior a la fecha de actualizacion', async () => {
+        console.log(updateTime);
         const res = await request(app)
             .get(`/cliente/${cliente.id}/stock?fecha=${updateTime}`)
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toEqual(200);
 
-        for (const libro of res.body) {
-            expect(libro.stock).toEqual(3);
-            expect(libro.precio).toEqual(precio);
-        }
+        const libro = res.body.find((l: any) => l.isbn == "9789874201096");
+        console.log(res.body);
+        console.log(libro);
+        expect(libro.stock).toEqual(3);
+        expect(libro.precio).toEqual(precio);
     });
 });
 

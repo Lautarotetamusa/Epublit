@@ -1,6 +1,5 @@
 import {describe, expect, test} from '@jest/globals';
 import request from "supertest";
-import fs from 'fs';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -8,10 +7,10 @@ import { join } from "path";
 const path = join(__dirname, "../../.env");
 dotenv.config({path: path});
 
-import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
+import {conn} from './dbtest'
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
+import { expect_err_code, expect_success_code } from './util';
 
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
 console.log(app);

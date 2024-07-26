@@ -8,7 +8,6 @@ import { conn } from "../db";
 
 async function getCliente(req: Request, userId: number): Promise<Cliente>{
     const id = Number(req.params.id);
-    console.log(req.params.id);
 
     if (req.params.id == "consumidor_final")
         return await Cliente.getConsumidorFinal();
@@ -61,7 +60,7 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 const getStock = async (req: Request, res: Response): Promise<Response> => {
     const query = z.object({fecha: z.coerce.date().optional()}).parse(req.query)
     const cliente = await getCliente(req, res.locals.user.id);
-    const libros = await cliente.getLibros(query.fecha);
+    const libros = await cliente.getLibros(res.locals.user.id, query.fecha);
     return res.json(libros);
 }
 
@@ -69,7 +68,7 @@ const updatePrecios = async (req: Request, res: Response): Promise<Response> => 
     const cliente = await getCliente(req, res.locals.user.id);
     const connection = await conn.getConnection();
     await cliente.updatePrecios(connection);
-    const libros = await cliente.getLibros();
+    const libros = await cliente.getLibros(res.locals.user.id);
     return res.json({
         success: true,
         message: `Libros del cliente ${cliente.id} actualizados correctamente`,

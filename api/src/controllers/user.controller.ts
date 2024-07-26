@@ -11,7 +11,7 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createUser.parse(req.body);
 
     if (await User.exists(body.username)){
-        throw new ValidationError("Ya existe un cliente con este cuit y este username");
+        throw new ValidationError("Ya existe un usuario con este username");
     }
     body.password = await bcrypt.hash(body.password, 10);
     const afipData = await getAfipData(body.cuit);

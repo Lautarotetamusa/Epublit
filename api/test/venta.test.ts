@@ -232,28 +232,17 @@ describe('VENTA', () => {
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
+
+                venta.file_path = res.body[0].file_path;
             
                 expect(res.status).toEqual(200);
                 expect(res.body[0].total).toEqual(venta.total);
             });
-            /*test('La factura existe y el nombre coincide', async () => {   
-                await delay(1000);         
-                fs.readFile(venta.file_path, 'utf8', (err, _) => {
-                    if(err){
-                        console.error(err);
-                    }
-                    expect(err).toBeNull;
-                });
-            });*/
-            /*test('Se puede descargar la factura', async () => {
-                await delay(1000);
-
-                const res = await request(app)
-                    .get(venta.file_path)
-                    .set('Authorization', `Bearer ${token}`); 
-
+            test('La factura existe y el nombre coincide', async () => {   
+                await delay(300);
+                const res = await request('').get(venta.file_path); // El file_path ya tiene el localhost:3001
                 expect(res.status).toEqual(200);
-            });*/
+            });
         });
     });
 });
