@@ -28,8 +28,12 @@ jobs:
         volumes:
           - ./dbtest:/docker-entrypoint-initdb.d
     steps:
+    - name: Load test data
+      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./dbtest/test.sql
+
+    steps:
     - name: Show databases
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES"
+      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
     - name: Checkout code
       uses: actions/checkout@v2
