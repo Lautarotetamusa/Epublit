@@ -12,11 +12,6 @@ jobs:
 
     steps:
 
-    - name: Prepare .env file
-      run: echo "$ENV_FILE_CONTENT" > .env
-      env:
-        ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-
     - name: Checkout code
       uses: actions/checkout@v2
 
@@ -29,6 +24,11 @@ jobs:
       run: | 
         cd api
         npm install
+
+    - name: Prepare .env file
+      run: echo "$ENV_FILE_CONTENT" > .env
+      env:
+        ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
 
     - name: Load afip testing tokens
       run: |
