@@ -43,7 +43,7 @@ jobs:
 
     - name: Load afip testing tokens
       run: |
-        mkdir api/afipkeys/27249804024
+        mkdir -p api/afipkeys/27249804024
         cd api/afipkeys/27249804024
         echo "$AFIP_CERT" > cert.crt
         echo "$AFIP_KEY" > private_key.key
