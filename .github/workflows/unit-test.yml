@@ -49,6 +49,7 @@ jobs:
 
     - name: Load afip testing tokens
       run: |
+        mkdir -p api/afipkeys
         cd api/afipkeys
         mkdir -p 20434919798/Tokens
         echo "$AFIP_CERT" > 20434919798/cert.pem
