@@ -60,7 +60,7 @@ jobs:
       run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
 
     - name: Show databases
-      run:  docker compose exec mysqldb mysql -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
+      run:  docker compose exec mysqldb mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
     - name: Run tests
       run: |
