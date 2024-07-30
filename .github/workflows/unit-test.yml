@@ -26,7 +26,7 @@ jobs:
         ports:
           - 3306:3306
         volumes:
-          - ./db:/docker-entrypoint-initdb.d
+          - ./db/test:/docker-entrypoint-initdb.d
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -40,9 +40,6 @@ jobs:
       run: echo "$ENV_FILE_CONTENT" > .env
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-
-    - name: Load test data from file
-      run: mysql -h localhost -u root -p${{ secrets.DB_PASS }} < db/test.sql
 
     - name: Load afip testing tokens
       run: |
