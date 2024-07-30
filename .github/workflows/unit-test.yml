@@ -41,7 +41,7 @@ jobs:
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
 
-    - name: Load test data
+    - name: Load test data from file
       run: mysql -uroot -p${{ secrets.DB_PASS }} < db/test.sql
 
     - name: Load afip testing tokens
