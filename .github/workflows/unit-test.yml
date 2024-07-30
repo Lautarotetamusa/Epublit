@@ -66,7 +66,9 @@ jobs:
     - name: Start api
       run: |
         cd api
-        npm run dev
+        npm run dev &
+        echo $! > api.pid
+        sleep 10
 
     - name: Run tests
       run: |
@@ -77,3 +79,6 @@ jobs:
         DB_PASS: ${{ secrets.DB_PASS }}
         DB_PORT: 3306
         DB_NAME: epublit_test
+
+    - name: Stop api
+      run: kill $(cat api/api.pid) || true
