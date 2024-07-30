@@ -20,17 +20,10 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: epublit_test
-        options: --health-cmd="mysqldmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
         ports:
           - 3306:3306
     steps:
-    - name: Wait for MariaDB
-      run: |
-        until mysqladmin ping -h mariadb -u root -pLautaro123.; do
-          echo 'Waiting for MariaDB to be ready...'
-          sleep 5
-        done
-
     - name: Checkout code
       uses: actions/checkout@v2
 
