@@ -26,7 +26,7 @@ jobs:
         ports:
           - 3306:3306
         volumes:
-          - ./db/test.sql:/docker-entrypoint-initdb.d/test.sql
+          - ./db:/docker-entrypoint-initdb.d
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
