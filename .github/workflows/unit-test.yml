@@ -57,14 +57,14 @@ jobs:
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
         AFIP_KEY: ${{ secrets.AFIP_KEY }}
-
-    - name: Start api
-      run: npm run dev
         
     - name: Install dependencies
       run: | 
         cd api
         npm install
+
+    - name: Start api
+      run: npm run dev
 
     - name: Run tests
       run: |
