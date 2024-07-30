@@ -72,3 +72,6 @@ jobs:
         DB_PASS: ${{ secrets.DB_PASS }}
         DB_PORT: 3306
         DB_NAME: epublit_test
+
+    - name: Logs
+      run: docker compose logs api
