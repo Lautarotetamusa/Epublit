@@ -40,6 +40,14 @@ jobs:
       run: echo "$ENV_FILE_CONTENT" > .env
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+
+    - name: Load afip testing tokens
+      run: |
+        echo "$AFIP_CERT" > api/afipkeys/27249804024/cert.crt
+        echo "$AFIP_KEY" > api/afipkeys/27249804024/private_key.key
+      env:
+        AFIP_CERT: ${{ secrets.AFIP_CERT }}
+        AFIP_KEY: ${{ secrets.AFIP_KEY }}
         
     - name: Install dependencies
       run: | 
@@ -50,3 +58,8 @@ jobs:
       run: |
         cd api
         npx jest test/*
+      env: 
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASS: ${{ secrets.DB_PASS }}
+        DB_PORT: 3306
+        DB_NAME: epublit_test
