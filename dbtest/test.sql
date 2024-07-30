@@ -20,6 +20,8 @@
 --
 --CREATE USER 'test_user'@'%' IDENTIFIED BY 'test_pass';
 --GRANT ALL PRIVILEGES ON *.* TO 'test_user'@'%' WITH GRANT OPTION;
+CREATE USER 'teti'@'%' IDENTIFIED BY 'Lautaro123.';
+GRANT ALL PRIVILEGES ON *.* TO 'teti'@'%' WITH GRANT OPTION;
 
 DROP DATABASE IF EXISTS epublit_test;
 CREATE DATABASE IF NOT EXISTS epublit_test;

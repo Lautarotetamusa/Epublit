@@ -28,6 +28,9 @@ jobs:
         volumes:
           - ./dbtest:/docker-entrypoint-initdb.d
     steps:
+    - name: Show databases
+      run:  mysql -h mariadb -uroot -p${{ secrets.DB_PASS }} -e "SHOW DATABASES"
+
     - name: Checkout code
       uses: actions/checkout@v2
 
