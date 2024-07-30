@@ -62,6 +62,7 @@ jobs:
         echo "$AFIP_KEY_PROD" > 27249804024/private_key.key
         sha1sum 27249804024/cert.crt
         sha1sum 27249804024/private_key.key
+
         
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
