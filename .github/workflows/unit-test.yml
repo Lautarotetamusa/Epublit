@@ -58,8 +58,8 @@ jobs:
         sha1sum 20434919798/private_key.key
 
         mkdir -p 27249804024/Tokens
-        echo "$AFIP_CERT_PROD" > cert.crt
-        echo "$AFIP_KEY_PROD" > private_key.key
+        echo "$AFIP_CERT_PROD" > 27249804024/cert.crt
+        echo "$AFIP_KEY_PROD" > 27249804024/private_key.key
         sha1sum 27249804024/cert.crt
         sha1sum 27249804024/private_key.key
         
