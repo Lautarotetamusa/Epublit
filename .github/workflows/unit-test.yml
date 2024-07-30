@@ -18,10 +18,10 @@ jobs:
       mariadb:
         image: mariadb:10.9.4
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASS }}
-          MYSQL_DATABASE: epublit_test
-          MYSQL_USER: ${{ secrets.DB_USER }}
-          MYSQL_PASSWORD: ${{ secrets.DB_PASS }}
+          MARIADB_ROOT_PASSWORD: Lautaro123.
+          MARIADB_DATABASE: epublit_test
+          MARIADB_USER: teti
+          MARIADB_PASSWORD: Lautaro123.
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
         ports:
           - 3306:3306
