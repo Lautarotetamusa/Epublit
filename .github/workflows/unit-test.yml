@@ -20,13 +20,13 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: epublit_test
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
+        options: --health-cmd="mysqldmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
         ports:
           - 3306:3306
     steps:
     - name: Wait for MariaDB
       run: |
-        until mysqladmin ping -h mariadb -u root -pLautaro123. --silent; do
+        until mysqladmin ping -h mariadb -u root -pLautaro123.; do
           echo 'Waiting for MariaDB to be ready...'
           sleep 5
         done
