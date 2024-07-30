@@ -60,6 +60,8 @@ jobs:
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
         AFIP_KEY: ${{ secrets.AFIP_KEY }}
+        AFIP_CERT_PROD: ${{ secrets.AFIP_CERT_PROD }}
+        AFIP_KEY_PROD: ${{ secrets.AFIP_KEY_PROD }}
         
     - name: Install dependencies
       run: | 
