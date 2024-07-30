@@ -33,9 +33,12 @@ select * from precio_libro_cliente where id_libro=11;
 
 select * from transacciones where user=1;
 
-select * from precio_libro_cliente where id_cliente=42 and id_libro=127;
+select * from precio_libro_cliente where id_cliente=42 and id_libro=17;
 
 select * from libro_cliente where id_cliente=42;
+
+select * from libros where isbn="9789874201096";
+select * from precio_libro_cliente where id_libro=17;
 
 
 SELECT 

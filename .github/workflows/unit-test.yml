@@ -2,7 +2,7 @@ name: unit testing
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "dev", "testing" ]
   pull_request:
     branches: [ "dev" ]
 
@@ -15,8 +15,8 @@ jobs:
         node-version: [21.x]
 
     services:
-      mysql:
-        image: mysql:10.9.4
+      mariadb:
+        image: mariadb:10.9.4
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: epublit_test
@@ -43,15 +43,13 @@ jobs:
         cd api
         npm install
 
-    - name: Wait for MySQL
+    - name: Wait for MariaDB
       run: |
-        while ! mysqladmin ping -h"127.0.0.1" --port=3306 --silent; do
-        echo "Waiting for database connection..."
-        sleep 1
+        until mysqladmin ping -hmariadb --silent; do
+        echo 'Waiting for MariaDB to be ready...'
+        sleep 5
         done
-      env:
-        MYSQL_PWD: Lautaro123.
-    
+
     - name: Run tests
       run: |
         cd api
