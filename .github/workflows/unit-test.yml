@@ -25,6 +25,8 @@ jobs:
         options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=3
         ports:
           - 3306:3306
+        volumes:
+          - ./db/test.sql:/docker-entrypoint-initdb.d/test.sql
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -47,5 +49,4 @@ jobs:
     - name: Run tests
       run: |
         cd api
-        chmod +x setuptest.sh
-        npm run test
+        npx jest test/*
