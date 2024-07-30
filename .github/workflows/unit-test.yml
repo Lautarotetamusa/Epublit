@@ -75,12 +75,12 @@ jobs:
         cd api
         npm install
 
-    - name: Start api
-      run: |
-        cd api
-        npm run dev &
-        echo $! > api.pid
-        sleep 10
+        #- name: Start api
+        #run: |
+        #cd api
+        #npm run dev &
+        #echo $! > api.pid
+        #sleep 10
 
     - name: Run tests
       run: |
@@ -92,5 +92,5 @@ jobs:
         DB_PORT: 3306
         DB_NAME: epublit_test
 
-    - name: Stop api
-      run: kill $(cat api/api.pid) || true
+          #- name: Stop api
+          #run: kill $(cat api/api.pid) || true
