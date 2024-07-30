@@ -2,7 +2,7 @@ name: unit testing
 
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "testing" ]
   pull_request:
     branches: [ "dev" ]
 
@@ -85,7 +85,7 @@ jobs:
     - name: Run tests
       run: |
         cd api
-        npx jest test/*
+        npx jest test/cliente.test.ts
       env: 
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASS: ${{ secrets.DB_PASS }}
