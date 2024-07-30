@@ -59,6 +59,9 @@ jobs:
     - name: Wait for backend to start
       run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
 
+    - name: Logs
+      run: docker compose logs api
+
       #- name: Show databases
       #run:  docker compose exec mysqldb mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
@@ -72,6 +75,3 @@ jobs:
         DB_PASS: ${{ secrets.DB_PASS }}
         DB_PORT: 3306
         DB_NAME: epublit_test
-
-    - name: Logs
-      run: docker compose logs api
