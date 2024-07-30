@@ -196,7 +196,7 @@ export class Cliente extends BaseModel{
             INNER JOIN (
                 SELECT id_libro, MAX(created_at) as last_date
                 FROM precio_libro_cliente PLC
-                WHERE PLC.created_at < DATE_SUB(?, INTERVAL 3 HOUR)
+                WHERE DATE_SUB(PLC.created_at, INTERVAL 3 HOUR) < ?
                 AND PLC.id_cliente = ?
                 GROUP BY id_libro
             ) AS LP

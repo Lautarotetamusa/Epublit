@@ -8,7 +8,7 @@ const path = join(__dirname, "../../.env");
 dotenv.config({path: path});
 
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {delay, expect_err_code, expect_success_code} from './util';
 
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
 console.log(app);
@@ -260,17 +260,24 @@ describe('Stock cliente', () => {
         const libro = {
             precio: precio + 100
         }
+
+        //Actualizar precio del libro en stock general
         const resLibro = await request(app)
             .put('/libro/9789874201096')
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
         expect_success_code(201, resLibro);
+        await delay(1000);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
 
+        //Actualizar precio del libro del stock del cliente
         let res = await request(app)
             .put(`/cliente/${cliente.id}/stock/`)
             .set('Authorization', `Bearer ${token}`);
-        updateTime = new Date().toISOString();
+        let d = new Date();
+        //TODO: No hardcodear la zona horaria de argentina
+        d.setHours(d.getHours() - 3); //Restamos 3 horas porque estamos en GMT-3
+        updateTime = d.toISOString().split('.')[0];
 
         expect(res.status).toEqual(200);
     });
@@ -287,15 +294,13 @@ describe('Stock cliente', () => {
     });
 
     test('Precio anterior a la fecha de actualizacion', async () => {
-        console.log(updateTime);
         const res = await request(app)
             .get(`/cliente/${cliente.id}/stock?fecha=${updateTime}`)
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toEqual(200);
 
         const libro = res.body.find((l: any) => l.isbn == "9789874201096");
-        console.log(res.body);
-        console.log(libro);
+        expect(libro).not.toBeUndefined();
         expect(libro.stock).toEqual(3);
         expect(libro.precio).toEqual(precio);
     });
