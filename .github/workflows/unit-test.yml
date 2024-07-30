@@ -42,7 +42,7 @@ jobs:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
 
     - name: Load test data from file
-      run: mysql -h mariadb -u root -p${{ secrets.DB_PASS }} < db/test.sql
+      run: mysql -h localhost -u root -p${{ secrets.DB_PASS }} < db/test.sql
 
     - name: Load afip testing tokens
       run: |
