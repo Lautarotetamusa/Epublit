@@ -64,7 +64,9 @@ jobs:
         npm install
 
     - name: Start api
-      run: npm run dev
+      run: |
+        cd api
+        npm run dev
 
     - name: Run tests
       run: |
