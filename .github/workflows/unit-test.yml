@@ -43,8 +43,10 @@ jobs:
 
     - name: Load afip testing tokens
       run: |
-        echo "$AFIP_CERT" > api/afipkeys/27249804024/cert.crt
-        echo "$AFIP_KEY" > api/afipkeys/27249804024/private_key.key
+        mdkir api/afipkeys/27249804024
+        cd api/afipkeys/27249804024
+        echo "$AFIP_CERT" > cert.crt
+        echo "$AFIP_KEY" > private_key.key
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
         AFIP_KEY: ${{ secrets.AFIP_KEY }}
