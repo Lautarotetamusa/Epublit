@@ -30,11 +30,6 @@ jobs:
         cd api
         npm install
 
-    - name: Prepare .env file
-      run: echo "$ENV_FILE_CONTENT" > .env
-      env:
-        ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-
     - name: Load afip testing tokens
       run: |
         mkdir -p api/afipkeys
@@ -65,7 +60,7 @@ jobs:
       run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
 
     - name: Show databases
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
+      run:  docker compose exec mysqldb mysql -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
     - name: Run tests
       run: |
