@@ -89,22 +89,16 @@ test('login', async () => {
         password: 'Lautaro123.'
     }
 
-    try{
-        const res = await request(app)
-            .post('/user/login')
-            .send(data)
+    const res = await request(app)
+        .post('/user/login')
+        .send(data)
 
-        expect_success_code(200, res);
-        expect(res.body).toHaveProperty('token');
-        expect(res.body.token).not.toBeUndefined();
-        expect(res.body.token).not.toBeNull();
-        expect(res.body.token).not.toBeFalsy();
-        token = res.body.token;
-        console.log("token: ", token);
-    } catch (e){
-        console.log("ERROR");
-        console.log(e);
-    }
+    expect_success_code(200, res);
+    expect(res.body).toHaveProperty('token');
+    expect(res.body.token).not.toBeUndefined();
+    expect(res.body.token).not.toBeNull();
+    expect(res.body.token).not.toBeFalsy();
+    token = res.body.token;
 });
 
 describe('POST cliente/', () => {

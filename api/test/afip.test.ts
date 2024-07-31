@@ -1,7 +1,8 @@
-import {expect, it} from '@jest/globals';
+import {expect, test} from '@jest/globals';
 
-import { getAfipData } from "../src/afip/Afip";
+import { getAfipData, getServerStatus } from "../src/afip/Afip";
 import { AfipData } from '../src/schemas/afip.schema';
+import { User } from '../src/models/user.model';
 
 type Expecteds = {[key: string]: AfipData}
 
@@ -38,8 +39,22 @@ const expecteds: Expecteds = {
 
 //Correr todos los tests en paralelo
 for (const cuit in expecteds){
-    it(`Obtener datos cliente ${cuit}`, async () => {
+    test(`Obtener datos cliente ${cuit}`, async () => {
         const data = await getAfipData(cuit);
         expect(data).toEqual(expecteds[cuit]);
     }, 10000);
 }
+
+test(`Estado del servidor`, async () => {
+    const user = await User.getOne("teti");
+    const status = await getServerStatus(user);
+
+    expect(status).toHaveProperty("AppServer");
+    expect(status.AppServer).toBe("OK");
+
+    expect(status).toHaveProperty("DbServer");
+    expect(status.DbServer).toBe("OK");
+
+    expect(status).toHaveProperty("AuthServer");
+    expect(status.AuthServer).toBe("OK");
+}, 10000);
