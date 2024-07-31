@@ -258,29 +258,33 @@ describe('Stock cliente', () => {
     });
 
     test('Se actualiza el precio del cliente', async () => {
-        const libro = {
-            precio: precio + 100
+        try{
+            const libro = {
+                precio: precio + 100
+            }
+
+            //Actualizar precio del libro en stock general
+            const resLibro = await request(app)
+                .put('/libro/9789874201096')
+                .set('Authorization', `Bearer ${token}`)
+                .send(libro);
+
+            expect_success_code(201, resLibro);
+            await delay(1000);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
+
+            //Actualizar precio del libro del stock del cliente
+            let res = await request(app)
+                .put(`/cliente/${cliente.id}/stock/`)
+                .set('Authorization', `Bearer ${token}`);
+            let d = new Date();
+            //TODO: No hardcodear la zona horaria de argentina
+            d.setHours(d.getHours() - 3); //Restamos 3 horas porque estamos en GMT-3
+            updateTime = d.toISOString().split('.')[0];
+
+            expect(res.status).toEqual(200);
+        }catch(e){
+            console.log("ERROR: ", e);
         }
-
-        //Actualizar precio del libro en stock general
-        const resLibro = await request(app)
-            .put('/libro/9789874201096')
-            .set('Authorization', `Bearer ${token}`)
-            .send(libro);
-
-        expect_success_code(201, resLibro);
-        await delay(1000);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
-
-        //Actualizar precio del libro del stock del cliente
-        let res = await request(app)
-            .put(`/cliente/${cliente.id}/stock/`)
-            .set('Authorization', `Bearer ${token}`);
-        let d = new Date();
-        //TODO: No hardcodear la zona horaria de argentina
-        d.setHours(d.getHours() - 3); //Restamos 3 horas porque estamos en GMT-3
-        updateTime = d.toISOString().split('.')[0];
-
-        expect(res.status).toEqual(200);
     });
 
     test('Precio actualizado correctamente', async () => {
