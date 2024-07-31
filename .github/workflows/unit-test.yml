@@ -2,9 +2,9 @@ name: unit testing
 
 on:
   push:
-    branches: [ "testing" ]
+    branches: [ "dev", "testing" ]
   pull_request:
-    branches: [ "dev" ]
+    branches: [ "main" ]
 
 jobs:
   api-testing:
@@ -37,7 +37,7 @@ jobs:
         node-version: '21.x'
 
     - name: Load test data
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./dbtest/test.sql
+      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./db/test.sql
 
     - name: Show databases
       run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
