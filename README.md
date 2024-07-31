@@ -65,12 +65,20 @@ Instalar docker
 
 ## The .env file ##
 ```env
-DB_HOST: localhost
-DB_USER: user  
-DB_PASS: passowrd  
-DB_PORT: 3306  
-DB_NAME: db_name  
-DB_PORT: 3000
+DB_HOST=localhost
+DB_USER=user  
+DB_PASS=password
+DB_PORT=3306  
+DB_NAME=db_name  
+
+PROTOCOL=http
+env=DEV
+
+BACK_PORT=3001
+BACK_PUBLIC_PORT=80
+
+JWT_SECRET=super_secret_key
+JWT_EXPIRES_IN=7d
 ```
 
 1. Agregar docker a sudo

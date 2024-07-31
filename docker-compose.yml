@@ -1,23 +1,30 @@
-version: '3.8'
-
 services:
   mysqldb:
     image: mariadb:10.9.4
     restart: unless-stopped
     env_file: ./.env
     environment:
+      # la root password y la password del user es la misma
+      - MARIADB_DATABASE=epublit
+      - MARIADB_USER=$DB_USER
+      - MARIADB_PASSWORD=$DB_PASS
       - MARIADB_ROOT_PASSWORD=$DB_PASS
-      - MYSQL_PASSWORD=$DB_PASS
     ports:
       - $DB_PORT:$DB_PORT
     volumes:
-      - ./db:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
+      - ./db/init/:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
+      # Importante!: Siempre que exista la carpeta mysql previamente buildear de nuevo el contenedor no tendrá ningun efecto.
       - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   
   api:
     depends_on:
       mysqldb:
-        condition: service_started
+        condition: service_healthy
     build: 
       dockerfile: ./api/Dockerfile
       context: .
