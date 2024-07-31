@@ -21,4 +21,4 @@ fi
 
 # Cargar datos de prueba solo si la base de datos está lista
 echo "Loading test data into MySQL..."
-cat ../db/test.sql | docker compose exec -T mysqldb mysql -u root -p$DB_PASS
+cat ../dbtest/test.sql | docker compose exec -T mysqldb mysql -u root -p$DB_PASS

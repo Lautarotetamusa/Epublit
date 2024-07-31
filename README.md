@@ -1,3 +1,5 @@
+[![unit testing](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml/badge.svg)](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml)
+
 <p align="center">
   <a href="https://epublit.com.ar">
   <img width="40%" height="40%" src="./epublit.png">

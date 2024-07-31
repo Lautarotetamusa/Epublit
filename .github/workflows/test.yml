@@ -2,7 +2,7 @@ name: unit testing
 
 on:
   push:
-    branches: [ "testing" ]
+    branches: [ "dev" ]
   pull_request:
     branches: [ "dev" ]
 
@@ -10,24 +10,8 @@ jobs:
   api-testing:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [21.x]
-
-    services:
-      mariadb:
-        image: mariadb:10.9.4
-        env:
-          MARIADB_ROOT_PASSWORD: ${{ secrets.DB_PASS }}.
-          MARIADB_DATABASE: epublit_test
-          MARIADB_USER: ${{ secrets.DB_USER }}
-          MARIADB_PASSWORD: ${{ secrets.DB_PASS }}
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
-        ports:
-          - 3306:3306
-        volumes:
-          - ./dbtest:/docker-entrypoint-initdb.d
     steps:
+
     - name: Checkout code
       uses: actions/checkout@v2
 
@@ -35,13 +19,12 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: '21.x'
-
-    - name: Load test data
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./dbtest/test.sql
-
-    - name: Show databases
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
         
+    - name: Install dependencies
+      run: | 
+        cd api
+        npm install
+
     - name: Prepare .env file
       run: echo "$ENV_FILE_CONTENT" > .env
       env:
@@ -62,35 +45,33 @@ jobs:
         echo "$AFIP_KEY_PROD" > 27249804024/private_key.key
         sha1sum 27249804024/cert.crt
         sha1sum 27249804024/private_key.key
-
-        
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
         AFIP_KEY: ${{ secrets.AFIP_KEY }}
         AFIP_CERT_PROD: ${{ secrets.AFIP_CERT_PROD }}
         AFIP_KEY_PROD: ${{ secrets.AFIP_KEY_PROD }}
-        
-    - name: Install dependencies
-      run: | 
-        cd api
-        npm install
 
-    - name: Start api
+    - name: Build and start backend services
       run: |
-        cd api
-        npm run dev &
-        echo $! > api.pid
-        sleep 10
+        docker compose build api
+        docker compose up -d api
+
+    - name: Wait for backend to start
+      run: sleep 15  # Asegúrate de esperar el tiempo necesario para que la API del backend esté lista para recibir peticiones
+
+    - name: Logs
+      run: docker compose logs api
+
+      #- name: Show databases
+      #run:  docker compose exec mysqldb mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
     - name: Run tests
       run: |
         cd api
-        npx jest test/*
+        chmod +x setuptest.sh 
+        npm run test
       env: 
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASS: ${{ secrets.DB_PASS }}
         DB_PORT: 3306
         DB_NAME: epublit_test
-
-    - name: Stop api
-      run: kill $(cat api/api.pid) || true

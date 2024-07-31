@@ -88,11 +88,16 @@ test('login', async () => {
         username: 'teti',
         password: 'Lautaro123.'
     }
+
     const res = await request(app)
         .post('/user/login')
         .send(data)
 
     expect_success_code(200, res);
+    expect(res.body).toHaveProperty('token');
+    expect(res.body.token).not.toBeUndefined();
+    expect(res.body.token).not.toBeNull();
+    expect(res.body.token).not.toBeFalsy();
     token = res.body.token;
 });
 
