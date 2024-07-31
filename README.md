@@ -9,7 +9,7 @@
 # [Epublit](https://epublit.com.ar)
 Epublit es un sistema de gestión integral diseñado específicamente para el negocio editorial.
 
-# Estructura de las tablas
+# Diagrama Entidad-Relacion
 ![](./Tablas.png)
 
 ## Libro
