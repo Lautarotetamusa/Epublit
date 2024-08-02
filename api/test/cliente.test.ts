@@ -7,7 +7,7 @@ import { join } from "path";
 const path = join(__dirname, "../../.env");
 dotenv.config({path: path});
 
-import {conn} from '../src/db'
+import {conn} from './db'
 import {delay, expect_err_code, expect_success_code} from './util';
 
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
