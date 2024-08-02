@@ -3,5 +3,6 @@
         preset: 'ts-jest',
         testEnvironment: 'node',
         roots: ["./test/"],
-        detectOpenHandles: true
+        detectOpenHandles: true,
+        forceExit: true // afip.test.ts detecta un openHandle
     };

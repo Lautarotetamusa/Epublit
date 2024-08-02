@@ -29,6 +29,10 @@ let token: string;
     - Hard delete de las dos personas para evitar que queden en la DB.
 */
 
+afterAll(() => {
+    conn.end();
+});
+
 it('HARD DELETE', async () => {
     await conn.query(`
         DELETE FROM personas

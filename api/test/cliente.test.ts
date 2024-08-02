@@ -32,6 +32,10 @@ let token: string;
     - Hard delete de las dos clientes para evitar que queden en la DB.
 */
 
+afterAll(() => {
+    conn.end();
+});
+
 test('Hard delete', async () => {
     const [clientes] = await conn.query<RowDataPacket[]>(`
         SELECT * FROM clientes

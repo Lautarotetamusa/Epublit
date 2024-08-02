@@ -30,6 +30,10 @@ const id_cliente = 1;
     - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
 */
 
+afterAll(() => {
+    conn.end();
+});
+
 test('login', async () => {
     let data = {
         username: 'teti',

@@ -37,6 +37,9 @@ let consignacion: any = {
     - Revisar que el total de la consignacion sea correcto
     - Revisar que el cliente tenga la consignacion en /cliente/{id}/consignacions
 */
+afterAll(() => {
+    conn.end();
+});
 
 test('login', async () => {    
     let data = {

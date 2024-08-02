@@ -5,7 +5,7 @@ services:
     env_file: ./.env
     environment:
       # la root password y la password del user es la misma
-      - MARIADB_DATABASE=epublit
+      - MARIADB_DATABASE=epublit_test
       - MARIADB_USER=$DB_USER
       - MARIADB_PASSWORD=$DB_PASS
       - MARIADB_ROOT_PASSWORD=$DB_PASS
