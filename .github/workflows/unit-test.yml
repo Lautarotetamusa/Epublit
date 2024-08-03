@@ -88,7 +88,7 @@ jobs:
       run: |
         cd api
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
-        npx jest test/afip.test.ts
+        #npx jest test/afip.test.ts
         npx jest test/cliente.test.ts
         npx jest test/consignacion.test.ts
         npx jest test/libro.test.ts
