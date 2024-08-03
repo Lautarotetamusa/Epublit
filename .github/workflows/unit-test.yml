@@ -90,11 +90,17 @@ jobs:
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
         #npx jest test/afip.test.ts
         npx jest test/cliente.test.ts
+        sleep 10
         npx jest test/consignacion.test.ts
+        sleep 10
         npx jest test/libro.test.ts
+        sleep 10
         npx jest test/persona.test.ts
+        sleep 10
         npx jest test/user.test.ts
+        sleep 10
         npx jest test/venta.test.ts
+        sleep 10
         npx jest test/venta_consignacion.test.ts
       env: 
         DB_USER: ${{ secrets.DB_USER }}
