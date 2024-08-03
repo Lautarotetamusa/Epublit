@@ -65,7 +65,6 @@ jobs:
 
     - name: Install chromium
       uses: browser-actions/setup-chrome@v1
-      run: chrome --version
         
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
