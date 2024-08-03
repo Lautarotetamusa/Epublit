@@ -63,6 +63,16 @@ jobs:
         sha1sum 27249804024/cert.crt
         sha1sum 27249804024/private_key.key
 
+    - name: Install chromium
+      run: |
+        apt-get update
+        apt-get install curl gnupg -y
+        curl --location --silent https://dl-ssl.google.com/linux/linux_signing_key.pub
+        apt-key add - 
+        sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+        apt-get update
+        apt-get install google-chrome-stable -y --no-install-recommends
+        rm -rf /var/lib/apt/lists/*
         
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
@@ -85,7 +95,15 @@ jobs:
     - name: Run tests
       run: |
         cd api
+        # Lo hacemos uno por uno para tener mas control de los errores en los actions
+        npx jest test/afip.test.ts
+        npx jest test/cliente.test.ts
+        npx jest test/consignacion.test.ts
+        npx jest test/libro.test.ts
+        npx jest test/persona.test.ts
+        npx jest test/user.test.ts
         npx jest test/venta.test.ts
+        npx jest test/venta_consignacion.test.ts
       env: 
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASS: ${{ secrets.DB_PASS }}
