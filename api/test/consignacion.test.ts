@@ -7,7 +7,7 @@ import { join } from "path";
 const path = join(__dirname, "../../.env");
 dotenv.config({path: path});
 
-import {conn} from './dbtest'
+import {conn} from './db'
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
 import { expect_err_code, expect_success_code } from './util';
