@@ -43,6 +43,10 @@ let libros: any = [];
     - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
 */
 
+afterAll(() => {
+    conn.end();
+});
+
 it.concurrent('login', async () => {
     let data = {
         username: 'teti',

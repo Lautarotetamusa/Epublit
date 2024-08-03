@@ -10,7 +10,8 @@ const options = {
     user:       process.env.DB_USER,
     password:   process.env.DB_PASS,
     port:       Number(process.env.DB_PORT) || 3306, 
-    database:   'epublit_test'
+    database:   "epublit_test"
   }
+console.log("DB_NAME:", options.database);
 
 export const conn = createPool(options);

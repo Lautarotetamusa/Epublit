@@ -48,6 +48,6 @@
         "dev": "nodemon --ignore afipkeys/ src/app.ts",
         "build": "tsc .",
         "test:setup": "./setuptest.sh",
-        "test": "./setuptest.sh && npx jest"
+        "test": "chmod +x ./setuptest.sh && ./setuptest.sh && npx jest"
     }
 }

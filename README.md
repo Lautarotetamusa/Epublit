@@ -1,4 +1,4 @@
-[![unit testing](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml/badge.svg)](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml)
+[![unit testing](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml/badge.svg?branch=dev)](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml)
 
 <p align="center">
   <a href="https://epublit.com.ar">
@@ -9,7 +9,7 @@
 # [Epublit](https://epublit.com.ar)
 Epublit es un sistema de gestión integral diseñado específicamente para el negocio editorial.
 
-# Estructura de las tablas
+# Diagrama Entidad-Relacion
 ![](./Tablas.png)
 
 ## Libro
@@ -61,66 +61,53 @@ El balance representa la diferencia entre los gastos y las entradas (ventas)
 
 # Instalacion con docker
 Instalar docker
-![Ubuntu] (https://docs.docker.com/engine/install/ubuntu/)
+![Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 
-Agregar docker a sudo
-`sudo usermod -aG docker $USER`
+## The .env file ##
+```env
+DB_HOST=localhost
+DB_USER=user  
+DB_PASS=password
+DB_PORT=3306  
+DB_NAME=db_name  
 
-Buildear los contenedores
-`docker compose build`
+PROTOCOL=http
+env=DEV
 
-Correr el servicio
-`sudo systemctl start docker`
+BACK_PORT=3001
+BACK_PUBLIC_PORT=80
 
-Ejecutar el server
-`docker compose up`
-
-# Instalacion manual
-
-## Instal mylsql ##
-`sudo apt install mysql`
-
-## Config mysql ##
-
-Enter in mysql  
-`
-sudo mysql -u root  
-`
-
-Create new user  
-`
-GRANT ALL PRIVILEGES ON *.* TO 'user'@'localhost' IDENTIFIED BY 'newpassword';
-`
-
-## Create new database ##
-`
-mysql -u user -p
-`
-`
-CREATE DATABASE db_name;
-`
-
-## Create the tables ##
-Enter in mysql console
-Copy /db/db.sql in console and press enter
-
-
-## Create .env file ##
-
-`
-touch .env
-`
-
-env file:  
-```
-DB_HOST: localhost
-DB_USER: user  
-DB_PASS: passowrd  
-DB_PORT: 3306  
-DB_NAME: db_name  
-DB_PORT: 3000
+JWT_SECRET=super_secret_key
+JWT_EXPIRES_IN=7d
 ```
 
-## Run the backend
-`npm run dev`
+1. Agregar docker a sudo
+```bash
+sudo usermod -aG docker $USER`
+```
 
+2. Buildear los contenedores
+```bash
+docker compose build
+```
+
+3. Correr el servicio
+```bash
+sudo systemctl start docker
+```
+
+4. Ejecutar el server
+```bash
+docker compose up
+```
+
+# Unit test
+1. Levantar la api
+```bash
+docker compose up -d api
+```
+
+2. Correr los tests
+```bash
+npm run test
+```

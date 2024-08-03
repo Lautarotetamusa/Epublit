@@ -20,6 +20,10 @@ user = {
     email: "lauti@gmail.com"
 };
 
+afterAll(() => {
+    conn.end();
+});
+
 it('Hard delete', async () => {
     await conn.query(`
         delete from users where cuit=${cuit} or username = '${user.username}'`

@@ -1,6 +1,5 @@
 import {describe, expect, it} from '@jest/globals';
 import request from "supertest";
-import fs from 'fs';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -15,9 +14,6 @@ import { RowDataPacket } from 'mysql2';
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
 console.log(app);
 
-const rawdata = fs.readFileSync(join(__dirname, "libro.test.json"));
-const tests = JSON.parse(String(rawdata));
-
 let token: string;
 let libro: any
 libro = {
@@ -27,6 +23,10 @@ libro = {
     "precio": 10000,
     "stock": 0
 }
+
+afterAll(() => {
+    conn.end();
+});
 
 it('HARD DELETE', async () => {
     let res = (await conn.query<RowDataPacket[]>(`
@@ -72,27 +72,6 @@ it('login', async () => {
 });
 
 describe('Crear libro POST /libro', function () {
-    /*describe('Bad requests errors', function () {
-        tests.forEach((test: any) => {
-            it(test.title, function (done) {
-                request(app)
-                    .post('/libro')
-                    .set('Authorization', `Bearer ${token}`)
-                    .send(test.data)
-                    .end((_, res) => {
-                        if (res.status != test.code){
-                            console.log(res.body, res.status);
-                        }
-                        expect(res.status).toEqual(test.code);
-                        expect(res.body).toHaveProperty('success');
-                        expect(res.body).toHaveProperty('errors');
-                        expect(res.body.success).toEqual(false);
-                    done();
-                  });
-            });
-        });
-    });*/
-    
     it('Crear libro sin personas', async () => {
         const res = await request(app)
             .post('/libro/')
