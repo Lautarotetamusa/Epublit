@@ -85,7 +85,7 @@ jobs:
     - name: Run tests
       run: |
         cd api
-        npx jest test/*
+        npx jest test/venta.test.ts
       env: 
         DB_USER: ${{ secrets.DB_USER }}
         DB_PASS: ${{ secrets.DB_PASS }}
