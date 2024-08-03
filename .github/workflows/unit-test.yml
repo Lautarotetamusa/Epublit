@@ -36,6 +36,9 @@ jobs:
       with:
         node-version: '21.x'
 
+    - name: Install chromium
+      uses: browser-actions/setup-chrome@v1
+
     - name: Load test data
       run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./db/test.sql
 
@@ -62,9 +65,6 @@ jobs:
         echo "$AFIP_KEY_PROD" > 27249804024/private_key.key
         sha1sum 27249804024/cert.crt
         sha1sum 27249804024/private_key.key
-
-    - name: Install chromium
-      uses: browser-actions/setup-chrome@v1
         
       env:
         AFIP_CERT: ${{ secrets.AFIP_CERT }}
