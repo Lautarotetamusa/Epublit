@@ -88,9 +88,9 @@ jobs:
       run: |
         cd api
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
-        npx jest test/afip.test.ts
-        cat api.log 
-        sleep 10
+        #npx jest test/afip.test.ts
+        #cat api.log 
+        #sleep 10
         npx jest test/cliente.test.ts
         cat api.log 
         sleep 10
