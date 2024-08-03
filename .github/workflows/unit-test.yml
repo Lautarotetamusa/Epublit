@@ -29,10 +29,10 @@ jobs:
           - ./dbtest:/docker-entrypoint-initdb.d
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v4
       with:
         node-version: '21.x'
 
@@ -80,7 +80,7 @@ jobs:
     - name: Start api
       run: |
         cd api
-        nohup npm run dev > api.log 2>&1 &
+        npm run dev &
         echo $! > api.pid
         sleep 20
 
@@ -92,22 +92,16 @@ jobs:
         #cat api.log 
         #sleep 10
         npx jest test/cliente.test.ts
-        cat api.log 
         sleep 10
         npx jest test/consignacion.test.ts
-        cat api.log 
         sleep 10
         npx jest test/libro.test.ts
-        cat api.log 
         sleep 10
         npx jest test/persona.test.ts
-        cat api.log 
         sleep 10
         npx jest test/user.test.ts
-        cat api.log 
         sleep 10
         npx jest test/venta.test.ts
-        cat api.log 
         sleep 10
         npx jest test/venta_consignacion.test.ts
       env: 
