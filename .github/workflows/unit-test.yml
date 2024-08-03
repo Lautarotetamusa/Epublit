@@ -80,26 +80,34 @@ jobs:
     - name: Start api
       run: |
         cd api
-        npm run dev &
+        nohup npm run dev > api.log 2>&1 &
         echo $! > api.pid
-        sleep 10
+        sleep 20
 
     - name: Run tests
       run: |
         cd api
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
-        #npx jest test/afip.test.ts
+        npx jest test/afip.test.ts
+        cat api.log 
+        sleep 10
         npx jest test/cliente.test.ts
+        cat api.log 
         sleep 10
         npx jest test/consignacion.test.ts
+        cat api.log 
         sleep 10
         npx jest test/libro.test.ts
+        cat api.log 
         sleep 10
         npx jest test/persona.test.ts
+        cat api.log 
         sleep 10
         npx jest test/user.test.ts
+        cat api.log 
         sleep 10
         npx jest test/venta.test.ts
+        cat api.log 
         sleep 10
         npx jest test/venta_consignacion.test.ts
       env: 
