@@ -80,7 +80,6 @@ export class BaseModel{
         if (connection === undefined){
             connection = await conn.getConnection();
         }
-        console.log("connection:", connection);
 
         const query = `INSERT INTO ${this.table_name} SET ?`;
 
@@ -108,7 +107,6 @@ export class BaseModel{
         if (connection === undefined){
             connection = await conn.getConnection();
         }
-        console.log("connection:", connection);
 
         const {where_query, where_list} = this.formatWhere(where);
 

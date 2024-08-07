@@ -46,7 +46,7 @@
     "license": "ISC",
     "description": "",
     "scripts": {
-        "background": "forever start -o logs.log -v -c ts-node src/app.ts",
+        "background": "forever start -o logs.log -v -d -c ts-node src/app.ts",
         "logs": "tail -f logs.log",
         "stop": "forever stopall",
         "dev": "nodemon --ignore afipkeys/ src/app.ts",
