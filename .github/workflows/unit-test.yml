@@ -70,7 +70,13 @@ jobs:
         AFIP_KEY: ${{ secrets.AFIP_KEY }}
         AFIP_CERT_PROD: ${{ secrets.AFIP_CERT_PROD }}
         AFIP_KEY_PROD: ${{ secrets.AFIP_KEY_PROD }}
-        
+       
+    - name: Create files folders
+      run: |
+        mkdir -p api/files/facturas
+        mkdir -p api/files/remitos
+        mkdir -p api/files/logos
+
     - name: Install dependencies
       run: | 
         cd api
@@ -100,6 +106,6 @@ jobs:
         DB_NAME: epublit_test
 
     - name: Stop api
-      run:
+      run: |
         cd api
         npm run stop
