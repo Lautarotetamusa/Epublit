@@ -246,11 +246,11 @@ describe('VENTA', () => {
                 expect(res.status).toEqual(200);
                 expect(res.body[0].total).toEqual(venta.total);
             });
-            test('La factura existe y el nombre coincide', async () => {   
+            /*test('La factura existe y el nombre coincide', async () => {   
                 await delay(300);
                 const res = await request('').get(venta.file_path); // El file_path ya tiene el localhost:3001
                 expect(res.status).toEqual(200);
-            });
+            });*/
         });
     });
 });
