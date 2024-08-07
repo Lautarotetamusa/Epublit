@@ -25,8 +25,7 @@ jobs:
         options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
         ports:
           - 3306:3306
-        volumes:
-          - ./dbtest:/docker-entrypoint-initdb.d
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -80,9 +79,7 @@ jobs:
     - name: Start api
       run: |
         cd api
-        npm run dev &
-        echo $! > api.pid
-        sleep 20
+        npm run background
 
     - name: Run tests
       run: |
@@ -93,16 +90,22 @@ jobs:
         #sleep 10
         npx jest test/cliente.test.ts
         sleep 10
+        cat logs.log
         npx jest test/consignacion.test.ts
         sleep 10
+        cat logs.log
         npx jest test/libro.test.ts
         sleep 10
+        cat logs.log
         npx jest test/persona.test.ts
         sleep 10
+        cat logs.log
         npx jest test/user.test.ts
         sleep 10
+        cat logs.log
         npx jest test/venta.test.ts
         sleep 10
+        cat logs.log
         npx jest test/venta_consignacion.test.ts
       env: 
         DB_USER: ${{ secrets.DB_USER }}
