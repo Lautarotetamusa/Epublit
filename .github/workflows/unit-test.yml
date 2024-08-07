@@ -86,6 +86,7 @@ jobs:
         cd api
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
         #npx jest test/afip.test.ts
+        sleep 10
         tail -n 10 logs.log
         npx jest test/venta.test.ts
         sleep 10
