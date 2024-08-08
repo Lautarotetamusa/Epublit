@@ -51,8 +51,8 @@ jobs:
 
     - name: Load afip testing tokens
       run: |
-        mkdir -p api/afipkeys
-        cd api/afipkeys
+        mkdir afipkeys
+        cd afipkeys
         mkdir -p 20434919798/Tokens
         echo "$AFIP_CERT" > 20434919798/cert.pem
         echo "$AFIP_KEY" > 20434919798/private_key.key
@@ -73,26 +73,20 @@ jobs:
        
     - name: Create files folders
       run: |
-        mkdir -p api/files/facturas
-        mkdir -p api/files/remitos
-        mkdir -p api/files/logos
+        mkdir -p files/facturas
+        mkdir -p files/remitos
+        mkdir -p files/logos
 
     - name: Install dependencies
-      run: | 
-        cd api
-        npm install
+      run: npm install
 
     - name: Start api
-      run: |
-        cd api
-        npm run background
-
+      run: npm run background
 
     - name: Run tests
       run: |
-        cd api
         # Lo hacemos uno por uno para tener mas control de los errores en los actions
-        #npx jest test/afip.test.ts
+        # npx jest test/afip.test.ts
         sleep 10
         tail -n 10 logs.log 
         npx jest test/cliente.test.ts
@@ -122,6 +116,4 @@ jobs:
         DB_NAME: epublit_test
 
     - name: Stop api
-      run: |
-        cd api
-        npm run stop
+      run: npm run stop
