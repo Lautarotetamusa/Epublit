@@ -20,8 +20,6 @@ RUN cp /usr/share/zoneinfo/$TZ etc/localtime
 WORKDIR app/
 
 #Install dependencies
-COPY ./api/package.json ./package.json
+COPY . .
 RUN npm install
 RUN npm install typescript -g
-
-COPY ./api .

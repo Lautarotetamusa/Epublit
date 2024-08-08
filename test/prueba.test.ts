@@ -3,7 +3,7 @@ import {describe, expect, test} from '@jest/globals';
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../../.env");
+const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
 const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;

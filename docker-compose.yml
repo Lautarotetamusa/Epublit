@@ -26,7 +26,7 @@ services:
       mysqldb:
         condition: service_healthy
     build: 
-      dockerfile: ./api/Dockerfile
+      dockerfile: ./Dockerfile
       context: .
     env_file: ./.env
     ports:
@@ -36,6 +36,6 @@ services:
     #command: node dist/app.js
     command: npm run dev
     volumes:
-     - ./api/files:/app/files
-     - ./api/src:/app/src
-     - ./api/afipkeys:/app/afipkeys
+     - ./files:/app/files
+     - ./src:/app/src
+     - ./afipkeys:/app/afipkeys

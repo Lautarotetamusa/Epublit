@@ -1,11 +1,21 @@
 .env
 
 /mysql
-/api/dist/*
-/node_modules
-/data/*.csv
 /security/*
 /archivos
+
+#Modulos node
+node_modules/
+package-lock.json
+
+files/facturas/*
+files/remitos/*
+
+#Tokens de afip
+afipkeys/*
+
+#Ts build folder
+dist/
 log.log
 logs.log
 nohup.out
