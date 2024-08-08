@@ -13,7 +13,7 @@ services:
       - $DB_PORT:$DB_PORT
     volumes:
       - ./db/init/:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
-      # Importante!: Siempre que exista la carpeta mysql previamente buildear de nuevo el contenedor no tendrá ningun efecto.
+      # Importante!: Siempre que la carpeta mysql exista previamente, buildear de nuevo el contenedor no tendrá ningun efecto.
       - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
