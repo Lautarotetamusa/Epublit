@@ -6,3 +6,6 @@
 /data/*.csv
 /security/*
 /archivos
+log.log
+logs.log
+nohup.out
