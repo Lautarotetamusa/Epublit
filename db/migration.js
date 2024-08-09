@@ -18,4 +18,4 @@ console.log(options);
 
 const connection = mysql.createPool(options);
 
-migration.init(connection, path.join(__dirname, '../db/migrations'), function() {}, ["--update-schema"]);
+migration.init(connection, path.join(__dirname, '../migrations'), function() {}, ["--update-schema"]);

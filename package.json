@@ -51,7 +51,8 @@
         "stop": "forever stopall",
         "dev": "nodemon --ignore afipkeys/ src/app.ts",
         "build": "tsc .",
-        "test:setup": "./setuptest.sh",
-        "test": "chmod +x ./setuptest.sh && ./setuptest.sh && npx jest"
+        "test:setup": "./test/setuptest.sh",
+        "test": "chmod +x ./test/setuptest.sh && ./test/setuptest.sh && npx jest",
+        "migration": "node ./db/migration.js"
     }
 }

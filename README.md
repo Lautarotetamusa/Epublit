@@ -2,7 +2,7 @@
 
 <p align="center">
   <a href="https://epublit.com.ar">
-  <img width="40%" height="40%" src="./epublit.png">
+  <img width="40%" height="40%" src="./images/epublit.png">
   </a>
 </p>
 
@@ -10,7 +10,7 @@
 Epublit es un sistema de gestión integral diseñado específicamente para el negocio editorial.
 
 # Diagrama Entidad-Relacion
-![](./Tablas.png)
+![](./images/Tablas.png)
 
 ## Libro
 Cada libro tiene un isbn unico, un stock, un titulo, autores e ilustradores. Se guarda un historico de precios.
