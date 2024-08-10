@@ -17,6 +17,7 @@
     },
     "devDependencies": {
         "@babel/preset-typescript": "^7.24.1",
+        "@eslint/js": "^9.9.0",
         "@types/bcrypt": "^5.0.0",
         "@types/cors": "^2.8.13",
         "@types/dotenv": "^8.2.0",
@@ -29,13 +30,16 @@
         "@types/sax": "^1.2.4",
         "@types/soap": "^0.21.0",
         "@types/supertest": "^6.0.2",
+        "eslint": "^9.9.0",
         "forever": "^4.0.3",
+        "globals": "^15.9.0",
         "jest": "^29.7.0",
         "mysql-migrations": "^1.0.7",
         "nodemon": "^3.0.3",
         "supertest": "^6.3.4",
         "ts-jest": "^29.1.2",
-        "ts-node": "^10.9.2"
+        "ts-node": "^10.9.2",
+        "typescript-eslint": "^8.0.1"
     },
     "name": "Epublit",
     "type": "commonjs",
@@ -50,7 +54,8 @@
         "logs": "tail -f logs.log",
         "stop": "forever stopall",
         "dev": "nodemon --ignore afipkeys/ src/app.ts",
-        "build": "tsc .",
+        "build": "rm -r dist/ && tsc",
+        "lint": "eslint src/",
         "test:setup": "./test/setuptest.sh",
         "test": "chmod +x ./test/setuptest.sh && ./test/setuptest.sh && npx jest",
         "migration": "node ./db/migration.js"
