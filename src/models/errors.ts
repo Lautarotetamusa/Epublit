@@ -83,5 +83,5 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
             code: err.name,
             message: err.message
         }]
-    })
+    });
 }

@@ -59,8 +59,8 @@ export class Libro extends BaseModel{
     async update(body: UpdateLibro, userId: number, connection?: PoolConnection){
         await Libro._update(body, {isbn: this.isbn, is_deleted: 0, user: userId}, connection);
 
-        for (let i in body){
-            let value = body[i as keyof typeof body];
+        for (const i in body){
+            const value = body[i as keyof typeof body];
             if (value !== undefined){
                 (this as any)[i] = value; 
             }

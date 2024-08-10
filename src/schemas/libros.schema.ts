@@ -1,7 +1,7 @@
 import { createLibroPersona, createlibroPersonaInDB } from './libro_persona.schema';
 import {z} from 'zod';
 
-const transformStr = (val: string, ctx: any) => {
+const transformStr = (val: string, ctx: z.RefinementCtx) => {
   const parsed = parseInt(val);
   if (isNaN(parsed)) {
     ctx.addIssue({
@@ -56,8 +56,6 @@ export const createLibro = libroSchema.extend({
     user: true,
     id_libro: true
 });
-type CreateLibro = z.infer<typeof createLibro>;
-
 export const updateLibro = libroSchema.omit({
     isbn: true,
     user: true

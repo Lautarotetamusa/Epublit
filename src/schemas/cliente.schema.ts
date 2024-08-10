@@ -50,4 +50,4 @@ export type StockCliente = {
     cantidad: number, 
     id_libro: number,
     isbn: string,
-}[]
+}[];

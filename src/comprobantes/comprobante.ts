@@ -100,7 +100,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logoAfip}">`);
 
     /*Parse venta.libros*/
-    for (let libro of libros) {
+    for (const libro of libros) {
         const bonif = venta.descuento * 0.01;
         const imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
         const subtotal  = (libro.precio * libro.cantidad * (1 - bonif)).toFixed(2);
@@ -149,7 +149,7 @@ function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     //parse libros
     let table = '';
 
-    for (let libro of libros) {
+    for (const libro of libros) {
         table += 
             `<tr>
         <td>${libro.titulo}</td>

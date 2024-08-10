@@ -8,7 +8,7 @@ import {
 import { Duplicated, NotFound } from "../models/errors"
 import { LibroPersona } from "../models/libro_persona.model";
 
-function makeResponse(res: Response, libro: Libro, personas: any[], method: "put" | "post" | "delete"): Response {
+function makeResponse<P>(res: Response, libro: Libro, personas: P[], method: "put" | "post" | "delete"): Response {
     let message: string;
     let code: number;
     switch (method){

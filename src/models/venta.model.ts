@@ -147,7 +147,7 @@ export class VentaConsignado extends Venta {
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha
     static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args: any): Promise<LibroTransaccion[]>{
-        let libros: LibroTransaccion[] = [];
+        const libros: LibroTransaccion[] = [];
 
         const librosCliente = await cliente.getLibros(args.date); 
 

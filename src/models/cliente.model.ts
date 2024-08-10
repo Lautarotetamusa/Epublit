@@ -56,8 +56,6 @@ export class Cliente extends BaseModel{
         const date = new Date().toISOString()
             .replace(/\..+/, '')     // delete the . and everything after;
             .replace(/T/, '_')       // replace T with a space
-            .replace(/\-/gi, '_')
-            .replace(/\:/gi, '');
 
         return this.razon_social
             .replace('/-/g', '')
@@ -79,7 +77,7 @@ export class Cliente extends BaseModel{
         return await this.find_one({tipo: tipoCliente.particular});
     }
 
-    static cuilExists(cuit: string, userId: number): Promise<Boolean>{
+    static cuilExists(cuit: string, userId: number): Promise<boolean>{
         return this._exists({cuit: cuit, tipo: tipoCliente.inscripto, user: userId})
     }
 
@@ -227,7 +225,7 @@ export class Cliente extends BaseModel{
             connection.release();
 
             // Insertamos el precio en precio_libro_cliente
-            const res = await connection.query<ResultSetHeader>(`
+            await connection.query<ResultSetHeader>(`
                 INSERT INTO precio_libro_cliente (id_libro, id_cliente, precio)
                 SELECT LC.id_libro, LC.id_cliente, LC.precio 
                 FROM libro_cliente LC

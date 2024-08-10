@@ -51,10 +51,10 @@ export class Persona extends BaseModel{
             is_deleted: 0
         }, connection);    
 
-        for (let i in body){
+        for (const i in body){
             const value = body[i as keyof typeof body];
             if (value !== undefined){
-                this[i as keyof this] = value as any; 
+                this[i as keyof this] = value as this[keyof this]; 
             }
         }
     }

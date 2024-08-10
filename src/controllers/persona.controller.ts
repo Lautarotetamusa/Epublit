@@ -57,15 +57,13 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response>  => {
-    let personas: any[];
-
     if ('tipo' in req.query){
         const tipo = libroPersonaSchema.shape.tipo.parse(req.query.tipo);
-        personas = await Persona.getAllByTipo(tipo, res.locals.user.id);
-    }else {
-        personas = await Persona.getAll(res.locals.user.id)
+        const personas = await Persona.getAllByTipo(tipo, res.locals.user.id);
+        return res.json(personas);
     }
-
+        
+    const personas = await Persona.getAll(res.locals.user.id)
     return res.json(personas);
 }
 

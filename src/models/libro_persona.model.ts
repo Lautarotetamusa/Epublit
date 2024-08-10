@@ -36,7 +36,7 @@ export class LibroPersona extends BaseModel{
     }
     
     static async update(personas: LibroPersonaSchema[], connection?: PoolConnection){
-        for (let persona of personas) {
+        for (const persona of personas) {
             if (persona.porcentaje){
                 await LibroPersona._update({
                     porcentaje: persona.porcentaje
@@ -53,4 +53,3 @@ export class LibroPersona extends BaseModel{
         await super._bulk_remove(personas, connection);
     }
 }
-

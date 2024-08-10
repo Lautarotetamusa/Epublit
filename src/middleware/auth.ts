@@ -5,8 +5,6 @@ import * as dotenv from 'dotenv'
 import { TokenUser } from "../schemas/user.schema";
 dotenv.config();
 
-
-
 export const auth = async (req: Request, res: Response, next: NextFunction) => {
     const token: string | undefined = req.header("Authorization")?.replace('Bearer ', '');
 

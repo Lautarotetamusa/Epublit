@@ -13,13 +13,13 @@ import {  createLibro, libroParams, updateLibro } from "../schemas/libros.schema
 import { LibroPrecio } from "../models/libroPrecio.model";
 import { conn } from "../db";
 
-function removeDuplicateds(list: any[]) {
-    const uniqueIds: number[] = [];
-    return list.filter(element => {
-        const isDuplicate = uniqueIds.includes(element.id);
+function removeDuplicateds<T extends {isbn: string}>(list: T[]) {
+    const uniqueIds: string[] = [];
+    return list.filter(e => {
+        const isDuplicate = uniqueIds.includes(e.isbn);
   
         if (!isDuplicate) {
-          uniqueIds.push(element.id);
+          uniqueIds.push(e.isbn);
           return true;
         }
   
@@ -33,9 +33,9 @@ const create = async (req: Request, res: Response) => {
 
     const {autores, ilustradores, ...libroBody} = createLibro.parse(req.body);
     let indb: LibroPersonaSchema[] = [];
-    let notIndb = [];
+    const notIndb = [];
 
-    let personas = [];
+    const personas = [];
     for (const a of autores){
         personas.push({...a, tipo: tipoPersona.autor});
     }
@@ -51,7 +51,6 @@ const create = async (req: Request, res: Response) => {
             ...libroBody,
             user: userId
         }, connection);
-        console.log("libro:", libro);
         connection.release();
 
         for (const persona of personas){
@@ -181,14 +180,14 @@ const getOne = async(req: Request, res: Response) => {
 const listaLibros = async (req: Request, res: Response) => {
     const libros = await Libro.getAll(res.locals.user.id);
 
-    let len = Object.keys(libros[0]).length;
-    let header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
-    let headers = Object.keys(libros[0]).join(',') + '\r\n';
-    let data = libros.map(l => Object.values(l).join(',')).join('\r\n');
+    const len = Object.keys(libros[0]).length;
+    const header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
+    const headers = Object.keys(libros[0]).join(',') + '\r\n';
+    const data = libros.map(l => Object.values(l).join(',')).join('\r\n');
 
-    let file_path = 'lista_libros.csv';
-    fs.writeFileSync(file_path, header+headers+data);
-    return res.download(file_path);
+    const filePath = 'lista_libros.csv';
+    fs.writeFileSync(filePath, header+headers+data);
+    return res.download(filePath);
 }
 
 const getAll = async(req: Request, res: Response) => {
@@ -196,11 +195,7 @@ const getAll = async(req: Request, res: Response) => {
         const libros = await Libro.getPaginated(Number(req.query.page) || 0, res.locals.user.id);
         return res.json(libros);
     }
-    //console.log(req.query['precio>']);
-
     const query = libroParams.parse(req.query);
-    //TODO: Permitir stock=true en los parametros
-    const withStock = (String(query.stock).toLowerCase() === 'true')
 
     const libros = await Libro.getAll(res.locals.user.id, query);
     return res.json(libros);

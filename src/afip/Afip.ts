@@ -37,6 +37,24 @@ export type Comprobante = {
 	CbteFch: string,
 };
 
+type FacturaPayload = {
+    CantReg 	: number, //Cantidad de comprobantes a registrar
+    PtoVta 	    : number  //Punto de venta
+    CbteTipo 	: number  //Tipo de comprobante (ver tipos disponibles) 
+    Concepto 	: number, //Concepto del Comprobante: (1)Productos, (2)Servicios, (3)Productos y Servicios
+    DocTipo 	: 80 | 99,//Tipo de documento del comprador (99 consumidor fina,l 80 cuit)
+    DocNro 	    : string, //Número de documento del comprador (0 consumidor final)
+    CbteFch 	: number, //(Opcional) Fecha del comprobante (yyyymmdd) o fecha actual si es nulo
+    ImpTotal 	: number, //Importe total del comprobante
+    ImpTotConc  : number, //Importe neto no gravado2
+    ImpNeto 	: number, //Importe neto gravado
+    ImpOpEx 	: number, //Importe exento de IVA
+    ImpIVA 	    : number, //Importe total de IVA. Para facturas A el importe de iva no puede ser 0
+    ImpTrib 	: number, //Importe total de tributos
+    MonId 	    : 'PES',  //Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES para pesos argentinos) 
+    MonCotiz 	: 1,      //Cotización de la moneda usada (1 para pesos argentinos)
+};
+
 const idImpuestos = {
     iva: 32,
     iibb: 5900 //Ingresos brutos
@@ -79,20 +97,20 @@ export function getAfipClient(user: User){
     });
 }
 
-function qr_url(voucher: any){
+function createQRUrl(payload: FacturaPayload, voucher: Comprobante){
 	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
 
 	const datosComprobante = {
 		ver: 1,
 		fecha: 	voucher.CbteFch,
-		cuit: 	voucher.emisor,
+		cuit: 	payload.DocNro,
 		ptoVta: voucher.PtoVta,
 		tipoCmp: voucher.CbteTipo,
 		nroCmp: voucher.nro,
-		importe: parseFloat(voucher.ImpTotal),
-		moneda: voucher.MonId,
-		tipoDocRec: voucher.DocTipo,
-		nroDocRec: parseInt(voucher.DocNro),
+		importe: payload.ImpTotal,
+		moneda: payload.MonId,
+		tipoDocRec: payload.DocTipo,
+		nroDocRec: parseInt(payload.DocNro),
 		tipoCodAut: "E", //“E” para comprobante autorizado por CAE
 		codAut: parseInt(voucher.CodAutorizacion)
 	}
@@ -112,34 +130,34 @@ export async function getServerStatus(user: User){
 
 export async function facturar(venta: Venta, cliente: Cliente, user: User): Promise<Comprobante>{
     const afip = getAfipClient(user);
-	const data = {
-		'CantReg' 	: 1,  									//Cantidad de comprobantes a registrar
-		'PtoVta' 	: venta.punto_venta,  					//Punto de venta
-		'CbteTipo' 	: venta.tipo_cbte,  					//Tipo de comprobante (ver tipos disponibles) 
-		'Concepto' 	: 1,  									//Concepto del Comprobante: (1)Productos, (2)Servicios, (3)Productos y Servicios
-		'DocTipo' 	: cliente.cuit ? 80 : 99, 		//Tipo de documento del comprador (99 consumidor fina,l 80 cuit)
-		'DocNro' 	: cliente.cuit || 0,  			//Número de documento del comprador (0 consumidor final)
-		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	//(Opcional) Fecha del comprobante (yyyymmdd) o fecha actual si es nulo
-		'ImpTotal' 	: venta.total, 							//Importe total del comprobante
-		'ImpTotConc': 0,   									//Importe neto no gravado2
-		'ImpNeto' 	: venta.total, 							//Importe neto gravado
-		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total, //Importe exento de IVA
-		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0, //Importe total de IVA. Para facturas A el importe de iva no puede ser 0
-		'ImpTrib' 	: 0,   									//Importe total de tributos
-		'MonId' 	: 'PES', 								//Tipo de moneda usada en el comprobante (ver tipos disponibles)('PES' para pesos argentinos) 
-		'MonCotiz' 	: 1,     								//Cotización de la moneda usada (1 para pesos argentinos)
+	const data: FacturaPayload = {
+		'CantReg' 	: 1,  									
+		'PtoVta' 	: venta.punto_venta,  					
+		'CbteTipo' 	: venta.tipo_cbte,  					
+		'Concepto' 	: 1,  									
+		'DocTipo' 	: cliente.cuit ? 80 : 99, 		
+		'DocNro' 	: cliente.cuit || '0',  			
+		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	
+		'ImpTotal' 	: venta.total, 							
+		'ImpTotConc': 0,   									
+		'ImpNeto' 	: venta.total, 							
+		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total, 
+		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0, 
+		'ImpTrib' 	: 0,   									
+		'MonId' 	: 'PES', 								
+		'MonCotiz' 	: 1,     								
 	};
 
     const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
 
-	let comprobante: Comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
+	const comprobante: Comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 
 	comprobante.nro 	= voucherNumber;
 	comprobante.CbteFch = afip.ElectronicBilling?.formatDate(comprobante.CbteFch);
 	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
 
 	return new Promise<Comprobante>((resolve, reject) => {
-        QRcode.toDataURL(qr_url(comprobante), function (err, base64_qr) {
+        QRcode.toDataURL(createQRUrl(data, comprobante), function (err, base64_qr) {
             if (err) reject(err);
 
             resolve({
@@ -156,7 +174,7 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
 
-	let data: AfipData = {
+	const data: AfipData = {
 		cond_fiscal: " - ",
 		domicilio: " - ",
 		razon_social: " - ",
@@ -208,13 +226,3 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 
      return data;
 }
-
-/*
-const a = {
-    codPostal: '1416',
-    descripcionProvincia: 'CIUDAD AUTONOMA BUENOS AIRES',
-    direccion: 'ESPINOSA 1581',
-    idProvincia: 0,
-    tipoDomicilio: 'FISCAL'
-}
-    */

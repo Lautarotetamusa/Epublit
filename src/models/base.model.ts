@@ -18,11 +18,11 @@ export class BaseModel{
     */
     protected static formatWhere(req: object | undefined){
         let where_query = "";
-        let where_list: any[] = []
+        const where_list: any[] = []
         if (req && Object.keys(req).length > 0){
             type key = keyof typeof req;
             where_query = "WHERE ";
-            for (let field in req){ 
+            for (const field in req){ 
                 where_query += `${field} = ? AND `;
                 where_list.push(req[field as key]);
             }
@@ -48,7 +48,7 @@ export class BaseModel{
     }
 
     protected static async find_one<RT, MT>(req?: object): Promise<MT>{
-        let {where_query, where_list} = this.formatWhere(req);
+        const {where_query, where_list} = this.formatWhere(req);
         
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"}
@@ -65,7 +65,7 @@ export class BaseModel{
     }
 
     protected static async find_all<RT>(req?: object): Promise<RT[]>{
-        let {where_query, where_list} = this.formatWhere(req);
+        const {where_query, where_list} = this.formatWhere(req);
 
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
@@ -157,7 +157,7 @@ export class BaseModel{
      *  return true if all objects exists in the db \
      *  return false if any object not exists
      */
-    static async all_exists<RT extends {}>(req: RT[]): Promise<boolean>{
+    static async all_exists<RT extends object>(req: RT[]): Promise<boolean>{
         const rows = await this._bulk_select(req);
         return rows.length == req.length;
     }
@@ -169,19 +169,19 @@ export class BaseModel{
      *  return true if any objects exists in the db \
      *  return false if all the object not exists
      */
-    static async any_exists<RT extends {}>(req: RT[]): Promise<boolean>{
+    static async any_exists<RT extends object>(req: RT[]): Promise<boolean>{
         const rows = await this._bulk_select(req);
         return rows.length > 0;
     }
 
-    protected static async _bulk_insert<CT extends {}>(req: CT[], connection?: PoolConnection){
+    protected static async _bulk_insert<CT extends object>(req: CT[], connection?: PoolConnection){
         if (connection === undefined){
             connection = await conn.getConnection();
         }
         if (req.length == 0) return;
 
         const keys = Object.keys(req[0]).join(",");
-        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const parameters = req.map(obj => `(${Object.values(obj).fill('?')})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
         const value_list = req.map(obj => Object.values(obj)).flat();
 
         const query = `
@@ -198,12 +198,12 @@ export class BaseModel{
         }
     }
 
-    protected static async _bulk_select<RT extends {}>(req: object[]): Promise<RT[]>{
+    protected static async _bulk_select<RT extends object>(req: object[]): Promise<RT[]>{
         if (req.length == 0) return [] as RT[];
         if ((typeof req[0]) != 'object') return [] as RT[];
 
         const keys = Object.keys(req[0]).join(",");
-        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const parameters = req.map(obj => `(${Object.values(obj).fill('?')})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
         const value_list = req.map(obj => Object.values(obj)).flat();
 
         assert(value_list.length > 0, "El value es vacio");
@@ -217,7 +217,7 @@ export class BaseModel{
         return rows as RT[];
     }
 
-    protected static async _bulk_remove<DT extends {}>(req: DT[], connection?: PoolConnection){
+    protected static async _bulk_remove<DT extends object>(req: DT[], connection?: PoolConnection){
         if (connection === undefined){
             connection = await conn.getConnection();
         }
@@ -225,7 +225,7 @@ export class BaseModel{
         if ((typeof req[0]) != 'object') return [] as DT[];
 
         const keys = Object.keys(req[0]).join(",");
-        const parameters = req.map(obj => `(${Object.values(obj).map(o => `?`)})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
+        const parameters = req.map(obj => `(${Object.values(obj).fill('?')})`).join(","); // (?, ?, ?, ...),  (?, ?, ?, ...), ...
         const valueList  = req.map(obj => Object.values(obj)).flat();
 
         assert(valueList.length > 0, "El value es vacio");
