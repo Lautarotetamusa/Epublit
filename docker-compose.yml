@@ -28,14 +28,15 @@ services:
     build: 
       dockerfile: ./Dockerfile
       context: .
+    restart: on-failure
     env_file: ./.env
     ports:
       - $BACK_PORT:$BACK_PORT
     environment:
       - DB_HOST=mysqldb
-    #command: node dist/app.js
-    command: npm run dev
+    command: node dist/app.js
+    #command: npm run start:dev
     volumes:
      - ./files:/app/files
-     - ./src:/app/src
      - ./afipkeys:/app/afipkeys
+     - ./src:/app/src

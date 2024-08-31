@@ -1,19 +1,20 @@
 {
     "dependencies": {
+        "express": "^4.18.2",
+        "express-async-errors": "^3.1.1",
+        "mysql2": "^3.0.1",
+        "zod": "^3.23.8",
+        "jsonwebtoken": "^9.0.0",
         "bcrypt": "^5.1.0",
         "cors": "^2.8.5",
         "dotenv": "^16.0.3",
-        "express": "^4.18.2",
-        "express-async-errors": "^3.1.1",
-        "jsonwebtoken": "^9.0.0",
-        "mixpanel": "^0.17.0",
-        "mysql2": "^3.0.1",
-        "node-forge": "^1.3.1",
         "puppeteer": "^19.6.0",
         "qrcode": "^1.5.1",
+
         "soap": "^1.0.0",
+        "mixpanel": "^0.17.0",
+        "node-forge": "^1.3.1",
         "xml2js": "^0.6.0",
-        "zod": "^3.23.8"
     },
     "devDependencies": {
         "@babel/preset-typescript": "^7.24.1",
@@ -51,10 +52,13 @@
     "description": "",
     "scripts": {
         "background": "forever start -o logs.log -e logs.log -v -c ts-node src/app.ts",
-        "logs": "tail -f logs.log",
         "stop": "forever stopall",
-        "dev": "nodemon --ignore afipkeys/ src/app.ts",
-        "build": "rm -r dist/ && tsc",
+        "logs": "tail -f logs.log",
+
+        "start:dev": "nodemon --ignore afipkeys/ src/app.ts",
+        "start:prod": "node dist/app.js",
+
+        "build": "rm -r dist/ && tsc && cp -r src/afip/afip.js/src/Afip_res/ dist/afip/afip.js/src/Afip_res",
         "lint": "eslint src/",
         "test:setup": "./test/setuptest.sh",
         "test": "chmod +x ./test/setuptest.sh && ./test/setuptest.sh && npx jest",

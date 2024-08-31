@@ -14,12 +14,12 @@ RUN apt-get update && apt-get install curl gnupg -y \
 
 #Poner el timezone de buenos aires para que el servicio de Afip funcione bien
 ENV TZ="America/Buenos_Aires"
-RUN date
-RUN cp /usr/share/zoneinfo/$TZ etc/localtime
+RUN date && cp /usr/share/zoneinfo/$TZ etc/localtime
 
-WORKDIR app/
+WORKDIR /app
 
 #Install dependencies
 COPY . .
-RUN npm install
-RUN npm install typescript -g
+RUN npm install \ 
+    npm install typescript -g \
+    npm run build

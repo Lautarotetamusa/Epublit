@@ -9,6 +9,7 @@
     },
     "include": [
         "src/**/*",
-        "types/*.ts"
+        "types/*.ts",
+        "src/afip/afip.js/src/Afip_res/*.wsdl",
     ]
 }
