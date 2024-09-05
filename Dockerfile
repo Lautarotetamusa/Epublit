@@ -19,7 +19,11 @@ RUN date && cp /usr/share/zoneinfo/$TZ etc/localtime
 WORKDIR /app
 
 #Install dependencies
-COPY . .
-RUN npm install \ 
-    npm install typescript -g \
-    npm run build
+COPY package.json .
+RUN npm install && npm install typescript -g
+
+COPY src/ src/
+COPY types/ types/
+COPY tsconfig.json tsconfig.json
+
+RUN npm run build

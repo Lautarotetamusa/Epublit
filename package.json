@@ -58,7 +58,7 @@
         "start:dev": "nodemon --ignore afipkeys/ src/app.ts",
         "start:prod": "node dist/app.js",
 
-        "build": "rm -r dist/ && tsc && cp -r src/afip/afip.js/src/Afip_res/ dist/afip/afip.js/src/Afip_res",
+        "build": "rm -rf dist/ && tsc && cp -r src/afip/afip.js/src/Afip_res/ dist/afip/afip.js/src/Afip_res",
         "lint": "eslint src/",
         "test:setup": "./test/setuptest.sh",
         "test": "chmod +x ./test/setuptest.sh && ./test/setuptest.sh && npx jest",
