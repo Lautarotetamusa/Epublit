@@ -86,9 +86,8 @@ export class Venta extends Transaccion{
             INNER JOIN transacciones T
                 ON V.id_transaccion = T.id
             WHERE T.id = ?
-            AND T.type = ?
         `;
-        const [rows] = await conn.query<RowDataPacket[]>(query, [id, this.type]);
+        const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
         if (rows.length !== 1){
             throw new NotFound(`No se encontró la venta con id ${id}`);
         }
