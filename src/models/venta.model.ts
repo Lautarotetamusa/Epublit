@@ -14,6 +14,7 @@ import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 export class Venta extends Transaccion{
     static table_name = 'ventas';
     static filesFolder = 'facturas';
+    static type = tipoTransaccion.venta;
     static parser = createVenta.parse;
 
     id_transaccion: number;
@@ -98,7 +99,7 @@ export class Venta extends Transaccion{
     }
 
     static async getAll(userId: number){
-        const [rows] = await conn.query<RowDataPacket[]>(`
+        const query = `
             SELECT 
                 V.id_transaccion as id, T.type, V.*, T.fecha, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
@@ -107,16 +108,16 @@ export class Venta extends Transaccion{
                 ON V.id_transaccion = T.id
             INNER JOIN clientes C
                 ON T.id_cliente = C.id
-            WHERE T.type = ?
-            AND T.user = ?
+            WHERE T.user = ?
             ORDER BY V.id_transaccion DESC
-        `, [this.type, userId]);
+        `;
+
+        const [rows] = await conn.query<RowDataPacket[]>(query, [userId]);
         return rows;
     }
 }
 
 export class VentaFirme extends Venta {
-    static type = tipoTransaccion.venta;
     static parser = createVenta.parse;
 
     async stockValidation(libros: LibroTransaccion[]){
@@ -142,7 +143,6 @@ export class VentaFirme extends Venta {
 }
 
 export class VentaConsignado extends Venta {
-    static type = tipoTransaccion.ventaConsignacion;
     static parser = createVentaConsignado.parse;
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha

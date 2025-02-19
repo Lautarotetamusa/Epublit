@@ -4,7 +4,6 @@ import { libroCantidad } from "./libros.schema";
 export const tipoTransaccion = {
     venta: "venta",
     consignacion: "consignacion",
-    ventaConsignacion: "ventaConsignacion",
     devolucion: "devolucion"
 } as const;
 export type TipoTransaccion = keyof typeof tipoTransaccion;

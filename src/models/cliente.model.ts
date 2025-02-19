@@ -63,18 +63,31 @@ export class Cliente extends BaseModel{
     }
 
     static getAll(userId: number, tipo?: TipoCliente) {
+        let whereQuery = "WHERE USER = ?";
+        const whereList = [userId];
         if (tipo){
-            return this.find_all<ClienteSchema>({user: userId, tipo: tipo});
+            whereQuery += " AND tipo = ?"
+            // @ts-expect-error whereList its a string and int list
+            whereList.push(tipo);
         }
-        return this.find_all<ClienteSchema>({user: userId});
+
+        const query: string = `
+            SELECT ${this.fields ? this.fields.join(',') : "*"} 
+            FROM ${this.table_name}
+            ${whereQuery}
+            ORDER BY nombre ASC
+        `;
+        return conn.query<RowDataPacket[]>(query, whereList).then(res => {
+            return res[0] as ClienteSchema[]
+        });
     }
 
-    static async getById(id: number, userId: number): Promise<Cliente> {
-        return await this.find_one<ClienteSchema, Cliente>({id: id, user: userId});
+    static getById(id: number, userId: number): Promise<Cliente> {
+        return this.find_one<ClienteSchema, Cliente>({id: id, user: userId});
     }
 
-    static async getConsumidorFinal(): Promise<Cliente>{
-        return await this.find_one({tipo: tipoCliente.particular});
+    static getConsumidorFinal(): Promise<Cliente>{
+        return this.find_one({tipo: tipoCliente.particular});
     }
 
     static cuilExists(cuit: string, userId: number): Promise<boolean>{
@@ -182,6 +195,7 @@ export class Cliente extends BaseModel{
                 INNER JOIN libros L
                     ON L.id_libro = LC.id_libro
                 WHERE id_cliente = ?
+                ORDER BY titulo ASC
             `, [this.id]);
             return rows as LibroClienteSchema[];
         }
@@ -189,7 +203,7 @@ export class Cliente extends BaseModel{
         //TODO: No hardcodear el datetime
         const [rows] = await conn.query<RowDataPacket[]>(`
             SELECT 
-            titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
+                titulo, L.id_libro, L.isbn, PLC.precio, LC.stock
             FROM precio_libro_cliente as PLC
             INNER JOIN (
                 SELECT id_libro, MAX(created_at) as last_date
@@ -207,6 +221,7 @@ export class Cliente extends BaseModel{
             INNER JOIN libro_cliente as LC
                 ON LC.id_libro = PLC.id_libro
                 AND LC.id_cliente = PLC.id_cliente
+            ORDER BY titulo ASC
         `, [fecha, this.id, this.id, userId]);
         return rows as LibroClienteSchema[];
     }

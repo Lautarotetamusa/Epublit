@@ -167,7 +167,7 @@ describe('POST cliente/', () => {
 describe('GET cliente/', () => {
     test('cliente que no existe', async () => {
         const res = await request(app)
-            .get('/cliente/'+(cliente.id+2))
+            .get('/cliente/999')
             .set('Authorization', `Bearer ${token}`);
 
         expect_err_code(404, res);
