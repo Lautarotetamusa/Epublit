@@ -8,8 +8,8 @@
         "allowJs": true
     },
     "include": [
-        "src/**/*",
-        "types/*.ts",
-        "src/afip/afip.js/src/Afip_res/*.wsdl",
+        "./src/**/*",
+        "./types/*.ts",
+        "./src/afip/afip.js/src/Afip_res/*.wsdl",
     ]
 }

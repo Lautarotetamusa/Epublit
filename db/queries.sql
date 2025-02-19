@@ -59,5 +59,60 @@ INNER JOIN libros L
     AND L.user = 1
 INNER JOIN libro_cliente as LC
     ON LC.id_libro = PLC.id_libro
-    AND LC.id_cliente = PLC.id_cliente
+    AND LC.id_cliente = PLC.id_cliente;
 
+/* Para la feria */ 
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(25) NOT NULL,
+  `password` binary(60) NOT NULL,
+  `cuit` varchar(15) NOT NULL,
+  `cond_fiscal` varchar(50) NOT NULL,
+  `razon_social` varchar(255) NOT NULL,
+  `domicilio` varchar(100) NOT NULL,
+  `production` tinyint(1) DEFAULT 0,
+  `email` varchar(255) DEFAULT '',
+  `ingresos_brutos` tinyint(1) NOT NULL DEFAULT 0,
+  `fecha_inicio` char(10) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+update users set cuit = "11111111111" where cuit = "27249804024"; 
+
+CREATE TABLE `clientes` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(60) NOT NULL,
+  `email` varchar(60) DEFAULT '',
+  `cuit` varchar(15) DEFAULT NULL,
+  `cond_fiscal` varchar(50) NOT NULL,
+  `razon_social` varchar(255) NOT NULL,
+  `domicilio` varchar(100) NOT NULL,
+  `tipo` enum('inscripto','particular','negro') DEFAULT NULL,
+  `user` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user` (`user`),
+  CONSTRAINT `clientes_ibfk_1` FOREIGN KEY (`user`) REFERENCES `users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+insert into clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio) 
+values (5, "negro", "MOSTRADOR", "", "", "");
+
+insert into clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio) 
+values (5, "particular", "CONSUMIDOR FINAL", "CONSUMIDOR FINAL", "CONSUMIDOR FINAL", "");
+
+update users set production=1 where cuit = "27249804024";
+
+/* PEZ MENTA */
+insert into clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio) 
+values (6, "negro", "MOSTRADOR", "", "", "");
+
+insert into clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio) 
+values (6, "particular", "CONSUMIDOR FINAL", "CONSUMIDOR FINAL", "CONSUMIDOR FINAL", "");
+
+update users set production=1 where id=6;
+
+/**/
+select * from transacciones T
+inner join ventas V
+    on V.id_transaccion = T.id

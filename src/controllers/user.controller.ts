@@ -6,6 +6,8 @@ import jwt, {Secret} from "jsonwebtoken";
 import { ValidationError } from "../models/errors";
 import { createUser, loginUser } from "../schemas/user.schema";
 import { getAfipData } from "../afip/Afip";
+import { exit } from "process";
+import { StringValue } from "ms";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createUser.parse(req.body);
@@ -50,7 +52,11 @@ const login = async (req: Request, res: Response): Promise<Response> => {
         error: "Contraseña incorrecta"
     });
 
-    const token = jwt.sign({
+    const opts: jwt.SignOptions = { 
+        expiresIn: process.env.JWT_EXPIRES_IN as StringValue
+    }
+
+    const payload = {
         id: user.id,
         username: user.username,
         razon_social: user.razon_social,
@@ -58,8 +64,12 @@ const login = async (req: Request, res: Response): Promise<Response> => {
         cond_fiscal: user.cond_fiscal,
         cuit: user.cuit,
         production: user.production,
-    }, process.env.JWT_SECRET as Secret, 
-    { expiresIn: process.env.JWT_EXPIRES_IN });
+    }
+
+    const secret = process.env.JWT_SECRET as Secret;
+
+    // TODO: do not use process here, set it in main
+    const token = jwt.sign(payload, secret, opts)
 
     return res.status(200).json({
         success: true,

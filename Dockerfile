@@ -1,4 +1,4 @@
-FROM node:slim AS app
+FROM node:22.8-slim AS app
 
 # We don't need the standalone Chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
@@ -24,6 +24,9 @@ RUN npm install && npm install typescript -g
 
 COPY src/ src/
 COPY types/ types/
-COPY tsconfig.json tsconfig.json
+COPY tsconfig.json .
+RUN pwd
+RUN ls /app
+RUN node --version
 
-RUN npm run build
+# RUN npm run build
