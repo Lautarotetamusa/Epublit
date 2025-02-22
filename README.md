@@ -1,4 +1,4 @@
-[![unit testing](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml/badge.svg?branch=dev)](https://github.com/Lautarotetamusa/Epublit/actions/workflows/unit-test.yml)
+[![Integration tests](https://github.com/Lautarotetamusa/Epublit/actions/workflows/integration-test.yml/badge.svg)](https://github.com/Lautarotetamusa/Epublit/actions/workflows/integration-test.yml)
 
 <p align="center">
   <a href="https://epublit.com.ar">
