@@ -14,6 +14,17 @@ const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).t
 
 const afipKeysPath = join(__dirname, '../../afipkeys/');
 
+interface IAfip {
+    createNextVoucher(data: FacturaPayload): Promise<{voucherNumber: string}>
+    getVoucherInfo(voucherNumber: string, ptoVenta: number, tipoCbte: number): Promise<Comprobante>
+}
+
+// Funcion traida desde Afip.ts
+function formatAfipDate(date: string): string {
+    return date.toString()
+    .replace(/(\d{4})(\d{2})(\d{2})/, (string, year, month, day) => `${year}-${month}-${day}`);
+}
+
 type DescImpuesto = {
     idImpuesto: number,
     descripcionImpuesto: string
@@ -37,7 +48,7 @@ export type Comprobante = {
 	CbteFch: string,
 };
 
-type FacturaPayload = {
+export type FacturaPayload = {
     CantReg 	: number, //Cantidad de comprobantes a registrar
     PtoVta 	    : number  //Punto de venta
     CbteTipo 	: number  //Tipo de comprobante (ver tipos disponibles) 
@@ -128,8 +139,7 @@ export async function getServerStatus(user: User){
 	return serverStatus;
 }
 
-export async function facturar(venta: Venta, cliente: Cliente, user: User): Promise<Comprobante>{
-    const afip = getAfipClient(user);
+export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
 	const data: FacturaPayload = {
 		'CantReg' 	: 1,  									
 		'PtoVta' 	: venta.punto_venta,  					
@@ -148,13 +158,13 @@ export async function facturar(venta: Venta, cliente: Cliente, user: User): Prom
 		'MonCotiz' 	: 1,     								
 	};
 
-    const {voucherNumber} = await afip.ElectronicBilling?.createNextVoucher(data);	
+    const { voucherNumber } = await afip.createNextVoucher(data);
 
-	const comprobante: Comprobante = await afip.ElectronicBilling?.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
+	const comprobante = await afip.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
 
 	comprobante.nro 	= voucherNumber;
-	comprobante.CbteFch = afip.ElectronicBilling?.formatDate(comprobante.CbteFch);
-	comprobante.FchVto	= afip.ElectronicBilling?.formatDate(comprobante.FchVto);
+	comprobante.CbteFch = formatAfipDate(comprobante.CbteFch);
+	comprobante.FchVto	= formatAfipDate(comprobante.FchVto);
 
 	return new Promise<Comprobante>((resolve, reject) => {
         QRcode.toDataURL(createQRUrl(data, comprobante), function (err, base64_qr) {

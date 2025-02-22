@@ -7,16 +7,14 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
 import {conn} from '../src/db'
 import {expect_err_code, expect_success_code} from './util';
 import { RowDataPacket } from 'mysql2';
 
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
-
 let token: string;
-let libro: any
-libro = {
+const libro: any = {
     "isbn": "111111111",
     "titulo": "Test",
     "fecha_edicion": "2020-02-17",
@@ -26,10 +24,11 @@ libro = {
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 it('HARD DELETE', async () => {
-    let res = (await conn.query<RowDataPacket[]>(`
+    const res = (await conn.query<RowDataPacket[]>(`
         SELECT isbn FROM libros
         WHERE isbn=${libro.isbn}
     `))[0];
@@ -59,7 +58,7 @@ it('HARD DELETE', async () => {
 });
 
 it('login', async () => {
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -167,7 +166,7 @@ describe('Crear libro POST /libro', function () {
     });
 
     it('Las personas tienen el libro asignado', async () => {
-        for (let persona of libro.personas){
+        for (const persona of libro.personas){
             const res = (await request(app)
                 .get('/persona/'+persona.id_persona)
                 .set('Authorization', `Bearer ${token}`)
@@ -253,7 +252,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
     });
 
     it('Actualizamos una persona que no esta en el libro', async () => {
-        let autor_copy = JSON.parse(JSON.stringify(libro.personas[0]));
+        const autor_copy = JSON.parse(JSON.stringify(libro.personas[0]));
         autor_copy.id_persona = -1;
         const res = await request(app)
             .put('/libro/'+libro.isbn+'/personas')

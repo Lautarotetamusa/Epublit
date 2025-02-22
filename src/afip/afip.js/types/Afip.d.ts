@@ -3,9 +3,7 @@ declare function Afip(options?: {}): Afip;
 declare class Afip {
     constructor(options?: {});
     /** @private */
-    private mixpanel;
     /** @private */
-    private mixpanelRegister;
     options: {};
     CUIT: any;
     RES_FOLDER: any;

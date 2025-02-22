@@ -7,11 +7,34 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
+jest.mock('../src/afip/afip.js/src/Class/ElectronicBilling', () => {
+    return jest.fn().mockImplementation(() => ({
+        createNextVoucher: jest.fn().mockResolvedValue({
+          CAE: '123456789',
+          CAEFchVto: '20250201',
+          voucherNumber: "1001",
+        }),
+        getVoucherInfo: jest.fn().mockResolvedValue({
+            nro: "1001",
+            qr: "",
+            CbteTipo: "1",
+            PtoVta: "1",
+            CodAutorizacion: "qwert12345",
+            FchVto: "20250222",
+            CbteFch: "20250222",
+      })
+    }))
+});
+jest.mock('../src/comprobantes/comprobante', () => ({
+    emitirComprobante: jest.fn().mockResolvedValue(undefined)
+}));
 
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
+// Usar la DB de testing
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+
 let token: string;
 
 let cliente: any = {}; 
@@ -32,6 +55,7 @@ const id_cliente = 1;
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 test('login', async () => {
@@ -41,7 +65,7 @@ test('login', async () => {
     }
     const res = await request(app)
         .post('/user/login')
-        .send(data)
+        .send(data);
 
     expect_success_code(200, res);
     token = res.body.token;
@@ -246,11 +270,6 @@ describe('VENTA', () => {
                 expect(res.status).toEqual(200);
                 expect(res.body[0].total).toEqual(venta.total);
             });
-            /*test('La factura existe y el nombre coincide', async () => {   
-                await delay(300);
-                const res = await request('').get(venta.file_path); // El file_path ya tiene el localhost:3001
-                expect(res.status).toEqual(200);
-            });*/
         });
     });
 });

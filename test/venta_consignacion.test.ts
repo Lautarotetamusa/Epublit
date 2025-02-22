@@ -7,11 +7,34 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
+// Usar la DB de testing
+process.env.DB_NAME = "epublit_test";
 
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
+jest.mock('../src/afip/afip.js/src/Class/ElectronicBilling', () => {
+    return jest.fn().mockImplementation(() => ({
+        createNextVoucher: jest.fn().mockResolvedValue({
+          CAE: '123456789',
+          CAEFchVto: '20250201',
+          voucherNumber: "1001",
+        }),
+        getVoucherInfo: jest.fn().mockResolvedValue({
+            nro: "1001",
+            qr: "",
+            CbteTipo: "1",
+            PtoVta: "1",
+            CodAutorizacion: "qwert12345",
+            FchVto: "20250222",
+            CbteFch: "20250222",
+      })
+    }))
+});
+jest.mock('../src/comprobantes/comprobante', () => ({
+    emitirComprobante: jest.fn().mockResolvedValue(undefined)
+}));
+
+import {app, server} from '../src/app';
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
 let token: string;
 
 let cliente: any = {}; 
@@ -45,10 +68,11 @@ let libros: any = [];
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 it.concurrent('login', async () => {
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -208,7 +232,7 @@ describe('VENTA', () => {
     describe('Cargar venta con precio actual', () => {
         describe('Bad request', () => {
             test('Venta no tiene cliente', async () => {
-                let aux_cliente = venta.cliente;
+                const aux_cliente = venta.cliente;
                 delete venta.cliente;
 
                 const res = await request(app)
@@ -220,7 +244,7 @@ describe('VENTA', () => {
                 venta.cliente = aux_cliente;
             });
             test('Venta no tiene libros', async () => {
-                let aux_venta = Object.assign({}, venta.libros);
+                const aux_venta = Object.assign({}, venta.libros);
                 delete aux_venta.libros;
 
                 let res = await request(app)
@@ -257,7 +281,7 @@ describe('VENTA', () => {
                 expect_err_code(400, res);
 
                 venta.libros[0].cantidad = 3;
-            }, 10000);
+            });
         });
 
         describe('Venta exitosa', () => {
@@ -272,7 +296,7 @@ describe('VENTA', () => {
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
                 expect(res.body.data.id).toEqual(venta.id);
-            }, 10000);
+            });
 
             test('Los libros del cliente reducieron su stock', async () => {
                 let total = 0;

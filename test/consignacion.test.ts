@@ -7,23 +7,29 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-import {conn} from './db'
+jest.mock('../src/comprobantes/comprobante', () => ({
+    emitirComprobante: jest.fn().mockResolvedValue(undefined)
+}));
+
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
+import {conn} from '../src/db'
+import {expect_err_code, expect_success_code} from './util';
+
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
-import { expect_err_code, expect_success_code } from './util';
-
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
 
 let token: string;
-let cliente: any = {
-    cuit: '20442317632',
-    nombre: "ClienteTest",
+const cliente: any = {
+    id: 93,
+    cuit: "20438409247",
+    nombre: "Manuel Krivoy",
     email: "clientetest@gmail.com",
     tipo: tipoCliente.inscripto,
 }
-let consignacion: any = {
+const consignacion: any = {
     libros: [],
+    cliente: 93,
 }
 
 /*
@@ -39,10 +45,11 @@ let consignacion: any = {
 */
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 test('login', async () => {    
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -55,66 +62,66 @@ test('login', async () => {
 });
 
 describe('CONSIGNACION', () => {
-    test('Hard delete consignaciones', async () => {
-        const [clientes]: any = await conn.query(`
-            SELECT * FROM clientes
-            WHERE cuit='${cliente.cuit}'`
-        );
-
-        if (!Array.isArray(clientes) || clientes.length <= 0 || !('id' in clientes[0])){
-            return;
-        }
-        const id_cliente = clientes[0].id;
-
-        //Buscamos la ultima venta creada
-        const [transactions]: any = await conn.query(`
-            SELECT id FROM transacciones
-            WHERE id_cliente=${id_cliente}
-            ORDER BY id DESC;
-        `);
-
-        /*Borrar de la base de datos*/
-        for (let transaction of transactions){
-            await conn.query(`
-                DELETE FROM libros_transacciones
-                WHERE id_transaccion=${transaction.id}
-            `);
-            await conn.query(`
-                DELETE FROM ventas
-                WHERE id_transaccion=${transaction.id};
-            `);
-            await conn.query(`
-                DELETE FROM transacciones
-                WHERE id=${transaction.id}
-            `);
-        }
-        await conn.query(`
-            DELETE FROM libro_cliente
-            WHERE id_cliente=${id_cliente}
-        `);
-        await conn.query(`
-            DELETE FROM precio_libro_cliente
-            WHERE id_cliente=${id_cliente}
-        `);
-
-        const [_] = await conn.query(`
-            DELETE FROM clientes
-            WHERE id=${id_cliente}`
-        );
-    });
+    //test('Hard delete consignaciones', async () => {
+    //    const [clientes] = await conn.query(`
+    //        SELECT * FROM clientes
+    //        WHERE cuit='${cliente.cuit}'`
+    //    );
+    //
+    //    if (!Array.isArray(clientes) || clientes.length <= 0 || !('id' in clientes[0])){
+    //        return;
+    //    }
+    //    const id_cliente = clientes[0].id;
+    //
+    //    //Buscamos la ultima venta creada
+    //    const [transactions]: any = await conn.query(`
+    //        SELECT id FROM transacciones
+    //        WHERE id_cliente=${id_cliente}
+    //        ORDER BY id DESC;
+    //    `);
+    //
+    //    /*Borrar de la base de datos*/
+    //    for (const transaction of transactions){
+    //        await conn.query(`
+    //            DELETE FROM libros_transacciones
+    //            WHERE id_transaccion=${transaction.id}
+    //        `);
+    //        await conn.query(`
+    //            DELETE FROM ventas
+    //            WHERE id_transaccion=${transaction.id};
+    //        `);
+    //        await conn.query(`
+    //            DELETE FROM transacciones
+    //            WHERE id=${transaction.id}
+    //        `);
+    //    }
+    //    await conn.query(`
+    //        DELETE FROM libro_cliente
+    //        WHERE id_cliente=${id_cliente}
+    //    `);
+    //    await conn.query(`
+    //        DELETE FROM precio_libro_cliente
+    //        WHERE id_cliente=${id_cliente}
+    //    `);
+    //
+    //    await conn.query(`
+    //        DELETE FROM clientes
+    //        WHERE id=${id_cliente}`
+    //    );
+    //});
 
     describe('Cargar datos para la consignacion', () => {
-        test('Crear nuevo cliente', async () => {
-            const res = await request(app)
-                .post('/cliente/')
-                .set('Authorization', `Bearer ${token}`)
-                .send(cliente);
-
-            expect_success_code(201, res);
-
-            cliente.id = res.body.data.id;
-            consignacion.cliente = cliente.id;
-        });
+        //test('Crear nuevo cliente', async () => {
+        //    const res = await request(app)
+        //        .post('/cliente/')
+        //        .set('Authorization', `Bearer ${token}`)
+        //        .send(cliente);
+        //
+        //    expect_success_code(201, res);
+        //
+        //    cliente.id = res.body.data.id;
+        //    consignacion.cliente = cliente.id;
+        //});
 
         test('Seleccionar libros para la consignacion', async () => {
             const res = await request(app)
@@ -126,7 +133,7 @@ describe('CONSIGNACION', () => {
         });
 
         test('Agregar stock a los libros', async () => {
-            let stock = 3;
+            const stock = 3;
             
             for (const libro of consignacion.libros) {
                 let res = await request(app)

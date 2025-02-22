@@ -7,8 +7,9 @@ export function expect_err_code(code: number, res: any){
 
     expect(res.status).toEqual(code);
     expect(res.body.success).toEqual(false);
-    expect(res.body.error).toBeDefined;
+    expect(res.body.errors).toBeDefined();
 }
+
 export function expect_success_code(code: number, res: any){
     if (code != res.status){
         console.error(res.body);
@@ -16,7 +17,7 @@ export function expect_success_code(code: number, res: any){
 
     expect(res.status).toEqual(code);
     expect(res.body.success).toEqual(true);
-    expect(res.body.error).not.toBeDefined;
+    expect(res.body.errors).not.toBeDefined();
 }
 
 export function delay(time: number) {

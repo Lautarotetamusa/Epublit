@@ -9,7 +9,7 @@ import {join} from "path"; //Crear path para los archivos estaticos
 import { handleErrors } from "./models/errors";
 
 export const app = express();
-const server = createServer(app);
+export const server = createServer(app);
 
 const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto interno del docker donde se levanta el server
 const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo

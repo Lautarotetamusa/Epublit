@@ -7,13 +7,34 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-import {conn} from './db'
+const cuitNoExistente = "12345";
+
+jest.mock('../src/afip/Afip', () => ({
+    getAfipData: jest.fn((cuit) => {
+        if (cuit == cuitNoExistente) throw new NotFound("El cuit no valido")
+
+        return {
+            ingresos_brutos: false,
+            fecha_inicio: "10/02/2025",
+            razon_social: "CLIENTE DE PRUEBA",
+            cond_fiscal: "IVA EXENTO",
+            domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
+        }
+    })
+}));
+
+jest.mock('../src/comprobantes/comprobante', () => ({
+    emitirComprobante: jest.fn().mockResolvedValue(undefined)
+}));
+
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
+import {conn} from '../src/db'
 import {delay, expect_err_code, expect_success_code} from './util';
 
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
+import { NotFound } from '../src/models/errors';
 
 const cuit = "30500001735"
 let cliente: any = {};
@@ -34,6 +55,7 @@ let token: string;
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 test('Hard delete', async () => {
@@ -47,13 +69,13 @@ test('Hard delete', async () => {
     }
     const id_cliente = clientes[0].id;
 
-    let [consignaciones]: any = await conn.query(`
+    const [consignaciones]: any = await conn.query(`
         SELECT * FROM transacciones
         WHERE id_cliente=${id_cliente}
         AND type = 'consignacion'
     `);
 
-    for (let consigna of consignaciones){
+    for (const consigna of consignaciones){
         await conn.query(`
             DELETE FROM libros_transacciones
             WHERE id_transaccion=${consigna.id}
@@ -84,7 +106,7 @@ test('Hard delete', async () => {
 });
 
 test('login', async () => {
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -129,7 +151,7 @@ describe('POST cliente/', () => {
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
         
-        cliente.cuit = '11111111';
+        cliente.cuit = cuitNoExistente;
         
         expect_err_code(400, res);
     });
@@ -140,7 +162,7 @@ describe('POST cliente/', () => {
             .set('Authorization', `Bearer ${token}`);
         
         expect_err_code(404, res);
-    }, 10000);
+    });
 
 
     test('Success', async () => {
@@ -153,7 +175,7 @@ describe('POST cliente/', () => {
         expect_success_code(201, res);
 
         cliente.id = res.body.data.id;
-    }, 10000);
+    });
 
     test('cuit repetido', async () => {
         const res = await request(app)
@@ -242,7 +264,7 @@ describe('Stock cliente', () => {
     let precio = 0;
     let updateTime: string;
     test('El cliente tiene el stock cargado', async () => {
-        let res = await request(app)
+        const res = await request(app)
             .get(`/cliente/${cliente.id}/stock/`)
             .set('Authorization', `Bearer ${token}`);
         expect(res.status).toEqual(200);
@@ -274,13 +296,13 @@ describe('Stock cliente', () => {
                 .send(libro);
 
             expect_success_code(201, resLibro);
-            await delay(1000);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
+            await delay(1500);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
 
             //Actualizar precio del libro del stock del cliente
-            let res = await request(app)
+            const res = await request(app)
                 .put(`/cliente/${cliente.id}/stock/`)
                 .set('Authorization', `Bearer ${token}`);
-            let d = new Date();
+            const d = new Date();
             //TODO: No hardcodear la zona horaria de argentina
             d.setHours(d.getHours() - 3); //Restamos 3 horas porque estamos en GMT-3
             updateTime = d.toISOString().split('.')[0];
@@ -329,7 +351,7 @@ describe('PUT cliente/{id}', () => {
     test('Actualizar nombre y email', async () => {
         cliente.nombre = 'Test nro 2';
 
-        let req = Object.assign({}, cliente);
+        const req = Object.assign({}, cliente);
         
         const res = await request(app)
             .put('/cliente/'+cliente.id)
@@ -348,14 +370,14 @@ describe('PUT cliente/{id}', () => {
     });
 
     test('Actualizar a un cuit que no esta en afip', async () => {
-        cliente.cuit = '12345';
+        cliente.cuit = cuitNoExistente;
         const res = await request(app)
             .put('/cliente/'+cliente.id)
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
         expect_err_code(404, res);
-    }, 10000);
+    });
 
     test('Actualizar a un cuit que ya esta cargado', async () => {
         let res = await request(app)
@@ -397,5 +419,5 @@ describe('PUT cliente/{id}', () => {
 
         delete cliente.tipo;
         expect(res2.body).toMatchObject(cliente);       
-    }, 10000);
+    });
 });

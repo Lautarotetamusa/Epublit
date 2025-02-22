@@ -3,10 +3,9 @@ import { User } from "../models/user.model";
 
 import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
-import { ValidationError } from "../models/errors";
+import { Unauthorized, ValidationError } from "../models/errors";
 import { createUser, loginUser } from "../schemas/user.schema";
 import { getAfipData } from "../afip/Afip";
-import { exit } from "process";
 import { StringValue } from "ms";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
@@ -47,10 +46,7 @@ const login = async (req: Request, res: Response): Promise<Response> => {
     const user = await User.getOne(body.username);
     const match = await bcrypt.compare(body.password, Buffer.from(user.password).toString('ascii'));
     
-    if (!match) return res.status(401).json({
-        success: false,
-        error: "Contraseña incorrecta"
-    });
+    if (!match) throw new Unauthorized("Contraseña incorrecta");
 
     const opts: jwt.SignOptions = { 
         expiresIn: process.env.JWT_EXPIRES_IN as StringValue

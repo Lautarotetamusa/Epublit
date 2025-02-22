@@ -7,11 +7,11 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
+// Usar la DB de testing
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
-
-const app = `${process.env.PROTOCOL}://${process.env.SERVER_HOST}:${process.env.BACK_PUBLIC_PORT}`;
-console.log(app);
+import {expect_err_code, expect_success_code} from './util';
 
 let persona: any = {}
 let token: string;
@@ -31,6 +31,7 @@ let token: string;
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 it('HARD DELETE', async () => {

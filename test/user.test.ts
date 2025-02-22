@@ -7,14 +7,28 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
+jest.mock('../src/afip/Afip', () => ({
+    getAfipData: jest.fn((cuit) => {
+        if (cuit == "12345") throw new NotFound("El cuit no valido")
+
+        return {
+            ingresos_brutos: false,
+            fecha_inicio: "10/02/2025",
+            razon_social: "CLIENTE DE PRUEBA",
+            cond_fiscal: "IVA EXENTO",
+            domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
+        }
+    })
+}));
+
+process.env.DB_NAME = "epublit_test";
+import {app, server} from '../src/app';
 import {conn} from '../src/db'
 import {expect_err_code, expect_success_code} from './util';
-
-const app = 'http://localhost:3001';
+import { NotFound } from '../src/models/errors';
 
 const cuit = "20173080329"
-let user: any;
-user = {
+let user: any = {
     username: "testing",
     password: "ANASHEEEEEEE",
     email: "lauti@gmail.com"
@@ -22,6 +36,7 @@ user = {
 
 afterAll(() => {
     conn.end();
+    server.close();
 });
 
 it('Hard delete', async () => {
@@ -34,25 +49,25 @@ describe('POST user/register', () => {
     it('Sin cuit', async () => {
         const res = await request(app)
             .post('/user/register').send(user)
-        user.cuit = "12345";
         
         expect_err_code(400, res);
     });
 
     it('User no está en AFIP', async () => {
+        user.cuit = "12345";
         const res = await request(app)
             .post('/user/register').send(user)
-        user.cuit = cuit;
         
         expect_err_code(404, res);
-    }, 10000);
+    });
 
     it('Creado con exito', async () => {
+        user.cuit = cuit;
         const res = await request(app)
             .post('/user/register').send(user)
         
         expect_success_code(201, res);
-    }, 10000);
+    });
 
     it('Crear usuario con el mismo cuit', async () => {
         const res = await request(app)
@@ -70,7 +85,7 @@ describe('POST /login', () => {
             .post('/user/login').send(user)
         
         expect_err_code(401, res);
-        expect(res.body.error).toEqual("Contraseña incorrecta");
+        expect(res.body.errors[0].message).toEqual("Contraseña incorrecta");
     });
 
     it('Login exitoso', async () => {

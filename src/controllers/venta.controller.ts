@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Venta, VentaConsignado } from "../models/venta.model";
-import { facturar } from "../afip/Afip";
+import { facturar, getAfipClient } from "../afip/Afip";
 import { tipoCliente } from "../schemas/cliente.schema";
 import { Cliente } from "../models/cliente.model";
 import { emitirComprobante } from "../comprobantes/comprobante";
@@ -40,7 +40,11 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
 
         //Solo facturamos para clientes que no son en negro
         if (tipoCliente[c.tipo] != tipoCliente.negro){
-            const comprobanteData = await facturar(venta, c, user);
+            const afip = getAfipClient(user).ElectronicBilling;
+            if (afip === undefined) {
+                throw new ValidationError("No se puede obtener el cliente de afip")
+            }
+            const comprobanteData = await facturar(venta, c, afip);
 
             emitirComprobante({
                 data: {
@@ -102,7 +106,11 @@ export const vender = (ventaModel: typeof Venta) => {
 
             //Solo facturamos para clientes que no son en negro
             if (tipoCliente[c.tipo] != tipoCliente.negro){
-                const comprobanteData = await facturar(venta, c, user);
+                const afip = getAfipClient(user).ElectronicBilling;
+                if (afip === undefined) {
+                    throw new ValidationError("No se puede obtener el cliente de afip")
+                }
+                const comprobanteData = await facturar(venta, c, afip);
 
                 emitirComprobante({
                     data: {
