@@ -116,3 +116,52 @@ update users set production=1 where id=6;
 select * from transacciones T
 inner join ventas V
     on V.id_transaccion = T.id
+
+
+select * from libros_transacciones LT
+inner join transacciones T
+    on T.id = LT.id_transaccion
+where id_libro=216;
+
+/* paren de pisar ese gato, circo y los gatos de la luna, desde q esta funcionando el sistema hasta el 31 de diciembre*/
+parende pisar       9789874659378
++---------------+---------------------------+---------------+--------+-------+------------+------+----------+
+| isbn          | titulo                    | fecha_edicion | precio | stock | is_deleted | user | id_libro |
++---------------+---------------------------+---------------+--------+-------+------------+------+----------+
+| 9789874659378 | Paren de pisar a ese gato | 2016-02-13    |  15000 |   258 |          0 |    1 |       42 |
++---------------+---------------------------+---------------+--------+-------+------------+------+----------+
+circo               9789874798190
++---------------+--------+---------------+--------+-------+------------+------+----------+
+| isbn          | titulo | fecha_edicion | precio | stock | is_deleted | user | id_libro |
++---------------+--------+---------------+--------+-------+------------+------+----------+
+| 9789874798190 | Circo  | 2022-02-26    |  16000 |    18 |          0 |    1 |       93 |
++---------------+--------+---------------+--------+-------+------------+------+----------+
+gatos de la luna    9789874864642
++---------------+----------------------+---------------+--------+-------+------------+------+----------+
+| isbn          | titulo               | fecha_edicion | precio | stock | is_deleted | user | id_libro |
++---------------+----------------------+---------------+--------+-------+------------+------+----------+
+| 9789874864642 | Los gatos de la luna | 2022-11-25    |  14000 |    11 |          0 |    1 |      101 |
++---------------+----------------------+---------------+--------+-------+------------+------+----------+
+
+select 'isbn', 'titulo', 'fecha', 'cantidad', 'precio', 'descuento', 'subtotal', 'total con descuento', 'factura', 'tipo'
+union all
+select L.isbn, L.titulo, T.fecha,
+LT.cantidad, LT.precio, descuento,
+(cantidad * LT.precio) as subtotal,
+((cantidad * LT.precio) * (100-descuento)/100) as total_d,
+CONCAT("https://epublit.com.ar/api/v1/files/facturas/", T.file_path) as factura,
+T.type
+from libros_transacciones LT
+inner join transacciones T
+    on T.id = LT.id_transaccion
+inner join libros L
+    on L.id_libro = LT.id_libro
+inner join ventas V
+    on V.id_transaccion = T.id
+where T.user = 1
+and (T.type = 'venta' or T.type = 'ventaConsignacion')
+order by L.titulo, T.fecha
+INTO OUTFILE '/data/ventas_totales.csv'
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n';

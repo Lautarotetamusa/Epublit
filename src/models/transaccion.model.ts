@@ -113,7 +113,7 @@ export abstract class Transaccion extends BaseModel {
         * Obtener los libros que se van a usar en la transaccion, con su precio y su stock
     */
     static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: object): Promise<LibroTransaccion[]>{
-        let libros: LibroTransaccion[] = [];
+        const libros: LibroTransaccion[] = [];
 
         for (const libroBody of body) {
             const libro = await Libro.getByIsbn(libroBody.isbn, userId);

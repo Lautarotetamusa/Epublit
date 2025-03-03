@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
 import { Unauthorized, ValidationError } from "../models/errors";
 import { createUser, loginUser } from "../schemas/user.schema";
-import { getAfipData } from "../afip/Afip";
+import { createUserFolder, getAfipData } from "../afip/Afip";
 import { StringValue } from "ms";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
@@ -22,6 +22,9 @@ const create = async (req: Request, res: Response): Promise<Response> => {
         ...afipData,
         production: 0 //Si lo quiero hacer true lo tengo que hacer manualmente 
     });
+
+    createUserFolder(user.cuit);
+    
     return res.status(201).json({
         success: true,
         message: "Usuario creado correctamente",
@@ -62,9 +65,9 @@ const login = async (req: Request, res: Response): Promise<Response> => {
         production: user.production,
     }
 
+    // TODO: do not use process here, set it in main
     const secret = process.env.JWT_SECRET as Secret;
 
-    // TODO: do not use process here, set it in main
     const token = jwt.sign(payload, secret, opts)
 
     return res.status(200).json({

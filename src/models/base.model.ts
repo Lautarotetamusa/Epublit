@@ -88,6 +88,7 @@ export class BaseModel{
             connection.release();
 
             const model = new (this as any)(req) as MT;
+            console.log("MODEL", model);
             if (this.pk){
                 model[this.pk as keyof typeof model] = result.insertId as any;
             }

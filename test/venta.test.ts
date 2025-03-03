@@ -213,26 +213,30 @@ describe('VENTA', () => {
                 venta.libros[2].cantidad = 3;
             });
         });
+
         describe('Venta exitosa', () => {
             test('vender', async () => {
-                try{
-                    venta.tipo_cbte = 11;
-                    const res: any = await request(app)
-                        .post('/venta/')
-                        .set('Authorization', `Bearer ${token}`)
-                        .send(venta);
+                venta.tipo_cbte = 11;
+                let res: any = await request(app)
+                    .post('/venta/')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(venta);
 
-                    expect_success_code(201, res);
+                expect_success_code(201, res);
 
-                    //console.log("data:", res.body);
-                    expect(res.body.data).toHaveProperty('file_path');
-                    venta.id = res.body.data.id;
-                    venta.file_path = res.body.data.file_path;
-                    expect(res.body.data.id).toEqual(venta.id);
-                }catch(e){
-                    console.log("err: ", e)
-                }
-            }, 15000);
+                expect(res.body.data).toHaveProperty('file_path');
+                venta.id = res.body.data.id;
+                venta.file_path = res.body.data.file_path;
+                expect(res.body.data.id).toEqual(venta.id);
+
+                res = await request(app)
+                    .get(`/venta/${venta.id}`)
+                    .set('Authorization', `Bearer ${token}`)
+                console.log(res.body);
+                expect(res.status).toBe(200);
+                expect(res.body.type).toEqual("venta");
+            });
+
             test('Los libros reducieron su stock', async () => {
                 //console.log("VENTA:", venta);
                 let total = 0;
@@ -250,6 +254,7 @@ describe('VENTA', () => {
                 }
                 venta.total = total;
             });
+
             test('El cliente tiene la venta cargada', async () => {
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
@@ -259,8 +264,8 @@ describe('VENTA', () => {
                 expect(res.body[0]).not.toBeNull;
                 expect(res.body[0].id).toEqual(venta.id);
             });
+
             test('El total de la venta está bien', async () => {
-                
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);

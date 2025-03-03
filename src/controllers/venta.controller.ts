@@ -25,6 +25,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
 
     try{
         await connection.beginTransaction();
+        console.log(ventaBody);
         const venta = await VentaConsignado.insert({
             ...ventaBody,
             type: VentaConsignado.type,
@@ -33,6 +34,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             file_path: c.generatePath(),
             user: user.id
         }, connection);
+        console.log(VentaConsignado.type);
 
         await LibroTransaccion.save(librosModel, venta.id, connection);
 

@@ -14,7 +14,6 @@ import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 export class Venta extends Transaccion{
     static table_name = 'ventas';
     static filesFolder = 'facturas';
-    static type = tipoTransaccion.venta;
     static parser = createVenta.parse;
 
     id_transaccion: number;
@@ -37,7 +36,7 @@ export class Venta extends Transaccion{
 
         this.descuento   = request.descuento;
         //TODO: No hardcodear esto
-        this.punto_venta = 4;
+        this.punto_venta = 9;
         this.tipo_cbte   = request.tipo_cbte;
 
         this.medio_pago = request.medio_pago;
@@ -62,11 +61,12 @@ export class Venta extends Transaccion{
 
     static async insert(body: Omit<SaveVenta, 'id_transaccion'> & SaveTransaccion, connection: PoolConnection){
         const transaction = await Transaccion.insert({
-            type: body.type,
+            type: this.type,
             id_cliente: body.id_cliente,
             file_path: body.file_path,
             user: body.user,
         }, connection);
+        console.log(transaction);
 
         const venta = await this._insert<SaveVenta, Venta>({
             id_transaccion: transaction.id ,
@@ -75,6 +75,7 @@ export class Venta extends Transaccion{
             total: body.total,
             tipo_cbte: body.tipo_cbte,
         }, connection);
+        console.log(venta);
 
         return new this({...venta, ...transaction});
     }
@@ -118,6 +119,7 @@ export class Venta extends Transaccion{
 
 export class VentaFirme extends Venta {
     static parser = createVenta.parse;
+    static type = tipoTransaccion.venta;
 
     async stockValidation(libros: LibroTransaccion[]){
         for (const libro of libros){
@@ -142,6 +144,7 @@ export class VentaFirme extends Venta {
 }
 
 export class VentaConsignado extends Venta {
+    static type = tipoTransaccion.ventaConsignacion;
     static parser = createVentaConsignado.parse;
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha

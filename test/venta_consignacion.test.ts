@@ -32,39 +32,19 @@ jest.mock('../src/comprobantes/comprobante', () => ({
     emitirComprobante: jest.fn().mockResolvedValue(undefined)
 }));
 
-import {app, server} from '../src/app';
+import {app, filesUrl, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {delay, expect_err_code, expect_success_code} from './util';
 let token: string;
 
 let cliente: any = {}; 
 let venta: any = {
     tipo_cbte: 11,
-    fecha_venta: Date.now() 
+    fecha_venta: Date.now()
 }; 
 const id_cliente = 42; //Cliente inscripto
 let oldLibros: any = [];
 let libros: any = [];
-
-/*
-    - Crear un cliente nuevo
-    - Seleccionar 3 libros de la pagina 5 de libros /libros?page=5.
-    - Setear el stock de esos 3 libros en 6
-    - Consignar esos 3 libros con stock 3.
-
-    - Realizar la venta
-    - Revisar que los 3 libros tenga ahora stock 3
-    - Revisar que la factura haya sido emitida (que exista el archivo)
-    - Revisar que el total de la venta sea correcto
-    - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
-
-    - Actualizar los precios de los libros
-    - Realizar venta consignacion con fecha_venta anterior a la actualizacion
-    - Revisar que los 3 libros tenga ahora stock 0
-    - Revisar que la factura haya sido emitida (que exista el archivo)
-    - Revisar que el total de la venta sea correcto, tine que tener el precio anterior
-    - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
-*/
 
 afterAll(() => {
     conn.end();
@@ -286,7 +266,7 @@ describe('VENTA', () => {
 
         describe('Venta exitosa', () => {
             test('vender', async () => {
-                const res: any = await request(app)
+                let res: any = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
@@ -296,6 +276,25 @@ describe('VENTA', () => {
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
                 expect(res.body.data.id).toEqual(venta.id);
+
+                res = await request(app)
+                    .get(`/venta/${venta.id}`)
+                    .set('Authorization', `Bearer ${token}`)
+                console.log(res.body);
+                expect(res.status).toBe(200);
+                //expect(res.body).toMatchObject(venta);
+                expect(res.body.type).toEqual("ventaConsignacion");
+            });
+
+            test('La factura existe', async () => {   
+                // El file_path ya tiene el localhost:3001
+                await delay(500);
+                const path = venta.file_path.replace(filesUrl, "/files")
+                console.log(path);
+                const res = await request(app).get(path); 
+
+                expect(res.status).toEqual(200);
+                expect(res.headers["Content-Type"]).toContain("pdf");
             });
 
             test('Los libros del cliente reducieron su stock', async () => {
@@ -342,11 +341,6 @@ describe('VENTA', () => {
                 expect(res.body[0].total).toEqual(total);
             });*/
 
-            /*test('La factura existe y el nombre coincide', async () => {   
-                await delay(300);
-                const res = await request('').get(venta.file_path); // El file_path ya tiene el localhost:3001
-                expect(res.status).toEqual(200);
-            });*/
         });
     });
 });
