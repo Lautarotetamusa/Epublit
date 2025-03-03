@@ -32,39 +32,19 @@ jest.mock('../src/comprobantes/comprobante', () => ({
     emitirComprobante: jest.fn().mockResolvedValue(undefined)
 }));
 
-import {app, server} from '../src/app';
+import {app, filesUrl, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {delay, expect_err_code, expect_success_code} from './util';
 let token: string;
 
 let cliente: any = {}; 
 let venta: any = {
     tipo_cbte: 11,
-    fecha_venta: Date.now() 
+    fecha_venta: Date.now()
 }; 
 const id_cliente = 42; //Cliente inscripto
 let oldLibros: any = [];
 let libros: any = [];
-
-/*
-    - Crear un cliente nuevo
-    - Seleccionar 3 libros de la pagina 5 de libros /libros?page=5.
-    - Setear el stock de esos 3 libros en 6
-    - Consignar esos 3 libros con stock 3.
-
-    - Realizar la venta
-    - Revisar que los 3 libros tenga ahora stock 3
-    - Revisar que la factura haya sido emitida (que exista el archivo)
-    - Revisar que el total de la venta sea correcto
-    - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
-
-    - Actualizar los precios de los libros
-    - Realizar venta consignacion con fecha_venta anterior a la actualizacion
-    - Revisar que los 3 libros tenga ahora stock 0
-    - Revisar que la factura haya sido emitida (que exista el archivo)
-    - Revisar que el total de la venta sea correcto, tine que tener el precio anterior
-    - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
-*/
 
 afterAll(() => {
     conn.end();
@@ -286,7 +266,7 @@ describe('VENTA', () => {
 
         describe('Venta exitosa', () => {
             test('vender', async () => {
-                const res: any = await request(app)
+                const res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
@@ -295,11 +275,39 @@ describe('VENTA', () => {
                 expect(res.body.data).toHaveProperty('file_path');
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
+                venta.total = res.body.data.total;
                 expect(res.body.data.id).toEqual(venta.id);
+
+                const res1 = await request(app)
+                    .get(`/venta/${venta.id}`)
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(res1.status).toBe(200);
+
+                expect(res1.body.libros).toMatchObject(venta.libros);
+                expect(res1.body.type).toEqual("ventaConsignacion");
+                expect(res1.body.id_transaccion).toEqual(venta.id);
+                expect(res1.body.id_cliente).toEqual(venta.cliente);
+            });
+
+            test('La venta consignacion existe', async () => {
+                const res = await request(app)
+                    .get("/venta/")
+                    .set('Authorization', `Bearer ${token}`);
+
+                let exists = false;
+                for (const v of res.body) {
+                    exists = v.id == venta.id;
+                    if (exists) {
+                        expect(v.type).toEqual("ventaConsignacion");
+                        expect(v.id_transaccion).toEqual(venta.id);
+                        expect(v.total).toEqual(venta.total);
+                        expect(v.descuento).toEqual(0);
+                    }
+                }
             });
 
             test('Los libros del cliente reducieron su stock', async () => {
-                let total = 0;
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/stock/`)
                     .set('Authorization', `Bearer ${token}`);
@@ -311,12 +319,9 @@ describe('VENTA', () => {
                     expect(finded).toHaveProperty('stock');
                     expect(finded.stock).toBe(0);
                 }
-
-                venta.total = total;
             });
 
-            //TODO: Las ventas consignacion no aparecen
-            /*test('El total de la venta está bien', async () => {
+            test('El total de la venta está bien', async () => {
                 let total = 0;
 
                 let res = await request(app)
@@ -332,21 +337,14 @@ describe('VENTA', () => {
                     total = parseFloat(total.toFixed(2));
                 }
 
+                // El cliente tien la venta cargada
                 res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
                 expect(res.status).toEqual(200);
-                console.log(res.body);
 
-                venta.file_path = res.body[0].file_path;
                 expect(res.body[0].total).toEqual(total);
-            });*/
-
-            /*test('La factura existe y el nombre coincide', async () => {   
-                await delay(300);
-                const res = await request('').get(venta.file_path); // El file_path ya tiene el localhost:3001
-                expect(res.status).toEqual(200);
-            });*/
+            });
         });
     });
 });

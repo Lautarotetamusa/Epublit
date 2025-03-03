@@ -4,7 +4,8 @@ import { libroCantidad } from "./libros.schema";
 export const tipoTransaccion = {
     venta: "venta",
     consignacion: "consignacion",
-    devolucion: "devolucion"
+    devolucion: "devolucion",
+    ventaConsignacion: "ventaConsignacion",
 } as const;
 export type TipoTransaccion = keyof typeof tipoTransaccion;
 const tipoTransaccionKeys = Object.keys(tipoTransaccion) as [TipoTransaccion];
@@ -27,7 +28,7 @@ export type SaveTransaccion = z.infer<typeof saveTransaccion>;
 
 export const createTransaccion = z.object({
     libros: libroCantidad.array().transform(items => { //Si un libro esta dos veces se suman las cantidades
-        let isbns: Record<string, number> = {};
+        const isbns: Record<string, number> = {};
         for (const item of items){
             if (item.isbn in isbns){
                 isbns[item.isbn] += item.cantidad;

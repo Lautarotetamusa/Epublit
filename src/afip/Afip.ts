@@ -9,6 +9,7 @@ import { Cliente } from '../models/cliente.model';
 import fs from "fs";
 import { join } from 'path';
 import { assert } from "console";
+import { spawn } from "child_process";
 
 const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
@@ -134,8 +135,6 @@ export async function getServerStatus(user: User){
     const afip = getAfipClient(user);
 	const serverStatus = await afip.ElectronicBilling?.getServerStatus();
 
-	console.log('Este es el estado del servidor:');
-	console.log(serverStatus);
 	return serverStatus;
 }
 
@@ -149,10 +148,10 @@ export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Pro
 		'DocNro' 	: cliente.cuit || '0',  			
 		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	
 		'ImpTotal' 	: venta.total, 							
-		'ImpTotConc': 0,   									
+		'ImpTotConc': 0, // 0 para comprobantes tipo C								
 		'ImpNeto' 	: venta.total, 							
-		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total, 
-		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0, 
+		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total,  // importe exento
+		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0,  // 0 para comprobantes tipo C
 		'ImpTrib' 	: 0,   									
 		'MonId' 	: 'PES', 								
 		'MonCotiz' 	: 1,     								
@@ -179,8 +178,9 @@ export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Pro
 }
 
 export async function getAfipData(cuit: string): Promise<AfipData>{
+    // TODO: make this type unknown
 	const afipData = await afipMadre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
-	if (afipData === null){
+	if (afipData === undefined){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
 
@@ -194,7 +194,7 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 
 	let impuestos: DescImpuesto[] = [];
     let actividad: DescActividad[] = [];
-	if (afipData.datosRegimenGeneral){
+	if (afipData.datosRegimenGeneral in afipData){
 		impuestos = afipData.datosRegimenGeneral.impuesto || [];
 		actividad = afipData.datosRegimenGeneral.actividad || [];
     }else if(afipData.datosMonotributo){
@@ -235,4 +235,44 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
      }
 
      return data;
+}
+
+export function createUserFolder(cuit: string) {
+    const userPath = join(afipKeysPath, cuit);
+
+    if (!fs.existsSync(userPath)) {
+        fs.mkdirSync(join(userPath, "Tokens"), {recursive: true});
+    }
+}
+
+export function createCSR(user: User): Promise<string> {
+    return new Promise((res, rej) => {
+        const stdout: string[] = [];
+        const stderr: string[] = [];
+
+        //openssl req -new -key keyproduccion -subj "/C=AR/O=Nombre Empresa/CN=Test1/serialNumber=CUIT 11111111111" -out csr-produccion
+        const parameters = [
+            "req", "-new", "-key", user.razon_social, 
+            "-subj", `/C=AR/O=${user.razon_social}/CN=Epublit/serialNumber=CUIT ${user.cuit}` ,
+            "-out", "cert.csr"
+        ];
+
+        const openSSLProcess = spawn('openssl', parameters);
+
+        openSSLProcess.stdout.on('data', (data) => {
+            stdout.push(data);
+        });
+
+        openSSLProcess.stderr.on('data', (data) => {
+            stderr.push(data)
+        });
+
+        openSSLProcess.on('close', (code) => {
+            console.log(`OpenSSL process ends with code ${code}`)
+            if (stderr.length > 0) {
+                rej(new Error(`openssl can create the private key ${stderr.join(' ')}`));
+            }
+            res(stdout.join(''));
+        });
+    });
 }

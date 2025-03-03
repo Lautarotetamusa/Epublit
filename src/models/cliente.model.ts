@@ -137,8 +137,7 @@ export class Cliente extends BaseModel{
             FROM transacciones T
             INNER JOIN ventas V
                 ON V.id_transaccion = T.id
-            WHERE id_cliente = ?
-            AND type = '${tipoTransaccion.venta}'
+            WHERE id_cliente = ? 
             ORDER BY id DESC
         `;
         const [rows] = await conn.query<RowDataPacket[]>(query, [this.id]);

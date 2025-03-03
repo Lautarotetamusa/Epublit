@@ -3,11 +3,20 @@
 // para cada cuit testear que parsee la data correctamente
 
 
-//import {expect, test} from '@jest/globals';
-//
-//import { getAfipData, getServerStatus } from "../src/afip/Afip";
+import {test} from '@jest/globals';
+
+import { createCSR } from "../src/afip/Afip";
+import { User } from '../dist/models/user.model';
 //import { AfipData } from '../src/schemas/afip.schema';
 //import { User } from '../src/models/user.model';
+
+
+test("Crear CSR file", async () => {
+    const user: User = {
+        razon_social: "PEZ MENTA",
+    }
+    createCSR(user);
+});
 //
 //type Expecteds = {[key: string]: AfipData}
 //

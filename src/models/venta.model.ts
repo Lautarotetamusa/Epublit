@@ -11,10 +11,9 @@ import { Libro } from './libro.model';
 import { User } from './user.model';
 import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
 
-export class Venta extends Transaccion{
+export class Venta extends Transaccion {
     static table_name = 'ventas';
     static filesFolder = 'facturas';
-    static type = tipoTransaccion.venta;
     static parser = createVenta.parse;
 
     id_transaccion: number;
@@ -26,18 +25,11 @@ export class Venta extends Transaccion{
     tipo_cbte: number;
 
     constructor(request: VentaSchema & TransaccionSchema){
-        super({
-            type: tipoTransaccion.venta,
-            id: request.id,
-            fecha: request.fecha,
-            id_cliente: request.id_cliente,
-            file_path: request.file_path,
-            user: request.user,
-        });
+        super(request);
 
         this.descuento   = request.descuento;
         //TODO: No hardcodear esto
-        this.punto_venta = 4;
+        this.punto_venta = 9;
         this.tipo_cbte   = request.tipo_cbte;
 
         this.medio_pago = request.medio_pago;
@@ -62,7 +54,7 @@ export class Venta extends Transaccion{
 
     static async insert(body: Omit<SaveVenta, 'id_transaccion'> & SaveTransaccion, connection: PoolConnection){
         const transaction = await Transaccion.insert({
-            type: body.type,
+            type: this.type,
             id_cliente: body.id_cliente,
             file_path: body.file_path,
             user: body.user,
@@ -79,9 +71,9 @@ export class Venta extends Transaccion{
         return new this({...venta, ...transaction});
     }
 
-    static async getById(id: number){
+    static async getById(id: number) {
         const query = `
-            SELECT V.*, T.*
+            SELECT V.*, T.*, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path
             FROM ventas V
             INNER JOIN transacciones T
                 ON V.id_transaccion = T.id
@@ -92,15 +84,14 @@ export class Venta extends Transaccion{
             throw new NotFound(`No se encontró la venta con id ${id}`);
         }
 
-        const venta = new Venta(rows[0] as (VentaSchema & TransaccionSchema));
-        venta.parsePath(this.filesFolder);
-        return venta;
+        return new Venta(rows[0] as VentaSchema & TransaccionSchema);
     }
 
     static async getAll(userId: number){
         const query = `
             SELECT 
-                V.id_transaccion as id, T.type, V.*, T.fecha, CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
+                V.id_transaccion as id, T.type, V.*, T.fecha, 
+                CONCAT('${filesUrl}', '/', '${Venta.filesFolder}', '/', T.file_path) AS file_path,
                 cuit, nombre as nombre_cliente, email, cond_fiscal, tipo
             FROM ventas V
             INNER JOIN transacciones T
@@ -118,6 +109,7 @@ export class Venta extends Transaccion{
 
 export class VentaFirme extends Venta {
     static parser = createVenta.parse;
+    static type = tipoTransaccion.venta;
 
     async stockValidation(libros: LibroTransaccion[]){
         for (const libro of libros){
@@ -126,10 +118,10 @@ export class VentaFirme extends Venta {
             }
         }
     }
-
-    static clientValidation(tipo: TipoCliente): boolean {
-        return true;
-    }
+    //
+    //static clientValidation(tipo: TipoCliente): boolean {
+    //    return true;
+    //}
 
     static async stockMovement(libros: LibroTransaccion[], _: Cliente, connection: PoolConnection){
         for (const libro of libros){
@@ -142,6 +134,7 @@ export class VentaFirme extends Venta {
 }
 
 export class VentaConsignado extends Venta {
+    static type = tipoTransaccion.ventaConsignacion;
     static parser = createVentaConsignado.parse;
 
     //El precio tiene que ser el ultimo precio que tenia el cliente en esa fecha
