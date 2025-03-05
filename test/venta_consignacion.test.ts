@@ -266,7 +266,7 @@ describe('VENTA', () => {
 
         describe('Venta exitosa', () => {
             test('vender', async () => {
-                let res: any = await request(app)
+                const res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
@@ -275,30 +275,39 @@ describe('VENTA', () => {
                 expect(res.body.data).toHaveProperty('file_path');
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
+                venta.total = res.body.data.total;
                 expect(res.body.data.id).toEqual(venta.id);
 
-                res = await request(app)
+                const res1 = await request(app)
                     .get(`/venta/${venta.id}`)
-                    .set('Authorization', `Bearer ${token}`)
-                console.log(res.body);
-                expect(res.status).toBe(200);
-                //expect(res.body).toMatchObject(venta);
-                expect(res.body.type).toEqual("ventaConsignacion");
+                    .set('Authorization', `Bearer ${token}`);
+
+                expect(res1.status).toBe(200);
+
+                expect(res1.body.libros).toMatchObject(venta.libros);
+                expect(res1.body.type).toEqual("ventaConsignacion");
+                expect(res1.body.id_transaccion).toEqual(venta.id);
+                expect(res1.body.id_cliente).toEqual(venta.cliente);
             });
 
-            test('La factura existe', async () => {   
-                // El file_path ya tiene el localhost:3001
-                await delay(500);
-                const path = venta.file_path.replace(filesUrl, "/files")
-                console.log(path);
-                const res = await request(app).get(path); 
+            test('La venta consignacion existe', async () => {
+                const res = await request(app)
+                    .get("/venta/")
+                    .set('Authorization', `Bearer ${token}`);
 
-                expect(res.status).toEqual(200);
-                expect(res.headers["Content-Type"]).toContain("pdf");
+                let exists = false;
+                for (const v of res.body) {
+                    exists = v.id == venta.id;
+                    if (exists) {
+                        expect(v.type).toEqual("ventaConsignacion");
+                        expect(v.id_transaccion).toEqual(venta.id);
+                        expect(v.total).toEqual(venta.total);
+                        expect(v.descuento).toEqual(0);
+                    }
+                }
             });
 
             test('Los libros del cliente reducieron su stock', async () => {
-                let total = 0;
                 const res = await request(app)
                     .get(`/cliente/${cliente.id}/stock/`)
                     .set('Authorization', `Bearer ${token}`);
@@ -310,12 +319,9 @@ describe('VENTA', () => {
                     expect(finded).toHaveProperty('stock');
                     expect(finded.stock).toBe(0);
                 }
-
-                venta.total = total;
             });
 
-            //TODO: Las ventas consignacion no aparecen
-            /*test('El total de la venta está bien', async () => {
+            test('El total de la venta está bien', async () => {
                 let total = 0;
 
                 let res = await request(app)
@@ -331,16 +337,14 @@ describe('VENTA', () => {
                     total = parseFloat(total.toFixed(2));
                 }
 
+                // El cliente tien la venta cargada
                 res = await request(app)
                     .get(`/cliente/${cliente.id}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
                 expect(res.status).toEqual(200);
-                console.log(res.body);
 
-                venta.file_path = res.body[0].file_path;
                 expect(res.body[0].total).toEqual(total);
-            });*/
-
+            });
         });
     });
 });

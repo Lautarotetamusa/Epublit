@@ -237,25 +237,86 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
      return data;
 }
 
+export function getCertPath(cuit: string) {
+    return join(afipKeysPath, cuit, "cert.pem");
+}
+
+function getCSRPath(cuit: string) {
+    return join(afipKeysPath, cuit, "cert.csr");
+}
+
+function getKeyPath(cuit: string) {
+    return join(afipKeysPath, cuit, "private_key.key");
+}
+
 export function createUserFolder(cuit: string) {
     const userPath = join(afipKeysPath, cuit);
 
-    if (!fs.existsSync(userPath)) {
-        fs.mkdirSync(join(userPath, "Tokens"), {recursive: true});
-    }
+    return new Promise((res, rej) => {
+        return fs.mkdir(join(userPath, "Tokens"), {recursive: true}, (err, path) => {
+            if (err) return rej(err);
+            return res(path);
+        });
+    });
 }
 
-export function createCSR(user: User): Promise<string> {
+export function saveCert(certPath: string, buf: Buffer) {
+    return new Promise((res, rej) => {
+        fs.writeFile(certPath, buf, null, (err) => {
+            if (err) rej(err);
+            res(0);
+        });
+    });
+}
+
+export function removeCert(certPath: string) {
+    return new Promise((res, rej) => {
+        fs.rm(certPath, (err) => {
+            if (err) rej(err);
+            res(0);
+        });
+    });
+}
+
+// openssl x509 -noout -modulus -in cert.pem
+export function isValidCert(certPath: string) {
+    const parameters = ["x509", "-noout", "-modulus", "-in", certPath];
+
+    return openssl(parameters).then(() => true).catch(() => false);
+}
+
+// openssl genrsa -traditional -out keytest 2048
+export function createKey(cuit: string): Promise<number> {
+    const keyPath = getKeyPath(cuit);
+    const parameters = [ "genrsa", "-traditional", "-out", keyPath, "2048" ];
+    return openssl(parameters);
+}
+
+/* 
+* openssl req -new -key [nombre de archivo para la key] 
+* -subj "/C=AR/O=[nombre de la empresa]/CN=[nombre del certificado]/serialNumber=CUIT [CUIT]" 
+* -out [nombre de archivo para el CSR]
+*
+* */
+export function createCSR(user: User): Promise<number> {
+    const certReqPath = getCSRPath(user.cuit);
+    const keyPath = getKeyPath(user.cuit);
+
+    const parameters = [
+        "req", "-new", "-key", keyPath, 
+        "-subj", `/C=AR/O=${user.razon_social}/CN=Epublit/serialNumber=CUIT ${user.cuit}` ,
+        "-out", certReqPath
+    ];
+
+    return openssl(parameters);
+}
+
+// @returns exit code
+// @throws new Error
+function openssl(parameters: string[]): Promise<number> {
     return new Promise((res, rej) => {
         const stdout: string[] = [];
         const stderr: string[] = [];
-
-        //openssl req -new -key keyproduccion -subj "/C=AR/O=Nombre Empresa/CN=Test1/serialNumber=CUIT 11111111111" -out csr-produccion
-        const parameters = [
-            "req", "-new", "-key", user.razon_social, 
-            "-subj", `/C=AR/O=${user.razon_social}/CN=Epublit/serialNumber=CUIT ${user.cuit}` ,
-            "-out", "cert.csr"
-        ];
 
         const openSSLProcess = spawn('openssl', parameters);
 
@@ -268,11 +329,12 @@ export function createCSR(user: User): Promise<string> {
         });
 
         openSSLProcess.on('close', (code) => {
-            console.log(`OpenSSL process ends with code ${code}`)
             if (stderr.length > 0) {
-                rej(new Error(`openssl can create the private key ${stderr.join(' ')}`));
+                rej(new Error(`openssl error: ${stderr.join(' ')}`));
             }
-            res(stdout.join(''));
+            if (code == null) return rej(new Error("openssl dont have error code")); 
+            if (code != 0) return rej(new Error(`openssl endend this exit code ${code}. ${stderr.join(' ')}`)); 
+            res(0);
         });
     });
 }

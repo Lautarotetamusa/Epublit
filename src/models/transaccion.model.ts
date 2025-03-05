@@ -6,7 +6,7 @@ import { LibroCantidad } from '../schemas/libros.schema';
 import { PoolConnection, RowDataPacket } from 'mysql2/promise';
 import { filesUrl } from '../app';
 import { Cliente } from './cliente.model';
-import { ValidationError } from './errors';
+import { NotFound, ValidationError } from './errors';
 import { User } from './user.model';
 import { emitirComprobante } from '../comprobantes/comprobante';
 import { TipoCliente, tipoCliente } from '../schemas/cliente.schema';
@@ -102,11 +102,14 @@ export abstract class Transaccion extends BaseModel {
     }
 
     static async getById(id: number){
-        const transaccion = await this.find_one<TransaccionSchema, Transaccion>({
-            id: id
-        });
-        transaccion.parsePath(this.filesFolder);
-        return transaccion;
+        const query = `SELECT * FROM transacciones WHERE id = ? `;
+
+        const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
+        if (rows.length !== 1){
+            throw new NotFound(`No se encontró la transaccion con id ${id}`);
+        }
+
+        return rows[0] as Transaccion;
     }
 
     /* 

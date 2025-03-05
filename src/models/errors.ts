@@ -62,7 +62,6 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
             errors: errors
         });
     }
-    console.error("ERROR: ", err.message, err.stack);
 
     if (err instanceof NothingChanged) return res.status(err.status).json({
         success: true,
@@ -77,6 +76,7 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
         }]
     });
         
+    console.error("INTERNAL ERROR: ", err.message, err.stack);
     return res.status(500).json({
         success: false,
         errors: [{

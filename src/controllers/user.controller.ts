@@ -2,10 +2,11 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 
 import bcrypt from "bcrypt";
+import fs from "fs";
 import jwt, {Secret} from "jsonwebtoken";
 import { Unauthorized, ValidationError } from "../models/errors";
 import { createUser, loginUser } from "../schemas/user.schema";
-import { createUserFolder, getAfipData } from "../afip/Afip";
+import { createCSR, createKey, createUserFolder, getAfipData, getCertPath, isValidCert, removeCert, saveCert } from "../afip/Afip";
 import { StringValue } from "ms";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
@@ -20,10 +21,15 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     const user = await User.insert({
         ...body,
         ...afipData,
-        production: 0 //Si lo quiero hacer true lo tengo que hacer manualmente 
+        production: 0 // Si lo quiero hacer true lo tengo que hacer manualmente 
     });
 
-    createUserFolder(user.cuit);
+    // This can be a promise chain and create the files in the background
+    // but the time difference its not significant
+    // furthermore, bringing the afip data takes a long time anyway
+    await createUserFolder(user.cuit);
+    await createKey(user.cuit);
+    await createCSR(user);
     
     return res.status(201).json({
         success: true,
@@ -77,10 +83,30 @@ const login = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
-const welcome = async (req: Request, res: Response): Promise<Response> => { 
+const uploadCert = async (req: Request, res: Response): Promise<Response> => {
+    if (!req.file) throw new ValidationError("El campo 'cert' es necesario")
+
+    if (req.file.mimetype != "application/x-x509-ca-cert") 
+        throw new ValidationError("El tipo de archivo del certificado es invalido")
+
+    const certPath = getCertPath(res.locals.user.cuit);
+
+    await saveCert(certPath, req.file.buffer);
+    const isValid = await isValidCert(certPath);
+    if (!isValid) { // Si no es valido eliminamos el archivo
+        await removeCert(certPath);
+        throw new ValidationError("El certificado no es valido");
+    }
+
+    return res.status(201).json({
+        success: true,
+        message: "Certificado subido correctamente"
+    })
+}
+
+const getOne = async (req: Request, res: Response): Promise<Response> => { 
     return res.status(200).json({
         success: true,
-        message: "Ingreso correcto",
         data: res.locals.user
     });
 }
@@ -88,6 +114,7 @@ const welcome = async (req: Request, res: Response): Promise<Response> => {
 export default {
     create,
     login,
-    welcome,
+    getOne,
+    uploadCert,
     updateAfipData
 }

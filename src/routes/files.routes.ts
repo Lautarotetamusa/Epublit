@@ -9,5 +9,5 @@ fileRouter.use(`/`,
 
 fileRouter.use('/*', (_, res) => res.status(404).json({
     success: false,
-    error: "File doesnt exists"
+    error: "File does not exists"
 }));

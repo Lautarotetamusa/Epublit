@@ -217,7 +217,7 @@ describe('VENTA', () => {
         describe('Venta exitosa', () => {
             test('vender', async () => {
                 venta.tipo_cbte = 11;
-                let res: any = await request(app)
+                let res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
@@ -232,7 +232,7 @@ describe('VENTA', () => {
                 res = await request(app)
                     .get(`/venta/${venta.id}`)
                     .set('Authorization', `Bearer ${token}`)
-                console.log(res.body);
+
                 expect(res.status).toBe(200);
                 expect(res.body.type).toEqual("venta");
             });

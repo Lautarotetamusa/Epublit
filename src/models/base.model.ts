@@ -6,6 +6,27 @@ import { NotFound, ValidationError } from './errors';
 
 import assert from 'assert';
 
+function formatWhere(req: object | undefined){
+    type key = keyof typeof req;
+
+    let where_query = "";
+    const where_list: typeof req[key][] = []
+
+    if (req && Object.keys(req).length > 0){
+        where_query = "WHERE ";
+        for (const field in req){ 
+            where_query += `${field} = ? AND `;
+            where_list.push(req[field as key]);
+        }
+        where_query = where_query.substring(0, where_query.length-4);
+    }
+
+    return {
+        where_query: where_query,
+        where_list: where_list
+    }
+}
+
 export class BaseModel{
     /*
         DECLARATIONS
@@ -16,27 +37,9 @@ export class BaseModel{
     /*
         IMPLEMENTATIONS
     */
-    protected static formatWhere(req: object | undefined){
-        let where_query = "";
-        const where_list: any[] = []
-        if (req && Object.keys(req).length > 0){
-            type key = keyof typeof req;
-            where_query = "WHERE ";
-            for (const field in req){ 
-                where_query += `${field} = ? AND `;
-                where_list.push(req[field as key]);
-            }
-            where_query = where_query.substring(0, where_query.length-4);
-        }
-
-        return {
-            where_query: where_query,
-            where_list: where_list
-        }
-    }
     
     protected static async _exists(req?: object): Promise<boolean>{
-        const {where_query, where_list} = this.formatWhere(req);
+        const {where_query, where_list} = formatWhere(req);
 
         const query = `
             SELECT COUNT(*) AS count
@@ -48,7 +51,7 @@ export class BaseModel{
     }
 
     protected static async find_one<RT, MT>(req?: object): Promise<MT>{
-        const {where_query, where_list} = this.formatWhere(req);
+        const {where_query, where_list} = formatWhere(req);
         
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"}
@@ -65,7 +68,7 @@ export class BaseModel{
     }
 
     protected static async find_all<RT>(req?: object): Promise<RT[]>{
-        const {where_query, where_list} = this.formatWhere(req);
+        const {where_query, where_list} = formatWhere(req);
 
         const query = `
             SELECT ${this.fields ? this.fields.join(',') : "*"} 
@@ -88,7 +91,6 @@ export class BaseModel{
             connection.release();
 
             const model = new (this as any)(req) as MT;
-            console.log("MODEL", model);
             if (this.pk){
                 model[this.pk as keyof typeof model] = result.insertId as any;
             }
@@ -109,7 +111,7 @@ export class BaseModel{
             connection = await conn.getConnection();
         }
 
-        const {where_query, where_list} = this.formatWhere(where);
+        const {where_query, where_list} = formatWhere(where);
 
         const query = `
             UPDATE ${this.table_name}
@@ -135,7 +137,7 @@ export class BaseModel{
         if (connection === undefined){
             connection = await conn.getConnection();
         }
-        const {where_query, where_list} = this.formatWhere(where);
+        const {where_query, where_list} = formatWhere(where);
 
         const query = `
             DELETE FROM ${this.table_name}

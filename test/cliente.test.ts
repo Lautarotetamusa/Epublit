@@ -231,6 +231,18 @@ describe('GET cliente/', () => {
 
         expect(res.status).toEqual(200);
     });
+
+    test('Obtener ventas de un cliente', async () => {
+        const res = await request(app)
+            .get('/cliente/42/ventas')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toEqual(200);
+        for (const venta of res.body) {
+            expect(venta.type).not.toEqual("consignacion")
+            expect(venta.type).not.toEqual("devolucion")
+        }
+    });
 });
 
 describe('Stock cliente', () => {
