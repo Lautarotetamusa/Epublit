@@ -1,23 +1,38 @@
 import {expect} from '@jest/globals';
+import { Response } from 'supertest';
 
-export function expect_err_code(code: number, res: any){
-    if (code != res.status){
-        console.error(res.body);
-    }
-
-    expect(res.status).toEqual(code);
-    expect(res.body.success).toEqual(false);
-    expect(res.body.errors).toBeDefined();
+export function expectNotFound(res: Response){
+    expectErrorResponse(res, 404);
 }
 
-export function expect_success_code(code: number, res: any){
-    if (code != res.status){
+export function expectBadRequest(res: Response){
+    expectErrorResponse(res, 400);
+}
+
+export function expectCreated(res: Response){
+    expectDataResponse(res, 201);
+}
+
+export function expectErrorResponse(res: Response, status: number){
+    if (status != res.status){
         console.error(res.body);
     }
 
-    expect(res.status).toEqual(code);
+    expect(res.status).toEqual(status);
+    expect(res.body.success).toEqual(false);
+    expect(res.body.errors).toBeDefined();
+    expect(res.body.data).not.toBeDefined();
+}
+
+export function expectDataResponse(res: Response, status: number){
+    if (status != res.status){
+        console.error(res.body);
+    }
+
+    expect(res.status).toEqual(status);
     expect(res.body.success).toEqual(true);
     expect(res.body.errors).not.toBeDefined();
+    expect(res.body.data).toBeDefined();
 }
 
 export function delay(time: number) {

@@ -32,9 +32,9 @@ jest.mock('../src/comprobantes/comprobante', () => ({
     emitirComprobante: jest.fn().mockResolvedValue(undefined)
 }));
 
-import {app, filesUrl, server} from '../src/app';
+import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
+import {expectBadRequest, expectDataResponse, expectCreated} from './util';
 let token: string;
 
 let cliente: any = {}; 
@@ -60,7 +60,7 @@ it.concurrent('login', async () => {
         .post('/user/login')
         .send(data)
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
@@ -147,7 +147,7 @@ describe('VENTA', () => {
                         stock: stock
                     });
 
-                expect_success_code(201, res);
+                expectCreated(res);
             }
 
             for (const libro of venta.libros) {
@@ -171,7 +171,7 @@ describe('VENTA', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send(consignacion);
         
-            expect_success_code(201, res);
+            expectCreated(res);
         });
 
         test('Actualizar el precio de los libros local', async() => {
@@ -183,7 +183,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`)
                     .send(libro);
 
-                expect_success_code(201, res);
+                expectCreated(res);
             }
         });
     
@@ -191,7 +191,7 @@ describe('VENTA', () => {
             let res = await request(app)
                 .put(`/cliente/${cliente.id}/stock`)
                 .set('Authorization', `Bearer ${token}`);
-            expect_success_code(200, res);
+            expectDataResponse(res, 200);
 
             res = await request(app)
                 .get(`/cliente/${cliente.id}/stock`)
@@ -219,7 +219,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 venta.cliente = aux_cliente;
             });
@@ -231,7 +231,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(aux_venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 aux_venta.libros = [];
 
@@ -239,7 +239,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(aux_venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
             });
             test('Medio de pago incorrecto', async () => {
                 venta.medio_pago = '';
@@ -247,7 +247,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
         
                 venta.medio_pago = 'efectivo';
             });
@@ -258,7 +258,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 venta.libros[0].cantidad = 3;
             });
@@ -270,7 +270,7 @@ describe('VENTA', () => {
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_success_code(201, res);
+                expectCreated(res);
 
                 expect(res.body.data).toHaveProperty('file_path');
                 venta.id = res.body.data.id;

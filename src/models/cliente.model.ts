@@ -17,7 +17,6 @@ import { Venta } from './venta.model';
 
 import { getAfipData } from "../afip/Afip";
 import { filesUrl } from '../app';
-import { tipoTransaccion } from '../schemas/transaccion.schema';
 import { LibroTransaccion } from './transaccion.model';
 import { assert } from 'console';
 
@@ -50,16 +49,6 @@ export class Cliente extends BaseModel{
         this.razon_social = request.razon_social;
         this.domicilio    = request.domicilio;
         this.cond_fiscal  = request.cond_fiscal;
-    }
-
-    generatePath(){
-        const date = new Date().toISOString()
-            .replace(/\..+/, '')     // delete the . and everything after;
-            .replace(/T/, '_')       // replace T with a space
-
-        return this.razon_social
-            .replace('/-/g', '')
-            .replaceAll(' ', '')+'_'+date+'.pdf';
     }
 
     static getAll(userId: number, tipo?: TipoCliente) {
@@ -292,3 +281,17 @@ export class Cliente extends BaseModel{
         }
     }
 }
+
+export function generateClientPath(razonSocial: string): string {
+    const dateStr = new Date()
+        .toISOString()
+        .replace(/\..+/, '')     // delete the . and everything after;
+        .replaceAll('-', '')
+        .replaceAll(':', '')
+        .replace('T', '-')       // replace T with a '-'
+
+    return razonSocial
+        .replaceAll('-', '')
+        .replaceAll(' ', '')+'-'+dateStr+'.pdf';
+}
+

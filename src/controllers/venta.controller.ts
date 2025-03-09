@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { Venta, VentaConsignado } from "../models/venta.model";
 import { facturar, getAfipClient } from "../afip/Afip";
 import { tipoCliente } from "../schemas/cliente.schema";
-import { Cliente } from "../models/cliente.model";
+import { Cliente, generateClientPath } from "../models/cliente.model";
 import { emitirComprobante } from "../comprobantes/comprobante";
 import { conn } from "../db";
 import { LibroTransaccion } from "../models/transaccion.model";
@@ -30,7 +30,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             type: VentaConsignado.type,
             id_cliente: c.id,
             total: Venta.calcTotal(librosModel, ventaBody.descuento),
-            file_path: c.generatePath(),
+            file_path: generateClientPath(c.razon_social),
             user: user.id
         }, connection);
 
@@ -93,7 +93,7 @@ export const vender = (ventaModel: typeof Venta) => {
                 type: ventaModel.type,
                 id_cliente: c.id,
                 total: Venta.calcTotal(librosModel, ventaBody.descuento),
-                file_path: c.generatePath(),
+                file_path: generateClientPath(c.razon_social),
                 user: user.id
             }, connection);
             connection.release();

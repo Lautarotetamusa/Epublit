@@ -102,6 +102,7 @@ export abstract class Transaccion extends BaseModel {
     }
 
     static async getById(id: number){
+        return this.find_one<TransaccionSchema, Transaccion>({id: id})
         const query = `SELECT * FROM transacciones WHERE id = ? `;
 
         const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
@@ -176,7 +177,6 @@ export class Consignacion extends Transaccion {
     }
 
     comprobante(libros: LibroTransaccion[], cliente: Cliente, user: User){
-        console.log("generando comprobante dentro");
         emitirComprobante({
             data: {
                 consignacion: this,

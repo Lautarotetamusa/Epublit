@@ -2,7 +2,7 @@ import {Request, Response} from "express";
 import { ValidationError } from "../models/errors"
 import { LibroTransaccion, Transaccion } from "../models/transaccion.model";
 import { createTransaccion } from "../schemas/transaccion.schema";
-import { Cliente } from "../models/cliente.model";
+import { Cliente, generateClientPath } from "../models/cliente.model";
 import { conn } from "../db";
 import { emitirComprobante } from "../comprobantes/comprobante";
 import { User } from "../models/user.model";
@@ -53,7 +53,7 @@ export const transaccion = (transaccion: typeof Transaccion) => {
             const transaction = await Transaccion.insert({
                 type: transaccion.type,
                 id_cliente: cliente.id,
-                file_path: cliente.generatePath(),
+                file_path: generateClientPath(cliente.razon_social),
                 user: user.id
             }, connection);
             await LibroTransaccion.save(libros, transaction.id, connection);

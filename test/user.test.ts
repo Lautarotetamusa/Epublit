@@ -2,7 +2,7 @@ import {describe, expect, it} from '@jest/globals';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
-import { join, resolve } from "path";
+import { join } from "path";
 import fs from "fs";
 
 const path = join(__dirname, "../.env");
@@ -29,7 +29,7 @@ jest.mock('../src/afip/Afip', () => {
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
 import { NotFound } from '../src/models/errors';
 
 const cuit = "20173080329"
@@ -63,7 +63,7 @@ describe('POST user/register', () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
     it('User no está en AFIP', async () => {
@@ -71,7 +71,7 @@ describe('POST user/register', () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Creado con exito', async () => {
@@ -79,7 +79,7 @@ describe('POST user/register', () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expect_success_code(201, res);
+        expectCreated(res);
 
         expect(fs.existsSync(userPath)).toBe(true);
         expect(fs.existsSync(join(userPath, "Tokens"))).toBe(true);
@@ -94,7 +94,7 @@ describe('POST user/register', () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 });
 
@@ -105,7 +105,7 @@ describe('POST /login', () => {
         const res = await request(app)
             .post('/user/login').send(user)
         
-        expect_err_code(401, res);
+        expectErrorResponse(res, 401);
         expect(res.body.errors[0].message).toEqual("Contraseña incorrecta");
     });
 
@@ -115,7 +115,7 @@ describe('POST /login', () => {
         const res = await request(app)
             .post('/user/login').send(user)
         
-        expect_success_code(200, res);
+        expect(res.status).toBe(200);
         expect(res.body.message).toEqual("login exitoso");
         expect(res.body).toHaveProperty("token");
         token = res.body.token;
@@ -126,7 +126,7 @@ describe('POST /login', () => {
             .get('/user')
             .set('Authorization', `Bearer ${token}`);
 
-        expect_success_code(200, res);
+        expectDataResponse(res, 200);
         const expected = {
             cuit: cuit,
             username: "testing",

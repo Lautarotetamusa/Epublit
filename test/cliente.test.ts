@@ -30,11 +30,12 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {delay, expect_err_code, expect_success_code} from './util';
+import {delay, expectBadRequest, expectNotFound, expectDataResponse, expectCreated} from './util';
 
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
 import { NotFound } from '../src/models/errors';
+import { generateClientPath } from '../src/models/cliente.model';
 
 const cuit = "30500001735"
 let cliente: any = {};
@@ -115,12 +116,23 @@ test('login', async () => {
         .post('/user/login')
         .send(data)
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('token');
     expect(res.body.token).not.toBeUndefined();
     expect(res.body.token).not.toBeNull();
     expect(res.body.token).not.toBeFalsy();
     token = res.body.token;
+});
+
+test('file paths', () => {
+    const mockDate = new Date('2025-03-08T17:58:19.090Z');
+    jest.useFakeTimers();
+    jest.setSystemTime(mockDate);
+    const razon_social = "LAUTARO TETA MUSA"
+    const path = generateClientPath(razon_social)
+    jest.useRealTimers();
+
+    expect(path).toEqual("LAUTAROTETAMUSA-20250308-175819.pdf");
 });
 
 describe('POST cliente/', () => {
@@ -132,7 +144,7 @@ describe('POST cliente/', () => {
         cliente.nombre = 'Test';
         cliente.email = 'test@gmail.com';
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
     test('consumidor final', async () => {
@@ -143,7 +155,7 @@ describe('POST cliente/', () => {
         
         cliente.tipo = 'inscripto';
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
     test('Sin cuit', async () => {
@@ -153,7 +165,7 @@ describe('POST cliente/', () => {
         
         cliente.cuit = cuitNoExistente;
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
     test('Persona no está cargada en Afip', async () => {        
@@ -161,7 +173,7 @@ describe('POST cliente/', () => {
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
         
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
 
@@ -172,7 +184,7 @@ describe('POST cliente/', () => {
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
 
-        expect_success_code(201, res);
+        expectCreated(res);
 
         cliente.id = res.body.data.id;
     });
@@ -182,7 +194,7 @@ describe('POST cliente/', () => {
             .post('/cliente/').send(cliente)
             .set('Authorization', `Bearer ${token}`);
         
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 });
 
@@ -192,7 +204,7 @@ describe('GET cliente/', () => {
             .get('/cliente/999')
             .set('Authorization', `Bearer ${token}`);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     test('Obtener cliente', async () => {
@@ -270,7 +282,7 @@ describe('Stock cliente', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(consignacion);
 
-        expect_success_code(201, res);
+        expectCreated(res);
     });
 
     let precio = 0;
@@ -307,7 +319,7 @@ describe('Stock cliente', () => {
                 .set('Authorization', `Bearer ${token}`)
                 .send(libro);
 
-            expect_success_code(201, resLibro);
+            expectDataResponse(resLibro, 201);
             await delay(1500);  // Esperamos 1s para que haya dos fechas de actualizacion distintas
 
             //Actualizar precio del libro del stock del cliente
@@ -370,7 +382,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(req);
         
-        expect_success_code(201, res);
+        expectCreated(res);
         expect(res.body.data.nombre).toEqual(cliente.nombre);
 
         const res1 = await request(app)
@@ -388,7 +400,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     test('Actualizar a un cuit que ya esta cargado', async () => {
@@ -406,7 +418,7 @@ describe('PUT cliente/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(cliente);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
         expect(res.body.errors[0].message).toEqual(`El cliente con cuit ${cliente.cuit} ya existe`);
     });
 
@@ -421,7 +433,7 @@ describe('PUT cliente/{id}', () => {
         
         cliente = res.body.data;
 
-        expect_success_code(201, res);
+        expectCreated(res);
 
         const res2 = await request(app)
             .get('/cliente/'+cliente.id)

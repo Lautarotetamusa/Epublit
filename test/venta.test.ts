@@ -33,7 +33,7 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {expectBadRequest, expectDataResponse, expectNotFound} from './util';
 
 let token: string;
 
@@ -59,7 +59,7 @@ afterAll(() => {
 });
 
 test('login', async () => {
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -67,14 +67,14 @@ test('login', async () => {
         .post('/user/login')
         .send(data);
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
 describe('VENTA', () => {
     test('delete ventas', async () => {
         //Buscamos la ultima venta creada
-        const res: any = await conn.query(`
+        const res = await conn.query(`
             SELECT id FROM transacciones
             WHERE id_cliente=${id_cliente}
             ORDER BY id DESC;
@@ -125,7 +125,7 @@ describe('VENTA', () => {
         });
 
         test('Agregar stock a los libros', async () => {
-            let stock = 3;
+            const stock = 3;
             
             for (const libro of venta.libros) {
                 let res = await request(app)
@@ -144,7 +144,7 @@ describe('VENTA', () => {
 
                 libro.cantidad = stock;
 
-                expect_success_code(201, res);
+                expectDataResponse(res, 201);
             }
 
             for (const libro of venta.libros) {
@@ -159,29 +159,82 @@ describe('VENTA', () => {
         });
     });
 
+    describe("GET /venta", () => {
+        test("Get all", async () => {
+            const res = await request(app)
+                .get("/venta/")
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            const fields = ["id", "type", "descuento", "total", "medio_pago", "tipo_cbte", "id_transaccion", 
+                            "fecha", "file_path", "cuit", "nombre_cliente", "email", "cond_fiscal", "tipo"]
+            for (const venta of res.body) {
+                expect(venta).not.toBeNull();
+                for (const fieldName of fields) {
+                    expect(venta).toHaveProperty(fieldName);
+                    expect(["venta", "ventaConsignacion"]).toContain(venta.type);
+                }
+            }
+        });
+        test('GET one', async () => {
+            const res = await request(app)
+                .get('/venta/40')
+                .set('Authorization', `Bearer ${token}`);
+
+            const expected = {
+                id: 40,
+                id_cliente: 42,
+                type: 'venta',
+                file_path: 'http://localhost:3001/files/facturas/ClienteTest_2023_07_27_220125.pdf',
+                fecha: '2023-07-28T01:01:26.000Z',
+                user: 1,
+                id_transaccion: 40,
+                descuento: 0,
+                total: 10000,
+                medio_pago: 'mercadopago',
+                punto_venta: 9,
+                tipo_cbte: 11,
+                libros: []
+            }
+
+            expect(res.status).toBe(200);
+            expect(res.body).not.toBeNull();
+            expect(res.body).toMatchObject(expected);
+        });
+
+        test('GET one of other type should be 404', async () => {
+            const res = await request(app)
+                .get('/venta/258')
+                .set('Authorization', `Bearer ${token}`);
+
+            expectNotFound(res);
+        });
+    });
+
     describe('POST /venta', () => {
         describe('Bad request', () => {
             test('Venta no tiene cliente', async () => {
-                let aux_cliente = venta.cliente;
+                const aux_cliente = venta.cliente;
                 delete venta.cliente;
 
                 const res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 venta.cliente = aux_cliente;
             });
             test('Venta no tiene libros', async () => {
-                let aux_venta = Object.assign({}, venta.libros);
+                const aux_venta = Object.assign({}, venta.libros);
                 delete aux_venta.libros;
 
                 let res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(aux_venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 aux_venta.libros = [];
 
@@ -189,7 +242,7 @@ describe('VENTA', () => {
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(aux_venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
             });
             test('Medio de pago incorrecto', async () => {
                 venta.medio_pago = '';
@@ -197,7 +250,7 @@ describe('VENTA', () => {
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
         
                 venta.medio_pago = 'efectivo';
             });
@@ -208,7 +261,7 @@ describe('VENTA', () => {
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 venta.libros[2].cantidad = 3;
             });
@@ -222,7 +275,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`)
                     .send(venta);
 
-                expect_success_code(201, res);
+                expectDataResponse(res, 201);
 
                 expect(res.body.data).toHaveProperty('file_path');
                 venta.id = res.body.data.id;
@@ -261,7 +314,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`);
             
                 expect(res.status).toEqual(200);
-                expect(res.body[0]).not.toBeNull;
+                expect(res.body[0]).not.toBeNull();
                 expect(res.body[0].id).toEqual(venta.id);
             });
 

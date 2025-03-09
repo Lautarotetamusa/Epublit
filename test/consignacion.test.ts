@@ -14,22 +14,26 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {expectBadRequest, expectCreated, expectNotFound} from './util';
 
 import { tipoCliente } from '../src/schemas/cliente.schema';
 import { RowDataPacket } from 'mysql2';
 
 let token: string;
-const cliente: any = {
+const cliente = {
     id: 93,
     cuit: "20438409247",
     nombre: "Manuel Krivoy",
     email: "clientetest@gmail.com",
     tipo: tipoCliente.inscripto,
 }
-const consignacion: any = {
-    libros: [],
-    cliente: 93,
+const consignacion = {
+    libros: [
+        { isbn: '11111113', cantidad: 3 },
+        { isbn: '11111116', cantidad: 3 },
+        { isbn: '192381231', cantidad: 3 }
+    ],
+    cliente: cliente.id,
 }
 
 /*
@@ -57,80 +61,20 @@ test('login', async () => {
         .post('/user/login')
         .send(data)
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
 describe('CONSIGNACION', () => {
-    //test('Hard delete consignaciones', async () => {
-    //    const [clientes] = await conn.query(`
-    //        SELECT * FROM clientes
-    //        WHERE cuit='${cliente.cuit}'`
-    //    );
-    //
-    //    if (!Array.isArray(clientes) || clientes.length <= 0 || !('id' in clientes[0])){
-    //        return;
-    //    }
-    //    const id_cliente = clientes[0].id;
-    //
-    //    //Buscamos la ultima venta creada
-    //    const [transactions]: any = await conn.query(`
-    //        SELECT id FROM transacciones
-    //        WHERE id_cliente=${id_cliente}
-    //        ORDER BY id DESC;
-    //    `);
-    //
-    //    /*Borrar de la base de datos*/
-    //    for (const transaction of transactions){
-    //        await conn.query(`
-    //            DELETE FROM libros_transacciones
-    //            WHERE id_transaccion=${transaction.id}
-    //        `);
-    //        await conn.query(`
-    //            DELETE FROM ventas
-    //            WHERE id_transaccion=${transaction.id};
-    //        `);
-    //        await conn.query(`
-    //            DELETE FROM transacciones
-    //            WHERE id=${transaction.id}
-    //        `);
-    //    }
-    //    await conn.query(`
-    //        DELETE FROM libro_cliente
-    //        WHERE id_cliente=${id_cliente}
-    //    `);
-    //    await conn.query(`
-    //        DELETE FROM precio_libro_cliente
-    //        WHERE id_cliente=${id_cliente}
-    //    `);
-    //
-    //    await conn.query(`
-    //        DELETE FROM clientes
-    //        WHERE id=${id_cliente}`
-    //    );
-    //});
-
     describe('Cargar datos para la consignacion', () => {
-        //test('Crear nuevo cliente', async () => {
+        //test('Seleccionar libros para la consignacion', async () => {
         //    const res = await request(app)
-        //        .post('/cliente/')
-        //        .set('Authorization', `Bearer ${token}`)
-        //        .send(cliente);
+        //        .get('/libro')
+        //        .set('Authorization', `Bearer ${token}`);
         //
-        //    expect_success_code(201, res);
-        //
-        //    cliente.id = res.body.data.id;
-        //    consignacion.cliente = cliente.id;
+        //    expect(res.status).toEqual(200);
+        //    consignacion.libros = [ res.body[3], res.body[5], res.body[8] ];
         //});
-
-        test('Seleccionar libros para la consignacion', async () => {
-            const res = await request(app)
-                .get('/libro')
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toEqual(200);
-            consignacion.libros = [ res.body[3], res.body[5], res.body[8] ];
-        });
 
         test('Agregar stock a los libros', async () => {
             const stock = 3;
@@ -152,7 +96,7 @@ describe('CONSIGNACION', () => {
 
                 libro.cantidad = stock;
 
-                expect_success_code(201, res);
+                expectCreated(res);
             }
 
             for (const libro of consignacion.libros) {
@@ -167,6 +111,56 @@ describe('CONSIGNACION', () => {
         });
     });
 
+    describe('Traer datos', () => {
+        test('GET /consignacion', async () => {
+            const res = await request(app)
+                .get('/consignacion')
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(res.status).toBe(200);
+
+            const fields = ["id", "id_cliente", "fecha", "file_path", "cuit", "nombre_cliente", "email", "cond_fiscal", "tipo"]
+            for (const consignacion of res.body) {
+                expect(consignacion).not.toBeNull();
+                for (const fieldName of fields) {
+                    expect(consignacion).toHaveProperty(fieldName);
+                }
+            }
+        });
+
+        test('GET /consignacion/{id}', async () => {
+            const res = await request(app)
+                .get('/consignacion/258')
+                .set('Authorization', `Bearer ${token}`);
+
+            const expected = {
+                id: 258,
+                id_cliente: 42,
+                type: 'consignacion',
+                file_path: 'NAZARENONECCHI_2023-07-20_15:37:31.pdf',
+                fecha: '2023-07-20T18:37:31.000Z',
+                user: 1,
+                libros: [
+                    { isbn: '11111112', titulo: 'TEST', cantidad: 3, precio: 0 },
+                    { isbn: '11111115', titulo: 'TEST', cantidad: 3, precio: 0 },
+                    { isbn: '11111118', titulo: 'TEST', cantidad: 3, precio: 0 }
+                ]
+            }
+
+            expect(res.status).toBe(200);
+            expect(res.body).not.toBeNull();
+            expect(res.body).toMatchObject(expected);
+        });
+
+        test('Consignacion que no existe debe dar un error', async () => {
+            const res = await request(app)
+                .get('/consignacion/259')
+                .set('Authorization', `Bearer ${token}`);
+
+            expectNotFound(res);
+        });
+    });
+
     describe('POST /consignacion', () => {
         describe('Bad request', () => {
             test('Consignacion no tiene cliente', async () => {
@@ -176,7 +170,7 @@ describe('CONSIGNACION', () => {
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(req);
-                expect_err_code(400, res);
+                expectBadRequest(res);
             });
 
             test('Un libro no tiene suficiente stock', async () => {
@@ -186,7 +180,7 @@ describe('CONSIGNACION', () => {
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(consignacion);
-                expect_err_code(400, res);
+                expectBadRequest(res);
 
                 consignacion.libros[2].cantidad = 3;
             });
@@ -207,19 +201,42 @@ describe('CONSIGNACION', () => {
                         cliente: consumidor_final.id
                     });
 
-                expect_err_code(400, res);
+                expectBadRequest(res);
             });
         });
 
         describe('consignacion exitosa', () => {
             test('Consignar', async () => {
-                //console.log("consignacion: ", consignacion);
                 const res = await request(app)
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send(consignacion);
             
-                expect_success_code(201, res);
+                expectCreated(res);
+            });
+
+            test('La consignacion debe estar bien cargada', async () => {
+                const res = await request(app)
+                    .get('/consignacion/628')
+                    .set('Authorization', `Bearer ${token}`)
+
+                const expected = {
+                    id: 628,
+                    id_cliente: 93,
+                    type: 'consignacion',
+                    // I cant make the jest set system time to work with this, but its tested in cliente.test
+                    //file_path: 'MANUELKRIVOY-20250308-175356.pdf',
+                    //fecha: '2025-03-08T17:53:56.938Z',
+                    user: 1,
+                    libros: [
+                        { isbn: '11111113', titulo: 'TEST', cantidad: 3, precio: 2500 },
+                        { isbn: '11111116', titulo: 'TEST', cantidad: 3, precio: 51 },
+                        { isbn: '192381231', titulo: 'hola', cantidad: 3, precio: 0 }
+                    ]
+                }
+
+                expect(res.status).toBe(200);
+                expect(res.body).toMatchObject(expected);
             });
 
             test('Los libros reducieron su stock', async () => {
@@ -249,16 +266,12 @@ describe('CONSIGNACION', () => {
                     SELECT id_libro, precio FROM precio_libro_cliente
                     WHERE id_cliente = ?`, [cliente.id]);
 
-                expect(rows.length).toEqual(3);
-                for (const libro of consignacion.libros){
-                    const finded = rows.find(r => r.id_libro == libro.id_libro)
-                    expect(finded).not.toBeUndefined();
-                    if (finded === undefined){
-                        continue
-                    }
-                    expect(finded.id_libro).toBe(libro.id_libro);
-                    expect(finded.precio).toBe(libro.precio);
-                }
+                const expectedRows = [
+                    {id_libro: 6, precio: 2500 },
+                    {id_libro: 8, precio: 51 },
+                    {id_libro: 11, precio: 0 }
+                ];
+                expect(rows).toMatchObject(expectedRows);
             });
 
             /*test('El remito existe y el nombre coincide', async () => {       

@@ -11,7 +11,7 @@ dotenv.config({path: path});
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
 
 let persona: any = {}
 let token: string;
@@ -43,7 +43,7 @@ it('HARD DELETE', async () => {
 });
 
 it('login', async () => {
-    let data = {
+    const data = {
         username: 'teti',
         password: 'Lautaro123.'
     }
@@ -51,20 +51,20 @@ it('login', async () => {
         .post('/user/login')
         .send(data)
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
 describe('POST persona/', () => {
     it('Sin nombre', async () => {
-        let res = await request(app)
+        const res = await request(app)
             .post('/persona/')
             .set('Authorization', `Bearer ${token}`)
             .send(persona);
 
         persona.nombre = 'Test';
         persona.email = 'test@gmail.com'
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
     it('Sin dni', async () => {        
@@ -75,7 +75,7 @@ describe('POST persona/', () => {
         
         persona.dni = '11111111';
         
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
 
 
@@ -92,7 +92,7 @@ describe('POST persona/', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(persona);
 
-        expect_success_code(201, res);
+        expectCreated(res);
         
         persona.dni = '11111111';
         persona.id = res.body.data.id;
@@ -106,7 +106,7 @@ describe('POST persona/', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(_persona);
         
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 });
 
@@ -116,7 +116,7 @@ describe('GET persona/', () => {
             .get('/persona/'+(persona.id+2))
             .set('Authorization', `Bearer ${token}`);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Obtener persona', async () => {
@@ -161,7 +161,7 @@ describe('PUT persona/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(_persona);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Actualizar campo que no existe', async () => {
@@ -171,7 +171,7 @@ describe('PUT persona/{id}', () => {
             .put('/persona/'+persona.id)
             .set('Authorization', `Bearer ${token}`)
             .send(data);
-        expect_success_code(201, res);
+        expectCreated(res);
     });
 
     it('Success', async () => {
@@ -185,7 +185,7 @@ describe('PUT persona/{id}', () => {
             .set('Authorization', `Bearer ${token}`)
             .send(_persona);
 
-        expect_success_code(201, res);
+        expectCreated(res);
 
         res.body.data.id = persona.id;
         expect(res.body.data).toMatchObject(persona);
@@ -198,7 +198,7 @@ describe('DELETE /persona/{id}', () => {
             .get('/persona/'+(persona.id+1000))
             .set('Authorization', `Bearer ${token}`);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
     
     it('Success', async () => {

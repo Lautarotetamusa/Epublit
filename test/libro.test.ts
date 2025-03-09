@@ -10,7 +10,7 @@ dotenv.config({path: path});
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expect_err_code, expect_success_code} from './util';
+import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
 import { RowDataPacket } from 'mysql2';
 
 let token: string;
@@ -66,7 +66,7 @@ it('login', async () => {
         .post('/user/login')
         .send(data)
 
-    expect_success_code(200, res);
+    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
@@ -77,7 +77,7 @@ describe('Crear libro POST /libro', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        expect_err_code(400, res);
+        expectBadRequest(res);
     });
     
     it('Insertar Libro', async () => {
@@ -103,7 +103,7 @@ describe('Crear libro POST /libro', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        expect_success_code(201, res);
+        expectCreated(res);
         expect(res.body.data).toHaveProperty("ilustradores");
         expect(res.body.data).toHaveProperty("autores");        
 
@@ -118,7 +118,7 @@ describe('Crear libro POST /libro', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(personas);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Agregar personas', async () => {
@@ -143,7 +143,7 @@ describe('Crear libro POST /libro', function () {
             .post(`/libro/${libro.isbn}/personas`)
             .set('Authorization', `Bearer ${token}`)
             .send(personas);
-        expect_success_code(201, res);
+        expectCreated(res);
 
         libro.personas = libro.personas.concat(personas);
     });
@@ -228,7 +228,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(libro);
 
-        expect_success_code(201, res);
+        expectCreated(res);
     });
 
     it('Actualizamos una persona', async () => {
@@ -248,7 +248,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(data);
 
-        expect_success_code(201, res);
+        expectCreated(res);
     });
 
     it('Actualizamos una persona que no esta en el libro', async () => {
@@ -259,7 +259,7 @@ describe('Actualizar libro PUT /libro/:isbn', function () {
             .set('Authorization', `Bearer ${token}`)
             .send(autor_copy);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 });
 
@@ -273,7 +273,7 @@ describe('DELETE /libro', function () {
                 tipo: libro.personas[0].tipo
             }]);
 
-        expect_success_code(200, res);
+        expectDataResponse(res, 200);
     });
 
     it('Intentar Borrar una persona que no trabaja en el libro', async () => {
@@ -285,21 +285,24 @@ describe('DELETE /libro', function () {
                 tipo: "autor",
             }]);
 
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Borrado', async () => {
         const res = await request(app)
             .delete('/libro/'+libro.isbn)
             .set('Authorization', `Bearer ${token}`);
-        expect_success_code(200, res);
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveProperty("message");
+        expect(res.body).toHaveProperty("success");
+        expect(res.body.success).toBe(true);
     });
 
     it('No se puede obtener el libro', async () => {
         const res = await request(app)
             .get('/libro/'+libro.isbn)
             .set('Authorization', `Bearer ${token}`);
-        expect_err_code(404, res);
+        expectNotFound(res);
     });
 
     it('Las personas no tienen más el libro asignado', async () => {
