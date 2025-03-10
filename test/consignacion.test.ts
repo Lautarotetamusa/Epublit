@@ -12,7 +12,7 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 }));
 
 process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
+import {app, filesUrl, server} from '../src/app';
 import {conn} from '../src/db'
 import {expectBadRequest, expectCreated, expectNotFound} from './util';
 
@@ -116,6 +116,7 @@ describe('CONSIGNACION', () => {
                 expect(consignacion).not.toBeNull();
                 for (const fieldName of fields) {
                     expect(consignacion).toHaveProperty(fieldName);
+                    expect(consignacion.file_path).toContain(filesUrl);
                 }
             }
         });
@@ -129,7 +130,7 @@ describe('CONSIGNACION', () => {
                 id: 258,
                 id_cliente: 42,
                 type: 'consignacion',
-                file_path: 'NAZARENONECCHI_2023-07-20_15:37:31.pdf',
+                file_path: filesUrl + '/remitos/NAZARENONECCHI_2023-07-20_15:37:31.pdf',
                 fecha: '2023-07-20T18:37:31.000Z',
                 user: 1,
                 libros: [
@@ -230,6 +231,8 @@ describe('CONSIGNACION', () => {
 
                 expect(res.status).toBe(200);
                 expect(res.body).toMatchObject(expected);
+                expect(res.body).toHaveProperty("file_path");
+                expect(res.body.file_path).toContain(filesUrl);
             });
 
             test('Los libros reducieron su stock', async () => {

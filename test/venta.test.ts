@@ -31,7 +31,7 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 
 // Usar la DB de testing
 process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
+import {app, filesUrl, server} from '../src/app';
 import {conn} from '../src/db'
 import {expectBadRequest, expectDataResponse, expectNotFound} from './util';
 
@@ -40,18 +40,6 @@ let token: string;
 let cliente: any = {}; 
 let venta: any = {}; 
 const id_cliente = 1;
-
-/*
-    - Crear un cliente nuevo
-    - Seleccionar 3 libros de la pagina 5 de libros /libros?page=5
-    - Setear el stock de esos 3 libros en 3
-    - Chequear errores de bad request
-    - Realizar la venta
-    - Revisar que los 3 libros tenga ahora stock 0
-    - Revisar que la factura haya sido emitida (que exista el archivo)
-    - Revisar que el total de la venta sea correcto
-    - Revisar que el cliente tenga la venta en /cliente/{id}/ventas
-*/
 
 afterAll(() => {
     conn.end();
@@ -186,7 +174,7 @@ describe('VENTA', () => {
                 id: 40,
                 id_cliente: 42,
                 type: 'venta',
-                file_path: 'http://localhost:3001/files/facturas/ClienteTest_2023_07_27_220125.pdf',
+                file_path: filesUrl + '/facturas/ClienteTest_2023_07_27_220125.pdf',
                 fecha: '2023-07-28T01:01:26.000Z',
                 user: 1,
                 id_transaccion: 40,

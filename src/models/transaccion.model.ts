@@ -102,15 +102,9 @@ export abstract class Transaccion extends BaseModel {
     }
 
     static async getById(id: number){
-        return this.find_one<TransaccionSchema, Transaccion>({id: id})
-        const query = `SELECT * FROM transacciones WHERE id = ? `;
-
-        const [rows] = await conn.query<RowDataPacket[]>(query, [id]);
-        if (rows.length !== 1){
-            throw new NotFound(`No se encontró la transaccion con id ${id}`);
-        }
-
-        return rows[0] as Transaccion;
+        const t = await this.find_one<TransaccionSchema, Transaccion>({id: id})
+        t.parsePath(this.filesFolder);
+        return t;
     }
 
     /* 
@@ -193,7 +187,7 @@ export class Devolucion extends Transaccion {
     static type = tipoTransaccion.devolucion;
 
     static async setLibros(body: LibroCantidad[], cliente: Cliente, userId: number, args?: object): Promise<LibroTransaccion[]>{
-        let libros: LibroTransaccion[] = [];
+        const libros: LibroTransaccion[] = [];
 
         const librosCliente = await cliente.getLibros(userId); 
 
