@@ -34,17 +34,29 @@ jest.mock('../src/comprobantes/comprobante', () => ({
 
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
-import {expectBadRequest, expectDataResponse, expectCreated} from './util';
+import {expectBadRequest, expectCreated} from './util';
 let token: string;
 
-let cliente: any = {}; 
-let venta: any = {
+const venta = {
+    medio_pago: '',
+    id: null,
+    total: 0,
+    file_path: '',
     tipo_cbte: 11,
-    fecha_venta: Date.now()
+    descuento: 0,
+    cliente: 42, // cliente inscripto
+    fecha_venta: Date.now(),
+    libros: [{
+        isbn: '9789784765178',
+        cantidad: 3
+    },{
+        isbn: '9789873397899',
+        cantidad: 3
+    },{
+        isbn: '9789874201096',
+        cantidad: 3
+    }]
 }; 
-const id_cliente = 42; //Cliente inscripto
-let oldLibros: any = [];
-let libros: any = [];
 
 afterAll(() => {
     conn.end();
@@ -67,16 +79,16 @@ it.concurrent('login', async () => {
 describe('VENTA', () => {
     test('delete ventas', async () => {
         //Buscamos la ultima venta creada
-        const venta: any = (await conn.query(`
+        const t: any = (await conn.query(`
             SELECT id FROM transacciones
-            WHERE id_cliente=${id_cliente}
+            WHERE id_cliente=${venta.cliente}
             ORDER BY id DESC;
         `))[0];
 
         if (!Array.isArray(venta) || venta.length <= 0 || !('id' in venta[0])){
             return;
         }
-        const id = venta[0].id;
+        const id = t.id;
 
         /*Borrar de la base de datos*/
         await conn.query(`
@@ -94,43 +106,8 @@ describe('VENTA', () => {
     });
 
     describe('Cargar datos para la venta', () => {
-        test('Buscar cliente', async () => {
-            const res = await request(app)
-                .get(`/cliente/${id_cliente}`)
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toEqual(200);
-
-            cliente = res.body;
-            venta['cliente'] = cliente.id;
-        });
-
-        test('Seleccionar libros para la venta', async () => {
-            const res = await request(app)
-                .get('/libro')
-                .set('Authorization', `Bearer ${token}`);
-            expect(res.status).toEqual(200);
-
-            libros = [
-                res.body.find((l: any) => l.isbn ==  '11111112'), 
-                res.body.find((l: any) => l.isbn ==  '11111115'), 
-                res.body.find((l: any) => l.isbn ==  '11111116')
-            ];
-
-            venta.libros = [{
-                isbn: '11111112',
-                cantidad: 3
-            },{
-                isbn: '11111115',
-                cantidad: 3
-            },{
-                isbn: '11111116',
-                cantidad: 3
-            }];
-        });
-
         test('Agregar stock a los libros', async () => {
-            let stock = 6;
+            const stock = 6;
             
             for (const libro of venta.libros) {
                 let res = await request(app)
@@ -161,9 +138,10 @@ describe('VENTA', () => {
         });
 
         test('Consignarle libros al cliente', async () => {
-            const consignacion: any = {
+            // Consigno 3 de cada uno
+            const consignacion = {
                 libros: venta.libros,
-                cliente: cliente.id
+                cliente: venta.cliente
             }
 
             const res = await request(app)
@@ -175,13 +153,13 @@ describe('VENTA', () => {
         });
 
         test('Actualizar el precio de los libros local', async() => {
-            oldLibros = JSON.parse(JSON.stringify(libros)); //Copia profunda del array
-            for (const libro of libros){
-                libro.precio += 1000;
+            for (const libro of venta.libros){
                 const res = await request(app)
                     .put('/libro/'+libro.isbn)
                     .set('Authorization', `Bearer ${token}`)
-                    .send(libro);
+                    .send({
+                        precio: 5000
+                    });
 
                 expectCreated(res);
             }
@@ -189,22 +167,22 @@ describe('VENTA', () => {
     
         test('Actualizar el precio de los libros del cliente', async() => {
             let res = await request(app)
-                .put(`/cliente/${cliente.id}/stock`)
+                .put(`/cliente/${venta.cliente}/stock`)
                 .set('Authorization', `Bearer ${token}`);
-            expectDataResponse(res, 200);
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
 
             res = await request(app)
-                .get(`/cliente/${cliente.id}/stock`)
+                .get(`/cliente/${venta.cliente}/stock`)
                 .set('Authorization', `Bearer ${token}`);
             expect(res.status).toBe(200);
 
-            //Chequear que el precio se haya incrementado en 1000
-            for (const libro of oldLibros){
+            for (const libro of venta.libros){
                 const finded = res.body.find((l: any) => l.isbn == libro.isbn);
                 expect(finded).not.toBeNull();
                 expect(finded).toHaveProperty('stock');
                 expect(finded).toHaveProperty('precio');
-                expect(finded.precio).toBe(libro.precio + 1000);
+                expect(finded.precio).toBe(5000);
             }
         });
     });
@@ -212,37 +190,37 @@ describe('VENTA', () => {
     describe('Cargar venta con precio actual', () => {
         describe('Bad request', () => {
             test('Venta no tiene cliente', async () => {
-                const aux_cliente = venta.cliente;
-                delete venta.cliente;
+                const ventaSinCliente = Object.assign({}, venta);
+                // @ts-expect-error delete the client
+                delete ventaSinCliente.cliente;
 
                 const res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send(venta);
+                    .send(ventaSinCliente);
                 expectBadRequest(res);
-
-                venta.cliente = aux_cliente;
             });
             test('Venta no tiene libros', async () => {
-                const aux_venta = Object.assign({}, venta.libros);
-                delete aux_venta.libros;
+                const ventaSinLibros = Object.assign({}, venta);
+                // @ts-expect-error delete the client
+                delete ventaSinLibros.libros;
 
                 let res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send(aux_venta);
+                    .send(ventaSinLibros);
                 expectBadRequest(res);
 
-                aux_venta.libros = [];
+                ventaSinLibros.libros = [];
 
                 res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send(aux_venta);
+                    .send(ventaSinLibros);
                 expectBadRequest(res);
             });
             test('Medio de pago incorrecto', async () => {
-                venta.medio_pago = '';
+                venta.medio_pago = 'invalid';
                 const res = await request(app)
                     .post('/ventaConsignacion/')
                     .set('Authorization', `Bearer ${token}`)
@@ -276,48 +254,87 @@ describe('VENTA', () => {
                 venta.id = res.body.data.id;
                 venta.file_path = res.body.data.file_path;
                 venta.total = res.body.data.total;
-                expect(res.body.data.id).toEqual(venta.id);
+
+                const expected = {
+                    id: venta.id,
+                    id_cliente: venta.cliente,
+                    id_transaccion: venta.id,
+                    punto_venta: 9,
+                    total: 45000, // 5000 x 3 x 3. 3 titulos con 3 ejemplares cu a 5000 
+                    type: 'ventaConsignacion',
+                    medio_pago: 'efectivo',
+                    tipo_cbte: 11,
+                    descuento: 0,
+                    //file_path: 'NAZARENONECCHI_2023-07-20_15:37:31.pdf',
+                    //fecha: '2023-07-20T18:37:31.000Z',
+                    user: 1,
+                    libros: [
+                        {isbn: '9789784765178', titulo: 'Rio de sueño', cantidad: 3, precio: 5000},
+                        {isbn: '9789873397899', titulo:'¿Qué es? ¿Dónde está? Oriato',cantidad: 3, precio: 5000},
+                        {isbn: '9789874201096', titulo: 'El Carromato filarmónico',cantidad: 3, precio: 5000},
+                    ]
+                };
+
 
                 const res1 = await request(app)
                     .get(`/venta/${venta.id}`)
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res1.status).toBe(200);
-
-                expect(res1.body.libros).toMatchObject(venta.libros);
-                expect(res1.body.type).toEqual("ventaConsignacion");
-                expect(res1.body.id_transaccion).toEqual(venta.id);
-                expect(res1.body.id_cliente).toEqual(venta.cliente);
+                expect(res1.body).toHaveProperty('fecha');
+                expect(res1.body).toHaveProperty('file_path');
+                expect(res1.body).toMatchObject(expected);
             });
 
-            test('La venta consignacion existe', async () => {
+            test('Venta consignacion esta en la lista', async () => {
                 const res = await request(app)
                     .get("/venta/")
                     .set('Authorization', `Bearer ${token}`);
 
+                const expected = {
+                    id: venta.id,
+                    id_transaccion: venta.id,
+                    type: "ventaConsignacion",
+                    descuento: 0,
+                    total: venta.total,
+                    tipo_cbte: 11,
+                    medio_pago: "efectivo",
+                    cuit: "30710712758",
+                    nombre_cliente: "nuevo nombre",
+                    email: "clientetest@gmail.com",
+                    cond_fiscal: " - ",
+                    tipo: "inscripto"
+                };
+
                 let exists = false;
                 for (const v of res.body) {
-                    exists = v.id == venta.id;
+                    exists = (v.id == venta.id);
                     if (exists) {
-                        expect(v.type).toEqual("ventaConsignacion");
-                        expect(v.id_transaccion).toEqual(venta.id);
-                        expect(v.total).toEqual(venta.total);
-                        expect(v.descuento).toEqual(0);
+                        expect(v).toMatchObject(expected);
+                        break;
                     }
                 }
+                expect(exists).toBe(true);
             });
 
             test('Los libros del cliente reducieron su stock', async () => {
                 const res = await request(app)
-                    .get(`/cliente/${cliente.id}/stock/`)
+                    .get(`/cliente/${venta.cliente}/stock/`)
                     .set('Authorization', `Bearer ${token}`);
                 expect(res.status).toBe(200);
 
-                for (const libro of libros){
-                    const finded = res.body.find((l: any) => l.isbn == libro.isbn);
-                    expect(finded).not.toBeNull();
-                    expect(finded).toHaveProperty('stock');
-                    expect(finded.stock).toBe(0);
+                const expectedStocks = {
+                    '9789784765178': 0,
+                    '9789873397899': 0,
+                    // Este libro ya tiene una consignacion de cantidad 1 con el cliente
+                    '9789874201096': 1 
+                };
+
+                for (const libro of res.body){
+                    if (libro.isbn in expectedStocks) {
+                        expect(libro).toHaveProperty('stock');
+                        expect(libro.stock).toBe(expectedStocks[libro.isbn as keyof typeof expectedStocks]);
+                    }
                 }
             });
 
@@ -325,7 +342,7 @@ describe('VENTA', () => {
                 let total = 0;
 
                 let res = await request(app)
-                    .get(`/cliente/${cliente.id}/stock/`)
+                    .get(`/cliente/${venta.cliente}/stock/`)
                     .set('Authorization', `Bearer ${token}`);
                 expect(res.status).toEqual(200);
 
@@ -339,7 +356,7 @@ describe('VENTA', () => {
 
                 // El cliente tien la venta cargada
                 res = await request(app)
-                    .get(`/cliente/${cliente.id}/ventas/`)
+                    .get(`/cliente/${venta.cliente}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
                 expect(res.status).toEqual(200);
 

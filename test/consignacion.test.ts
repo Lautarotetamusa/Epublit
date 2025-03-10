@@ -35,6 +35,7 @@ const consignacion = {
     ],
     cliente: cliente.id,
 }
+let idCons: number;
 
 /*
     - Crear un cliente nuevo
@@ -67,15 +68,6 @@ test('login', async () => {
 
 describe('CONSIGNACION', () => {
     describe('Cargar datos para la consignacion', () => {
-        //test('Seleccionar libros para la consignacion', async () => {
-        //    const res = await request(app)
-        //        .get('/libro')
-        //        .set('Authorization', `Bearer ${token}`);
-        //
-        //    expect(res.status).toEqual(200);
-        //    consignacion.libros = [ res.body[3], res.body[5], res.body[8] ];
-        //});
-
         test('Agregar stock a los libros', async () => {
             const stock = 3;
             
@@ -213,15 +205,16 @@ describe('CONSIGNACION', () => {
                     .send(consignacion);
             
                 expectCreated(res);
+                idCons = res.body.data.id;
             });
 
             test('La consignacion debe estar bien cargada', async () => {
                 const res = await request(app)
-                    .get('/consignacion/628')
+                    .get(`/consignacion/${idCons}`)
                     .set('Authorization', `Bearer ${token}`)
 
                 const expected = {
-                    id: 628,
+                    id: idCons,
                     id_cliente: 93,
                     type: 'consignacion',
                     // I cant make the jest set system time to work with this, but its tested in cliente.test
@@ -273,16 +266,6 @@ describe('CONSIGNACION', () => {
                 ];
                 expect(rows).toMatchObject(expectedRows);
             });
-
-            /*test('El remito existe y el nombre coincide', async () => {       
-                await delay(400);         
-                fs.readFile(`../remitos/${consignacion.path}`, 'utf8', (err, _) => {
-                    if(err){
-                        console.error(err);
-                    }
-                    expect(err).toBeNull;
-                });
-            });*/
         });
     });
 });
