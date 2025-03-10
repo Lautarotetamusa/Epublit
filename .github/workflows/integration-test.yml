@@ -35,6 +35,12 @@ jobs:
       with:
         node-version: '22.8'
 
+    - name: Set system timezone
+      run: |
+        sudo ln -fs /usr/share/zoneinfo/America/Buenos_Aires /etc/localtime
+        echo "America/Buenos_Aires" | sudo tee /etc/timezone
+        date
+
     - name: Load test data
       run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./db/test.sql
 
@@ -66,4 +72,4 @@ jobs:
       run: npm install
 
     - name: Run tests
-      run:  npx jest
+      run: npx jest

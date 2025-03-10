@@ -1,5 +1,6 @@
 .env
 
+/coverage
 /mysql
 /security/*
 /archivos
