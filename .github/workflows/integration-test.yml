@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+
 jobs:
   api-testing:
     runs-on: ubuntu-latest
@@ -46,12 +49,12 @@ jobs:
 
     - name: Show databases
       run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
-        
+
     - name: Prepare .env file
       run: echo "$ENV_FILE_CONTENT" > .env
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
-       
+
     - name: Create files folders
       run: |
         mkdir -p files/facturas
@@ -76,34 +79,41 @@ jobs:
 
   deploy:
     needs: [api-testing]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy files to server
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          port: 22
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }}
-          source: "./"
-          target: ${{ secrets.DEPLOY_PATH }}
-          # rm: true
+      - name: Setup SSH private key and passphrase
+        env:
+          SSH_PASSPHRASE: ${{ secrets.SSH_PASSWORD }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          echo 'echo $SSH_PASSPHRASE' > ~/.ssh_askpass && chmod +x ~/.ssh_askpass
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' | DISPLAY=None SSH_ASKPASS=~/.ssh_askpass ssh-add - >/dev/null
 
-      - name: Deploy using Docker Compose
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
-          envs: ENV_FILE_CONTENT
-          script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            echo "$ENV_FILE_CONTENT" > .env
-            docker compose down
-            docker compose up -d --build
+      - name: Print ssh-add identities
+        run: ssh-add -l
+
+      - name: Deploy to the server
+        run: |
+          # Copying files
+          scp -o StrictHostKeyChecking=no \
+            -r src/ types/ package.json tsconfig.json Dockerfile docker-compose.yml $SERVER_HOST:$DEPLOY_PATH
+
+          # Write .env file
+          ssh -o StrictHostKeyChecking=no $SERVER_HOST \
+            "echo '$ENV_FILE_CONTENT' > $DEPLOY_PATH/.env"
+
+          # Deploy the api with docker
+          ssh -o StrictHostKeyChecking=no $SERVER_HOST \
+            "cd $DEPLOY_PATH && pwd && \
+            docker compose down && \
+            docker compose build && \
+            docker compose up -d"
+
         env:
           ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+          SERVER_HOST: ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}

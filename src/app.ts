@@ -12,7 +12,7 @@ export const app = express();
 export const server = createServer(app);
 
 const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto interno del docker donde se levanta el server
-const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || 80; //Puerto que tiene acceso al mundo
+const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || backPort; //Puerto que tiene acceso al mundo
 const host = process.env.HOST ? process.env.HOST : "localhost";
 const env = process.env.env || "dev";
 
