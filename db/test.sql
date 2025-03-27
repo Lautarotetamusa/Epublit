@@ -1657,8 +1657,28 @@ INSERT INTO `ventas` VALUES
 (0,1,'efectivo',11,572),
 (0,451100,'efectivo',11,626),
 (0,247800,'efectivo',11,627);
+
+DELIMITER $$
+
 /*!40000 ALTER TABLE `ventas` ENABLE KEYS */;
 UNLOCK TABLES;
+
+CREATE TRIGGER crear_clientes_por_usuario
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    -- Insertar cliente MOSTRADOR (tipo negro)
+    INSERT INTO clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio)
+    VALUES (NEW.id, 'negro', 'MOSTRADOR', '', '', '');
+    
+    -- Insertar cliente CONSUMIDOR FINAL (tipo particular)
+    INSERT INTO clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio)
+    VALUES (NEW.id, 'particular', 'CONSUMIDOR FINAL', 'CONSUMIDOR FINAL', 'CONSUMIDOR FINAL', '');
+END$$
+
+DELIMITER ;
+
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -1670,3 +1690,4 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2024-07-25 14:50:15
+

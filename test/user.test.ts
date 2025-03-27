@@ -121,6 +121,33 @@ describe('POST /login', () => {
         token = res.body.token;
     });
 
+    it('se deben crear clientes mostrador y consumidor final', async () => {
+        // Get the clients from the user
+        const res = await request(app)
+            .get('/cliente')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        const clientes = res.body;
+
+        expect(clientes).toHaveLength(2);
+        
+        // This order maybe its not always true, but its seems to works fine
+        expect(clientes[0]).toMatchObject({
+            tipo: "particular",
+            nombre: "CONSUMIDOR FINAL",
+            cond_fiscal: "CONSUMIDOR FINAL",
+            razon_social: "CONSUMIDOR FINAL"
+        });
+        
+        expect(clientes[1]).toMatchObject({
+            tipo: "negro",
+            nombre: "MOSTRADOR",
+            cond_fiscal: "",
+            razon_social: ""
+        });
+    })
+
     it('Traer datos del usuario', async () => {
         const res = await request(app)
             .get('/user')

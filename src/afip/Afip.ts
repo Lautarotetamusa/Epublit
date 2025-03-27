@@ -180,9 +180,11 @@ export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Pro
 export async function getAfipData(cuit: string): Promise<AfipData>{
     // TODO: make this type unknown
 	const afipData = await afipMadre.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
-	if (afipData === undefined){
+	if (afipData === undefined || afipData === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
+
+    console.log(afipData);
 
 	const data: AfipData = {
 		cond_fiscal: " - ",

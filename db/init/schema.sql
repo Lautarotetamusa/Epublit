@@ -262,6 +262,21 @@ CREATE TABLE `ventas` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
+CREATE TRIGGER crear_clientes_por_usuario
+AFTER INSERT ON users
+FOR EACH ROW
+BEGIN
+    -- Insertar cliente MOSTRADOR (tipo negro)
+    INSERT INTO clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio)
+    VALUES (NEW.id, 'negro', 'MOSTRADOR', '', '', '');
+    
+    -- Insertar cliente CONSUMIDOR FINAL (tipo particular)
+    INSERT INTO clientes (user, tipo, nombre, cond_fiscal, razon_social, domicilio)
+    VALUES (NEW.id, 'particular', 'CONSUMIDOR FINAL', 'CONSUMIDOR FINAL', 'CONSUMIDOR FINAL', '');
+END$$
+
+DELIMITER ;
+
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
 /*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
