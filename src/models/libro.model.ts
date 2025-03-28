@@ -1,6 +1,6 @@
 import { conn } from "../db"
 import { ResultSetHeader, RowDataPacket, PoolConnection} from "mysql2/promise";
-import { LibroSchema, SaveLibro, UpdateLibro } from "../schemas/libros.schema";
+import { LibroParams, LibroSchema, SaveLibro, UpdateLibro } from "../schemas/libros.schema";
 import {  Duplicated } from './errors'
 
 import { BaseModel } from "./base.model";
@@ -36,13 +36,29 @@ export class Libro extends BaseModel{
         return await super.find_one<LibroSchema, Libro>({isbn: isbn, is_deleted: 0, user: userId})
     }
 
-    static async getAll(userId: number, req?: object): Promise<LibroSchema[]>{        
-        const libros = await Libro.find_all({
-            ...req,
-            is_deleted: false,
-            user: userId
-        });
-        return libros as LibroSchema[];
+    static async getAll(userId: number, req?: LibroParams): Promise<LibroSchema[]>{        
+        let whereQuery = "WHERE is_deleted = ? AND user = ? ";
+
+        type WhereList = (LibroParams[keyof LibroParams] | boolean)[];
+        const whereList: WhereList = [false, userId];
+
+        if (req) for (const [key, value] of Object.entries(req)) {
+            if (typeof value == "string"){
+                whereQuery += `AND ${key} LIKE ?`;
+                whereList.push("%"+value+"%");
+            }else if (typeof value == "number"){
+                whereQuery += `AND ${key} = ?`;
+                whereList.push(value);
+            }
+        }
+
+        const query = `
+            SELECT ${this.fields} FROM ${this.table_name}
+            ${whereQuery}
+            ORDER BY titulo ASC`;
+
+        const [rows] = await conn.query<RowDataPacket[]>(query, whereList);
+        return rows as LibroSchema[];
     }
 
     static async insert(body: SaveLibro, connection?: PoolConnection): Promise<Libro> {
