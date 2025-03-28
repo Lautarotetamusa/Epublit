@@ -169,6 +169,116 @@ describe('POST /login', () => {
     });
 });
 
+describe('PUT /user', () => {
+    let initialUserData: any;
+
+    beforeAll(async () => {
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        initialUserData = res.body.data;
+    });
+
+    it('Actualización exitosa de email y punto_venta', async () => {
+        const updateData = {
+            email: "nuevoemail@test.com",
+            punto_venta: 5
+        };
+
+        await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send(updateData)
+            .expect(200);
+
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        expect(res.body.data).toMatchObject({
+            ...initialUserData,
+            ...updateData
+        });
+    });
+
+    it('Actualización exitosa de solo un campo', async () => {
+        const updateData = {
+            email: "nuevonuevoemail@test.com",
+        };
+
+        await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send(updateData)
+            .expect(200);
+
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        expect(res.body.data).toMatchObject({
+            ...initialUserData,
+            ...updateData,
+            punto_venta: 5, // updated before
+        });
+    });
+
+    it('No debería actualizar otros campos', async () => {
+        const originalUsername = initialUserData.username;
+        
+        await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ username: "nuevo_usuario" })
+            .expect(200);
+
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        expect(res.body.data.username).toBe(originalUsername);
+    });
+
+    it('Request vacío no modifica valores', async () => {
+        const currentRes = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        const currentData = currentRes.body.data;
+
+        await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send({})
+            .expect(200);
+
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+        
+        expect(res.body.data).toEqual(currentData);
+    });
+
+    it('Validación de punto_venta negativo', async () => {
+        const res = await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ punto_venta: -1 });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('Validación de email vacío', async () => {
+        const res = await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ email: "" });
+
+        expect(res.status).toBe(400);
+    });
+});
+
 describe('Certificado', () => {
     test("subir certificado sin auth debe dar error", async () => {
         const res = await request(app)

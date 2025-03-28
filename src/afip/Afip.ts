@@ -138,10 +138,10 @@ export async function getServerStatus(user: User){
 	return serverStatus;
 }
 
-export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
+export async function facturar(pto_venta: number, venta: Venta, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
 	const data: FacturaPayload = {
 		'CantReg' 	: 1,  									
-		'PtoVta' 	: venta.punto_venta,  					
+		'PtoVta' 	: pto_venta,  					
 		'CbteTipo' 	: venta.tipo_cbte,  					
 		'Concepto' 	: 1,  									
 		'DocTipo' 	: cliente.cuit ? 80 : 99, 		
@@ -159,7 +159,7 @@ export async function facturar(venta: Venta, cliente: Cliente, afip: IAfip): Pro
 
     const { voucherNumber } = await afip.createNextVoucher(data);
 
-	const comprobante = await afip.getVoucherInfo(voucherNumber, venta.punto_venta, venta.tipo_cbte);
+	const comprobante = await afip.getVoucherInfo(voucherNumber, pto_venta, venta.tipo_cbte);
 
 	comprobante.nro 	= voucherNumber;
 	comprobante.CbteFch = formatAfipDate(comprobante.CbteFch);
@@ -183,8 +183,6 @@ export async function getAfipData(cuit: string): Promise<AfipData>{
 	if (afipData === undefined || afipData === null){
 		throw new NotFound(`La persona con CUIT ${cuit} no está cargada en afip`);
     }
-
-    console.log(afipData);
 
 	const data: AfipData = {
 		cond_fiscal: " - ",

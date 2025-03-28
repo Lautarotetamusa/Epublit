@@ -23,6 +23,10 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
         }
     }
 
+    if (user.punto_venta === null || user.punto_venta === undefined) {
+        throw new ValidationError("Para poder vender tenés que ingresar un punto de venta, podés hacerlo en tu perfil")
+    }
+
     try{
         await connection.beginTransaction();
         const venta = await VentaConsignado.insert({
@@ -44,7 +48,7 @@ const ventaConsignado = async (req: Request, res: Response): Promise<Response> =
             if (afip === undefined) {
                 throw new ValidationError("No se puede obtener el cliente de afip")
             }
-            const comprobanteData = await facturar(venta, c, afip);
+            const comprobanteData = await facturar(user.punto_venta, venta, c, afip);
 
             emitirComprobante({
                 data: {
@@ -86,6 +90,10 @@ export const vender = (ventaModel: typeof Venta) => {
             }
         }
 
+        if (user.punto_venta === null || user.punto_venta === undefined) {
+            throw new ValidationError("Para poder vender tenés que ingresar un punto de venta, podés hacerlo en tu perfil")
+        }
+
         try{
             await connection.beginTransaction();
             const venta = await ventaModel.insert({
@@ -110,7 +118,7 @@ export const vender = (ventaModel: typeof Venta) => {
                 if (afip === undefined) {
                     throw new ValidationError("No se puede obtener el cliente de afip")
                 }
-                const comprobanteData = await facturar(venta, c, afip);
+                const comprobanteData = await facturar(user.punto_venta, venta, c, afip);
 
                 emitirComprobante({
                     data: {

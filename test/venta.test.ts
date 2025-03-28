@@ -37,9 +37,10 @@ import {expectBadRequest, expectDataResponse, expectNotFound} from './util';
 
 let token: string;
 
-let cliente: any = {}; 
-let venta: any = {}; 
-const id_cliente = 1;
+const clientId = 1;
+let venta: any = {
+    cliente: clientId
+}; 
 
 afterAll(() => {
     conn.end();
@@ -64,7 +65,7 @@ describe('VENTA', () => {
         //Buscamos la ultima venta creada
         const res = await conn.query(`
             SELECT id FROM transacciones
-            WHERE id_cliente=${id_cliente}
+            WHERE id_cliente=${clientId}
             ORDER BY id DESC;
         `);
         const venta = res[0];
@@ -91,17 +92,6 @@ describe('VENTA', () => {
     });
 
     describe('Cargar datos para la venta', () => {
-        test('Buscar cliente', async () => {
-            const res = await request(app)
-                .get(`/cliente/${id_cliente}`)
-                .set('Authorization', `Bearer ${token}`);
-
-            expect(res.status).toEqual(200);
-
-            cliente = res.body;
-            venta['cliente'] = cliente.id;
-        });
-
         test('Seleccionar libros para la venta', async () => {
             const res = await request(app)
                 .get('/libro')
@@ -181,7 +171,6 @@ describe('VENTA', () => {
                 descuento: 0,
                 total: 10000,
                 medio_pago: 'mercadopago',
-                punto_venta: 9,
                 tipo_cbte: 11,
                 libros: []
             }
@@ -298,7 +287,7 @@ describe('VENTA', () => {
 
             test('El cliente tiene la venta cargada', async () => {
                 const res = await request(app)
-                    .get(`/cliente/${cliente.id}/ventas/`)
+                    .get(`/cliente/${venta.cliente}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
             
                 expect(res.status).toEqual(200);
@@ -308,7 +297,7 @@ describe('VENTA', () => {
 
             test('El total de la venta está bien', async () => {
                 const res = await request(app)
-                    .get(`/cliente/${cliente.id}/ventas/`)
+                    .get(`/cliente/${venta.cliente}/ventas/`)
                     .set('Authorization', `Bearer ${token}`);
 
                 venta.file_path = res.body[0].file_path;

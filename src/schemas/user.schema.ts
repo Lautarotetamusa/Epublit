@@ -7,20 +7,29 @@ const baseSchema = z.object({
     password: z.string(),
     cuit: z.string(),
     email: z.string().email(),
-    production: z.number()
+    production: z.number(),
+    punto_venta: z.number().gte(0).nullable()
 });
 
 const userSchema = baseSchema.and(afipSchema);
 export type UserSchema = z.infer<typeof userSchema>; 
+
+export const updateUser = baseSchema.pick({
+    email: true,
+    punto_venta: true,
+}).partial()
 
 export const loginUser = z.object({
     username: z.string(),
     password: z.string(),
 });
 
-export type TokenUser = Omit<UserSchema, 'email' | 'password'> 
+export type TokenUser = Pick<UserSchema, 'id' | 'cuit'> 
 
-export type UpdateUser = Partial<Omit<UserSchema, 'cuit' | 'id'>>;
+// used to update the afip data, get all the information again from afip webservice
+export type UpdateAfipUser = Partial<z.infer<typeof afipSchema>>;
+
+export type UpdateUser = z.infer<typeof updateUser>;
 
 export const createUser = baseSchema.pick({ 
     username: true,
@@ -30,4 +39,4 @@ export const createUser = baseSchema.pick({
 });
 export type CreateUser = z.infer<typeof createUser>;
 
-export type SaveUser = Omit<UserSchema, 'id'>;
+export type SaveUser = Omit<UserSchema, 'id' | 'punto_venta'>;

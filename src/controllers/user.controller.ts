@@ -2,10 +2,9 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 
 import bcrypt from "bcrypt";
-import fs from "fs";
 import jwt, {Secret} from "jsonwebtoken";
 import { Unauthorized, ValidationError } from "../models/errors";
-import { createUser, loginUser } from "../schemas/user.schema";
+import { createUser, loginUser, updateUser } from "../schemas/user.schema";
 import { createCSR, createKey, createUserFolder, getAfipData, getCertPath, isValidCert, removeCert, saveCert } from "../afip/Afip";
 import { StringValue } from "ms";
 
@@ -38,8 +37,30 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     });
 }
 
+
+const update = async (req: Request, res: Response): Promise<Response> => {
+    const body = updateUser.parse(req.body);
+
+    // object its empty
+    if (Object.keys(body).length == 0) {
+        return res.status(200).json({
+            success: true,
+            message: "El usuario esta igual que antes",
+        });
+    }
+
+    const user = await User.getById(res.locals.user.id);
+    await user.update(body);
+
+    return res.status(200).json({
+        success: true,
+        message: "Usuario actualizado correctamente",
+        data: user
+    });
+}
+
 const updateAfipData = async (req: Request, res: Response): Promise<Response> => {
-    const user = await User.getOne(res.locals.user.username);
+    const user = await User.getById(res.locals.user.id);
     const afipData = await getAfipData(user.cuit);
     await user.update(afipData);
 
@@ -53,7 +74,8 @@ const updateAfipData = async (req: Request, res: Response): Promise<Response> =>
 const login = async (req: Request, res: Response): Promise<Response> => {
     const body = loginUser.parse(req.body);
     const user = await User.getOne(body.username);
-    const match = await bcrypt.compare(body.password, Buffer.from(user.password).toString('ascii'));
+    const password = await User.getPassword(user.id);
+    const match = await bcrypt.compare(body.password, Buffer.from(password).toString('ascii'));
     
     if (!match) throw new Unauthorized("Contraseña incorrecta");
 
@@ -61,20 +83,15 @@ const login = async (req: Request, res: Response): Promise<Response> => {
         expiresIn: process.env.JWT_EXPIRES_IN as StringValue
     }
 
-    const payload = {
+    const token_data = {
         id: user.id,
-        username: user.username,
-        razon_social: user.razon_social,
-        domicilio: user.domicilio,
-        cond_fiscal: user.cond_fiscal,
         cuit: user.cuit,
-        production: user.production,
     }
 
     // TODO: do not use process here, set it in main
     const secret = process.env.JWT_SECRET as Secret;
 
-    const token = jwt.sign(payload, secret, opts)
+    const token = jwt.sign(token_data, secret, opts)
 
     return res.status(200).json({
         success: true,
@@ -105,15 +122,18 @@ const uploadCert = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getOne = async (req: Request, res: Response): Promise<Response> => { 
+    const user = await User.getById(res.locals.user.id);
+
     return res.status(200).json({
         success: true,
-        data: res.locals.user
+        data: user
     });
 }
 
 export default {
     create,
     login,
+    update,
     getOne,
     uploadCert,
     updateAfipData

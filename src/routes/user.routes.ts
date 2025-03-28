@@ -13,6 +13,8 @@ router.post('/register', UserController.create);
 
 router.post('/login', UserController.login);
 
+router.put('', auth, UserController.update);
+
 router.post('/uploadCert', auth, upload.single("cert"), UserController.uploadCert);
 
 router.put('/afip', auth, UserController.updateAfipData);

@@ -1456,6 +1456,7 @@ CREATE TABLE `users` (
   `email` varchar(255) DEFAULT '',
   `ingresos_brutos` tinyint(1) NOT NULL DEFAULT 0,
   `fecha_inicio` char(10) NOT NULL,
+  `punto_venta` int default NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1467,9 +1468,9 @@ CREATE TABLE `users` (
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
 INSERT INTO `users` VALUES
-(1,'teti','$2b$10$VJTcN/./VCEOYQgnfCXebOItX9Ky/iz3nHOMvqOZNMW00BsOy5oz6','20434919798',' - ','LAUTARO TETA MUSA','URQUIZA 1159 Piso:4 Dpto:4 - ROSARIO NORTE SANTA FE',0,'',0,'01/10/2021'),
-(23,'admin','$2b$10$NKL/PmGA1aXGEfalHYGA7OVRUMxmveMeaAaop.eLEF/idptD/GdyO','27249804024','IVA EXENTO','MARIA CAROLINA MUSA','URQUIZA 1159 Piso:4 Dpto:4 - ROSARIO NORTE SANTA FE',1,'info@librosilvestres.com',1,'01/01/2021'),
-(44,'martinpdisalvo','$2b$10$1qjXOsregmYZp7WoNFeBE.aFSXeZpSswcD2DSzPA5dMuUaVURgYgq','20173080329',' - ','CARLOS FABIAN GALASSI','FALCON 58 - SAN NICOLAS - BUENOS AIRES',0,'lauti@gmail.com',0,'01/11/2013');
+(1,'teti','$2b$10$VJTcN/./VCEOYQgnfCXebOItX9Ky/iz3nHOMvqOZNMW00BsOy5oz6','20434919798',' - ','LAUTARO TETA MUSA','URQUIZA 1159 Piso:4 Dpto:4 - ROSARIO NORTE SANTA FE',0,'',0,'01/10/2021', 9),
+(23,'admin','$2b$10$NKL/PmGA1aXGEfalHYGA7OVRUMxmveMeaAaop.eLEF/idptD/GdyO','27249804024','IVA EXENTO','MARIA CAROLINA MUSA','URQUIZA 1159 Piso:4 Dpto:4 - ROSARIO NORTE SANTA FE',1,'info@librosilvestres.com',1,'01/01/2021', NULL),
+(44,'martinpdisalvo','$2b$10$1qjXOsregmYZp7WoNFeBE.aFSXeZpSswcD2DSzPA5dMuUaVURgYgq','20173080329',' - ','CARLOS FABIAN GALASSI','FALCON 58 - SAN NICOLAS - BUENOS AIRES',0,'lauti@gmail.com',0,'01/11/2013', NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
