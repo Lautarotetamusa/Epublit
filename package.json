@@ -58,8 +58,8 @@
         "start:prod": "node dist/app.js",
         "build": "rm -rf ./dist/ && tsc && cp -r ./src/afip/afip.js/src/Afip_res/ ./dist/afip/afip.js/src/Afip_res",
         "lint": "eslint src/",
-        "test:setup": "./test/setuptest.sh",
-        "test": "chmod +x ./test/setuptest.sh && ./test/setuptest.sh && npx jest",
+        "test:setup": "./scripts/setuptest.sh",
+        "test": "chmod +x ./scripts/setuptest.sh && ./scripts/setuptest.sh && npx jest",
         "migration": "node ./db/migration.js"
     }
 }
