@@ -17,6 +17,7 @@ files/logos/*
 
 #Tokens de afip
 afipkeys/*
+!afipkeys/download_crt.sh
 
 #Ts build folder
 dist/
