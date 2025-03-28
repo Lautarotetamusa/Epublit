@@ -259,7 +259,6 @@ describe('VENTA', () => {
                     id: venta.id,
                     id_cliente: venta.cliente,
                     id_transaccion: venta.id,
-                    punto_venta: 9,
                     total: 45000, // 5000 x 3 x 3. 3 titulos con 3 ejemplares cu a 5000 
                     type: 'ventaConsignacion',
                     medio_pago: 'efectivo',

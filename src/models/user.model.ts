@@ -1,7 +1,10 @@
+import { RowDataPacket } from "mysql2";
+import { conn } from "../db";
 import { 
     UserSchema,
     SaveUser,
-    UpdateUser
+    UpdateUser,
+    UpdateAfipUser
 } from "../schemas/user.schema"
 import { BaseModel } from "./base.model";
 
@@ -14,12 +17,18 @@ export class User extends BaseModel{
     razon_social: string;
     fecha_inicio: string;
     ingresos_brutos: boolean;
+    punto_venta: number | null;
 
     domicilio: string;
     email: string;
     production: number; //Pongo un numero porque mysql devuelve un numero
 
     static table_name = "users"; 
+
+    static fields = [
+        "username", "id", "cuit", "cond_fiscal", "razon_social", "fecha_inicio", 
+        "ingresos_brutos", "punto_venta", "domicilio", "email", "production"
+    ];
 
     constructor(body: UserSchema){
         super();
@@ -35,6 +44,7 @@ export class User extends BaseModel{
         this.email = body.email;
         this.id = body.id;
         this.production = body.production;
+        this.punto_venta = body.punto_venta;
     }
 
     static exists(username: string): Promise<boolean>{
@@ -45,7 +55,7 @@ export class User extends BaseModel{
         return this._insert<SaveUser, User>(body);
     }
 
-    async update(body: UpdateUser){
+    async update(body: UpdateAfipUser & UpdateUser){
         await User._update<UpdateUser>(body, {
             id: this.id, 
         });    
@@ -68,5 +78,10 @@ export class User extends BaseModel{
     
     static getById(id: number): Promise<User>{
         return super.find_one<UserSchema, User>({id: id})
+    }
+
+    static async getPassword(id: number): Promise<string>{
+        const [rows] = await conn.query<RowDataPacket[]>("select password from users where id=?", [id])
+        return rows[0].password as string;
     }
 }

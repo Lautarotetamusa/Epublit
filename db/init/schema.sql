@@ -239,6 +239,7 @@ CREATE TABLE `users` (
   `email` varchar(255) DEFAULT '',
   `ingresos_brutos` tinyint(1) NOT NULL DEFAULT 0,
   `fecha_inicio` char(10) NOT NULL,
+  `punto_venta` int default NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

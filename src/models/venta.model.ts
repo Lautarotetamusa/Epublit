@@ -20,16 +20,12 @@ export class Venta extends Transaccion {
     descuento: number;
     total: number;
     medio_pago: MedioPago;
-
-    punto_venta: number;
     tipo_cbte: number;
 
     constructor(request: VentaSchema & TransaccionSchema){
         super(request);
 
         this.descuento   = request.descuento;
-        //TODO: No hardcodear esto
-        this.punto_venta = 9;
         this.tipo_cbte   = request.tipo_cbte;
 
         this.medio_pago = request.medio_pago;
