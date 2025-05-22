@@ -1,5 +1,6 @@
 import {Response, Request, NextFunction} from "express"
 import { ZodError } from "zod";
+import { AfipError } from "../afip/Afip";
 
 export class ApiError extends Error{
     status: number;
@@ -75,13 +76,21 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
             message: err.message
         }]
     });
+
+    if (err instanceof AfipError) return res.status(500).json({
+        success: false,
+        errors: [{
+            code: err.code,
+            message: err.message
+        }]
+    });
         
     console.error("INTERNAL ERROR: ", err.message, err.stack);
     return res.status(500).json({
         success: false,
         errors: [{
             code: err.name,
-            message: err.message
+            message: "Internal server error"
         }]
     });
 }
