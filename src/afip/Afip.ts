@@ -11,13 +11,20 @@ import { join } from 'path';
 import { assert } from "console";
 import { spawn } from "child_process";
 
-const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-
 const afipKeysPath = join(__dirname, '../../afipkeys/');
 
 interface IAfip {
     createNextVoucher(data: FacturaPayload): Promise<{voucherNumber: string}>
     getVoucherInfo(voucherNumber: string, ptoVenta: number, tipoCbte: number): Promise<Comprobante>
+}
+
+export class AfipError extends Error{
+    code: number;
+
+    constructor(message: string, code: number){
+        super(message);
+        this.code = code;
+    }
 }
 
 // Funcion traida desde Afip.ts
@@ -73,6 +80,8 @@ const idImpuestos = {
 } as const;
 
 // cuenta madre
+//
+
 const cuitProd = "27249804024";
 const afipMadre = new Afip({
 	CUIT: cuitProd,
@@ -90,6 +99,7 @@ export function getAfipClient(user: User){
     const path = join(afipKeysPath, user.cuit);
 
     const certFileName = user.production == 1 ? 'cert.crt' : 'cert.pem';
+    //const certFileName = 'cert.pem';
     const privateFileName = 'private_key.key';
 
     if (!(fs.existsSync(join(path, privateFileName)))){
@@ -139,6 +149,8 @@ export async function getServerStatus(user: User){
 }
 
 export async function facturar(pto_venta: number, venta: Venta, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
+    const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
 	const data: FacturaPayload = {
 		'CantReg' 	: 1,  									
 		'PtoVta' 	: pto_venta,  					
@@ -157,24 +169,42 @@ export async function facturar(pto_venta: number, venta: Venta, cliente: Cliente
 		'MonCotiz' 	: 1,     								
 	};
 
-    const { voucherNumber } = await afip.createNextVoucher(data);
+    try{
+        const { voucherNumber } = await afip.createNextVoucher(data);
 
-	const comprobante = await afip.getVoucherInfo(voucherNumber, pto_venta, venta.tipo_cbte);
+        const comprobante = await afip.getVoucherInfo(voucherNumber, pto_venta, venta.tipo_cbte);
+        comprobante.nro 	= voucherNumber;
+        comprobante.CbteFch = formatAfipDate(comprobante.CbteFch);
+        comprobante.FchVto	= formatAfipDate(comprobante.FchVto);
 
-	comprobante.nro 	= voucherNumber;
-	comprobante.CbteFch = formatAfipDate(comprobante.CbteFch);
-	comprobante.FchVto	= formatAfipDate(comprobante.FchVto);
+        return new Promise<Comprobante>((resolve, reject) => {
+            QRcode.toDataURL(createQRUrl(data, comprobante), function (err, base64_qr) {
+                if (err) reject(err);
 
-	return new Promise<Comprobante>((resolve, reject) => {
-        QRcode.toDataURL(createQRUrl(data, comprobante), function (err, base64_qr) {
-            if (err) reject(err);
-
-            resolve({
-                ...comprobante,
-                qr: base64_qr
+                resolve({
+                    ...comprobante,
+                    qr: base64_qr
+                });
             });
-        });
-    })
+        })
+    } catch(e){
+        // Verificar si 'e' es un objeto Error y si tiene 'message'
+        //console.log(e instanceof Error);
+        if (e instanceof Error) {
+            // Intentar extraer código y mensaje con regex
+            const match = e.message.match(/\((\d+)\) (.+)$/);
+            
+            if (match) {
+                // Si coincide el formato, lanzar error personalizado
+                const [_, code, msg] = match;
+                console.log(code, msg);
+                throw new AfipError(msg, Number(code));
+            }
+        }
+        
+        // Si no coincide, relanzar error original
+        throw e;
+    }
 }
 
 export async function getAfipData(cuit: string): Promise<AfipData>{

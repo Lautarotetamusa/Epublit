@@ -34,7 +34,8 @@ export async function emitirComprobante({data, user}: args){
 
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/google-chrome',
-        args: ['--no-sandbox']
+        args: ['--no-sandbox'],
+        headless: "new"
     });
     const page = await browser.newPage();
 
