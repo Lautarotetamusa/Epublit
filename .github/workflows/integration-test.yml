@@ -67,6 +67,9 @@ jobs:
         cd afipkeys
         mkdir -p 20434919798/Tokens
         touch 20434919798/cert.pem 20434919798/private_key.key
+        echo "${{ secrets.AFIP_CERT }}" > 20434919798/cert.pem
+        echo "${{ secrets.AFIP_PRIVATE_KEY }}" > 20434919798/private_key.key
+        chmod 600 20434919798/private_key.key
 
         mkdir -p 27249804024/Tokens
         touch 27249804024/cert.crt 27249804024/private_key.key
