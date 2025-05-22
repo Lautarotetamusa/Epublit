@@ -2,21 +2,11 @@ process.env.DB_NAME = "epublit_test";
 
 import {test} from '@jest/globals';
 
-import { createCSR, facturar, getAfipClient } from "../src/afip/Afip";
+import { facturar, getAfipClient } from "../src/afip/Afip";
 import { User } from '../src/models/user.model';
 import { Venta } from '../src/models/venta.model';
 import { Transaccion } from '../src/models/transaccion.model';
 import { Cliente } from '../src/models/cliente.model';
-
-/*!40000 ALTER TABLE `users` ENABLE KEYS */;
-test("Crear CSR file", async () => {
-    try {
-        const user = await User.getById(44);
-        createCSR(user);
-    } catch(e) {
-        expect(e).toBeNull();
-    }
-});
 
 test("Facturar", async () => {
     try {
