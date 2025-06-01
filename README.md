@@ -111,3 +111,5 @@ docker compose up -d api
 ```bash
 npm run test
 ```
+
+# [Migraciones](https://www.npmjs.com/package/mysql-migrations)

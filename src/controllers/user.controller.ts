@@ -7,6 +7,7 @@ import { Unauthorized, ValidationError } from "../models/errors";
 import { createUser, loginUser, updateUser } from "../schemas/user.schema";
 import { createCSR, createKey, createUserFolder, getAfipData, getCertPath, isValidCert, removeCert, saveCert } from "../afip/Afip";
 import { StringValue } from "ms";
+import { sendWelcomeEmail } from "./mail.controller";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
     const body = createUser.parse(req.body);
@@ -29,6 +30,12 @@ const create = async (req: Request, res: Response): Promise<Response> => {
     await createUserFolder(user.cuit);
     await createKey(user.cuit);
     await createCSR(user);
+
+    // Non-critical email operation (fire-and-forget)
+    sendWelcomeEmail(user.email, user.cuit)
+    .catch(emailError => {
+        console.error(`Failed to send welcome email to ${user.email}:`, emailError);
+    });
     
     return res.status(201).json({
         success: true,

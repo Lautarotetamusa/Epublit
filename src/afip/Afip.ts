@@ -271,7 +271,7 @@ export function getCertPath(cuit: string) {
     return join(afipKeysPath, cuit, "cert.pem");
 }
 
-function getCSRPath(cuit: string) {
+export function getCSRPath(cuit: string) {
     return join(afipKeysPath, cuit, "cert.csr");
 }
 
