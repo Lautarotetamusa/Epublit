@@ -100,7 +100,7 @@ jobs:
         run: |
           # Copying files
           scp -o StrictHostKeyChecking=no \
-            -r src/ types/ package.json tsconfig.json Dockerfile docker-compose.yml $SERVER_HOST:$DEPLOY_PATH
+            -r src/ types/ files/mails package.json tsconfig.json Dockerfile docker-compose.yml $SERVER_HOST:$DEPLOY_PATH
 
           # Write .env file
           ssh -o StrictHostKeyChecking=no $SERVER_HOST \
