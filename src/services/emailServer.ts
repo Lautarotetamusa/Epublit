@@ -12,7 +12,7 @@ interface EmailOptions {
 export async function sendEmail(options: EmailOptions): Promise<void> {
     const transporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
-        port: parseInt(process.env.EMAIL_PORT || '587'),
+        port: parseInt(process.env.EMAIL_PORT || '465'),
         //secure: false, // Zoho requires STARTTLS on port 587
         auth: {
             user: process.env.EMAIL_USER,
@@ -21,7 +21,7 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
     });
 
     const mailOptions: nodemailer.SendMailOptions = {
-        from: "Epublit " + process.env.EMAIL_HOST, // Va a llegar con este nombre
+        from: process.env.EMAIL_USER, // Va a llegar con este nombre
         to: options.to,
         subject: options.subject,
         html: options.html,
