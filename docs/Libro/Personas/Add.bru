@@ -1,0 +1,33 @@
+meta {
+  name: Add
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/libro/9789874864674/personas
+  body: json
+  auth: inherit
+}
+
+body:json {
+  [
+    {
+      "id_persona": 1,
+      "tipo": "autor",
+      "porcentaje": 70
+    },
+    {
+      "id_persona": 2,
+      "tipo": "ilustrador",
+      "porcentaje": 30
+    }
+  ]
+}
+
+docs {
+  Acepta un objeto único o un array (alta en lote). Solo opera sobre
+  personas ya existentes (`id_persona`); no crea personas nuevas al vuelo.
+  Todo o nada: si alguna falla (duplicada, inexistente, ajena), no se crea
+  ninguna del lote. `porcentaje` en 0-100.
+}

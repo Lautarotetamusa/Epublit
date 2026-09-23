@@ -1,0 +1,19 @@
+meta {
+  name: Get stock
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/cliente/1/stock
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~fecha: 2024-01-01
+}
+
+docs {
+  Sin migrar (MySQL). `fecha` es opcional (query param).
+}

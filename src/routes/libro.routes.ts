@@ -2,20 +2,18 @@ import express from "express"
 
 import LibroController from "../controllers/libro.controller"
 import LibroPersonaController from "../controllers/libro_persona.controller"
-import { transactional } from "../middleware/transaction";
 
 const router = express.Router();
 
-// Create new libro
-router.post('/', transactional, LibroController.create);
+// Create new libro: `libroService.create` maneja su propia transacción
+// Postgres (`db.transaction`).
+router.post('/', LibroController.create);
 
-router.get('/lista_libros', LibroController.listaLibros); 
+router.get('/lista_libros', LibroController.listaLibros);
 
-router.get('', LibroController.getAll); //paginated
+router.get('', LibroController.getAll);
 
 router.get('/:isbn', LibroController.getOne);
-
-router.get('/:isbn/ventas', LibroController.getVentas)
 
 router.get('/:isbn/precio', LibroController.getPrecios)
 

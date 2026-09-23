@@ -1,12 +1,7 @@
-import {Request, Response} from "express";
-import { Persona } from "../models/persona.model";
-import { Libro } from "../models/libro.model";
-import { 
-    libroPersonaKey,
-    libroPersonaSchema,
-} from "../schemas/libro_persona.schema";
-import { Duplicated, NotFound } from "../models/errors"
-import { LibroPersona } from "../models/libro_persona.model";
+import { Request, Response } from "express";
+import { Libro } from "../validators/libro.validator";
+import { libroPersonaValidator } from "../validators/libro_persona.validator";
+import { libroPersonaService } from "../services/libroPersona.service";
 
 function makeResponse<P>(res: Response, libro: Libro, personas: P[], method: "put" | "post" | "delete"): Response {
     let message: string;
@@ -36,59 +31,34 @@ function makeResponse<P>(res: Response, libro: Libro, personas: P[], method: "pu
     });
 }
 
-const addLibroPersonas = async(req: Request, res: Response) => {
-    let body = Array.isArray(req.body) ? req.body : [req.body]; 
+const addLibroPersonas = async (req: Request, res: Response) => {
+    const body = libroPersonaValidator.bodyBatch.parse(req.body);
+    const items = Array.isArray(body) ? body : [body];
 
-    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id);
-    body = body.map((p: any) => ({...p, isbn: libro.isbn, id_libro: libro.id_libro}));
-    const personas = libroPersonaSchema.array().parse(body);
-
-    if (await LibroPersona.any_exists(personas.map(p => ({id_libro: p.id_libro, id_persona: p.id_persona})))){
-        throw new Duplicated("Alguna persona ya trabaja en ese libro");
-    }
-    if (!await Persona.all_exists(personas.map(p => ({id: p.id_persona})))){
-        throw new NotFound("Alguna persona no existe");
-    }
-
-    await LibroPersona.insert(personas);
+    const { libro, personas } = await libroPersonaService.addToLibro(String(req.params.isbn), res.locals.user.id, items);
 
     return makeResponse(res, libro, personas, "post");
 };
 
-const updateLibroPersonas = async(req: Request, res: Response) => {
-    let body = Array.isArray(req.body) ? req.body : [req.body]; 
+const updateLibroPersonas = async (req: Request, res: Response) => {
+    const body = libroPersonaValidator.bodyBatch.parse(req.body);
+    const items = Array.isArray(body) ? body : [body];
 
-    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id);
-    body = body.map((p: any) => ({...p, isbn: libro.isbn, id_libro: libro.id_libro}));
-    const personas = libroPersonaSchema.array().parse(body);
-    const personasKeys = personas.map(p => { return {
-        id_libro: p.id_libro,
-        id_persona: p.id_persona,
-        tipo: p.tipo
-    }});
-
-    if (!await LibroPersona.all_exists(personasKeys)){
-        throw new NotFound("Alguna persona no trabaja en este libro");
-    }
-
-    await LibroPersona.update(personas);
+    const { libro, personas } = await libroPersonaService.updateInLibro(String(req.params.isbn), res.locals.user.id, items);
 
     return makeResponse(res, libro, personas, "put");
 };
 
-const deleteLibroPersonas = async(req: Request, res: Response) => {
-    let body = Array.isArray(req.body) ? req.body : [req.body]; 
+const deleteLibroPersonas = async (req: Request, res: Response) => {
+    const body = libroPersonaValidator.removeBatch.parse(req.body);
+    const items = Array.isArray(body) ? body : [body];
 
-    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id);
-    body = body.map((p: any) => ({...p, id_libro: libro.id_libro}));
-    const personas = libroPersonaKey.array().parse(body);
-
-    await LibroPersona.remove(personas);
+    const { libro, personas } = await libroPersonaService.removeFromLibro(String(req.params.isbn), res.locals.user.id, items);
 
     return makeResponse(res, libro, personas, "delete");
 };
 
-export default{
+export default {
     addLibroPersonas,
     updateLibroPersonas,
     deleteLibroPersonas

@@ -1,63 +1,35 @@
-import { createLibroPersona, createlibroPersonaInDB } from './libro_persona.schema';
-import {z} from 'zod';
+import { pgTable, integer, varchar, date, real, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { usersTable } from "./users.schema";
 
-const transformStr = (val: string, ctx: z.RefinementCtx) => {
-  const parsed = parseInt(val);
-  if (isNaN(parsed)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Not a number",
-    });
-
-    return z.NEVER;
-  }
-  return parsed;
-}
-
-export const libroSchema = z.object({
-    titulo: z.string(),
-    isbn: z.string(),
-    id_libro: z.number(),
-    precio: z.number(),
-    fecha_edicion: z.coerce.date(),
-    stock: z.number(),
-    user: z.number()
-});
-export type LibroSchema = z.infer<typeof libroSchema>;
-
-export const libroParams = libroSchema.extend({
-    id_libro: z.string().transform(transformStr),
-    precio: z.string().transform(transformStr),
-    stock: z.string().transform(transformStr),
-}).partial();
-export type LibroParams = z.infer<typeof libroParams>;
-
-export type SaveLibro = Omit<LibroSchema, 'id_libro'>;
-
-export const libroCantidad = libroSchema.pick({
-    isbn: true
-}).and(z.object({
-    cantidad: z.number().min(1)
-}));
-export type LibroCantidad = z.infer<typeof libroCantidad>;
-
-const libroPrecio = libroSchema.pick({
-    isbn: true,
-    precio: true,
-    user: true,
-    id_libro: true,
-});
-export type CreateLibroPrecio = z.infer<typeof libroPrecio>;
-
-export const createLibro = libroSchema.extend({
-    autores: z.array(createlibroPersonaInDB.or(createLibroPersona)),
-    ilustradores: z.array(createlibroPersonaInDB.or(createLibroPersona))
-}).omit({
-    user: true,
-    id_libro: true
-});
-export const updateLibro = libroSchema.omit({
-    isbn: true,
-    user: true
-}).partial();
-export type UpdateLibro = Partial<LibroSchema>;
+export const librosTable = pgTable(
+    "libros",
+    {
+        // `.unique()` además de la PK compuesta: precio_libros.id_libro,
+        // libros_personas.id_libro y libro_cliente.id_libro referencian esta
+        // columna sola, y Postgres exige unicidad para el FK.
+        id_libro: integer("id_libro").generatedAlwaysAsIdentity().unique(),
+        isbn: varchar("isbn", { length: 13 }).notNull(),
+        titulo: varchar("titulo", { length: 60 }).notNull(),
+        fecha_edicion: date("fecha_edicion").notNull(),
+        precio: real("precio").notNull(),
+        stock: integer("stock").default(0),
+        // bradb (ServiceBuilder) detecta soft-delete por la columna `deleted_at`.
+        deletedAt: timestamp("deleted_at"),
+        user: integer("user")
+            .notNull()
+            .references(() => usersTable.id)
+    },
+    (table) => [
+        // PK compuesta (id_libro, user): bradb arma el WHERE de
+        // findOne/update/delete a partir de todas las columnas de la PK, así
+        // que esto hace que no se pueda traer/editar/borrar un libro de otro
+        // usuario ni por error.
+        primaryKey({ columns: [table.id_libro, table.user] }),
+        // isbn como valor único por usuario, sólo entre libros activos: un
+        // isbn eliminado puede reutilizarse (ver spec, "Casos borde").
+        uniqueIndex("libros_isbn_user_active_idx")
+            .on(table.isbn, table.user)
+            .where(sql`deleted_at IS NULL`)
+    ]
+);

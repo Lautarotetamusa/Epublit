@@ -1,0 +1,16 @@
+meta {
+  name: Get all
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/persona
+  body: none
+  auth: inherit
+}
+
+docs {
+  Con `?tipo=autor` o `?tipo=ilustrador` filtra las personas que trabajan en
+  al menos un libro con ese tipo (join contra `libros_personas`).
+}

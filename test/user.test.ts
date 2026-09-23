@@ -1,4 +1,4 @@
-import {describe, expect, it} from '@jest/globals';
+import {describe, expect, it, vi} from 'vitest';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -8,11 +8,11 @@ import fs from "fs";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-jest.mock('../src/afip/Afip', () => {
-    const actual = jest.requireActual('../src/afip/Afip');
+vi.mock('../src/afip/Afip', async () => {
+    const actual = await vi.importActual('../src/afip/Afip');
     return {
         ...actual,
-        getAfipData: jest.fn((cuit) => {
+        getAfipData: vi.fn((cuit) => {
             if (cuit == "12345") throw new NotFound("El cuit no valido")
 
             return {
@@ -29,6 +29,9 @@ jest.mock('../src/afip/Afip', () => {
 process.env.DB_NAME = "epublit_test";
 import {app, server} from '../src/app';
 import {conn} from '../src/db'
+import {db} from '../src/pgDb';
+import {usersTable, clientesTable} from '../src/schemas';
+import {or, eq, inArray} from 'drizzle-orm';
 import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
 import { NotFound } from '../src/models/errors';
 
@@ -53,9 +56,20 @@ afterAll(() => {
 });
 
 it('Hard delete', async () => {
-    await conn.query(`
-        delete from users where cuit=${cuit} or username = '${user.username}'`
-    );
+    // `user` ahora vive sólo en Postgres; hay que borrar sus clientes por
+    // defecto (MOSTRADOR/CONSUMIDOR FINAL) antes que la fila de `users`
+    // porque `clientes.user` referencia `users.id` sin `onDelete: cascade`.
+    const existing = await db
+        .select({ id: usersTable.id })
+        .from(usersTable)
+        .where(or(eq(usersTable.cuit, cuit), eq(usersTable.username, user.username)));
+
+    const ids = existing.map((u) => u.id);
+    if (ids.length > 0) {
+        await db.delete(clientesTable).where(inArray(clientesTable.user, ids));
+    }
+
+    await db.delete(usersTable).where(or(eq(usersTable.cuit, cuit), eq(usersTable.username, user.username)));
 });
 
 describe('POST user/register', () => {

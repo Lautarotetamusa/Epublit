@@ -1,0 +1,18 @@
+meta {
+  name: Update
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{host}}/user
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "nuevoemail@test.com",
+    "punto_venta": 5
+  }
+}

@@ -1,213 +1,102 @@
-import {Request, Response} from "express";
-import { Persona } from "../models/persona.model";
-import { Libro } from "../models/libro.model";
-import { 
-    LibroPersonaSchema,
-    tipoPersona, 
-} from "../schemas/libro_persona.schema";
-import { ValidationError } from "../models/errors"
-import { LibroPersona } from "../models/libro_persona.model";
+import { Request, Response } from "express";
+import fs from "fs";
 
-import fs from 'fs';
-import {  createLibro, libroParams, updateLibro } from "../schemas/libros.schema";
-import { LibroPrecio } from "../models/libroPrecio.model";
-import { conn } from "../db";
+import { libroService } from "../services/libro.service";
+import { libroValidator } from "../validators/libro.validator";
+import { Duplicated } from "../models/errors";
 
-function removeDuplicateds<T extends {isbn: string}>(list: T[]) {
-    const uniqueIds: string[] = [];
-    return list.filter(e => {
-        const isDuplicate = uniqueIds.includes(e.isbn);
-  
-        if (!isDuplicate) {
-          uniqueIds.push(e.isbn);
-          return true;
-        }
-  
-        return false;
-      });
-}
-
-const create = async (req: Request, res: Response) => { 
+const create = async (req: Request, res: Response) => {
     const userId = res.locals.user.id;
-    const connection = await conn.getConnection();
+    const libroBody = libroValidator.insert.parse(req.body);
 
-    const {autores, ilustradores, ...libroBody} = createLibro.parse(req.body);
-    let indb: LibroPersonaSchema[] = [];
-    const notIndb = [];
-
-    const personas = [];
-    for (const a of autores){
-        personas.push({...a, tipo: tipoPersona.autor});
+    if (await libroService.exists(libroBody.isbn, userId)) {
+        throw new Duplicated(`El libro con isbn ${libroBody.isbn} ya existe`);
     }
-    for (const i of ilustradores){
-        personas.push({...i, tipo: tipoPersona.ilustrador});
-    }
-    
-    try{
-        await connection.beginTransaction();
 
-        await Libro.is_duplicated(libroBody.isbn, userId);
-        const libro = await Libro.insert({
-            ...libroBody,
-            user: userId
-        }, connection);
-        connection.release();
-
-        for (const persona of personas){
-            if ("id_persona" in persona){
-                indb.push({
-                    ...persona,
-                    isbn: libroBody.isbn,
-                    id_libro: libro.id_libro 
-                });
-            }else{
-                notIndb.push(persona);
-            }
-        }
-
-        indb = removeDuplicateds(indb);       
-
-        if (!await Persona.all_exists(indb.map(p => ({id: p.id_persona, user: userId})))){
-            throw new ValidationError("Alguna persona no existe");
-        }
-
-        if(await Persona.any_exists(notIndb.map(p => ({dni: p.dni, user: userId})))){
-            throw new ValidationError("Alguna persona ya se encuentra cargada");
-        }
-
-        for (const personaBody of notIndb){
-            const persona = await Persona.insert({
-                nombre: personaBody.nombre,
-                email: personaBody.email,
-                dni: personaBody.dni,
-                user: userId
-            }, connection);
-            connection.release();
-
-            indb.push({
-                porcentaje: personaBody.porcentaje, 
-                id_persona: persona.id,
-                tipo: personaBody.tipo, 
-                isbn: libroBody.isbn,
-                id_libro: libro.id_libro
-            });
-        }
-
-        await LibroPrecio.insert({
-            isbn: libroBody.isbn, 
-            precio: libroBody.precio, 
-            user: userId,
-            id_libro: libro.id_libro
-        }, connection);
-        connection.release();
-
-        await LibroPersona.insert(indb, connection);
-        connection.release();
-
-        await connection.commit();
-
-        return res.status(201).json({
-            success: true,
-            message: `Libro con isbn ${libroBody.isbn} creado correctamente`,
-            data: {
-                ...libro,
-                autores:      indb.filter(p => p.tipo == tipoPersona.autor),
-                ilustradores: indb.filter(p => p.tipo == tipoPersona.ilustrador),
-            }
-        });
-    }catch(err: any) {
-        await connection.rollback();
-        throw err;
-    }finally{
-        connection.release();
-    }
-}
-
-const remove = async(req: Request, res: Response) => {
-    await Libro.delete(req.params.isbn, res.locals.user.id);
-
-    return res.json({
-        success: true,
-        message: `Libro con isbn ${req.params.isbn} eliminado correctamente`
-    })
-}
-
-const update = async(req: Request, res: Response) => {
-    const body = updateLibro.parse(req.body);
-    const user = res.locals.user.id;
-    const isbn = req.params.isbn;
-
-    const libro = await Libro.getByIsbn(isbn, user);
-
-    //Solamente creamos un nuevo precio si el precio es distinto
-    if ('precio' in body && body.precio && libro.precio != body.precio){
-        await LibroPrecio.insert({
-            isbn: isbn, 
-            precio: body.precio, 
-            user: user,
-            id_libro: libro.id_libro
-        });
-    }
-    await libro.update(body, user);
+    const libro = await libroService.create(libroBody, userId);
 
     return res.status(201).json({
         success: true,
-        message: `Libro con isbn ${req.params.isbn} actualizado correctamente`,
+        message: `Libro con isbn ${libroBody.isbn} creado correctamente`,
         data: libro
-    })
-}
+    });
+};
 
-const getVentas = async(req: Request, res: Response) => {
-    const ventas = await Libro.getVentas(req.params.isbn, res.locals.user.id);
-    return res.json(ventas);
-}
+const update = async (req: Request, res: Response) => {
+    const isbn = String(req.params.isbn);
+    const userId = res.locals.user.id;
+    const body = libroValidator.update.parse(req.body);
 
-const getPrecios = async(req: Request, res: Response) => {
-    const precios = await LibroPrecio.getPreciosLibro(req.params.isbn);
+    const libro = await libroService.update(isbn, userId, body);
+
+    return res.status(201).json({
+        success: true,
+        message: `Libro con isbn ${isbn} actualizado correctamente`,
+        data: libro
+    });
+};
+
+const remove = async (req: Request, res: Response) => {
+    const isbn = String(req.params.isbn);
+    await libroService.remove(isbn, res.locals.user.id);
+
+    return res.json({
+        success: true,
+        message: `Libro con isbn ${isbn} eliminado correctamente`
+    });
+};
+
+const getPrecios = async (req: Request, res: Response) => {
+    const precios = await libroService.getPrecios(String(req.params.isbn), res.locals.user.id);
     return res.json(precios);
-}
+};
 
-const getOne = async(req: Request, res: Response) => {
-    const libro = await Libro.getByIsbn(req.params.isbn, res.locals.user.id)
-    const {autores, ilustradores} = await libro.getPersonas(res.locals.user.id);
+const getOne = async (req: Request, res: Response) => {
+    const isbn = String(req.params.isbn);
+    const userId = res.locals.user.id;
+
+    const libro = await libroService.findOne(isbn, userId);
+    const { autores, ilustradores } = await libroService.getPersonas(isbn, userId);
+
     return res.json({
         ...libro,
-        autores: autores,
-        ilustradores: ilustradores
+        autores,
+        ilustradores
     });
-}
+};
 
 const listaLibros = async (req: Request, res: Response) => {
-    const libros = await Libro.getAll(res.locals.user.id);
+    const libros = await libroService.findAllFiltered({ user: res.locals.user.id });
 
     const len = Object.keys(libros[0]).length;
-    const header = 'LISTA DE LIBROS' + ','.repeat(len) + '\r\n';
-    const headers = Object.keys(libros[0]).join(',') + '\r\n';
-    const data = libros.map(l => Object.values(l).join(',')).join('\r\n');
+    const header = "LISTA DE LIBROS" + ",".repeat(len) + "\r\n";
+    const headers = Object.keys(libros[0]).join(",") + "\r\n";
+    const data = libros.map((l) => Object.values(l).join(",")).join("\r\n");
 
-    const filePath = 'lista_libros.csv';
-    fs.writeFileSync(filePath, header+headers+data);
+    const filePath = "lista_libros.csv";
+    fs.writeFileSync(filePath, header + headers + data);
     return res.download(filePath);
-}
+};
 
-const getAll = async(req: Request, res: Response) => {
-    if ("page" in req.query){
-        const libros = await Libro.getPaginated(Number(req.query.page) || 0, res.locals.user.id);
+const getAll = async (req: Request, res: Response) => {
+    const userId = res.locals.user.id;
+
+    if ("page" in req.query) {
+        const libros = await libroService.findAllPaginated(userId, Number(req.query.page) || 0);
         return res.json(libros);
     }
-    const query = libroParams.parse(req.query);
 
-    const libros = await Libro.getAll(res.locals.user.id, query);
+    const filters = libroValidator.filter.parse({ ...req.query, user: userId });
+    const libros = await libroService.findAllFiltered(filters);
     return res.json(libros);
-}
+};
 
-export default{
+export default {
     getAll,
     getOne,
-    getVentas,
     getPrecios,
     create,
     remove,
     update,
     listaLibros
-}
+};

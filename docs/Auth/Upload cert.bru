@@ -1,0 +1,21 @@
+meta {
+  name: Upload cert
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/user/uploadCert
+  body: multipartForm
+  auth: inherit
+}
+
+body:multipart-form {
+  cert: @file()
+}
+
+docs {
+  El campo del form-data se llama `cert` y tiene que ser un certificado
+  x509 (`application/x-x509-ca-cert`); si no lo es, responde 400 y no lo
+  guarda.
+}

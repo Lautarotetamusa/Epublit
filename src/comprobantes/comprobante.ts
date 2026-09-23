@@ -1,28 +1,36 @@
 import fs from 'fs';
 import puppeteer from 'puppeteer';
-import { Venta } from '../models/venta.model';
-import { Consignacion } from '../models/transaccion.model';
-import { User } from '../models/user.model';
-import { Cliente } from '../models/cliente.model';
+import { VentaRow } from '../validators/venta.validator';
+import { User } from '../validators/user.validator';
+import { Client as Cliente } from '../validators/cliente.validator';
 import { Comprobante } from '../afip/Afip';
 import { filesPath } from '../app';
 import { join } from 'path';
-import { tiposComprobantes } from '../schemas/venta.schema';
-import { LibroTransaccion, Transaccion } from '../models/transaccion.model';
+import { tiposComprobantes } from '../validators/venta.validator';
+import { LibroOperacion, TransaccionConCliente } from '../services/operacion.types';
 
 const path = './src/comprobantes';
 
+// `filesFolder` reemplaza a `Venta.filesFolder`/`Consignacion.filesFolder`
+// (propiedades estáticas de la jerarquía vieja, ya no existen): ahora viaja
+// como dato explícito, resuelto por la `OperacionConfig` de quien llama
+// (`src/services/operacion.config.ts`).
 type CreateFactura = {
-    venta: Venta
+    venta: VentaRow
+    // `file_path` vive en la transacción (no en la venta): `ventasTable` no
+    // tiene esa columna, ver `src/schemas/ventas.schema.ts`.
+    transaction: TransaccionConCliente
     comprobante: Comprobante
     cliente: Cliente,
-    libros: LibroTransaccion[] 
+    libros: LibroOperacion[],
+    filesFolder: string
 };
 
 type CreateRemito = {
-    consignacion: Transaccion,
+    consignacion: TransaccionConCliente,
     cliente: Cliente,
-    libros: LibroTransaccion[]
+    libros: LibroOperacion[],
+    filesFolder: string
 };
 
 type args = {
@@ -35,7 +43,7 @@ export async function emitirComprobante({data, user}: args){
     const browser = await puppeteer.launch({
         executablePath: '/usr/bin/google-chrome',
         args: ['--no-sandbox'],
-        headless: "new"
+        headless: true
     });
     const page = await browser.newPage();
 
@@ -72,15 +80,14 @@ export async function emitirComprobante({data, user}: args){
     html = html.replace('{{user_activity_init_date}}', user.fecha_inicio); //dd/mm/yyyy
     html = html.replace('{{user_domicilio}}', user.domicilio);
     html = html.replace('{{user_cond_fiscal}}', user.cond_fiscal);
-    html = html.replace('{{user_email}}', user.email);
+    html = html.replace('{{user_email}}', user.email ?? "");
 
     let filePath: string;
     if ('venta' in data){
-        filePath = join(filesPath, Venta.filesFolder, data.venta.file_path);
+        filePath = join(filesPath, data.filesFolder, data.transaction.file_path);
         html = factura(html, data);
     }else{
-        filePath = data.consignacion.file_path
-        filePath = join(filesPath, Consignacion.filesFolder, data.consignacion.file_path);
+        filePath = join(filesPath, data.filesFolder, data.consignacion.file_path);
         html = remito(html, data);
     }
 
@@ -101,26 +108,30 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logoAfip}">`);
 
     /*Parse venta.libros*/
+    // `descuento` es nullable a nivel de columna (`ventasTable`), pero
+    // `createVenta` siempre lo manda con default 0 al insertar, así que acá
+    // nunca llega null en la práctica.
+    const descuento = venta.descuento ?? 0;
     for (const libro of libros) {
-        const bonif = venta.descuento * 0.01;
+        const bonif = descuento * 0.01;
         const imp_bonif = (libro.precio * libro.cantidad * bonif).toFixed(2);
         const subtotal  = (libro.precio * libro.cantidad * (1 - bonif)).toFixed(2);
 
-        table += 
+        table +=
             `<tr>
             <td style="text-align:left">${libro.isbn}</td>
             <td style="text-align:left">${libro.titulo}</td>
             <td>${libro.cantidad}</td>
             <td>${libro.precio}</td>
-            <td>${venta.descuento}</td>
+            <td>${descuento}</td>
             <td>${imp_bonif}</td>
             <td>${subtotal}</td>
             </tr>`;
     }
-    html = html.replace('{{LIBROS}}', table); 
+    html = html.replace('{{LIBROS}}', table);
     /**/
 
-    html = html.replace('{{cond_venta}}', venta.medio_pago);
+    html = html.replace('{{cond_venta}}', venta.medio_pago ?? '');
 
     //QR
     html = html.replace('<img class="qr" src="">', `<img class="qr" src="${comprobante.qr}">`)
@@ -129,7 +140,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     
     /*parse clientes*/
     html = html.replace('{{cliente_cond}}', cliente.cond_fiscal);
-    html = html.replace('{{cliente_cuit}}', cliente.cuit);
+    html = html.replace('{{cliente_cuit}}', cliente.cuit || '');
     html = html.replace('{{cliente_nombre}}', cliente.razon_social);
     html = html.replace('{{cliente_domicilio}}', cliente.domicilio);
     /**/
@@ -167,7 +178,7 @@ function remito(html: string, {consignacion, cliente, libros}: CreateRemito){
     html = html.replace('{{remito.nro}}', '0003/'+String(consignacion.id).padStart(5, '0'));
     
     //parse_clientes
-    html = html.replace('{{cliente.cuit}}', cliente.cuit);
+    html = html.replace('{{cliente.cuit}}', cliente.cuit || '');
     html = html.replace('{{cliente.razon_social}}', cliente.razon_social);
     html = html.replace('{{cliente.domicilio}}', cliente.domicilio);
     //

@@ -14,7 +14,6 @@ router.put('/:id/stock', ClienteController.updatePrecios);
 router.get('/:id/ventas', ClienteController.getVentas);
 
 router.get('/:id', ClienteController.getOne);
-router.get('/consumidor_final', ClienteController.getOne);
 
 router.put('/:id', ClienteController.update);
 

@@ -17,17 +17,10 @@ jobs:
       matrix:
         node-version: ['22.x']
 
-    services:
-      mariadb:
-        image: mariadb:10.9.4
-        env:
-          MARIADB_ROOT_PASSWORD: ${{ secrets.DB_PASS }}.
-          MARIADB_DATABASE: epublit_test
-          MARIADB_USER: ${{ secrets.DB_USER }}
-          MARIADB_PASSWORD: ${{ secrets.DB_PASS }}
-        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=5
-        ports:
-          - 3306:3306
+    # TODO: falta el servicio de Postgres para este job (el de mariadb se
+    # sacó junto con el resto de la infra vieja de MySQL) y migrar los pasos
+    # de abajo ("Load test data"/"Show databases") a Postgres, en conjunto
+    # con test/*.test.ts (todavía dependen de src/db, ya borrado).
 
     steps:
     - name: Checkout code
@@ -43,12 +36,6 @@ jobs:
         sudo ln -fs /usr/share/zoneinfo/America/Buenos_Aires /etc/localtime
         echo "America/Buenos_Aires" | sudo tee /etc/timezone
         date
-
-    - name: Load test data
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} < ./db/test.sql
-
-    - name: Show databases
-      run:  mysql -h"127.0.0.1" -u${{ secrets.DB_USER }} -p${{ secrets.DB_PASS }} -e "SHOW DATABASES; USE epublit_test; SHOW TABLES;"
 
     - name: Prepare .env file
       run: echo "$ENV_FILE_CONTENT" > .env
@@ -78,7 +65,7 @@ jobs:
       run: npm install
 
     - name: Run tests
-      run: npx jest
+      run: npx vitest run
 
   deploy:
     needs: [api-testing]

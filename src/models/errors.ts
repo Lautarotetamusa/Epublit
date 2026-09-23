@@ -1,5 +1,6 @@
 import {Response, Request, NextFunction} from "express"
 import { ZodError } from "zod";
+import { ServiceError } from "bradb";
 import { AfipError } from "../afip/Afip";
 
 export class ApiError extends Error{
@@ -49,14 +50,20 @@ export class Unauthorized extends ApiError {
     }
 }
 
+export class NotImplemented extends ApiError {
+    constructor(message: string){
+        super(501, message, "NotImplemented");
+    }
+}
+
 export function handleErrors(err: Error, req: Request, res: Response, next: NextFunction): Response{
     if (err instanceof ZodError){
-        const errors = err.errors;
-        errors.map(e => {
-            if (e.code == "invalid_type"){
-                e.message = `El campo ${e.path[0]} es obligatorio`
-            }
-        });
+        const errors = err.issues.map(e => ({
+            ...e,
+            message: e.code == "invalid_type"
+                ? `El campo ${String(e.path[0])} es obligatorio`
+                : e.message
+        }));
 
         return res.status(400).json({
             success: false,
@@ -70,6 +77,15 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
     });
 
     if (err instanceof ApiError) return res.status(err.status).json({
+        success: false,
+        errors: [{
+            code: err.name,
+            message: err.message
+        }]
+    });
+
+    // Errores de los módulos ya migrados a bradb/Drizzle (ver persona.service.ts).
+    if (err instanceof ServiceError) return res.status(err.statusCode).json({
         success: false,
         errors: [{
             code: err.name,

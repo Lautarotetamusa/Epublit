@@ -5,11 +5,19 @@
         "outDir": "dist",
         "strict": true,
         "esModuleInterop": true,
-        "allowJs": true
+        "allowJs": true,
+        "skipLibCheck": true,
+        "moduleResolution": "node",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"]
+        }
     },
     "include": [
         "./src/**/*",
         "./types/*.ts",
         "./src/afip/afip.js/src/Afip_res/*.wsdl",
+        "./drizzle.config.ts",
+        "./seeders/**/*"
     ]
 }

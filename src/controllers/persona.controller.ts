@@ -1,19 +1,20 @@
 import { Request, Response } from "express"
-import { Persona } from "../models/persona.model";
-import { ValidationError, Duplicated } from '../models/errors';
-import { createPersona, updatePersona} from "../schemas/persona.schema";
-import { libroPersonaSchema} from "../schemas/libro_persona.schema";
+import { personaService } from "../services/persona.service";
+import { Duplicated } from '../models/errors';
+import { personaValidator } from "../validators/persona.validator";
+import { libroPersonaSchema } from "../validators/libro_persona.validator";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    const body = createPersona.parse(req.body);
-    
-    if (await Persona.exists(body.dni, res.locals.user.id)){
+    const body = personaValidator.insert.parse(req.body);
+    const userId = res.locals.user.id;
+
+    if (await personaService.exists(body.dni, userId)){
         throw new Duplicated(`La persona con dni ${body.dni} ya se encuentra cargada`);
     }
 
-    const persona = await Persona.insert({
+    const persona = await personaService.create({
         ...body,
-        user: res.locals.user.id
+        user: userId
     });
 
     return res.status(201).json({
@@ -24,31 +25,33 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const update = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
+    const {id} = personaValidator.pk.parse(req.params);
+    const userId = res.locals.user.id;
 
-    const body = updatePersona.parse(req.body);
+    const body = personaValidator.update.parse(req.body);
 
-    const persona = await Persona.getById(id, res.locals.user.id);
+    const persona = await personaService.findOne({id, user: userId});
 
-    if (body.dni && body.dni != persona.dni && await Persona.exists(body.dni, res.locals.user.id)){
+    if (body.dni && body.dni != persona.dni && await personaService.exists(body.dni, userId)){
         throw new Duplicated(`La persona con id ${body.dni} ya se encuentra cargada`);
     }
 
-    await persona.update(body);
+    const updated = await personaService.update({id, user: userId}, body);
 
     return res.status(201).json({
         success: true,
         message: "Persona actualizada correctamente",
-        data: persona
+        data: updated
     });
 }
 
-const remove = async (req: Request, res: Response): Promise<Response> => {    
-    const id = Number(req.params.id);
-    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
+const remove = async (req: Request, res: Response): Promise<Response> => {
+    const {id} = personaValidator.pk.parse(req.params);
+    const userId = res.locals.user.id;
 
-    await Persona.delete({id: id})
+    // La PK compuesta (id, user) hace que esto tire NotFound si la persona
+    // no existe o es de otro usuario, sin necesidad de un chequeo aparte.
+    await personaService.remove({id, user: userId});
 
     return res.json({
         success: true,
@@ -57,23 +60,24 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const getAll = async (req: Request, res: Response): Promise<Response>  => {
+    const userId = res.locals.user.id;
+
     if ('tipo' in req.query){
         const tipo = libroPersonaSchema.shape.tipo.parse(req.query.tipo);
-        const personas = await Persona.getAllByTipo(tipo, res.locals.user.id);
+        const personas = await personaService.getAllByTipo(tipo, userId);
         return res.json(personas);
     }
-        
-    const personas = await Persona.getAll(res.locals.user.id)
+
+    const personas = await personaService.findAll(userId);
     return res.json(personas);
 }
 
 const getOne = async (req: Request, res: Response): Promise<Response> => {
-    const id = Number(req.params.id);
-    const user = res.locals.user.id;
-    if (!id) throw new ValidationError("El id de la persona debe ser un integer");
-    
-    const persona = await Persona.getById(id, user);
-    const libros = await persona.getLibros(user);
+    const {id} = personaValidator.pk.parse(req.params);
+    const userId = res.locals.user.id;
+
+    const persona = await personaService.findOne({id, user: userId});
+    const libros = await personaService.getLibros(id, userId);
 
     return res.json({
         ...persona,

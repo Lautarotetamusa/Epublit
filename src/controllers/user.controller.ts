@@ -1,35 +1,45 @@
 import { Request, Response } from "express";
-import { User } from "../models/user.model";
 
 import bcrypt from "bcrypt";
 import jwt, {Secret} from "jsonwebtoken";
 import { Unauthorized, ValidationError } from "../models/errors";
-import { createUser, loginUser, updateUser } from "../schemas/user.schema";
+import { userService } from "../services/user.service";
+import { userValidator, loginUserValidator, createUserValidator } from "../validators/user.validator";
 import { createCSR, createKey, createUserFolder, getAfipData, getCertPath, isValidCert, removeCert, saveCert } from "../afip/Afip";
 import { StringValue } from "ms";
 
 const create = async (req: Request, res: Response): Promise<Response> => {
-    const body = createUser.parse(req.body);
+    const body = createUserValidator.parse(req.body);
 
-    if (await User.exists(body.username)){
+    if (await userService.existsByUsername(body.username)){
         throw new ValidationError("Ya existe un usuario con este username");
     }
+    if (await userService.existsByCuit(body.cuit)){
+        throw new ValidationError("Ya existe un usuario con este cuit");
+    }
+
     body.password = await bcrypt.hash(body.password, 10);
     const afipData = await getAfipData(body.cuit);
 
-    const user = await User.insert({
+    const user = await userService.createUser({
         ...body,
         ...afipData,
-        production: 0 // Si lo quiero hacer true lo tengo que hacer manualmente 
+        production: false
     });
 
-    // This can be a promise chain and create the files in the background
-    // but the time difference its not significant
-    // furthermore, bringing the afip data takes a long time anyway
-    await createUserFolder(user.cuit);
-    await createKey(user.cuit);
-    await createCSR(user);
-    
+    // Los pasos de filesystem/AFIP no son parte de la transacción Postgres
+    // que ya creó el usuario y sus clientes por defecto: si alguno falla acá,
+    // hay que revertir esa transacción a mano para no dejar datos parciales
+    // (caso borde del spec).
+    try {
+        await createUserFolder(user.cuit);
+        await createKey(user.cuit);
+        await createCSR(user);
+    } catch (err) {
+        await userService.remove({ id: user.id });
+        throw err;
+    }
+
     return res.status(201).json({
         success: true,
         message: "Usuario creado correctamente",
@@ -39,9 +49,8 @@ const create = async (req: Request, res: Response): Promise<Response> => {
 
 
 const update = async (req: Request, res: Response): Promise<Response> => {
-    const body = updateUser.parse(req.body);
+    const body = userValidator.update.parse(req.body);
 
-    // object its empty
     if (Object.keys(body).length == 0) {
         return res.status(200).json({
             success: true,
@@ -49,8 +58,8 @@ const update = async (req: Request, res: Response): Promise<Response> => {
         });
     }
 
-    const user = await User.getById(res.locals.user.id);
-    await user.update(body);
+    const updated = await userService.update({ id: res.locals.user.id }, body);
+    const user = userValidator.select.parse(updated);
 
     return res.status(200).json({
         success: true,
@@ -60,26 +69,26 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 }
 
 const updateAfipData = async (req: Request, res: Response): Promise<Response> => {
-    const user = await User.getById(res.locals.user.id);
-    const afipData = await getAfipData(user.cuit);
-    await user.update(afipData);
+    const currentUser = await userService.findOne({ id: res.locals.user.id });
+    const afipData = await getAfipData(currentUser.cuit);
+    const updated = await userService.updateAfipData(currentUser.id, afipData);
 
     return res.status(200).json({
         success: true,
         message: "Usuario actualizado correctamente",
-        data: user
+        data: updated
     });
 };
 
 const login = async (req: Request, res: Response): Promise<Response> => {
-    const body = loginUser.parse(req.body);
-    const user = await User.getOne(body.username);
-    const password = await User.getPassword(user.id);
-    const match = await bcrypt.compare(body.password, Buffer.from(password).toString('ascii'));
-    
+    const body = loginUserValidator.parse(req.body);
+    const user = await userService.findByUsername(body.username);
+    const hash = await userService.getPasswordHash(user.id);
+    const match = await bcrypt.compare(body.password, hash);
+
     if (!match) throw new Unauthorized("Contraseña incorrecta");
 
-    const opts: jwt.SignOptions = { 
+    const opts: jwt.SignOptions = {
         expiresIn: process.env.JWT_EXPIRES_IN as StringValue
     }
 
@@ -103,14 +112,14 @@ const login = async (req: Request, res: Response): Promise<Response> => {
 const uploadCert = async (req: Request, res: Response): Promise<Response> => {
     if (!req.file) throw new ValidationError("El campo 'cert' es necesario")
 
-    if (req.file.mimetype != "application/x-x509-ca-cert") 
+    if (req.file.mimetype != "application/x-x509-ca-cert")
         throw new ValidationError("El tipo de archivo del certificado es invalido")
 
     const certPath = getCertPath(res.locals.user.cuit);
 
     await saveCert(certPath, req.file.buffer);
     const isValid = await isValidCert(certPath);
-    if (!isValid) { // Si no es valido eliminamos el archivo
+    if (!isValid) {
         await removeCert(certPath);
         throw new ValidationError("El certificado no es valido");
     }
@@ -121,8 +130,8 @@ const uploadCert = async (req: Request, res: Response): Promise<Response> => {
     })
 }
 
-const getOne = async (req: Request, res: Response): Promise<Response> => { 
-    const user = await User.getById(res.locals.user.id);
+const getOne = async (req: Request, res: Response): Promise<Response> => {
+    const user = await userService.findOne({ id: res.locals.user.id });
 
     return res.status(200).json({
         success: true,

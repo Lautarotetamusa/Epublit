@@ -4,6 +4,7 @@
 
 /coverage
 /mysql
+/postgres
 /security/*
 /archivos
 

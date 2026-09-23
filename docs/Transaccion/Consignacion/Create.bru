@@ -1,0 +1,28 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/consignacion
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "cliente": 1,
+    "libros": [
+      {
+        "isbn": "9789874864674",
+        "cantidad": 5
+      }
+    ]
+  }
+}
+
+docs {
+  Sin migrar (MySQL). Entrega libros a un cliente en consignación (no es una
+  venta todavía). Si un isbn se repite en `libros`, se suman las cantidades.
+}

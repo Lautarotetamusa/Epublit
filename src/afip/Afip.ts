@@ -1,10 +1,10 @@
 import Afip from "../afip/afip.js/src/Afip";
 import QRcode from 'qrcode';
-import { Venta } from '../models/venta.model';
+import { VentaRow } from '../validators/venta.validator';
 import { NotFound, ValidationError } from '../models/errors';
-import { AfipData } from '../schemas/afip.schema';
-import { User } from '../models/user.model';
-import { Cliente } from '../models/cliente.model';
+import { AfipData } from '../validators/afip.validator';
+import { User } from '../validators/user.validator';
+import { Client as Cliente } from '../validators/cliente.validator';
 
 import fs from "fs";
 import { join } from 'path';
@@ -98,7 +98,7 @@ export function getAfipClient(user: User){
 
     const path = join(afipKeysPath, user.cuit);
 
-    const certFileName = user.production == 1 ? 'cert.crt' : 'cert.pem';
+    const certFileName = user.production ? 'cert.crt' : 'cert.pem';
     //const certFileName = 'cert.pem';
     const privateFileName = 'private_key.key';
 
@@ -115,7 +115,7 @@ export function getAfipClient(user: User){
         res_folder: path,
         key: privateFileName,
         cert: certFileName,
-        production: user.production === 1,
+        production: user.production === true,
     });
 }
 
@@ -148,7 +148,7 @@ export async function getServerStatus(user: User){
 	return serverStatus;
 }
 
-export async function facturar(pto_venta: number, venta: Venta, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
+export async function facturar(pto_venta: number, venta: VentaRow, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
     const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
 	const data: FacturaPayload = {
@@ -328,7 +328,7 @@ export function createKey(cuit: string): Promise<number> {
 * -out [nombre de archivo para el CSR]
 *
 * */
-export function createCSR(user: User): Promise<number> {
+export function createCSR(user: Pick<User, 'cuit' | 'razon_social'>): Promise<number> {
     const certReqPath = getCSRPath(user.cuit);
     const keyPath = getKeyPath(user.cuit);
 

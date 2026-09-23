@@ -1,0 +1,16 @@
+meta {
+  name: Update afip data
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{host}}/user/afip
+  body: none
+  auth: inherit
+}
+
+docs {
+  Vuelve a consultar AFIP con el cuit del usuario logueado y actualiza sus
+  datos fiscales.
+}

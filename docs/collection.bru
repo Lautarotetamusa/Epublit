@@ -1,0 +1,38 @@
+meta {
+  name: Epublit
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+vars:pre-request {
+  host: http://localhost:3001
+  token:
+}
+
+docs {
+  # Epublit API
+
+  Colección de toda la API de Epublit (endpoints migrados a Postgres/Drizzle/bradb
+  y endpoints que todavía siguen en MySQL, ver `/CLAUDE.md` y `specs/README.md` en
+  la raíz del proyecto para el contexto de la migración en curso).
+
+  ## Cómo autenticarse
+
+  Correr `Auth/Login` (o `Auth/Register` si todavía no existe el usuario) —
+  el script post-response guarda el token en la variable de colección `token`,
+  que el resto de los requests usan automáticamente vía `auth: inherit`/bearer.
+
+  ## Estado de migración por carpeta (ver specs/ en la raíz)
+
+  - `Persona`, `Libro`, `Libro/Personas`: migrados a Postgres.
+  - `Auth` (`/user`): migrado a Postgres (solo escribe ahí, no en MySQL — ver
+    `specs/001-migrar-user/plan.md`).
+  - `Cliente`, `Liquidacion`, `Transaccion` (venta/consignación/devolución):
+    todavía en MySQL, sin migrar.
+}

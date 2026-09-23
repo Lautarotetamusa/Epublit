@@ -1,0 +1,25 @@
+meta {
+  name: Get all
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/libro?titulo=Rio
+  body: none
+  auth: inherit
+}
+
+params:query {
+  titulo: Rio
+  ~isbn: 9789874864674
+  ~page: 0
+}
+
+docs {
+  Sin `page`: filtra por query params (`isbn`, `titulo`, etc.), ordenado por
+  título. Con `?page=N` (0-indexado): paginado de a 10, ignora los demás
+  filtros — las dos formas de consulta no son combinables (comportamiento
+  actual preservado a propósito, ver `specs/002-migrar-libro/spec.md`,
+  "Casos borde").
+}

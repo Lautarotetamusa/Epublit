@@ -1,0 +1,15 @@
+meta {
+  name: Lista libros (CSV)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{host}}/libro/lista_libros
+  body: none
+  auth: inherit
+}
+
+docs {
+  Descarga un CSV con los libros no eliminados del usuario autenticado.
+}

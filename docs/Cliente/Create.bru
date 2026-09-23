@@ -1,0 +1,26 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/cliente
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "nombre": "Cliente de prueba",
+    "email": "cliente@gmail.com",
+    "cuit": "20173080329",
+    "tipo": "inscripto"
+  }
+}
+
+docs {
+  Sin migrar (MySQL). Consulta AFIP con el `cuit` para completar
+  `cond_fiscal`/`razon_social`/`domicilio`. `tipo` es `inscripto`,
+  `particular` o `negro`.
+}

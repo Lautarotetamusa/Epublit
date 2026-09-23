@@ -1,0 +1,16 @@
+meta {
+  name: Get one
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/persona/1
+  body: none
+  auth: inherit
+}
+
+docs {
+  Devuelve la persona junto con sus libros (`libros`, join contra
+  `libros_personas`/`libros`).
+}

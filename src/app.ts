@@ -2,7 +2,6 @@ import express from "express";
 import {createServer} from 'http';
 
 import cors from 'cors';
-import "express-async-errors";
 
 import { router } from "./routes";
 import {join} from "path"; //Crear path para los archivos estaticos
@@ -40,7 +39,7 @@ app.use(router);
 app.use(handleErrors);
 
 //Cualquier otra ruta no especificada
-app.use('*', (_, res) => res.status(404).json({
+app.use('/{*splat}', (_, res) => res.status(404).json({
     success: false,
     error: "Esta ruta no hace nada"
 }));

@@ -1,0 +1,16 @@
+meta {
+  name: Update stock
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{host}}/cliente/1/stock
+  body: none
+  auth: inherit
+}
+
+docs {
+  Sin migrar (MySQL). Sin body: recalcula los precios de los libros de este
+  cliente (consignación).
+}

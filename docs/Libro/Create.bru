@@ -1,0 +1,28 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/libro
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "isbn": "9789874864674",
+    "titulo": "Rio de sueños",
+    "precio": 2500,
+    "stock": 250,
+    "fecha_edicion": "2023-08-03"
+  }
+}
+
+docs {
+  Ya no acepta autores/ilustradores (se simplificó, ver
+  `specs/002-migrar-libro/spec.md`). Para asociar personas usar
+  `Libro/Personas/Add` después de crear el libro. Crea también el primer
+  registro de `precio_libros` con el precio de alta.
+}
