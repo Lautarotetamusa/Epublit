@@ -274,6 +274,22 @@ describe('PUT /user', () => {
     });
 });
 
+describe('PUT /user/afip', () => {
+    it('refresca los datos de AFIP del usuario', async () => {
+        const res = await request(app)
+            .put('/user/afip')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectDataResponse(res, 200);
+        expect(res.body.data).toMatchObject({
+            cuit,
+            razon_social: "CLIENTE DE PRUEBA",
+            cond_fiscal: "IVA EXENTO",
+            domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
+        });
+    });
+});
+
 describe('Certificado', () => {
     test("subir certificado sin auth debe dar error", async () => {
         const res = await request(app)

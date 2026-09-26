@@ -88,6 +88,22 @@ describe('generateClientPath', () => {
     });
 });
 
+describe('auth middleware', () => {
+    test('sin token responde 403', async () => {
+        const res = await request(app).get('/cliente');
+
+        expect(res.status).toBe(403);
+    });
+
+    test('token inválido responde 401', async () => {
+        const res = await request(app)
+            .get('/cliente')
+            .set('Authorization', 'Bearer token-invalido');
+
+        expect(res.status).toBe(401);
+    });
+});
+
 describe('GET /cliente', () => {
     test('lista paginada', async () => {
         const res = await request(app)

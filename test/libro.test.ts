@@ -41,6 +41,46 @@ describe('GET /libro', () => {
         expectList(res);
         expect(res.body.items.length).toBeGreaterThan(0);
     });
+
+    it('filtra por título (ilike, parcial)', async () => {
+        const res = await request(app)
+            .get('/libro?titulo=senderos')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
+        for (const l of res.body.items) {
+            expect(l.titulo.toLowerCase()).toContain('senderos');
+        }
+    });
+
+    it('filtra por isbn exacto', async () => {
+        const res = await request(app)
+            .get(`/libro?isbn=${ISBN_LIBRO_1}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items).toHaveLength(1);
+        expect(res.body.items[0].isbn).toEqual(ISBN_LIBRO_1);
+    });
+
+    it('filtra por precio y stock exactos', async () => {
+        // No se asume el precio/stock crudo del seed: `seedOperaciones` ya
+        // vendió/consignó algunos libros, así que se toma el valor actual.
+        const actual = await request(app).get(`/libro/${ISBN_LIBRO_1}`).set('Authorization', `Bearer ${token}`);
+        const { precio, stock } = actual.body.data;
+
+        const res = await request(app)
+            .get(`/libro?precio=${precio}&stock=${stock}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.map((l: { isbn: string }) => l.isbn)).toContain(ISBN_LIBRO_1);
+        for (const l of res.body.items) {
+            expect(l.precio).toEqual(precio);
+            expect(l.stock).toEqual(stock);
+        }
+    });
 });
 
 describe('GET /libro/:isbn', () => {
@@ -109,6 +149,19 @@ describe('PUT /libro/:isbn', () => {
             .send({ precio: 1 });
 
         expectNotFound(res);
+    });
+});
+
+describe('GET /libro/:isbn/precio', () => {
+    it('devuelve el historial de precios, del más reciente al más antiguo', async () => {
+        const res = await request(app)
+            .get(`/libro/${isbn(9999)}/precio`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toEqual(200);
+        expect(res.body.data.length).toBeGreaterThanOrEqual(2);
+        expect(res.body.data[0].precio).toEqual(11100);
+        expect(res.body.data[res.body.data.length - 1].precio).toEqual(10000);
     });
 });
 
