@@ -1,6 +1,5 @@
-import {describe, expect, test, vi} from 'vitest';
+import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
-import { eq, inArray } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -8,35 +7,30 @@ import { join } from "path";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-const cuitNoExistente = "12345";
-
-vi.mock('../src/afip/Afip', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('../src/afip/Afip')>();
-    return {
-        ...actual,
-        getAfipData: vi.fn().mockResolvedValue({
-            ingresos_brutos: false,
-            fecha_inicio: "10/02/2025",
-            razon_social: "CLIENTE CONSIGNACION",
-            cond_fiscal: "IVA EXENTO",
-            domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
-        })
-    };
-});
-vi.mock('../src/comprobantes/comprobante', () => ({
+vi.mock('../src/lib/comprobantes/comprobante', () => ({
     emitirComprobante: vi.fn().mockResolvedValue(undefined)
 }));
 
-process.env.DB_NAME = "epublit_test";
-import {app, filesUrl, server} from '../src/app';
-import {conn} from '../src/db'
-import { db } from '../src/pgDb';
-import { librosTable } from '../src/schemas/libros.schema';
-import { clientesTable } from '../src/schemas/clientes.schema';
-import { libroClienteTable } from '../src/schemas/libroCliente.schema';
-import { precioLibroClienteTable } from '../src/schemas/precioLibroCliente.schema';
+import { db } from '../src/db/client';
+import { createContainer } from '../src/container';
+import { createApp } from '../src/app';
+import { createMockAfipService } from '../src/lib/afip/Afip.mock';
+import { env } from '../src/env';
 import {expectBadRequest, expectCreated, expectNotFound} from './util';
-import { emitirComprobante } from '../src/comprobantes/comprobante';
+import { emitirComprobante } from '../src/lib/comprobantes/comprobante';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+
+const afipService = createMockAfipService({
+    getAfipData: async () => ({
+        ingresos_brutos: false,
+        fecha_inicio: "10/02/2025",
+        razon_social: "CLIENTE CONSIGNACION",
+        cond_fiscal: "IVA EXENTO",
+        domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
+    })
+});
+const container = createContainer({ afipService });
+const app = createApp(container);
 
 let token: string;
 const cuit = "20438409248";
@@ -45,32 +39,15 @@ const isbnsConsignacion = ["9100000000001", "9100000000002", "9100000000003"];
 let cliente: any = {};
 const consignacion: any = { libros: [] };
 
-/*
-    - Crear un cliente inscripto nuevo
-    - Crear 3 libros con stock 3
-    - Chequear errores de bad request
-    - Realizar la consignacion
-    - Revisar que los 3 libros tengan ahora stock 0 (stock general)
-    - Revisar que el cliente tenga esos 3 libros en su stock (libro_cliente)
-    - Revisar que se haya emitido el remito
-*/
-afterAll(async () => {
-    if (cliente.id) {
-        await db.delete(precioLibroClienteTable).where(eq(precioLibroClienteTable.id_cliente, cliente.id));
-        await db.delete(libroClienteTable).where(eq(libroClienteTable.id_cliente, cliente.id));
-        await db.delete(clientesTable).where(eq(clientesTable.id, cliente.id));
-    }
-    await db.delete(librosTable).where(inArray(librosTable.isbn, isbnsConsignacion));
-    conn.end();
-    server.close();
+afterAll(() => {
+    db.$client.end();
 });
 
-test('login', async () => {
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'teti', password: 'Lautaro123.' });
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
@@ -123,7 +100,7 @@ describe('CONSIGNACION', () => {
                     .get('/cliente?tipo=particular')
                     .set('Authorization', `Bearer ${token}`);
                 expect(res1.status).toEqual(200);
-                const consumidorFinal = res1.body[0];
+                const consumidorFinal = res1.body.items[0];
 
                 const res = await request(app)
                     .post('/consignacion/')
@@ -156,7 +133,7 @@ describe('CONSIGNACION', () => {
                         .set('Authorization', `Bearer ${token}`);
 
                     expect(res.status).toEqual(200);
-                    expect(res.body.stock).toEqual(0);
+                    expect(res.body.data.stock).toEqual(0);
                 }
             });
 
@@ -167,7 +144,7 @@ describe('CONSIGNACION', () => {
 
                 expect(res.status).toEqual(200);
                 for (const libro of consignacion.libros) {
-                    const enStock = res.body.find((l: any) => l.isbn === libro.isbn);
+                    const enStock = res.body.data.find((l: any) => l.isbn === libro.isbn);
                     expect(enStock).toBeDefined();
                     expect(enStock.stock).toEqual(libro.cantidad);
                 }
@@ -179,9 +156,9 @@ describe('CONSIGNACION', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);
-                expect(res.body.id_cliente).toEqual(cliente.id);
-                expect(res.body.file_path).toContain(filesUrl);
-                expect(res.body.libros).toHaveLength(consignacion.libros.length);
+                expect(res.body.data.id_cliente).toEqual(cliente.id);
+                expect(res.body.data.file_path).toContain(env.HOST);
+                expect(res.body.data.libros).toHaveLength(consignacion.libros.length);
             });
 
             test('Consignacion que no existe debe dar un error', async () => {
@@ -198,7 +175,7 @@ describe('CONSIGNACION', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);
-                expect(res.body.map((c: any) => c.id)).toContain(idConsignacion);
+                expect(res.body.data.map((c: any) => c.id)).toContain(idConsignacion);
             });
         });
     });

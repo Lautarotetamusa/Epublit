@@ -1,8 +1,8 @@
 import { sql, getTableName } from "drizzle-orm";
-import { db } from "../src/pgDb";
+import { db } from "../src/db/client";
+import { personasTable } from "../src/modules/persona/persona.schema";
 import {
     usersTable,
-    personasTable,
     clientesTable,
     librosTable,
     libroClienteTable,
@@ -12,7 +12,7 @@ import {
     precioLibroClienteTable,
     precioLibrosTable,
     ventasTable
-} from "../src/schemas";
+} from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
     ventasTable,

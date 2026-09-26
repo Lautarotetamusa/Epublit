@@ -15,8 +15,7 @@
     },
     "include": [
         "./src/**/*",
-        "./types/*.ts",
-        "./src/afip/afip.js/src/Afip_res/*.wsdl",
+        "./src/lib/afip/afip.js/src/Afip_res/*.wsdl",
         "./drizzle.config.ts",
         "./seeders/**/*"
     ]

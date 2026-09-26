@@ -1,12 +1,15 @@
-import { libroPersonaService } from "../src/services/libroPersona.service";
-import { LibroPersonaBody } from "../src/validators/libro_persona.validator";
-import { Libro } from "../src/validators/libro.validator";
-import { Persona } from "../src/validators/persona.validator";
+import { Libro, LibroPersonaBody, LibroPersonaService } from "../src/modules/libro";
+import { Persona } from "../src/modules/persona";
 import { SeedUser } from "./users.seeder";
 
 // Reusa `libroPersonaService.addToLibro`: valida que libro y personas sean
 // del mismo usuario, la misma regla que aplicaría el endpoint real.
-export async function seedLibrosPersonas(users: SeedUser[], libros: Libro[], personas: Persona[]): Promise<void> {
+export async function seedLibrosPersonas(
+    users: SeedUser[],
+    libros: Libro[],
+    personas: Persona[],
+    libroPersonaService: LibroPersonaService
+): Promise<void> {
     for (const user of users) {
         const librosDelUsuario = libros.filter((libro) => libro.user === user.id);
         const personasDelUsuario = personas.filter((persona) => persona.user === user.id);

@@ -1,63 +1,47 @@
-import {describe, expect, it} from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from "supertest";
-import { eq } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../.env");
-dotenv.config({path: path});
+dotenv.config({ path: join(__dirname, "../.env") });
 
-process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
-import {conn} from '../src/db'
-import { db } from '../src/pgDb';
-import { librosTable } from '../src/schemas/libros.schema';
-import { precioLibrosTable } from '../src/schemas/precioLibros.schema';
-import { librosPersonasTable } from '../src/schemas/librosPersonas.schema';
-import { personasTable } from '../src/schemas/personas.schema';
-import {expectCreated, expectNotFound, expectBadRequest, expectDataResponse} from './util';
+import { app, server } from '../src/index';
+import { db } from '../src/db/client';
+import { expectCreated, expectNotFound, expectBadRequest, expectDataResponse, expectConflict } from './util';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+import { isbn, dni } from '../seeders/data';
 
 let token: string;
+// Este archivo prueba una secuencia larga de altas/bajas sobre las mismas
+// asociaciones libro-persona: usa un libro y personas propios (no
+// seedeados) para no interferir con los autores/ilustradores que el seed ya
+// les asignó a los libros existentes, ni que ellos interfieran acá.
 const libro: any = {
-    "isbn": "222222222",
-    "titulo": "Test libro_persona",
-    "fecha_edicion": "2020-02-17",
-    "precio": 10000,
-    "stock": 0
-}
-const personaAutor: any = { nombre: "Autor Test", email: "autor@test.com", dni: "33033033" };
-const personaIlustrador: any = { nombre: "Ilustrador Test", email: "ilustrador@test.com", dni: "33033034" };
-const personaAjena: any = { nombre: "Ajena Test", email: "ajena@test.com", dni: "33033035" };
+    isbn: isbn(9997),
+    titulo: "Test libro_persona",
+    fecha_edicion: "2020-02-17",
+    precio: 10000,
+    stock: 0
+};
+const personaAutor: any = { nombre: "Autor Test", dni: dni(9990) };
+const personaIlustrador: any = { nombre: "Ilustrador Test", dni: dni(9991) };
+const personaAjena: any = { nombre: "Ajena Test", dni: dni(9992) };
 
-afterAll(() => {
-    conn.end();
-    server.close();
-});
-
-it('HARD DELETE', async () => {
-    await db.delete(librosPersonasTable).where(eq(librosPersonasTable.isbn, libro.isbn));
-    await db.delete(precioLibrosTable).where(eq(precioLibrosTable.isbn, libro.isbn));
-    await db.delete(librosTable).where(eq(librosTable.isbn, libro.isbn));
-    await db.delete(personasTable).where(eq(personasTable.dni, personaAutor.dni));
-    await db.delete(personasTable).where(eq(personasTable.dni, personaIlustrador.dni));
-    await db.delete(personasTable).where(eq(personasTable.dni, personaAjena.dni));
-});
-
-it('login', async () => {
-    const data = {
-        username: 'teti',
-        password: 'Lautaro123.'
-    }
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send(data)
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
-describe('Setup: libro y personas propias', function () {
+afterAll(() => {
+    db.$client.end();
+    server.close();
+});
+
+describe('Setup: libro y personas propios', () => {
     it('Crear libro', async () => {
         const res = await request(app)
             .post('/libro/')
@@ -99,7 +83,7 @@ describe('Setup: libro y personas propias', function () {
     });
 });
 
-describe('POST /libro/:isbn/personas', function () {
+describe('POST /libro/:isbn/personas', () => {
     it('Isbn ajeno/inexistente', async () => {
         const res = await request(app)
             .post(`/libro/${libro.isbn}999/personas`)
@@ -146,13 +130,13 @@ describe('POST /libro/:isbn/personas', function () {
                 { id_persona: personaIlustrador.id, tipo: "ilustrador", porcentaje: 10 }
             ]);
 
-        expectNotFound(res); // Duplicated tiene status 404, ver src/models/errors.ts
+        expectConflict(res); // Duplicated (bradb) tiene status 409
 
         // No se creó ninguna fila del lote (todo o nada), ni la de personaIlustrador.
         const getRes = await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`);
-        expect(getRes.body.ilustradores).toEqual([]);
+        expect(getRes.body.data.ilustradores).toEqual([]);
     });
 
     it('Alta en lote (personaIlustrador aún no asociada)', async () => {
@@ -166,7 +150,7 @@ describe('POST /libro/:isbn/personas', function () {
     });
 });
 
-describe('PUT /libro/:isbn/personas', function () {
+describe('PUT /libro/:isbn/personas', () => {
     it('Edición simple de porcentaje', async () => {
         const res = await request(app)
             .put(`/libro/${libro.isbn}/personas`)
@@ -189,7 +173,7 @@ describe('PUT /libro/:isbn/personas', function () {
         const getRes = await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`);
-        const autor = getRes.body.autores.find((a: any) => a.id_persona === personaAutor.id);
+        const autor = getRes.body.data.autores.find((a: any) => a.id_persona === personaAutor.id);
         expect(autor.porcentaje).toBe(0);
     });
 
@@ -208,12 +192,12 @@ describe('PUT /libro/:isbn/personas', function () {
         const getRes = await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`);
-        const ilustrador = getRes.body.ilustradores.find((p: any) => p.id_persona === personaIlustrador.id);
+        const ilustrador = getRes.body.data.ilustradores.find((p: any) => p.id_persona === personaIlustrador.id);
         expect(ilustrador.porcentaje).not.toBe(99);
     });
 });
 
-describe('DELETE /libro/:isbn/personas', function () {
+describe('DELETE /libro/:isbn/personas', () => {
     it('Baja de una asociación inexistente no falla', async () => {
         const res = await request(app)
             .delete(`/libro/${libro.isbn}/personas`)
@@ -235,7 +219,7 @@ describe('DELETE /libro/:isbn/personas', function () {
         const getRes = await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`);
-        expect(getRes.body.autores.map((a: any) => a.id_persona)).not.toContain(personaAutor.id);
+        expect(getRes.body.data.autores.map((a: any) => a.id_persona)).not.toContain(personaAutor.id);
     });
 
     it('Baja en lote', async () => {
@@ -249,7 +233,7 @@ describe('DELETE /libro/:isbn/personas', function () {
         const getRes = await request(app)
             .get(`/libro/${libro.isbn}`)
             .set('Authorization', `Bearer ${token}`);
-        expect(getRes.body.ilustradores).toEqual([]);
+        expect(getRes.body.data.ilustradores).toEqual([]);
     });
 
     it('GET /persona/:id refleja las altas/bajas hechas en este archivo', async () => {
@@ -259,11 +243,11 @@ describe('DELETE /libro/:isbn/personas', function () {
 
         expect(res.status).toBe(200);
         // personaIlustrador fue dada de baja del libro al final de este archivo.
-        expect(res.body.libros.map((l: any) => l.isbn)).not.toContain(libro.isbn);
+        expect(res.body.data.libros.map((l: any) => l.isbn)).not.toContain(libro.isbn);
     });
 });
 
-describe('Libro eliminado: personas responde 404', function () {
+describe('Libro eliminado: personas responde 404', () => {
     it('Eliminar el libro', async () => {
         const res = await request(app)
             .delete(`/libro/${libro.isbn}`)

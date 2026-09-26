@@ -1,13 +1,9 @@
 import { eq, and, inArray } from "drizzle-orm";
-import { db } from "../src/pgDb";
-import { clientesTable } from "../src/schemas";
-import { transaccionService } from "../src/services/transaccion.service";
-import { ventaService } from "../src/services/venta.service";
-import { libroService } from "../src/services/libro.service";
-import { clienteStockService } from "../src/services/clienteStock.service";
-import { Libro } from "../src/validators/libro.validator";
-import { Client } from "../src/validators/cliente.validator";
-import { LibroOperacion } from "../src/services/operacion.types";
+import { db } from "../src/db/client";
+import { clientesTable } from "../src/db/schema";
+import { Libro, LibroService } from "../src/modules/libro";
+import { Client, ClienteStockService } from "../src/modules/cliente";
+import { TransaccionRepository, VentaRepository, LibroOperacion } from "../src/modules/transaccion";
 import { SeedUser } from "./users.seeder";
 
 const aLibroOperacion = (libro: Libro, cantidad: number): LibroOperacion => ({
@@ -33,14 +29,22 @@ const findClientesPorDefecto = async (userId: number): Promise<Client[]> => {
 // ventas, todo en una transacción de Postgres y con el mismo descuento de
 // stock que aplicaría `crearOperacion` (sin generar comprobante ni tocar
 // AFIP, que no tienen sentido en datos de prueba).
-const crearVenta = async (user: SeedUser, cliente: Client, libro: Libro, cantidad: number): Promise<void> => {
+const crearVenta = async (
+    user: SeedUser,
+    cliente: Client,
+    libro: Libro,
+    cantidad: number,
+    libroService: LibroService,
+    transaccionRepository: TransaccionRepository,
+    ventaRepository: VentaRepository
+): Promise<void> => {
     await db.transaction(async (tx) => {
-        const transaccion = await transaccionService.insert(
+        const transaccion = await transaccionRepository.insert(
             { type: "venta", id_cliente: cliente.id, file_path: "", user: user.id },
             tx
         );
-        await transaccionService.saveLibros([aLibroOperacion(libro, cantidad)], transaccion.id, tx);
-        await ventaService.insert(
+        await transaccionRepository.saveLibros([aLibroOperacion(libro, cantidad)], transaccion.id, tx);
+        await ventaRepository.insert(
             transaccion.id,
             { descuento: 0, medio_pago: "efectivo", tipo_cbte: 11, total: libro.precio * cantidad },
             tx
@@ -52,19 +56,35 @@ const crearVenta = async (user: SeedUser, cliente: Client, libro: Libro, cantida
 // Una "consignación": mismo esquema de transacción/libros_transacciones que
 // una venta pero sin fila en `ventas`, y el stock se mueve del usuario al
 // cliente (no se descuenta del todo, como en una venta firme).
-const crearConsignacion = async (user: SeedUser, cliente: Client, libro: Libro, cantidad: number): Promise<void> => {
+const crearConsignacion = async (
+    user: SeedUser,
+    cliente: Client,
+    libro: Libro,
+    cantidad: number,
+    libroService: LibroService,
+    clienteStockService: ClienteStockService,
+    transaccionRepository: TransaccionRepository
+): Promise<void> => {
     await db.transaction(async (tx) => {
-        const transaccion = await transaccionService.insert(
+        const transaccion = await transaccionRepository.insert(
             { type: "consignacion", id_cliente: cliente.id, file_path: "", user: user.id },
             tx
         );
-        await transaccionService.saveLibros([aLibroOperacion(libro, cantidad)], transaccion.id, tx);
+        await transaccionRepository.saveLibros([aLibroOperacion(libro, cantidad)], transaccion.id, tx);
         await libroService.moveStock(libro.id_libro, -cantidad, tx);
         await clienteStockService.moveStock(cliente.id, { id_libro: libro.id_libro, isbn: libro.isbn, precio: libro.precio }, cantidad, tx);
     });
 };
 
-export async function seedOperaciones(users: SeedUser[], libros: Libro[], clientesInscriptos: Client[]): Promise<void> {
+export async function seedOperaciones(
+    users: SeedUser[],
+    libros: Libro[],
+    clientesInscriptos: Client[],
+    libroService: LibroService,
+    clienteStockService: ClienteStockService,
+    transaccionRepository: TransaccionRepository,
+    ventaRepository: VentaRepository
+): Promise<void> {
     for (const user of users) {
         const librosDelUsuario = libros.filter((libro) => libro.user === user.id);
         const clientesPorDefecto = await findClientesPorDefecto(user.id);
@@ -73,13 +93,13 @@ export async function seedOperaciones(users: SeedUser[], libros: Libro[], client
         for (let i = 0; i < VENTAS_POR_USUARIO; i++) {
             const cliente = clientesPorDefecto[i % clientesPorDefecto.length];
             const libro = librosDelUsuario[i % librosDelUsuario.length];
-            await crearVenta(user, cliente, libro, 1 + (i % 3));
+            await crearVenta(user, cliente, libro, 1 + (i % 3), libroService, transaccionRepository, ventaRepository);
         }
 
         for (let i = 0; i < CONSIGNACIONES_POR_USUARIO; i++) {
             const cliente = clientesDelUsuario[i % clientesDelUsuario.length];
             const libro = librosDelUsuario[(i + VENTAS_POR_USUARIO) % librosDelUsuario.length];
-            await crearConsignacion(user, cliente, libro, 2);
+            await crearConsignacion(user, cliente, libro, 2, libroService, clienteStockService, transaccionRepository);
         }
     }
 }

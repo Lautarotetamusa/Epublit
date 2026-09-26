@@ -1,47 +1,29 @@
-import {describe, expect, test, vi} from 'vitest';
+import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../.env");
-dotenv.config({path: path});
+dotenv.config({path: join(__dirname, "../.env")});
 
-vi.mock('../src/afip/afip.js/src/Class/ElectronicBilling', () => {
-    return vi.fn().mockImplementation(() => ({
-        createNextVoucher: vi.fn().mockResolvedValue({
-          CAE: '123456789',
-          CAEFchVto: '20250201',
-          voucherNumber: "1001",
-        }),
-        getVoucherInfo: vi.fn().mockResolvedValue({
-            nro: "1001",
-            qr: "",
-            CbteTipo: "1",
-            PtoVta: "1",
-            CodAutorizacion: "qwert12345",
-            FchVto: "20250222",
-            CbteFch: "20250222",
-      })
-    }))
-});
-vi.mock('../src/comprobantes/comprobante', () => ({
+vi.mock('../src/lib/comprobantes/comprobante', () => ({
     emitirComprobante: vi.fn().mockResolvedValue(undefined)
 }));
 
-// Usar la DB de testing
-process.env.DB_NAME = "epublit_test";
-
-import {app, server} from '../src/app';
-import {conn} from '../src/db'
-import { db } from '../src/pgDb';
-import { librosTable } from '../src/schemas/libros.schema';
-import { clientesTable } from '../src/schemas/clientes.schema';
-import { libroClienteTable } from '../src/schemas/libroCliente.schema';
-import { precioLibroClienteTable } from '../src/schemas/precioLibroCliente.schema';
+import { db } from '../src/db/client';
+import { createContainer } from '../src/container';
+import { createApp } from '../src/app';
+import { createMockAfipService } from '../src/lib/afip/Afip.mock';
+import { librosTable } from '../src/modules/libro/libro.schema';
+import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
+import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
 import {expectBadRequest, delay} from './util';
-import { emitirComprobante } from '../src/comprobantes/comprobante';
+import { emitirComprobante } from '../src/lib/comprobantes/comprobante';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+
+const container = createContainer({ afipService: createMockAfipService() });
+const app = createApp(container);
 
 let token: string;
 const cuit = "20438409249";
@@ -60,23 +42,15 @@ let fechaHistorica: string;
     - Vender en consignacion usando la fecha historica: precio historico, stock actual
     - El stock del cliente se reduce; el stock general del libro no se toca
 */
-afterAll(async () => {
-    if (cliente.id) {
-        await db.delete(precioLibroClienteTable).where(eq(precioLibroClienteTable.id_cliente, cliente.id));
-        await db.delete(libroClienteTable).where(eq(libroClienteTable.id_cliente, cliente.id));
-        await db.delete(clientesTable).where(eq(clientesTable.id, cliente.id));
-    }
-    await db.delete(librosTable).where(inArray(librosTable.isbn, isbnsVentaConsig));
-    conn.end();
-    server.close();
+afterAll(() => {
+    db.$client.end();
 });
 
-test('login', async () => {
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'teti', password: 'Lautaro123.' });
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
@@ -121,7 +95,11 @@ describe('VENTA EN CONSIGNACION', () => {
                 });
             }
 
-            fechaHistorica = new Date().toISOString();
+            // `getStockAFecha` le suma 3hs a la fecha recibida para interpretarla
+            // como GMT-3 (ver clienteStock.repository.ts): para que "ahora
+            // mismo" siga cayendo antes de la sincronización de más abajo, hay
+            // que restar esas 3hs acá.
+            fechaHistorica = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
             await delay(1200); // asegurar timestamps distintos entre precio histórico y precio actual
         });
 
@@ -131,7 +109,7 @@ describe('VENTA EN CONSIGNACION', () => {
                     .put(`/libro/${isbn}`)
                     .set('Authorization', `Bearer ${token}`)
                     .send({ precio: precioActual });
-                expect(res.status).toBe(201);
+                expect(res.status).toBe(200);
             }
 
             const res = await request(app)
@@ -145,7 +123,7 @@ describe('VENTA EN CONSIGNACION', () => {
         describe('Bad request', () => {
             test('Cliente no inscripto', async () => {
                 const res1 = await request(app).get('/cliente?tipo=negro').set('Authorization', `Bearer ${token}`);
-                const negro = res1.body[0];
+                const negro = res1.body.items[0];
 
                 const res = await request(app)
                     .post('/ventaConsignacion/')
@@ -202,13 +180,13 @@ describe('VENTA EN CONSIGNACION', () => {
                     .get(`/cliente/${cliente.id}/stock`)
                     .set('Authorization', `Bearer ${token}`);
 
-                const libroCliente = resStock.body.find((l: any) => l.isbn === isbnsVentaConsig[0]);
+                const libroCliente = resStock.body.data.find((l: any) => l.isbn === isbnsVentaConsig[0]);
                 expect(libroCliente.stock).toEqual(stockCliente - 2);
 
                 const resLibro = await request(app)
                     .get(`/libro/${isbnsVentaConsig[0]}`)
                     .set('Authorization', `Bearer ${token}`);
-                expect(resLibro.body.stock).toEqual(0);
+                expect(resLibro.body.data.stock).toEqual(0);
             });
         });
     });

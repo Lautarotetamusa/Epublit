@@ -25,3 +25,5 @@ dist/
 log.log
 logs.log
 nohup.out
+.jscpd-report
+coverage

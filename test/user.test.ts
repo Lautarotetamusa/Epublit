@@ -1,4 +1,4 @@
-import {describe, expect, it, vi} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -8,33 +8,33 @@ import fs from "fs";
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
-vi.mock('../src/afip/Afip', async () => {
-    const actual = await vi.importActual('../src/afip/Afip');
-    return {
-        ...actual,
-        getAfipData: vi.fn((cuit) => {
-            if (cuit == "12345") throw new NotFound("El cuit no valido")
+import {db} from '../src/db/client';
+import { createContainer } from '../src/container';
+import { createApp } from '../src/app';
+import { createMockAfipService } from '../src/lib/afip/Afip.mock';
+import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
+import { NotFound } from 'bradb';
 
-            return {
-                ingresos_brutos: false,
-                fecha_inicio: "10/02/2025",
-                razon_social: "CLIENTE DE PRUEBA",
-                cond_fiscal: "IVA EXENTO",
-                domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
-            }
-        })
+const afipService = createMockAfipService({
+    getAfipData: async (cuitConsultado) => {
+        if (cuitConsultado === "12345") throw new NotFound("El cuit no valido");
+
+        return {
+            ingresos_brutos: false,
+            fecha_inicio: "10/02/2025",
+            razon_social: "CLIENTE DE PRUEBA",
+            cond_fiscal: "IVA EXENTO",
+            domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
+        };
     }
 });
+const container = createContainer({ afipService });
+const app = createApp(container);
 
-process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
-import {conn} from '../src/db'
-import {db} from '../src/pgDb';
-import {usersTable, clientesTable} from '../src/schemas';
-import {or, eq, inArray} from 'drizzle-orm';
-import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
-import { NotFound } from '../src/models/errors';
-
+// Este archivo prueba el flujo de alta de usuario en sí (AFIP + generación
+// de clave/CSR en el filesystem + clientes por defecto): no hay forma de
+// "usarlo seedeado", el alta es lo que se está probando. `cuit`/`username`
+// no colisionan con los usuarios fijos del seed (`libreria_sur`/`editorial_norte`).
 const cuit = "20173080329"
 const userPath = join(__dirname, "../afipkeys/", cuit);
 let user: any = {
@@ -46,30 +46,11 @@ let user: any = {
 let token: string;
 
 beforeAll(() => {
-    const userPath = join(__dirname, "../afipkeys/", cuit);
     fs.rmSync(userPath, {recursive: true, force: true});
 });
 
 afterAll(() => {
-    conn.end();
-    server.close();
-});
-
-it('Hard delete', async () => {
-    // `user` ahora vive sólo en Postgres; hay que borrar sus clientes por
-    // defecto (MOSTRADOR/CONSUMIDOR FINAL) antes que la fila de `users`
-    // porque `clientes.user` referencia `users.id` sin `onDelete: cascade`.
-    const existing = await db
-        .select({ id: usersTable.id })
-        .from(usersTable)
-        .where(or(eq(usersTable.cuit, cuit), eq(usersTable.username, user.username)));
-
-    const ids = existing.map((u) => u.id);
-    if (ids.length > 0) {
-        await db.delete(clientesTable).where(inArray(clientesTable.user, ids));
-    }
-
-    await db.delete(usersTable).where(or(eq(usersTable.cuit, cuit), eq(usersTable.username, user.username)));
+    db.$client.end();
 });
 
 describe('POST user/register', () => {
@@ -142,7 +123,7 @@ describe('POST /login', () => {
             .set('Authorization', `Bearer ${token}`);
 
         expect(res.status).toBe(200);
-        const clientes = res.body;
+        const clientes = res.body.items;
 
         expect(clientes).toHaveLength(2);
         

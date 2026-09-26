@@ -1,6 +1,6 @@
-import { db } from "../src/pgDb";
-import { clientesTable } from "../src/schemas";
-import { Client } from "../src/validators/cliente.validator";
+import { db } from "../src/db/client";
+import { clientesTable } from "../src/db/schema";
+import { Client } from "../src/modules/cliente";
 import { SeedUser } from "./users.seeder";
 import { nombreCompleto, domicilio, cuit, email } from "./data";
 

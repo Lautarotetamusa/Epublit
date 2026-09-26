@@ -1,68 +1,51 @@
-import {describe, expect, test, vi} from 'vitest';
+import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
-import { inArray } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../.env");
-dotenv.config({path: path});
+dotenv.config({path: join(__dirname, "../.env")});
 
-vi.mock('../src/afip/afip.js/src/Class/ElectronicBilling', () => {
-    return vi.fn().mockImplementation(() => ({
-        createNextVoucher: vi.fn().mockResolvedValue({
-          CAE: '123456789',
-          CAEFchVto: '20250201',
-          voucherNumber: "1001",
-        }),
-        getVoucherInfo: vi.fn().mockResolvedValue({
-            nro: "1001",
-            qr: "",
-            CbteTipo: "1",
-            PtoVta: "1",
-            CodAutorizacion: "qwert12345",
-            FchVto: "20250222",
-            CbteFch: "20250222",
-      })
-    }))
-});
-vi.mock('../src/comprobantes/comprobante', () => ({
+// Emitir el comprobante en sí (PDF vía puppeteer) es un detalle de formato
+// ajeno a lo que este archivo prueba, se mockea aparte. AFIP no se mockea
+// con `vi.mock` (ver createMockAfipService): el container se arma con el
+// afip mock directamente, vía DI.
+vi.mock('../src/lib/comprobantes/comprobante', () => ({
     emitirComprobante: vi.fn().mockResolvedValue(undefined)
 }));
 
-// Usar la DB de testing
-process.env.DB_NAME = "epublit_test";
-import {app, filesUrl, server} from '../src/app';
-import {conn} from '../src/db'
-import { db } from '../src/pgDb';
-import { librosTable } from '../src/schemas/libros.schema';
+import { db } from '../src/db/client';
+import { createContainer } from '../src/container';
+import { createApp } from '../src/app';
+import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import {expectBadRequest, expectDataResponse, expectCreated, expectNotFound} from './util';
-import { emitirComprobante } from '../src/comprobantes/comprobante';
+import { emitirComprobante } from '../src/lib/comprobantes/comprobante';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+import { isbn } from '../seeders/data';
+
+const container = createContainer({ afipService: createMockAfipService() });
+const app = createApp(container);
 
 let token: string;
 let clienteInscripto: { id: number; tipo: string };
 let clienteNegro: { id: number; tipo: string };
 
-// No se migran datos históricos (spec, "Fuera de alcance"): a diferencia del
-// test legado (que asumía ids de MySQL ya cargados), este test crea sus
-// propios libros/clientes contra Postgres.
-const isbnsVenta = ["9000000000001", "9000000000002", "9000000000003"];
+// Libros propios (no seedeados) para no interferir con el stock que otros
+// archivos de test puedan estar leyendo de los libros del seed.
+const isbnsVenta = [isbn(9994), isbn(9993), isbn(9992)];
 
 let venta: any = {};
 
-afterAll(async () => {
-    await db.delete(librosTable).where(inArray(librosTable.isbn, isbnsVenta));
-    conn.end();
-    server.close();
-});
-
-test('login', async () => {
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'teti', password: 'Lautaro123.' });
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
+});
+
+afterAll(() => {
+    db.$client.end();
 });
 
 describe('VENTA', () => {
@@ -70,25 +53,25 @@ describe('VENTA', () => {
         test('Buscar clientes por defecto (CONSUMIDOR FINAL / MOSTRADOR)', async () => {
             let res = await request(app).get('/cliente?tipo=particular').set('Authorization', `Bearer ${token}`);
             expect(res.status).toBe(200);
-            clienteInscripto = res.body[0];
+            clienteInscripto = res.body.items[0];
             expect(clienteInscripto).toBeDefined();
 
             res = await request(app).get('/cliente?tipo=negro').set('Authorization', `Bearer ${token}`);
             expect(res.status).toBe(200);
-            clienteNegro = res.body[0];
+            clienteNegro = res.body.items[0];
             expect(clienteNegro).toBeDefined();
         });
 
         test('Crear libros con stock para la venta', async () => {
             venta.libros = [];
-            for (const isbn of isbnsVenta) {
+            for (const isbnLibro of isbnsVenta) {
                 const res = await request(app)
                     .post('/libro/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ isbn, titulo: 'Test venta', fecha_edicion: '2020-01-01', precio: 1000, stock: 3 });
+                    .send({ isbn: isbnLibro, titulo: 'Test venta', fecha_edicion: '2020-01-01', precio: 1000, stock: 3 });
 
                 expectCreated(res);
-                venta.libros.push({ isbn, cantidad: 3 });
+                venta.libros.push({ isbn: isbnLibro, cantidad: 3 });
             }
         });
     });
@@ -160,8 +143,8 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);
-                expect(res.body.type).toEqual('venta');
-                expect(res.body.libros).toHaveLength(1);
+                expect(res.body.data.type).toEqual('venta');
+                expect(res.body.data.libros).toHaveLength(1);
             });
 
             test('El libro redujo su stock', async () => {
@@ -170,7 +153,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toEqual(200);
-                expect(res.body.stock).toEqual(1);
+                expect(res.body.data.stock).toEqual(1);
             });
 
             test('GET venta que no existe da 404', async () => {
@@ -212,7 +195,7 @@ describe('VENTA', () => {
 
             const fields = ["id", "type", "descuento", "total", "medio_pago", "tipo_cbte", "id_transaccion",
                 "fecha", "file_path", "cuit", "nombre_cliente", "email", "cond_fiscal"];
-            for (const v of res.body) {
+            for (const v of res.body.data) {
                 for (const fieldName of fields) {
                     expect(v).toHaveProperty(fieldName);
                 }

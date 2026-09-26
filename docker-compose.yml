@@ -27,10 +27,10 @@ services:
     restart: on-failure
     env_file: ./.env
     ports:
-      - $BACK_PORT:$BACK_PORT
+      - $PORT:$PORT
     environment:
       - DB_HOST=postgresdb
-    command: node dist/app.js
+    command: node dist/src/index.js
     #command: npm run start:dev
     volumes:
      - ./files:/app/files

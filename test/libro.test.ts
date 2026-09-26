@@ -1,138 +1,132 @@
-import {describe, expect, it} from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from "supertest";
-import { eq } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../.env");
-dotenv.config({path: path});
+dotenv.config({ path: join(__dirname, "../.env") });
 
-process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
-import {conn} from '../src/db'
-import { db } from '../src/pgDb';
-import { librosTable } from '../src/schemas/libros.schema';
-import { precioLibrosTable } from '../src/schemas/precioLibros.schema';
-import { librosPersonasTable } from '../src/schemas/librosPersonas.schema';
-import { personasTable } from '../src/schemas/personas.schema';
-import {expectCreated, expectNotFound} from './util';
+import { app, server } from '../src/index';
+import { db } from '../src/db/client';
+import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectList } from './util';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+import { isbn } from '../seeders/data';
+
+// Recipe fija de `seeders/libros.seeder.ts`: 12 libros por usuario,
+// isbn(índice global). `libreria_sur` es el primer usuario seedeado, así
+// que sus libros son isbn(0)..isbn(11).
+const ISBN_LIBRO_1 = isbn(0);
 
 let token: string;
-const libro: any = {
-    "isbn": "111111111",
-    "titulo": "Test",
-    "fecha_edicion": "2020-02-17",
-    "precio": 10000,
-    "stock": 0
-}
 
-afterAll(() => {
-    conn.end();
-    server.close();
-});
-
-it('HARD DELETE', async () => {
-    await db.delete(librosPersonasTable).where(eq(librosPersonasTable.isbn, libro.isbn));
-    await db.delete(precioLibrosTable).where(eq(precioLibrosTable.isbn, libro.isbn));
-    await db.delete(librosTable).where(eq(librosTable.isbn, libro.isbn));
-    await db.delete(personasTable).where(eq(personasTable.dni, '39019203'));
-});
-
-it('login', async () => {
-    const data = {
-        username: 'teti',
-        password: 'Lautaro123.'
-    }
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send(data)
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
-describe('Crear libro POST /libro', function () {
-    it('Insertar Libro', async () => {
+afterAll(() => {
+    db.$client.end();
+    server.close();
+});
+
+describe('GET /libro', () => {
+    it('lista paginada', async () => {
         const res = await request(app)
-            .post('/libro/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(libro);
+            .get('/libro')
+            .set('Authorization', `Bearer ${token}`);
 
-        expectCreated(res);
-        expect(res.body.data).toHaveProperty("id_libro");
-        expect(res.body.data.id_libro).toBeDefined();
-
-        libro.id_libro = res.body.data.id_libro;
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
     });
 });
 
-describe('Obtener libro GET /libro/:isbn', function () {
-    it("Libro obtenido", async () => {
+describe('GET /libro/:isbn', () => {
+    it('libro que no existe', async () => {
         const res = await request(app)
-            .get('/libro/'+libro.isbn)
+            .get(`/libro/${ISBN_LIBRO_1}999`)
             .set('Authorization', `Bearer ${token}`);
 
-        expect(res.status).toEqual(200);
-        expect(res.body.autores).toEqual([]);
-        expect(res.body.ilustradores).toEqual([]);
-    });
-
-    it("Intentar obtener libro que no existe", function (done) {
-        request(app)
-        .get('/libro/'+libro.isbn+19999)
-        .set('Authorization', `Bearer ${token}`)
-        .expect(404, done)
-    });
-});
-
-describe('Actualizar libro PUT /libro/:isbn', function () {
-    it('Todo es igual', async () => {
-        const res = await request(app)
-            .put('/libro/'+libro.isbn)
-            .set('Authorization', `Bearer ${token}`)
-            .send(libro);
-
-        expect(res.status).toEqual(201);
-        expect(res.body.success).toEqual(true);
-    });
-
-    it('Actualizamos precio', async () => {
-        libro.precio += 1100;
-        const res = await request(app)
-            .put('/libro/'+libro.isbn)
-            .set('Authorization', `Bearer ${token}`)
-            .send(libro);
-
-        expectCreated(res);
-    });
-});
-
-describe('DELETE /libro', function () {
-    it('Borrado', async () => {
-        const res = await request(app)
-            .delete('/libro/'+libro.isbn)
-            .set('Authorization', `Bearer ${token}`);
-        expect(res.status).toBe(200);
-        expect(res.body).toHaveProperty("message");
-        expect(res.body).toHaveProperty("success");
-        expect(res.body.success).toBe(true);
-    });
-
-    it('No se puede obtener el libro', async () => {
-        const res = await request(app)
-            .get('/libro/'+libro.isbn)
-            .set('Authorization', `Bearer ${token}`);
         expectNotFound(res);
     });
 
+    it('devuelve el libro con autores/ilustradores', async () => {
+        const res = await request(app)
+            .get(`/libro/${ISBN_LIBRO_1}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toEqual(200);
+        expect(res.body.data.isbn).toEqual(ISBN_LIBRO_1);
+        expect(res.body.data.autores).toBeInstanceOf(Array);
+        expect(res.body.data.ilustradores).toBeInstanceOf(Array);
+    });
 });
 
-describe('Listar todos los libros GET /libro', function () {
-    it("Lista obtenida", function (done) {
-        request(app)
-        .get('/libro')
-        .set('Authorization', `Bearer ${token}`)
-        .expect(200, done)
+describe('POST /libro', () => {
+    it('sin isbn', async () => {
+        const res = await request(app)
+            .post('/libro/')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ titulo: 'Sin isbn' });
+
+        expectBadRequest(res);
+    });
+
+    it('creación exitosa', async () => {
+        const res = await request(app)
+            .post('/libro/')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                isbn: isbn(9999),
+                titulo: 'Libro de prueba POST',
+                fecha_edicion: '2020-02-17',
+                precio: 10000,
+                stock: 0
+            });
+
+        expectCreated(res);
+        expect(res.body.data.isbn).toEqual(isbn(9999));
+    });
+});
+
+describe('PUT /libro/:isbn', () => {
+    it('actualiza el precio', async () => {
+        const res = await request(app)
+            .put(`/libro/${isbn(9999)}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ precio: 11100 });
+
+        expectUpdated(res);
+        expect(res.body.data.precio).toEqual(11100);
+    });
+
+    it('libro que no existe', async () => {
+        const res = await request(app)
+            .put(`/libro/${ISBN_LIBRO_1}999`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ precio: 1 });
+
+        expectNotFound(res);
+    });
+});
+
+describe('DELETE /libro/:isbn', () => {
+    it('elimina el libro creado por este archivo', async () => {
+        const res = await request(app)
+            .delete(`/libro/${isbn(9999)}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+    });
+
+    it('ya no se puede obtener', async () => {
+        const res = await request(app)
+            .get(`/libro/${isbn(9999)}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expectNotFound(res);
     });
 });

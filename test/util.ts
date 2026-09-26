@@ -9,8 +9,26 @@ export function expectBadRequest(res: Response){
     expectErrorResponse(res, 400);
 }
 
+export function expectConflict(res: Response){
+    expectErrorResponse(res, 409);
+}
+
 export function expectCreated(res: Response){
     expectDataResponse(res, 201);
+}
+
+export function expectUpdated(res: Response){
+    expectDataResponse(res, 200);
+}
+
+export function expectList(res: Response){
+    if (res.status != 200){
+        console.error(res.body);
+    }
+
+    expect(res.status).toEqual(200);
+    expect(res.body.items).toBeInstanceOf(Array);
+    expect(res.body.pagination).toBeDefined();
 }
 
 export function expectErrorResponse(res: Response, status: number){

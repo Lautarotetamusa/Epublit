@@ -1,49 +1,53 @@
-import express from "express";
-import {createServer} from 'http';
-
+import express, { Express } from "express";
 import cors from 'cors';
+import { Container } from "./container";
+import { auth } from "./lib/auth/auth";
+import { medioPago } from "./modules/transaccion";
+import { handleErrors } from "./lib/http/errors";
+import { env } from "./env";
 
-import { router } from "./routes";
-import {join} from "path"; //Crear path para los archivos estaticos
-import { handleErrors } from "./models/errors";
+// Factory en vez de un `app`/`server` ya armados a nivel de módulo: quien
+// levanta el proceso (`index.ts`) decide cuándo construirla y cuándo
+// escuchar — así se puede importar sin efecto secundario (ej. en tests).
+// El `container` entra por parámetro (no se importa el singleton de acá)
+// para poder armar la app con un container distinto (ej. uno de test).
+export function createApp(container: Container): Express {
+    const app = express();
 
-export const app = express();
-export const server = createServer(app);
+    app.use(cors());
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-const backPort: number = Number(process.env.BACK_PORT) || 3000; // Puerto interno del docker donde se levanta el server
-const publicPort: number = Number(process.env.BACK_PUBLIC_PORT) || backPort; //Puerto que tiene acceso al mundo
-const host = process.env.HOST ? process.env.HOST : "localhost";
-const env = process.env.env || "dev";
+    // Sirve los archivos estáticos (facturas/remitos/logos) directo bajo
+    // `/files`, sin un router aparte: es la única ruta de la app que no
+    // pasa por un módulo de dominio.
+    app.use('/files', express.static(env.FILES_PATH));
+    app.use('/files/{*splat}', (_, res) => res.status(404).json({
+        success: false,
+        error: "File does not exists"
+    }));
 
-const route = `${env != "dev" ? 'api/v1/': ''}files` as const;
-export const filesUrl  = `http://${host}:${publicPort}/${route}` as const;
-export const filesPath = join(__dirname, "../files");
+    app.use('/persona', auth, container.persona.router);
+    app.use('/libro', auth, container.libro.router);
+    app.use('/cliente', auth, container.cliente.router);
 
-/*app.use((req, _, next) => {
-    const message = `[server]: ${req.method} ${req.url}`;
-    console.log(message);
-    next();
-});*/
+    // Registrada antes de montar el router de transacciones: si fuera después,
+    // `/venta/:id` (dentro de container.transaccion.router) la interceptaría
+    // primero y "medios_pago" se leería como un id.
+    app.get('/venta/medios_pago', async (_, res) => {
+        return res.json(Object.keys(medioPago));
+    });
+    app.use('/', container.transaccion.router);
 
-//Necesesario para que no tire error de CORS
-app.use(cors());
+    app.use('/user', container.user.router);
 
-app.use(express.json());
-app.use(express.urlencoded({extended: true,}));
+    app.use(handleErrors);
 
-//Servir los archivos estáticos, lo imoprtamos aca para que filesPath funcione
-import { fileRouter } from "./routes/files.routes";
-app.use('/files', fileRouter);
+    // Cualquier otra ruta no especificada
+    app.use('/{*splat}', (_, res) => res.status(404).json({
+        success: false,
+        error: "Esta ruta no hace nada"
+    }));
 
-app.use(router);
-app.use(handleErrors);
-
-//Cualquier otra ruta no especificada
-app.use('/{*splat}', (_, res) => res.status(404).json({
-    success: false,
-    error: "Esta ruta no hace nada"
-}));
-
-server.listen(backPort, () => {
-    console.log(`[server]: Server is running at http://${host}:${backPort}`);
-});
+    return app;
+}

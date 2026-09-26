@@ -1,220 +1,195 @@
-import {describe, expect, it} from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
-const path = join(__dirname, "../.env");
-dotenv.config({path: path});
+dotenv.config({ path: join(__dirname, "../.env") });
 
-// Usar la DB de testing
-process.env.DB_NAME = "epublit_test";
-import {app, server} from '../src/app';
-import {conn} from '../src/db'
-import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
+// DB de test: ver test/cliente.test.ts para la explicación completa del
+// setup (reset-test-db.sh + DB_NAME por variable de entorno del shell).
+import { app, server } from '../src/index';
+import { db } from '../src/db/client';
+import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList } from './util';
+import { PASSWORD_SEED } from '../seeders/users.seeder';
+import { dni, email } from '../seeders/data';
 
-let persona: any = {}
+// Recipe fija de `seeders/personas.seeder.ts`: 6 personas por usuario,
+// dni(índice global). `libreria_sur` es el primer usuario seedeado, así
+// que sus personas son dni(0)..dni(5).
+const DNI_PERSONA_1 = dni(0);
+const DNI_PERSONA_2 = dni(1);
+const DNI_PERSONA_3 = dni(2);
+
 let token: string;
 
-/*
-    - Creamos dos personas, una con dni 11111111 y otra 22222222
-    - Intentamos crear otra con el mismo dni y obtenemos un error
-    - Obtenemos una persona con un id q no existe y nos da un error
-    - Verificamos que la persona creada esté en la lista
-    - Intentamos actualizar la persona 1 al dni de la persona 2 y obtenemos un error
-    - Actualizamos la persona
-    - Intentamos borrar una persona que no existe, obtenemos un error
-    - Borramos la persona 1
-    - Verificamos que ya no esté en la lista
-    - Hard delete de las dos personas para evitar que queden en la DB.
-*/
+async function getPersonaPorDni(targetDni: string) {
+    const res = await request(app)
+        .get('/persona?pageSize=100')
+        .set('Authorization', `Bearer ${token}`);
 
-afterAll(() => {
-    conn.end();
-    server.close();
-});
+    return res.body.items.find((p: { dni: string }) => p.dni === targetDni);
+}
 
-it('HARD DELETE', async () => {
-    await conn.query(`
-        DELETE FROM personas
-        WHERE dni=11111111
-        OR dni=22222222
-    `);
-});
-
-it('login', async () => {
-    const data = {
-        username: 'teti',
-        password: 'Lautaro123.'
-    }
+beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send(data)
+        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
-    expect(res.status).toBe(200);
     token = res.body.token;
 });
 
-describe('POST persona/', () => {
-    it('Sin nombre', async () => {
-        const res = await request(app)
-            .post('/persona/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(persona);
+afterAll(() => {
+    db.$client.end();
+    server.close();
+});
 
-        persona.nombre = 'Test';
-        persona.email = 'test@gmail.com'
-        expectBadRequest(res);
+describe('GET /persona', () => {
+    it('lista paginada', async () => {
+        const res = await request(app)
+            .get('/persona')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
     });
 
-    it('Sin dni', async () => {        
+    it('filtra por tipo (autor/ilustrador)', async () => {
         const res = await request(app)
-            .post('/persona/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(persona);
-        
-        persona.dni = '11111111';
-        
-        expectBadRequest(res);
-    });
+            .get('/persona?tipo=autor')
+            .set('Authorization', `Bearer ${token}`);
 
-
-    it('Success', async () => {
-        const res = await request(app)
-            .post('/persona/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(persona);
-
-        // Creo otra persona para despues
-        persona.dni = '22222222';
-        await request(app)
-            .post('/persona/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(persona);
-
-        expectCreated(res);
-        
-        persona.dni = '11111111';
-        persona.id = res.body.data.id;
-    });
-
-    it('Dni repetido', async () => {
-        let _persona = Object.assign({}, persona);
-        delete _persona.id;
-        const res = await request(app)
-            .post('/persona/')
-            .set('Authorization', `Bearer ${token}`)
-            .send(_persona);
-        
-        expectNotFound(res);
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
     });
 });
 
-describe('GET persona/', () => {
-    it('Persona que no existe', async () => {
+describe('GET /persona/:id', () => {
+    it('persona que no existe', async () => {
         const res = await request(app)
-            .get('/persona/'+(persona.id+2))
+            .get('/persona/999999999')
             .set('Authorization', `Bearer ${token}`);
 
         expectNotFound(res);
     });
 
-    it('Obtener persona', async () => {
+    it('devuelve la persona con sus libros', async () => {
+        const persona = await getPersonaPorDni(DNI_PERSONA_1);
+
         const res = await request(app)
-            .get('/persona/'+persona.id)
+            .get(`/persona/${persona.id}`)
             .set('Authorization', `Bearer ${token}`);
 
         expect(res.status).toEqual(200);
-        expect(res.body).toMatchObject(persona);
-    });
-
-    it('La persona está en la lista', async () => {
-        const res = await request(app)
-            .get('/persona/')
-            .set('Authorization', `Bearer ${token}`);
-
-        expect(res.status).toEqual(200);
-        expect(res.body.map((p: any) => p.id)).toContain(persona.id);
+        expect(res.body.data.dni).toEqual(DNI_PERSONA_1);
+        expect(res.body.data.libros).toBeInstanceOf(Array);
     });
 });
 
-describe('PUT persona/{id}', () => {
-    it('Nothing changed', async () => {
-        let _persona = Object.assign({}, persona);
-        delete _persona.id;
-        delete _persona.dni;
-
+describe('POST /persona', () => {
+    it('sin nombre', async () => {
         const res = await request(app)
-            .put('/persona/'+persona.id)
+            .post('/persona/')
             .set('Authorization', `Bearer ${token}`)
-            .send(_persona);
+            .send({ dni: '99999999' });
 
-        expect(res.status).toEqual(201);
+        expectBadRequest(res);
     });
 
-    it('Actualizar a un dni que ya está cargado', async () => {
-        let _persona = Object.assign({}, persona);
-        delete _persona.id;
-        _persona.dni = '22222222';
+    it('sin dni', async () => {
         const res = await request(app)
-            .put('/persona/'+persona.id)
+            .post('/persona/')
             .set('Authorization', `Bearer ${token}`)
-            .send(_persona);
+            .send({ nombre: 'Sin dni' });
+
+        expectBadRequest(res);
+    });
+
+    it('dni repetido con una persona propia existente', async () => {
+        const res = await request(app)
+            .post('/persona/')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ nombre: 'Otra persona', dni: DNI_PERSONA_1 });
+
+        expectConflict(res);
+    });
+
+    it('creación exitosa', async () => {
+        const res = await request(app)
+            .post('/persona/')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ nombre: 'Persona de prueba POST', dni: dni(9999), email: email('test', 9999) });
+
+        expectCreated(res);
+        expect(res.body.data.dni).toEqual(dni(9999));
+    });
+});
+
+describe('PUT /persona/:id', () => {
+    it('dni repetido con otra persona propia', async () => {
+        const persona = await getPersonaPorDni(DNI_PERSONA_2);
+
+        const res = await request(app)
+            .put(`/persona/${persona.id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ dni: DNI_PERSONA_3 });
+
+        expectConflict(res);
+    });
+
+    it('actualiza nombre sin tocar el dni', async () => {
+        const persona = await getPersonaPorDni(DNI_PERSONA_2);
+
+        const res = await request(app)
+            .put(`/persona/${persona.id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ nombre: 'Nombre actualizado' });
+
+        expectUpdated(res);
+        expect(res.body.data.nombre).toEqual('Nombre actualizado');
+        expect(res.body.data.dni).toEqual(DNI_PERSONA_2);
+    });
+
+    it('ignora un campo que no existe en el schema', async () => {
+        const persona = await getPersonaPorDni(DNI_PERSONA_2);
+
+        const res = await request(app)
+            .put(`/persona/${persona.id}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ no_existe: 99, nombre: 'Otro nombre' });
+
+        expectUpdated(res);
+        expect(res.body.data.nombre).toEqual('Otro nombre');
+    });
+});
+
+describe('DELETE /persona/:id', () => {
+    it('persona que no existe', async () => {
+        const res = await request(app)
+            .delete('/persona/999999999')
+            .set('Authorization', `Bearer ${token}`);
 
         expectNotFound(res);
     });
 
-    it('Actualizar campo que no existe', async () => {
-        let data = {no_existe: 99, nombre: "hola"}
-
-        const res = await request(app)
-            .put('/persona/'+persona.id)
+    it('elimina una persona propia y ya no aparece', async () => {
+        // Crea su propia persona descartable en vez de tocar una seedeada:
+        // el DELETE es lo que se está probando, no hace falta que sobreviva.
+        const creada = await request(app)
+            .post('/persona/')
             .set('Authorization', `Bearer ${token}`)
-            .send(data);
-        expectCreated(res);
-    });
-
-    it('Success', async () => {
-        persona.dni='11111111'
-        persona.nombre = 'TestTest';
-        let _persona = Object.assign({}, persona);
-        delete _persona.id;
+            .send({ nombre: 'A eliminar', dni: dni(9998) });
+        expectCreated(creada);
 
         const res = await request(app)
-            .put('/persona/'+persona.id)
-            .set('Authorization', `Bearer ${token}`)
-            .send(_persona);
-
-        expectCreated(res);
-
-        res.body.data.id = persona.id;
-        expect(res.body.data).toMatchObject(persona);
-    });
-})
-
-describe('DELETE /persona/{id}', () => {
-    it('Persona no existe', async () => {
-        const res = await request(app)
-            .get('/persona/'+(persona.id+1000))
-            .set('Authorization', `Bearer ${token}`);
-
-        expectNotFound(res);
-    });
-    
-    it('Success', async () => {
-        const res = await request(app)
-            .delete('/persona/'+persona.id)
+            .delete(`/persona/${creada.body.data.id}`)
             .set('Authorization', `Bearer ${token}`);
 
         expect(res.status).toEqual(200);
-    });
 
-    it('La persona ya no está en la lista', async () => {
-        const res = await request(app)
-            .get('/persona/')
+        const getRes = await request(app)
+            .get(`/persona/${creada.body.data.id}`)
             .set('Authorization', `Bearer ${token}`);
-
-        expect(res.status).toEqual(200);
-        expect(res.body.map((p: any) => p.id)).not.toContain(persona.id);
-    });    
-  });
+        expectNotFound(getRes);
+    });
+});

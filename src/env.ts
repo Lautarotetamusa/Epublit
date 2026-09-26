@@ -5,17 +5,25 @@ const strToNumber = (defaultValue: string) =>
     z
         .string()
         .default(defaultValue)
-        .transform((val) => Number(val));
+        .transform(Number);
 
 const schema = z
     .object({
-        HOST: z.string().default("localhost"),
-        BACK_PORT: strToNumber("3000"),
-        BACK_PUBLIC_PORT: z.string().optional(),
-        PROTOCOL: z.string().default("http"),
+        PORT: strToNumber("3000"),  // Puerto interno de Express
+
+        // Ruta completa del host. en prod eg: https://example.com/api/v1/
+        HOST: z.string().default("http://localhost:3000"),
+
+        // Carpeta donde se guardan/sirven los archivos generados (facturas,
+        // remitos, logos) — relativa al cwd del proceso.
+        FILES_PATH: z.string().default("files"),
 
         JWT_SECRET: z.string(),
         JWT_EXPIRES_IN: z.string().default("24h"),
+
+        // Cuit de producción usado para consultar el padrón de AFIP
+        // (`getAfipData`), independiente del cuit de cada usuario.
+        AFIP_CUIT_PROD: z.string().default("27249804024"),
 
         DB_HOST: z.string().default("localhost"),
         DB_USER: z.string(),
@@ -25,7 +33,7 @@ const schema = z
     })
     .transform((env) => ({
         ...env,
-        DATABASE_URL: `postgres://${env.DB_USER}:${env.DB_PASS}@${env.DB_HOST}:${env.DB_PORT}/${env.DB_NAME}`
+        DATABASE_URL: `postgres://${env.DB_USER}:${env.DB_PASS}@${env.DB_HOST}:${env.DB_PORT}/${env.DB_NAME}`,
     }));
 
 export const env = schema.parse(process.env);

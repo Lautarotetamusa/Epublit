@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
-import { userService } from "../src/services/user.service";
-import { UserInsert } from "../src/validators/user.validator";
+import { UserInsert, UserService } from "../src/modules/user";
 import { domicilio, cuit, email } from "./data";
 
 // Usuarios de prueba fijos (no generados por índice como el resto de las
@@ -35,12 +34,13 @@ const USUARIOS_SEED: Omit<UserInsert, "password">[] = [
 
 export const PASSWORD_SEED = "seed12345";
 
-export type SeedUser = Awaited<ReturnType<typeof userService.createUser>>;
+export type SeedUser = Awaited<ReturnType<UserService["createUser"]>>;
 
 // `createUser` (no un insert directo) porque crea también los clientes por
 // defecto (MOSTRADOR/CONSUMIDOR FINAL) dentro de la misma transacción: ver
-// user.service.ts. Duplicar esa lógica acá violaría DRY.
-export async function seedUsers(): Promise<SeedUser[]> {
+// user.service.ts. Duplicar esa lógica acá violaría DRY. `userService` entra
+// por parámetro, mismo patrón que el resto de los seeders.
+export async function seedUsers(userService: UserService): Promise<SeedUser[]> {
     const password = await bcrypt.hash(PASSWORD_SEED, 10);
 
     const users: SeedUser[] = [];

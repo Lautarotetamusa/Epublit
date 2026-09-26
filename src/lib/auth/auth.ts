@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { Secret } from "jsonwebtoken";
 
 import * as dotenv from 'dotenv'
-import { TokenUser } from "../validators/user.validator";
+import { TokenUser } from "../../modules/user/user.validator";
 dotenv.config();
 
 export const auth = async (req: Request, res: Response, next: NextFunction) => {

@@ -1,3 +1,10 @@
+import { db } from "../src/db/client";
+import { createMockAfipService } from "../src/lib/afip/Afip.mock";
+import { createPersonaModule } from "../src/modules/persona";
+import { createLibroModule } from "../src/modules/libro";
+import { createUserModule } from "../src/modules/user";
+import { createClienteModule } from "../src/modules/cliente";
+import { createTransaccionModule } from "../src/modules/transaccion";
 import { resetSeedData } from "./reset";
 import { seedUsers, PASSWORD_SEED } from "./users.seeder";
 import { seedPersonas } from "./personas.seeder";
@@ -12,18 +19,43 @@ import { seedOperaciones } from "./operaciones.seeder";
 async function main(): Promise<void> {
     await resetSeedData();
 
-    const users = await seedUsers();
-    const personas = await seedPersonas(users);
-    const clientes = await seedClientes(users);
-    const libros = await seedLibros(users);
+    // Mock, no el real: un seeder de desarrollo no puede depender de una
+    // llamada de red real a AFIP (ver seeders/clientes.seeder.ts).
+    const afipService = createMockAfipService();
 
-    await seedLibrosPersonas(users, libros, personas);
-    await seedLibroCliente(users, libros, clientes);
-    await seedOperaciones(users, libros, clientes);
+    const persona = createPersonaModule({ db });
+    const libro = createLibroModule({ db, personaRepository: persona.repository });
+    const user = createUserModule({ db, afipService });
+    const cliente = createClienteModule({ db, afipService });
+    const transaccion = createTransaccionModule({
+        db,
+        libroService: libro.service,
+        clienteRepository: cliente.repository,
+        clienteStockService: cliente.stockService,
+        userRepository: user.repository,
+        afipService
+    });
+
+    const users = await seedUsers(user.service);
+    const personas = await seedPersonas(users, persona.service);
+    const clientes = await seedClientes(users);
+    const libros = await seedLibros(users, libro.service);
+
+    await seedLibrosPersonas(users, libros, personas, libro.personaService);
+    await seedLibroCliente(users, libros, clientes, cliente.stockService);
+    await seedOperaciones(
+        users,
+        libros,
+        clientes,
+        libro.service,
+        cliente.stockService,
+        transaccion.repository,
+        transaccion.ventaRepository
+    );
 
     console.log(`Seed listo: ${users.length} usuarios, password de todos: "${PASSWORD_SEED}"`);
-    for (const user of users) {
-        console.log(`  - ${user.username} (cuit ${user.cuit})`);
+    for (const u of users) {
+        console.log(`  - ${u.username} (cuit ${u.cuit})`);
     }
 }
 

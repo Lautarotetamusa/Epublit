@@ -1,4 +1,4 @@
-import { TokenUser } from "../src/schemas/user.schema";
+import { TokenUser } from "../modules/user/user.validator";
 
 declare global {
     namespace Express {
