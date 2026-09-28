@@ -1,0 +1,35 @@
+meta {
+  name: Get all
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/venta?cliente=&tipo=&medioPago=&desde=&hasta=&page=&pageSize=
+  body: none
+  auth: inherit
+  params:query {
+    cliente:
+    tipo:
+    medioPago:
+    desde:
+    hasta:
+    page:
+    pageSize:
+  }
+}
+
+docs {
+  Lista ventas (tipo "venta" + "ventaConsignacion") del usuario autenticado,
+  paginada server-side. Todos los query params son opcionales y combinables
+  entre sí (AND):
+
+  - `cliente`: id de cliente.
+  - `tipo`: "venta" | "ventaConsignacion".
+  - `medioPago`: "efectivo" | "debito" | "credito" | "mercadopago" | "transferencia".
+  - `desde` / `hasta`: yyyy-mm-dd, inclusive.
+  - `page` / `pageSize`: enteros positivos, default page=1, pageSize=10.
+
+  Response 200: `{ success, data: Venta[], page, pageSize, total }`, donde
+  `total` es la cantidad de ventas que matchean los filtros (sin paginar).
+}

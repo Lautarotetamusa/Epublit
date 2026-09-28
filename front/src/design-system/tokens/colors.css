@@ -1,0 +1,57 @@
+:root{
+  /* ---- Brand: pino (deep green from the Epublit mark) ---- */
+  --pino-50:#EEF6F5;--pino-100:#D9EAE8;--pino-200:#B5D5D2;--pino-300:#8CC3BF;
+  --pino-400:#4F9E99;--pino-500:#2C7975;--pino-600:#22605D;--pino-700:#1C4F4C;
+  --pino-800:#17403E;--pino-900:#12302F;--pino-950:#0C2120;
+
+  /* ---- Brand: violeta (secondary accent) ---- */
+  --violeta-50:#F4F1FC;--violeta-100:#E7E2F7;--violeta-200:#D0C7EF;--violeta-300:#B3A8E0;
+  --violeta-400:#8878CE;--violeta-500:#6E5CBC;--violeta-600:#5B4BA8;--violeta-700:#4B3A92;
+  --violeta-800:#3C2E75;--violeta-900:#2E2359;--violeta-950:#1E1740;
+
+  /* ---- Neutrals: papel (warm paper white -> ink) ---- */
+  --papel-0:#FFFFFF;--papel-50:#F9F8F4;--papel-100:#F2F1EB;--papel-200:#E6E4DC;
+  --papel-300:#D3D1C7;--papel-400:#AFADA3;--papel-500:#87857C;--papel-600:#63625B;
+  --papel-700:#454440;--papel-800:#2A2A27;--papel-900:#1A1D1C;
+
+  /* ---- Raw semantic hues ---- */
+  --exito-600:#2C7975;--exito-100:#D9EAE8;
+  --aviso-600:#B4791C;--aviso-100:#FBEFD6;
+  --error-600:#A8332B;--error-100:#F8E3E1;
+  --info-600:#5B4BA8;--info-100:#E7E2F7;
+
+  /* ================= Semantic aliases ================= */
+  /* Surfaces */
+  --surface-page:var(--papel-50);
+  --surface-card:var(--papel-0);
+  --surface-sunken:var(--papel-100);
+  --surface-inverse:var(--pino-900);
+  --surface-brand:var(--pino-600);
+  --surface-brand-soft:var(--pino-50);
+  --surface-accent:var(--violeta-600);
+  --surface-accent-soft:var(--violeta-50);
+  --surface-hover:var(--papel-100);
+  --surface-selected:var(--pino-50);
+
+  /* Text */
+  --text-body:var(--papel-900);
+  --text-muted:var(--papel-600);
+  --text-subtle:var(--papel-500);
+  --text-inverse:var(--papel-50);
+  --text-brand:var(--pino-600);
+  --text-accent:var(--violeta-700);
+  --text-link:var(--pino-600);
+  --text-link-hover:var(--pino-800);
+  --text-error:var(--error-600);
+  --text-success:var(--exito-600);
+  --text-warning:var(--aviso-600);
+
+  /* Borders */
+  --border-subtle:var(--papel-200);
+  --border-default:var(--papel-300);
+  --border-strong:var(--papel-400);
+  --border-brand:var(--pino-600);
+  --border-accent:var(--violeta-600);
+  --border-error:var(--error-600);
+  --focus-ring:var(--violeta-500);
+}

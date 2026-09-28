@@ -1,0 +1,16 @@
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-body);
+    background: var(--papel-50);
+    color: var(--text-body);
+}
+
+a {
+    color: var(--text-brand);
+}

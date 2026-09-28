@@ -38,17 +38,19 @@ jobs:
         date
 
     - name: Prepare .env file
-      run: echo "$ENV_FILE_CONTENT" > .env
+      run: echo "$ENV_FILE_CONTENT" > back/.env
       env:
         ENV_FILE_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
 
     - name: Create files folders
+      working-directory: back
       run: |
         mkdir -p files/facturas
         mkdir -p files/remitos
         mkdir -p files/logos
 
     - name: Create mock afip credentials
+      working-directory: back
       run: |
         mkdir afipkeys
         cd afipkeys
@@ -62,9 +64,11 @@ jobs:
         touch 27249804024/cert.crt 27249804024/private_key.key
 
     - name: Install dependencies
+      working-directory: back
       run: npm install
 
     - name: Run tests
+      working-directory: back
       run: npx vitest run
 
   deploy:
@@ -89,12 +93,17 @@ jobs:
       - name: Deploy to the server
         run: |
           # Copying files
+          ssh -o StrictHostKeyChecking=no $SERVER_HOST "mkdir -p $DEPLOY_PATH/back"
           scp -o StrictHostKeyChecking=no \
-            -r src/ types/ package.json tsconfig.json Dockerfile docker-compose.yml $SERVER_HOST:$DEPLOY_PATH
+            -r back/src/ back/package.json back/tsconfig.json back/Dockerfile $SERVER_HOST:$DEPLOY_PATH/back
+          scp -o StrictHostKeyChecking=no docker-compose.yml $SERVER_HOST:$DEPLOY_PATH
 
-          # Write .env file
+          # Write .env file. `docker compose` interpola $DB_USER/etc. leyendo
+          # un .env al lado de docker-compose.yml (raíz), por eso el symlink
+          # (ver comentario en docker-compose.yml).
           ssh -o StrictHostKeyChecking=no $SERVER_HOST \
-            "echo '$ENV_FILE_CONTENT' > $DEPLOY_PATH/.env"
+            "echo '$ENV_FILE_CONTENT' > $DEPLOY_PATH/back/.env && \
+            ln -sf back/.env $DEPLOY_PATH/.env"
 
           # Deploy the api with docker
           ssh -o StrictHostKeyChecking=no $SERVER_HOST \

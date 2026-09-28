@@ -2,11 +2,38 @@
     "hooks": {
         "PreToolUse": [
             {
-                "matcher": "Read|Grep|Glob",
+                "matcher": "Read|Grep|Glob|Write",
                 "hooks": [
                     {
                         "type": "command",
                         "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/planner-file-guard.sh"
+                    }
+                ]
+            },
+            {
+                "matcher": "Agent",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/ensure-design-system.sh"
+                    },
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/ensure-impeccable-skill.sh"
+                    }
+                ]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/require-back-implementer-checks.sh"
+                    },
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/require-front-implementer-checks.sh"
                     }
                 ]
             }

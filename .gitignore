@@ -1,29 +1,21 @@
-.env
-.prod.env
-
-
-/coverage
+# El .env real vive en back/.env (ver back/.gitignore); esto es sólo el
+# symlink de compatibilidad para `docker compose` (ver docker-compose.yml),
+# así que no se ignora acá.
 /mysql
 /postgres
 /security/*
 /archivos
 
-#Modulos node
+# back/ y front/ tienen el suyo propio; esto cubre un node_modules (o cache
+# de una herramienta corrida por error desde la raíz en vez del subproyecto
+# correspondiente) que termine apareciendo acá.
 node_modules/
-package-lock.json
 
-files/facturas/*
-files/remitos/*
-files/logos/*
-
-#Tokens de afip
-afipkeys/*
-!afipkeys/download_crt.sh
-
-#Ts build folder
-dist/
-log.log
-logs.log
-nohup.out
-.jscpd-report
-coverage
+# Skill de terceros (impeccable.style), 18MB con binario compilado
+# linux-x64: se re-provisiona por máquina vía
+# .claude/hooks/ensure-impeccable-skill.sh, nunca se commitea. `**/` al
+# inicio (no `/` sola): un patrón con `/` en el medio queda anclado a la
+# raíz por default, y el hook a veces la termina copiando dentro de
+# back/.claude/ o front/.claude/ en vez de la raíz si el agente que la
+# dispara corre con ese cwd — hace falta que matchee en cualquier nivel.
+**/.claude/skills/impeccable

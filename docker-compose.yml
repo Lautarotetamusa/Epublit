@@ -1,8 +1,12 @@
+# Los `$DB_USER`/`$DB_PASS`/`$DB_PORT`/`$PORT` de acá abajo los interpola
+# `docker compose` (no el contenedor), y ese motor sólo lee un `.env` al lado
+# de este archivo (raíz) — por eso hay un symlink `.env -> back/.env` en la
+# raíz: una sola fuente de verdad para el env real del backend.
 services:
   postgresdb:
     image: postgres:16
     restart: unless-stopped
-    env_file: ./.env
+    env_file: ./back/.env
     environment:
       - POSTGRES_USER=$DB_USER
       - POSTGRES_PASSWORD=$DB_PASS
@@ -23,9 +27,9 @@ services:
         condition: service_healthy
     build:
       dockerfile: ./Dockerfile
-      context: .
+      context: ./back
     restart: on-failure
-    env_file: ./.env
+    env_file: ./back/.env
     ports:
       - $PORT:$PORT
     environment:
@@ -33,6 +37,6 @@ services:
     command: node dist/src/index.js
     #command: npm run start:dev
     volumes:
-     - ./files:/app/files
-     - ./afipkeys:/app/afipkeys
-     - ./src:/app/src
+     - ./back/files:/app/files
+     - ./back/afipkeys:/app/afipkeys
+     - ./back/src:/app/src

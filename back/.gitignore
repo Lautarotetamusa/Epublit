@@ -1,0 +1,33 @@
+.env
+.prod.env
+
+#Modulos node
+node_modules/
+package-lock.json
+
+# Todo lo que se sube/genera en runtime (facturas, remitos, logos, portadas
+# de libro, fotos de persona, etc.) — una sola regla en vez de listar cada
+# subcarpeta, para que un storage nuevo (ver src/lib/storage/) no se filtre
+# a git por olvido.
+files/*
+
+#Tokens de afip
+afipkeys/*
+!afipkeys/download_crt.sh
+
+#Ts build folder
+dist/
+log.log
+logs.log
+nohup.out
+.jscpd-report
+coverage
+
+# Export generado por GET /libro/lista_libros (fs.writeFileSync en
+# libro.controller.ts#listaLibros), se regenera en cada request.
+lista_libros.csv
+
+# Las migraciones reales viven en db/migrations (ver drizzle.config.ts,
+# `out: "./db/migrations"`); cualquier /migrations en la raíz de back/ es
+# de una corrida con un --out distinto al configurado, no la fuente real.
+/migrations
