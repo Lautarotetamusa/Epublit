@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Alert, Badge, Button, Card, EmptyState, Field, Icon, Pagination, SegmentedControl, Select, Table } from "../../design-system";
 import type { Movimiento, TipoMovimiento } from "../../api/deposito";
-import { useClientPagination } from "../../lib/useClientPagination";
 import { useToast } from "../../notifications/ToastProvider";
 import { ExtremoDisplay } from "./ExtremoDisplay";
 import { MovimientoDetalleDialog } from "./MovimientoDetalleDialog";
@@ -18,8 +17,7 @@ import { useMovimientos } from "./useMovimientos";
 export function MovimientosPage() {
     const [searchParams] = useSearchParams();
     const { showToast } = useToast();
-    const { movimientos, refetch } = useMovimientos();
-    const { page, setPage, pageCount, pageItems, total } = useClientPagination(movimientos);
+    const { movimientos, refetch, page, setPage, total, totalPaginas, loading } = useMovimientos();
     const [detalle, setDetalle] = useState<Movimiento | null>(null);
 
     const form = useMovimientoForm(parsePrecargaMovimiento(searchParams), (movimiento) => {
@@ -170,19 +168,23 @@ export function MovimientosPage() {
                         { header: "Destino", cell: (row: Movimiento) => <ExtremoDisplay extremo={row.destino} /> },
                         { header: "Libros", cell: (row: Movimiento) => resumirLibros(row.libros), muted: true }
                     ]}
-                    rows={pageItems}
+                    rows={movimientos}
                     onRowClick={(row: Movimiento) => setDetalle(row)}
                     empty={
-                        <EmptyState
-                            icon="package"
-                            title="Todavía no hay movimientos"
-                            description="Cargá stock con un ingreso desde el exterior, o pasá libros de un depósito a otro."
-                        />
+                        loading ? (
+                            "Cargando..."
+                        ) : (
+                            <EmptyState
+                                icon="package"
+                                title="Todavía no hay movimientos"
+                                description="Cargá stock con un ingreso desde el exterior, o pasá libros de un depósito a otro."
+                            />
+                        )
                     }
                 />
                 {total > 0 ? (
                     <div style={{ padding: "var(--space-4)" }}>
-                        <Pagination page={page} pageCount={pageCount} total={total} onChange={setPage} />
+                        <Pagination page={page} pageCount={totalPaginas} total={total} onChange={setPage} />
                     </div>
                 ) : null}
             </Card>

@@ -3,13 +3,14 @@ import { listClientes } from "../../api/cliente";
 import type { Cliente } from "../../api/cliente";
 import { listLibros } from "../../api/libro";
 import type { Libro } from "../../api/libro";
+import { listDepositos } from "../../api/deposito";
 import { createConsignacion } from "../../api/operaciones";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
-import { mockDepositoPrincipal, mockStockEnPrincipal } from "../depositos/depositosMock";
 
 export function useConsignacionForm(onCreated: () => void) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [libros, setLibros] = useState<Libro[]>([]);
+    const [depositoPrincipal, setDepositoPrincipal] = useState("");
     const [clienteId, setClienteId] = useState<number | "">("");
     const [submitting, setSubmitting] = useState(false);
 
@@ -18,6 +19,9 @@ export function useConsignacionForm(onCreated: () => void) {
         // backend, ver back/src/modules/transaccion/operacion.config.ts).
         listClientes({ tipo: "inscripto" }).then((r) => setClientes(r.items));
         listLibros({ pageSize: 1000 }).then((r) => setLibros(r.items));
+        // El nombre del depósito principal es el que muestra la ayuda del
+        // picker (la entrada `principal` del listado, ver specs/008).
+        listDepositos().then((r) => setDepositoPrincipal(r.data.find((d) => d.principal)?.nombre ?? ""));
     }, []);
 
     // Una consignación descuenta del depósito principal (ver
@@ -28,7 +32,7 @@ export function useConsignacionForm(onCreated: () => void) {
         isbn: l.isbn,
         titulo: l.titulo,
         precio: l.precio,
-        stock: mockStockEnPrincipal(l.isbn, l.stock ?? 0)
+        stock: l.disponible_principal
     }));
     const { seleccionados, agregar, actualizar, quitar, reset } = useSeleccionLibros(librosDisponibles);
 
@@ -52,5 +56,5 @@ export function useConsignacionForm(onCreated: () => void) {
         }
     };
 
-    return { clientes, clienteId, setClienteId, librosDisponibles, seleccionados, agregar, actualizar, quitar, submitting, submit, depositoPrincipal: mockDepositoPrincipal().nombre };
+    return { clientes, clienteId, setClienteId, librosDisponibles, seleccionados, agregar, actualizar, quitar, submitting, submit, depositoPrincipal };
 }

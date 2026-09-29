@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Badge, Breadcrumb, Button, Card, EmptyState, Table } from "../../design-system";
 import type { LibroEnMovimiento } from "../../api/deposito";
+import { deleteDeposito, updateDeposito } from "../../api/deposito";
+import { ApiError } from "../../api/client";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { useConfirm } from "../../notifications/ConfirmProvider";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
-import { mockActualizarDeposito, mockEliminarDeposito } from "./depositosMock";
 import type { DepositoFormValues } from "./DepositoFormFields";
 import { DepositoFormFields, isDepositoFormValid } from "./DepositoFormFields";
 import { useDeposito } from "./useDepositos";
@@ -40,7 +41,7 @@ export function FichaDepositoPage() {
 
     const handleGuardar = async (input: { nombre: string; descripcion: string }) => {
         try {
-            mockActualizarDeposito(deposito.id, input);
+            await updateDeposito(deposito.id, { nombre: input.nombre, descripcion: input.descripcion.trim() ? input.descripcion : null });
             refetch();
             showToast("success", "Depósito actualizado correctamente");
         } catch (err) {
@@ -58,12 +59,16 @@ export function FichaDepositoPage() {
         if (!ok) return;
 
         try {
-            mockEliminarDeposito(deposito.id);
+            await deleteDeposito(deposito.id);
             showToast("success", "Depósito eliminado correctamente");
             navigate("/depositos");
         } catch (err) {
             // El motivo real de un rechazo lo define el backend (principal o con
-            // stock): la pantalla muestra el que devuelva, no uno propio.
+            // stock): la pantalla muestra el que devuelva, no uno propio. Si el
+            // rechazo fue por stock, además se refresca la ficha para que el
+            // aviso muestre las cifras reales (pudieron cambiar desde la última
+            // lectura).
+            if (err instanceof ApiError && err.errors.some((e) => e.code === "DepositoConStock")) refetch();
             showToast("error", getErrorMessage(err));
         }
     };
@@ -83,7 +88,7 @@ export function FichaDepositoPage() {
                         variant="secondary"
                         size="sm"
                         iconStart="arrow-right"
-                        onClick={() => navigate(`/movimientos/nuevo?tipo=transferencia&origen=${deposito.id}`)}
+                        onClick={() => navigate(`/movimientos?tipo=transferencia&origen=${deposito.id}`)}
                     >
                         Registrar movimiento
                     </Button>
@@ -122,7 +127,7 @@ export function FichaDepositoPage() {
                             action={
                                 <Button
                                     iconStart="plus"
-                                    onClick={() => navigate(`/movimientos/nuevo?tipo=ingreso&destino=${deposito.id}`)}
+                                    onClick={() => navigate(`/movimientos?tipo=ingreso&destino=${deposito.id}`)}
                                 >
                                     Registrar ingreso
                                 </Button>
@@ -155,7 +160,7 @@ export function FichaDepositoPage() {
                         <Button
                             variant="secondary"
                             iconStart="arrow-right"
-                            onClick={() => navigate(`/movimientos/nuevo?tipo=transferencia&origen=${deposito.id}`)}
+                            onClick={() => navigate(`/movimientos?tipo=transferencia&origen=${deposito.id}`)}
                         >
                             Mover este stock
                         </Button>

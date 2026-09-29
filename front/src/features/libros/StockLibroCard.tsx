@@ -2,16 +2,16 @@ import { useNavigate } from "react-router-dom";
 import { Button, Card, EmptyState, Icon, Table } from "../../design-system";
 import type { Libro } from "../../api/libro";
 import type { StockEnDeposito } from "../../api/deposito";
-import { mockDesgloseDeLibro } from "../depositos/depositosMock";
+import { useDesgloseLibro } from "./useDesgloseLibro";
 
 // El stock de un libro: el total (suma de los depósitos, sólo lectura) y el
 // desglose de en qué depósitos está y cuánto en cada uno. No hay ningún campo
 // para editarlo: para cargar o corregir ejemplares se registra un movimiento.
 export function StockLibroCard({ libro }: { libro: Libro }) {
     const navigate = useNavigate();
+    const { depositos, loading } = useDesgloseLibro(libro.isbn);
     const total = libro.stock ?? 0;
-    const depositos = mockDesgloseDeLibro(libro.isbn, total);
-    const irAIngreso = () => navigate(`/movimientos/nuevo?tipo=ingreso&isbns=${libro.isbn}`);
+    const irAIngreso = () => navigate(`/movimientos?tipo=ingreso&isbns=${libro.isbn}`);
 
     return (
         <Card
@@ -59,16 +59,20 @@ export function StockLibroCard({ libro }: { libro: Libro }) {
                 rows={depositos}
                 onRowClick={(row: StockEnDeposito) => navigate(`/depositos/${row.id}`)}
                 empty={
-                    <EmptyState
-                        icon="boxes"
-                        title="Todavía no tiene stock"
-                        description="Cargá ejemplares con un ingreso desde el exterior, o pasalos desde otro depósito."
-                        action={
-                            <Button iconStart="plus" onClick={irAIngreso}>
-                                Registrar ingreso
-                            </Button>
-                        }
-                    />
+                    loading ? (
+                        "Cargando..."
+                    ) : (
+                        <EmptyState
+                            icon="boxes"
+                            title="Todavía no tiene stock"
+                            description="Cargá ejemplares con un ingreso desde el exterior, o pasalos desde otro depósito."
+                            action={
+                                <Button iconStart="plus" onClick={irAIngreso}>
+                                    Registrar ingreso
+                                </Button>
+                            }
+                        />
+                    )
                 }
             />
         </Card>

@@ -1,40 +1,67 @@
-import { useState } from "react";
-import type { Deposito, DepositoConStock, LibroEnMovimiento } from "../../api/deposito";
-import { mockBuscarDeposito, mockListarDepositos, mockResumenDeposito, mockStockDeDeposito } from "./depositosMock";
-import { useCatalogoParaStock } from "./useCatalogoParaStock";
+import { useCallback, useEffect, useState } from "react";
+import { getDeposito, getDepositoLibros, listDepositos } from "../../api/deposito";
+import { ApiError } from "../../api/client";
+import type { DepositoConStock, LibroEnMovimiento } from "../../api/deposito";
 
-// El mock es una estructura mutable: después de crear/editar/eliminar un
-// depósito no hay un dato nuevo que guardar, hace falta forzar el re-render para
-// volver a leerla.
-function useRefresco() {
-    const [, setRevision] = useState(0);
-    return () => setRevision((actual) => actual + 1);
-}
-
+// Listado de depósitos del usuario con su resumen (`titulos`/`ejemplares`), que
+// ya resuelve el backend sin traer los libros de cada uno.
 export function useDepositos() {
-    const { catalogo, loading } = useCatalogoParaStock();
-    const refetch = useRefresco();
+    const [depositos, setDepositos] = useState<DepositoConStock[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const depositos: DepositoConStock[] = mockListarDepositos().map((deposito) => ({
-        ...deposito,
-        ...mockResumenDeposito(deposito.id, catalogo)
-    }));
+    const refetch = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await listDepositos();
+            setDepositos(response.data);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        refetch();
+    }, [refetch]);
 
     return { depositos, loading, refetch };
 }
 
+// Ficha de un depósito: sus datos con resumen y el stock que tiene adentro
+// (acotado a ese depósito, no el catálogo entero).
 export function useDeposito(id: number) {
-    const { catalogo, loading } = useCatalogoParaStock();
-    const refetch = useRefresco();
+    const [deposito, setDeposito] = useState<DepositoConStock | null>(null);
+    const [libros, setLibros] = useState<LibroEnMovimiento[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const deposito: Deposito | null = mockBuscarDeposito(id);
-    const libros: LibroEnMovimiento[] = deposito ? mockStockDeDeposito(id, catalogo) : [];
+    const refetch = useCallback(async () => {
+        if (!Number.isFinite(id)) {
+            setDeposito(null);
+            setLibros([]);
+            return;
+        }
 
-    return {
-        deposito,
-        libros,
-        ejemplares: libros.reduce((total, libro) => total + libro.cantidad, 0),
-        loading,
-        refetch
-    };
+        try {
+            const [depositoResponse, librosResponse] = await Promise.all([getDeposito(id), getDepositoLibros(id)]);
+            setDeposito(depositoResponse.data);
+            setLibros(librosResponse.data.libros);
+        } catch (err) {
+            // Un depósito inexistente (o de otro usuario) es un 404: la ficha
+            // muestra el estado vacío en vez de romper.
+            if (err instanceof ApiError && err.status === 404) {
+                setDeposito(null);
+                setLibros([]);
+            } else {
+                throw err;
+            }
+        }
+    }, [id]);
+
+    // `refetch` no toca `loading` (mismo criterio que useFichaColeccion): editar
+    // o un rechazo al borrar releen sin reemplazar la ficha por el spinner.
+    useEffect(() => {
+        setLoading(true);
+        refetch().finally(() => setLoading(false));
+    }, [refetch]);
+
+    return { deposito, libros, ejemplares: deposito?.ejemplares ?? 0, loading, refetch };
 }

@@ -6,7 +6,6 @@ import type { CreatePersonaInput, TipoPersona } from "../../api/persona";
 import { addLibroPersonas, updateLibroPersonas, removeLibroPersonas } from "../../api/libroPersona";
 import { useTodasLasPersonas } from "./useTodasLasPersonas";
 import { useColecciones } from "../colecciones/useColecciones";
-import { mockTotalDeLibro } from "../depositos/depositosMock";
 
 export function useFichaLibro(isbn: string) {
     const [libro, setLibro] = useState<LibroConPersonas | null>(null);
@@ -20,10 +19,10 @@ export function useFichaLibro(isbn: string) {
     const fetchLibro = useCallback(async () => {
         setLoadingLibro(true);
         const response = await getLibro(isbn);
-        // El stock del libro es el total de sus depósitos: mientras el backend
-        // no lo calcule (ver specs/008), el total sale del mock de movimientos,
-        // que es el que cambia cuando se registra un movimiento.
-        setLibro({ ...response.data, stock: mockTotalDeLibro(response.data.isbn, response.data.stock ?? 0) });
+        // El `stock` del libro es el total de sus depósitos y
+        // `disponible_principal` el del principal: ambos los calcula el backend
+        // (ver specs/008-movimientos-deposito).
+        setLibro(response.data);
         setIdColeccion(response.data.coleccion_id);
         setLoadingLibro(false);
     }, [isbn]);

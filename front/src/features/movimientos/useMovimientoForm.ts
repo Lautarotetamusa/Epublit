@@ -1,15 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { Deposito, Extremo, ExtremoInput, Movimiento, TipoMovimiento } from "../../api/deposito";
+import { createMovimiento, faltantesDeStock, getDepositoLibros } from "../../api/deposito";
+import type { FaltanteStock } from "../../api/deposito";
+import { getErrorMessage } from "../../lib/errors";
 import { useCatalogoParaStock } from "../depositos/useCatalogoParaStock";
-import { mockBuscarDeposito, mockCantidadEnDeposito, mockDepositoPrincipal, mockListarDepositos, mockRegistrarMovimiento } from "../depositos/depositosMock";
-import type { FaltanteStock } from "../depositos/depositosMock";
+import { useDepositos } from "../depositos/useDepositos";
 import type { PrecargaMovimiento } from "./precargaMovimiento";
 
 export type LibroParaMover = {
     isbn: string;
     titulo: string;
-    // `null` = sin tope. Cuando el origen es el exterior no hay saldo que
-    // respetar: un ingreso siempre entra.
+    // `null` = sin disponible conocido: el origen es el exterior, o todavía no
+    // llegó la cantidad del depósito elegido. Cuando es un número es lo que hay
+    // en el origen, que es lo que limita cada línea.
     disponible: number | null;
 };
 
@@ -30,39 +33,70 @@ function opcionDe(deposito: Deposito) {
 // registrar la operación entera o ninguna. La pantalla sólo renderiza lo que
 // expone este hook.
 export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCreated: (movimiento: Movimiento) => void) {
-    const { catalogo, loading } = useCatalogoParaStock();
-    const principal = mockDepositoPrincipal();
+    const { catalogo, loading: loadingCatalogo } = useCatalogoParaStock();
+    const { depositos, loading: loadingDepositos } = useDepositos();
 
     const [tipo, setTipo] = useState<TipoMovimiento>(() => precarga?.tipo ?? "transferencia");
-    const [origenId, setOrigenId] = useState<number | "">(() => precarga?.origenId ?? principal.id);
-    const [destinoId, setDestinoId] = useState<number | "">(() => {
-        if (precarga?.destinoId !== undefined) return precarga.destinoId;
-        // En una transferencia los extremos no pueden coincidir, así que el
-        // destino arranca sin elegir; en un ingreso el que se elige es el
-        // destino y el default natural es el principal.
-        return (precarga?.tipo ?? "transferencia") === "transferencia" ? "" : principal.id;
-    });
+    const [origenId, setOrigenId] = useState<number | "">(() => precarga?.origenId ?? "");
+    const [destinoId, setDestinoId] = useState<number | "">(() => precarga?.destinoId ?? "");
     const [lineas, setLineas] = useState<LineaGuardada[]>([]);
     const [faltantesServidor, setFaltantesServidor] = useState<FaltanteStock[]>([]);
     const [avisoPrecarga, setAvisoPrecarga] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    // El mock es una estructura mutable: después de registrar un movimiento no
-    // hay un dato nuevo que guardar, hace falta forzar el re-render para que
-    // `disponibleDe` vuelva a leer las cantidades.
-    const [, setRevision] = useState(0);
-    const refrescar = () => setRevision((actual) => actual + 1);
+    // Cantidades del depósito de origen, por isbn: `GET /deposito/:id/libros`.
+    // Se vuelven a pedir cuando cambia el origen o después de un rechazo por
+    // stock (el saldo pudo cambiar desde el render).
+    const [disponiblePorIsbn, setDisponiblePorIsbn] = useState<Map<string, number>>(new Map());
+    const [disponibleCargado, setDisponibleCargado] = useState(false);
+    const [revision, setRevision] = useState(0);
 
-    const depositos = mockListarDepositos();
+    const principal = depositos.find((deposito) => deposito.principal) ?? null;
     const esIngreso = tipo === "ingreso";
-    const depositoOrigen = !esIngreso && origenId !== "" ? mockBuscarDeposito(origenId) : null;
-    const depositoDestino = tipo !== "baja" && destinoId !== "" ? mockBuscarDeposito(destinoId) : null;
 
-    // Cuánto hay de un libro en el origen. Es lo que limita cada línea (y lo que
-    // el backend vuelve a validar al registrar: ver mockRegistrarMovimiento).
+    // El depósito principal recién se conoce cuando termina de cargar el
+    // listado: se usa como default del extremo elegible una sola vez.
+    const defaultsAplicados = useRef(false);
+    useEffect(() => {
+        if (defaultsAplicados.current || !principal) return;
+        defaultsAplicados.current = true;
+        if (esIngreso && destinoId === "") setDestinoId(principal.id);
+        if (!esIngreso && origenId === "") setOrigenId(principal.id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [principal]);
+
+    const depositoOrigen = !esIngreso && origenId !== "" ? (depositos.find((d) => d.id === origenId) ?? null) : null;
+    const depositoDestino = tipo !== "baja" && destinoId !== "" ? (depositos.find((d) => d.id === destinoId) ?? null) : null;
+
+    // Un ingreso no tiene saldo en el origen (es el exterior), así que no hay
+    // cantidades que pedir. En baja/transferencia, en cambio, lo disponible es
+    // lo que hay del libro en el depósito de origen.
+    useEffect(() => {
+        if (esIngreso || origenId === "") {
+            setDisponiblePorIsbn(new Map());
+            setDisponibleCargado(esIngreso);
+            return;
+        }
+
+        let cancelado = false;
+        setDisponibleCargado(false);
+        getDepositoLibros(origenId).then((response) => {
+            if (cancelado) return;
+            setDisponiblePorIsbn(new Map(response.data.libros.map((libro) => [libro.isbn, libro.cantidad])));
+            setDisponibleCargado(true);
+        });
+        return () => {
+            cancelado = true;
+        };
+    }, [esIngreso, origenId, revision]);
+
+    const refrescarDisponible = () => setRevision((actual) => actual + 1);
+
+    // Sin disponible conocido (exterior, o el depósito todavía no cargó) la
+    // línea no se limita; con el depósito cargado, lo que no está en el mapa
+    // está en 0.
     const disponibleDe = (isbn: string): number | null => {
-        if (!depositoOrigen) return null;
-        const stockApi = catalogo.find((libro) => libro.isbn === isbn)?.stock ?? 0;
-        return mockCantidadEnDeposito(depositoOrigen.id, isbn, stockApi);
+        if (esIngreso || !disponibleCargado) return null;
+        return disponiblePorIsbn.get(isbn) ?? 0;
     };
 
     const librosParaMover: LibroParaMover[] = catalogo.map((libro) => ({
@@ -121,8 +155,8 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
         setFaltantesServidor([]);
         // Cada tipo deja un extremo fijo (el exterior) y otro seleccionable; el
         // seleccionable arranca en el depósito principal si no había nada elegido.
-        if (nuevo === "ingreso" && destinoId === "") setDestinoId(principal.id);
-        if (nuevo !== "ingreso" && origenId === "") setOrigenId(principal.id);
+        if (nuevo === "ingreso" && destinoId === "") setDestinoId(principal?.id ?? "");
+        if (nuevo !== "ingreso" && origenId === "") setOrigenId(principal?.id ?? "");
         if (nuevo === "transferencia" && origenId !== "" && origenId === destinoId) setDestinoId("");
     };
 
@@ -137,20 +171,22 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
         setFaltantesServidor([]);
     };
 
-    // Precarga de libros desde otra pantalla, una sola vez y cuando el catálogo
-    // ya está. Sólo entran los que tienen algo en el origen: los que no, se
-    // omiten y se avisa cuántos quedaron afuera (si los metiéramos, el
-    // movimiento llegaría ya inválido).
+    // Precarga de libros desde otra pantalla, una sola vez y cuando ya se sabe
+    // lo disponible en el origen (el catálogo y las cantidades del depósito).
+    // Sólo entran los que tienen algo en el origen: los que no, se omiten y se
+    // avisa cuántos quedaron afuera (si los metiéramos, el movimiento llegaría
+    // ya inválido).
     const precargaAplicada = useRef(false);
     useEffect(() => {
         if (precargaAplicada.current || catalogo.length === 0 || !precarga?.isbns?.length) return;
+        if (!esIngreso && !disponibleCargado) return;
         precargaAplicada.current = true;
 
         const omitidos = [...new Set(precarga.isbns)].filter((isbn) => disponibleDe(isbn) === 0 || agregar(isbn, 1) !== null);
         if (omitidos.length === 1) setAvisoPrecarga(`«${omitidos[0]}» no tiene stock en el origen, así que no se agregó al movimiento.`);
         if (omitidos.length > 1) setAvisoPrecarga(`${omitidos.length} libros no tienen stock en el origen y no se agregaron al movimiento.`);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [catalogo]);
+    }, [catalogo, disponibleCargado, esIngreso]);
 
     const extremoOrigen = (): ExtremoInput | null => {
         if (esIngreso) return { tipo: "exterior" };
@@ -173,25 +209,35 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
         }
 
         setSubmitting(true);
-        const resultado = mockRegistrarMovimiento(
-            { origen, destino, libros: lineas.map((linea) => ({ isbn: linea.isbn, cantidad: linea.cantidad })) },
-            catalogo
-        );
-        setSubmitting(false);
-        refrescar();
+        try {
+            const response = await createMovimiento({
+                origen,
+                destino,
+                libros: lineas.map((linea) => ({ isbn: linea.isbn, cantidad: linea.cantidad }))
+            });
 
-        if (!resultado.ok) {
-            // El rechazo no dejó nada a medio mover (ver mockRegistrarMovimiento):
-            // se refresca lo disponible y la selección queda intacta para que se
-            // puedan corregir las cantidades.
-            setFaltantesServidor(resultado.faltantes);
-            return `No hay stock suficiente en «${depositoOrigen?.nombre}». No se movió nada.`;
+            setLineas([]);
+            setFaltantesServidor([]);
+            refrescarDisponible();
+            onCreated(response.data);
+            return null;
+        } catch (err) {
+            const faltantesReales = faltantesDeStock(err);
+            if (faltantesReales) {
+                // Rechazo atómico del backend (no aplicó nada, ver el plan): se
+                // muestran los faltantes reales y se refresca lo disponible, sin
+                // tocar la selección para poder corregir las cantidades.
+                setFaltantesServidor(faltantesReales);
+                refrescarDisponible();
+                return `No hay stock suficiente en «${depositoOrigen?.nombre}». No se movió nada.`;
+            }
+
+            // Cualquier otro rechazo (400/404) se muestra tal cual lo devuelve
+            // el backend.
+            return getErrorMessage(err);
+        } finally {
+            setSubmitting(false);
         }
-
-        setLineas([]);
-        setFaltantesServidor([]);
-        onCreated(resultado.movimiento);
-        return null;
     };
 
     const origen: Extremo | null = esIngreso
@@ -208,7 +254,7 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
               : null;
 
     return {
-        loading,
+        loading: loadingCatalogo || loadingDepositos,
         tipo,
         cambiarTipo,
         origenId,

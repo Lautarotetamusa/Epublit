@@ -1,6 +1,7 @@
 import { api, toQueryString } from "./client";
 import type { ListEnvelope } from "./client";
 import type { Persona, TipoPersona } from "./persona";
+import type { StockEnDeposito } from "./deposito";
 
 // Refleja back/src/modules/libro/libro.schema.ts.
 export type Libro = {
@@ -14,6 +15,11 @@ export type Libro = {
     // stock no se edita en el libro, se crea y se corrige con movimientos (ver
     // specs/008-movimientos-deposito/design.md).
     stock: number | null;
+    // Cantidad del libro en el depósito principal: es contra lo que operan
+    // venta en firme, consignación y devolución (a diferencia del total). Lo
+    // informan `GET /libro`, `GET /libro/:isbn` y `GET /libro/lista_libros`
+    // (ver specs/008-movimientos-deposito, tarea 7).
+    disponible_principal: number;
     // Dimensiones en cm. Campos nuevos, todavía no soportados por el
     // backend (ver specs/003-libro-campos-extendidos/design.md).
     alto: number | null;
@@ -83,6 +89,18 @@ export type ListLibrosParams = {
 export const listLibros = (params: ListLibrosParams = {}): Promise<ListEnvelope<Libro>> => api.get(`/libro${toQueryString(params)}`);
 
 export const getLibro = (isbn: string): Promise<{ success: true; data: LibroConPersonas }> => api.get(`/libro/${isbn}`);
+
+// Desglose del stock de un libro entre los depósitos del usuario donde tiene
+// cantidad mayor a 0, más el total (la suma del desglose). Alimenta la tarjeta
+// Stock de la ficha (ver specs/008-movimientos-deposito).
+export type LibroDepositos = {
+    isbn: string;
+    total: number;
+    depositos: StockEnDeposito[];
+};
+
+export const getLibroDepositos = (isbn: string): Promise<{ success: true; data: LibroDepositos }> =>
+    api.get(`/libro/${isbn}/depositos`);
 
 export const createLibro = (input: CreateLibroInput): Promise<{ success: true; data: Libro }> => api.post("/libro", input);
 

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { listLibros } from "../../api/libro";
 import type { Libro } from "../../api/libro";
 import type { Pagination } from "../../api/client";
-import { mockTotalDeLibro } from "../depositos/depositosMock";
 
 const PAGE_SIZE = 10;
 
@@ -18,10 +17,9 @@ export function useLibros() {
     const fetchLibros = useCallback(async () => {
         setLoading(true);
         const response = await listLibros({ page, pageSize: PAGE_SIZE, titulo: titulo || undefined });
-        // El stock que muestra el catálogo es el total de los depósitos (ver
-        // specs/008); el backend todavía informa un stock global, así que el
-        // total lo resuelve el mock de movimientos.
-        setLibros(response.items.map((libro) => ({ ...libro, stock: mockTotalDeLibro(libro.isbn, libro.stock ?? 0) })));
+        // El `stock` que informa el backend es la suma de los depósitos del
+        // libro (ver specs/008-movimientos-deposito), así que se muestra tal cual.
+        setLibros(response.items);
         setPagination(response.pagination);
         setLoading(false);
     }, [page, titulo]);

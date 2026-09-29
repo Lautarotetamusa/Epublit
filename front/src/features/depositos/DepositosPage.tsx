@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Card, EmptyState, Table } from "../../design-system";
 import type { DepositoConStock } from "../../api/deposito";
+import { createDeposito } from "../../api/deposito";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
-import { mockCrearDeposito } from "./depositosMock";
 import { DepositoFormDialog } from "./DepositoFormDialog";
 import { useDepositos } from "./useDepositos";
 
@@ -18,7 +18,7 @@ export function DepositosPage() {
 
     const handleCrear = async (input: { nombre: string; descripcion: string }) => {
         try {
-            mockCrearDeposito(input);
+            await createDeposito({ nombre: input.nombre, descripcion: input.descripcion.trim() ? input.descripcion : null });
             refetch();
             setAltaAbierta(false);
             showToast("success", "Depósito creado correctamente");

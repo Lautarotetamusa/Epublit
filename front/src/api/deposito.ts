@@ -1,9 +1,10 @@
-// Depósitos y movimientos todavía no existen en el backend (ver
-// specs/008-movimientos-deposito/plan.md): este archivo es sólo la FORMA que
-// necesita la pantalla, no un contrato de API. Nada de acá llama a la red: los
-// datos los provee `features/depositos/depositosMock.ts` mientras no exista el
-// backend. Cómo se expone cada dato (rutas, request/response, si pagina o
-// filtra, dónde se guarda) es decisión del planner.
+import { api, toQueryString, ApiError } from "./client";
+import type { ApiErrorItem } from "./client";
+
+// Cliente real de depósitos, stock por depósito y movimientos (ver
+// back/src/modules/deposito y back/src/modules/movimiento, y
+// specs/008-movimientos-deposito/plan.md). Los tipos son la forma que necesita
+// la pantalla; las rutas y los cuerpos siguen el contrato del backend.
 
 export type Deposito = {
     id: number;
@@ -71,6 +72,15 @@ export type Movimiento = {
     libros: LibroEnMovimiento[];
 };
 
+// Página del historial: la paginación la resuelve el servidor.
+export type PaginaMovimientos = {
+    movimientos: Movimiento[];
+    total: number;
+    pagina: number;
+    porPagina: number;
+    totalPaginas: number;
+};
+
 // Cantidad de un libro dentro de un depósito concreto.
 export type StockEnDeposito = {
     id: number;
@@ -85,3 +95,67 @@ export type DesgloseLibro = {
     total: number;
     depositos: StockEnDeposito[];
 };
+
+// Faltante de stock libro por libro con el que rechaza `POST /movimiento/`
+// cuando el origen no alcanza. El `pedido` del backend se expone como `pedida`
+// porque es lo que muestra la pantalla.
+export type FaltanteStock = {
+    isbn: string;
+    titulo: string;
+    pedida: number;
+    disponible: number;
+};
+
+// El sobre de `GET /deposito/` no está paginado: trae todos los depósitos del
+// usuario (incluido el principal) dentro de `data`.
+export const listDepositos = (): Promise<{ success: true; data: DepositoConStock[] }> => api.get("/deposito");
+
+export const getDeposito = (id: number): Promise<{ success: true; data: DepositoConStock }> => api.get(`/deposito/${id}`);
+
+export const getDepositoLibros = (
+    id: number
+): Promise<{ success: true; data: { deposito: DepositoConStock; libros: LibroEnMovimiento[] } }> =>
+    api.get(`/deposito/${id}/libros`);
+
+export const createDeposito = (input: CreateDepositoInput): Promise<{ success: true; data: DepositoConStock }> =>
+    api.post("/deposito", input);
+
+export const updateDeposito = (id: number, input: UpdateDepositoInput): Promise<{ success: true; data: DepositoConStock }> =>
+    api.put(`/deposito/${id}`, input);
+
+// 204 sin body: no hay sobre `{ success }` que leer (ver plan, "Diseño de API").
+export const deleteDeposito = (id: number): Promise<void> => api.del<void>(`/deposito/${id}`);
+
+export const listMovimientos = (
+    params: { pagina?: number; porPagina?: number } = {}
+): Promise<{ success: true; data: PaginaMovimientos }> => api.get(`/movimiento${toQueryString(params)}`);
+
+export const getMovimiento = (id: number): Promise<{ success: true; data: Movimiento }> => api.get(`/movimiento/${id}`);
+
+export const createMovimiento = (input: RegistrarMovimientoInput): Promise<{ success: true; data: Movimiento }> =>
+    api.post("/movimiento", input);
+
+// Detalle del 409 por stock insuficiente. `ApiErrorItem` no declara los campos
+// extra que el backend aplana en el mismo item del sobre (ver
+// back/src/lib/http/errors.ts#StockInsuficiente); el intersection los vuelve
+// opcionales, así que hay que validar que vengan.
+type ItemStockInsuficiente = ApiErrorItem & {
+    libros?: { isbn: string; titulo: string; pedido: number; disponible: number }[];
+};
+
+// Devuelve el detalle libro por libro si el error es el rechazo atómico por
+// stock insuficiente, o `null` si es cualquier otro error (para poder distinguir
+// el mensaje de "No se movió nada" del resto).
+export function faltantesDeStock(error: unknown): FaltanteStock[] | null {
+    if (!(error instanceof ApiError)) return null;
+
+    const item: ItemStockInsuficiente | undefined = error.errors.find((e) => e.code === "StockInsuficiente");
+    if (!item) return null;
+
+    return (item.libros ?? []).map((libro) => ({
+        isbn: libro.isbn,
+        titulo: libro.titulo,
+        pedida: libro.pedido,
+        disponible: libro.disponible
+    }));
+}

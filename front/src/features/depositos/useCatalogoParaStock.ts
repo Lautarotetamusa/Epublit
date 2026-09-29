@@ -2,11 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { listLibros } from "../../api/libro";
 import type { LibroBase } from "../../api/libro";
 
-// El catálogo completo que necesitan las pantallas de stock y depósitos: con él
-// se resuelven los títulos de lo que hay en cada depósito y se trata el `stock`
-// que informa `/libro` como línea base del depósito principal (ver
-// depositosMock.ts). Mismo criterio que useVentaForm: acá hace falta el catálogo
-// entero, no una página.
+// El catálogo completo que necesita el selector de libros de un movimiento:
+// acá hace falta entero, no una página (mismo criterio que useVentaForm), y lo
+// que trae `stock`/`disponible_principal` ya es el total calculado por el
+// backend (ver specs/008-movimientos-deposito).
 export function useCatalogoParaStock() {
     const [catalogo, setCatalogo] = useState<LibroBase[]>([]);
     const [loading, setLoading] = useState(true);

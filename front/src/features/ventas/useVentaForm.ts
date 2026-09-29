@@ -7,9 +7,9 @@ import { getStockCliente } from "../../api/cliente";
 import type { StockCliente } from "../../api/cliente";
 import { getMediosPago, createVenta, createVentaConsignacion } from "../../api/operaciones";
 import type { MedioPago, TipoCbte, VentaDetalle } from "../../api/operaciones";
+import { listDepositos } from "../../api/deposito";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
 import type { LibroDisponible } from "../operaciones/useSeleccionLibros";
-import { mockDepositoPrincipal, mockStockEnPrincipal } from "../depositos/depositosMock";
 
 export type TipoVenta = "firme" | "consignacion";
 
@@ -37,6 +37,9 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         // pagina de verdad.
         listLibros({ pageSize: 1000 }).then((r) => setLibros(r.items));
         getMediosPago().then(setMediosPago);
+        // El nombre del depósito principal es el que muestra la ayuda del
+        // picker (la entrada `principal` del listado, ver specs/008).
+        listDepositos().then((r) => setDepositoPrincipal(r.data.find((d) => d.principal)?.nombre ?? ""));
     }, []);
 
     const [tipoVenta, setTipoVenta] = useState<TipoVenta | "">("");
@@ -46,6 +49,7 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
     const [tipoCbte] = useState<TipoCbte>(11);
     const [fechaVenta, setFechaVenta] = useState("");
     const [stockConsignado, setStockConsignado] = useState<StockCliente[]>([]);
+    const [depositoPrincipal, setDepositoPrincipal] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
     const librosDisponibles: LibroDisponible[] = useMemo(() => {
@@ -59,7 +63,7 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
             isbn: l.isbn,
             titulo: l.titulo,
             precio: l.precio,
-            stock: mockStockEnPrincipal(l.isbn, l.stock ?? 0)
+            stock: l.disponible_principal
         }));
     }, [tipoVenta, stockConsignado, libros]);
 
@@ -184,7 +188,7 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         submitting,
         // Nombre del depósito del que descuenta la venta en firme, para que el
         // picker pueda decir de dónde sale el stock que muestra.
-        depositoPrincipal: mockDepositoPrincipal().nombre,
+        depositoPrincipal,
         setTipoVenta: handleTipoVentaChange,
         setClienteId: handleClienteChange,
         setDescuento,
