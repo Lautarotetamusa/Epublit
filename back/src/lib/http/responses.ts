@@ -45,6 +45,13 @@ export function deleted(res: Response, message?: string): Response {
     return success(res, 200, undefined, message);
 }
 
+// Borrado exitoso sin cuerpo (204): lo pide el contrato de
+// `DELETE /coleccion/:id` (ver specs/007-colecciones), que no devuelve el
+// sobre `{ success }` que sí usan los demás DELETE de la app.
+export function noContent(res: Response): Response {
+    return res.status(204).send();
+}
+
 // Listado (GET de muchos): 200 con paginación + items. Se le puede pasar
 // directo el `Pagination` que ya trae `total`/`count` calculados (bradb los
 // muta ahí mismo); si no vinieran, se completan con `items.length`.

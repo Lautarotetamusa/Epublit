@@ -3,6 +3,7 @@ import { db } from "../src/db/client";
 import { personasTable } from "../src/modules/persona/persona.schema";
 import {
     usersTable,
+    coleccionesTable,
     clientesTable,
     librosTable,
     libroClienteTable,
@@ -23,6 +24,7 @@ const TABLAS_SEEDEADAS = [
     librosPersonasTable,
     precioLibrosTable,
     librosTable,
+    coleccionesTable,
     clientesTable,
     personasTable,
     usersTable

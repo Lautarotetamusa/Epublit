@@ -5,6 +5,7 @@ import { createComprobanteService, ComprobanteService } from "./lib/comprobantes
 import { createLocalStorage } from "./lib/storage";
 import { Storage } from "./lib/storage/storage";
 import { createPersonaModule } from "./modules/persona";
+import { createColeccionModule } from "./modules/coleccion";
 import { createLibroModule } from "./modules/libro";
 import { createUserModule } from "./modules/user";
 import { createClienteModule } from "./modules/cliente";
@@ -24,7 +25,8 @@ export function createContainer({
 }: CreateContainerDeps = {}) {
     const user = createUserModule({ db, afipService });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, storage });
+    const coleccion = createColeccionModule({ db, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, storage });
     const cliente = createClienteModule({ db, afipService });
     const transaccion = createTransaccionModule({
         db,
@@ -39,7 +41,7 @@ export function createContainer({
 
     const liquidacion = createLiquidacionModule({ db });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion };
+    return { persona, libro, user, cliente, transaccion, liquidacion, coleccion };
 }
 
 export type Container = ReturnType<typeof createContainer>;

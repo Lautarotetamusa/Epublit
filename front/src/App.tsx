@@ -10,6 +10,12 @@ import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { CatalogoPage } from "./features/libros/CatalogoPage";
 import { NuevoLibroPage } from "./features/libros/NuevoLibroPage";
 import { FichaLibroPage } from "./features/libros/FichaLibroPage";
+import { DepositosPage } from "./features/depositos/DepositosPage";
+import { FichaDepositoPage } from "./features/depositos/FichaDepositoPage";
+import { MovimientosPage } from "./features/movimientos/MovimientosPage";
+import { ColeccionesPage } from "./features/colecciones/ColeccionesPage";
+import { NuevaColeccionPage } from "./features/colecciones/NuevaColeccionPage";
+import { FichaColeccionPage } from "./features/colecciones/FichaColeccionPage";
 import { PersonasPage } from "./features/personas/PersonasPage";
 import { NuevaPersonaPage } from "./features/personas/NuevaPersonaPage";
 import { FichaPersonaPage } from "./features/personas/FichaPersonaPage";
@@ -50,6 +56,12 @@ function AppRoutes() {
                 <Route path="/libros" element={<CatalogoPage />} />
                 <Route path="/libros/nuevo" element={<NuevoLibroPage />} />
                 <Route path="/libros/:isbn" element={<FichaLibroPage />} />
+                <Route path="/depositos" element={<DepositosPage />} />
+                <Route path="/depositos/:id" element={<FichaDepositoPage />} />
+                <Route path="/movimientos" element={<MovimientosPage />} />
+                <Route path="/colecciones" element={<ColeccionesPage />} />
+                <Route path="/colecciones/nuevo" element={<NuevaColeccionPage />} />
+                <Route path="/colecciones/:id" element={<FichaColeccionPage />} />
                 <Route path="/personas" element={<PersonasPage />} />
                 <Route path="/personas/nuevo" element={<NuevaPersonaPage />} />
                 <Route path="/personas/:id" element={<FichaPersonaPage />} />

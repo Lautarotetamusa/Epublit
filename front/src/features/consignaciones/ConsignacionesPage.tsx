@@ -74,6 +74,7 @@ function NuevaConsignacionForm({ onCreated }: { onCreated: () => void }) {
                     onAgregar={form.agregar}
                     onActualizarCantidad={form.actualizar}
                     onQuitar={form.quitar}
+                    hint={<>El stock sale del depósito principal («{form.depositoPrincipal}»).</>}
                 />
             </div>
 

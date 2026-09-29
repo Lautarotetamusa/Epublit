@@ -1,4 +1,5 @@
 export * from "../modules/user/user.schema";
+export * from "../modules/coleccion/coleccion.schema";
 export * from "../modules/persona/persona.schema";
 export * from "../modules/cliente/cliente.schema";
 export * from "../modules/libro/libro.schema";

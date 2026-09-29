@@ -9,6 +9,7 @@ import { getMediosPago, createVenta, createVentaConsignacion } from "../../api/o
 import type { MedioPago, TipoCbte, VentaDetalle } from "../../api/operaciones";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
 import type { LibroDisponible } from "../operaciones/useSeleccionLibros";
+import { mockDepositoPrincipal, mockStockEnPrincipal } from "../depositos/depositosMock";
 
 export type TipoVenta = "firme" | "consignacion";
 
@@ -51,7 +52,15 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         if (tipoVenta === "consignacion") {
             return stockConsignado.map((s) => ({ isbn: s.isbn, titulo: s.titulo, precio: s.precio, stock: s.stock }));
         }
-        return libros.map((l) => ({ isbn: l.isbn, titulo: l.titulo, precio: l.precio, stock: l.stock ?? 0 }));
+        // Una venta en firme descuenta del depósito principal (ver
+        // specs/008-movimientos-deposito/plan.md): el disponible del picker es
+        // el del principal, no el total de todos los depósitos.
+        return libros.map((l) => ({
+            isbn: l.isbn,
+            titulo: l.titulo,
+            precio: l.precio,
+            stock: mockStockEnPrincipal(l.isbn, l.stock ?? 0)
+        }));
     }, [tipoVenta, stockConsignado, libros]);
 
     const { seleccionados, agregar, actualizar, quitar, reset: resetSeleccion, total } = useSeleccionLibros(librosDisponibles);
@@ -111,15 +120,19 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tipoVenta]);
 
+    // Aplica la precarga de libros una vez que la lista que corresponde al
+    // tipo de venta ya está cargada: el catálogo en "firme", y el stock del
+    // cliente en "consignación" (que recién llega después de elegir el
+    // cliente y es contra el que `agregar` valida).
     const appliedIsbns = useRef(false);
     useEffect(() => {
         if (appliedIsbns.current) return;
         if (!initial?.isbns?.length) return;
-        if (tipoVenta !== "firme" || libros.length === 0) return;
+        if (tipoVenta === "" || librosDisponibles.length === 0) return;
         appliedIsbns.current = true;
         initial.isbns.forEach((isbn) => agregar(isbn, 1));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tipoVenta, libros]);
+    }, [tipoVenta, librosDisponibles]);
 
     const submit = async (): Promise<string | null> => {
         if (clienteId === "" || medioPago === "" || seleccionados.length === 0) {
@@ -169,6 +182,9 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         seleccionados,
         total,
         submitting,
+        // Nombre del depósito del que descuenta la venta en firme, para que el
+        // picker pueda decir de dónde sale el stock que muestra.
+        depositoPrincipal: mockDepositoPrincipal().nombre,
         setTipoVenta: handleTipoVentaChange,
         setClienteId: handleClienteChange,
         setDescuento,

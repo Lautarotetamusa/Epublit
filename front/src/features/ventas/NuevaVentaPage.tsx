@@ -3,20 +3,20 @@ import { Card, Select, Combobox, SegmentedControl, Field, Input, Button, Breadcr
 import { useVentaForm } from "./useVentaForm";
 import type { TipoVenta, VentaFormInitial } from "./useVentaForm";
 import { SeleccionLibrosField } from "../operaciones/SeleccionLibrosField";
+import { parsePrecargaOperacion } from "../../lib/precargaOperacion";
 import { sanitizeDecimal } from "../../lib/numericInput";
 import { useToast } from "../../notifications/ToastProvider";
 
-// Lee la precarga que llega por URL (bulk action del catálogo, o "venta en
-// firme" desde un cliente) y se la pasa a `useVentaForm`.
+// Lee la precarga que llega por URL (bulk action del catálogo, de la ficha de
+// cliente, o "venta en firme" desde un cliente) y se la pasa a `useVentaForm`.
 function useVentaFormInitial(): VentaFormInitial {
     const [searchParams] = useSearchParams();
-    const isbns = searchParams.get("isbns");
-    const clienteId = searchParams.get("clienteId");
     const tipoVenta = searchParams.get("tipoVenta");
+    const { clienteId, isbns } = parsePrecargaOperacion(searchParams);
 
     return {
-        isbns: isbns ? isbns.split(",").filter(Boolean) : undefined,
-        clienteId: clienteId ? Number(clienteId) : undefined,
+        isbns,
+        clienteId,
         tipoVenta: tipoVenta === "firme" || tipoVenta === "consignacion" ? (tipoVenta as TipoVenta) : undefined
     };
 }
@@ -95,6 +95,11 @@ export function NuevaVentaPage() {
                                 onQuitar={form.quitarLibro}
                                 disabled={form.tipoVenta === "consignacion" && form.clienteId === ""}
                                 placeholder={form.tipoVenta === "consignacion" && form.clienteId === "" ? "Seleccioná un cliente" : "Seleccioná un libro"}
+                                hint={
+                                    form.tipoVenta === "firme" ? (
+                                        <>El stock sale del depósito principal («{form.depositoPrincipal}»).</>
+                                    ) : undefined
+                                }
                             />
                         </div>
 

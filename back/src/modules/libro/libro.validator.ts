@@ -43,7 +43,10 @@ const filter = z
         isbn: z.string(),
         titulo: z.string(),
         precio: z.coerce.number(),
-        stock: z.coerce.number()
+        stock: z.coerce.number(),
+        // `z.coerce.boolean()` convertiría "false" en `true` (cualquier string
+        // no vacío es truthy): se parsea explícito desde el string de la query.
+        sin_coleccion: z.enum(["true", "false"]).transform((value) => value === "true")
     })
     .partial();
 const pk = createPkSchema(librosTable).pick({

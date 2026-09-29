@@ -60,6 +60,18 @@ export class UnprocessableEntity extends ApiError {
     }
 }
 
+// La operación choca con una regla de negocio del estado actual (ej. borrar
+// una colección que todavía tiene libros, ver specs/007-colecciones).
+export class Conflict extends ApiError {
+    constructor(message: string){
+        super(409, message, "Conflict");
+    }
+}
+
+// `next` es obligatorio en la firma aunque no se use: Express reconoce un
+// manejador de errores por su aridad de 4 argumentos, no por el nombre del
+// parámetro; quitarlo haría que el handler dejara de recibir los errores.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function handleErrors(err: Error, req: Request, res: Response, next: NextFunction): Response{
     if (err instanceof ZodError){
         const errors = err.issues.map(e => ({

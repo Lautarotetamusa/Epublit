@@ -13,6 +13,17 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `PUT    /cliente/:id`
 - `DELETE /cliente/:id`
 
+## coleccion (/coleccion)
+
+- `POST   /coleccion/`
+- `GET    /coleccion/`
+- `GET    /coleccion/:id`
+- `PUT    /coleccion/:id`
+- `DELETE /coleccion/:id`
+- `GET    /coleccion/:id/libros`
+- `POST   /coleccion/:id/portada`
+- `DELETE /coleccion/:id/portada`
+
 ## libro (/libro)
 
 - `POST   /libro/`

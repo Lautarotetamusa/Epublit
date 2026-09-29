@@ -9,6 +9,10 @@ export type Libro = {
     titulo: string;
     fecha_edicion: string;
     precio: number;
+    // Total calculado: la suma de las cantidades del libro en los depósitos.
+    // Es de SÓLO LECTURA y vale 0 si el libro no tiene stock en ninguno: el
+    // stock no se edita en el libro, se crea y se corrige con movimientos (ver
+    // specs/008-movimientos-deposito/design.md).
     stock: number | null;
     // Dimensiones en cm. Campos nuevos, todavía no soportados por el
     // backend (ver specs/003-libro-campos-extendidos/design.md).
@@ -21,7 +25,16 @@ export type Libro = {
     edad_recomendada: number | null;
     portada_url: string | null;
     book_trailer_url: string | null;
+    // Colección a la que pertenece el libro (a lo sumo una). `coleccion_titulo`
+    // lo resuelve el backend para no tener que cruzar el listado de
+    // colecciones (ver specs/007-colecciones).
+    coleccion_id: number | null;
+    coleccion_titulo: string | null;
 };
+
+// Lo mínimo de un libro para resolver títulos y cantidades en las pantallas de
+// stock y depósitos.
+export type LibroBase = Pick<Libro, "isbn" | "titulo" | "stock">;
 
 export type PersonaEnLibro = Pick<Persona, "nombre" | "email"> & {
     id_persona: number;
@@ -40,7 +53,8 @@ export type CreateLibroInput = {
     titulo: string;
     fecha_edicion: string;
     precio: number;
-    stock?: number;
+    // Sin stock: un libro nuevo arranca sin stock y se carga con un movimiento
+    // de ingreso (el endpoint rechaza el campo si se manda).
     alto?: number;
     ancho?: number;
     largo?: number;
@@ -48,6 +62,9 @@ export type CreateLibroInput = {
     paginas?: number;
     edad_recomendada?: number;
     book_trailer_url?: string;
+    // `null` = sin colección; un id asigna/reemplaza la colección del libro
+    // (ver specs/007-colecciones, "Pertenencia libro → colección").
+    coleccion_id?: number | null;
 };
 
 export type UpdateLibroInput = Partial<CreateLibroInput>;
@@ -57,6 +74,10 @@ export type ListLibrosParams = {
     pageSize?: number;
     titulo?: string;
     isbn?: string;
+    // Con `true`, `GET /libro` devuelve sólo libros sin colección y el total
+    // cuenta sólo esos: lo usa el diálogo "Agregar libros" (ver
+    // specs/007-colecciones).
+    sin_coleccion?: boolean;
 };
 
 export const listLibros = (params: ListLibrosParams = {}): Promise<ListEnvelope<Libro>> => api.get(`/libro${toQueryString(params)}`);

@@ -1,6 +1,7 @@
 import { pgTable, integer, varchar, date, real, text, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
+import { coleccionesTable } from "../coleccion/coleccion.schema";
 
 export const librosTable = pgTable(
     "libros",
@@ -28,6 +29,12 @@ export const librosTable = pgTable(
         // arma en el service con `storage.getUrl(portada_key)`, igual que
         // `operacion.service.ts` con los comprobantes.
         portada_key: text("portada_key"),
+        // Colección a la que pertenece el libro: a lo sumo una (`null` =
+        // ninguna). Es opcional, así que un libro cargado antes de este
+        // cambio queda sin colección sin necesidad de backfill. El service
+        // valida que la colección exista y sea del mismo usuario antes de
+        // asignarla (ver libro.service.ts).
+        coleccion_id: integer("coleccion_id").references(() => coleccionesTable.id),
         // bradb (ServiceBuilder) detecta soft-delete por la columna `deleted_at`.
         deletedAt: timestamp("deleted_at"),
         user: integer("user")

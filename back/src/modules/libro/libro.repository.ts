@@ -1,9 +1,10 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull, sql } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
 import { librosTable } from "./libro.schema";
 import { librosPersonasTable } from "./libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
+import { coleccionesTable } from "../coleccion/coleccion.schema";
 import { libroFilterMap } from "./libro.filter";
 import { Libro } from "./libro.validator";
 import { tipoPersona } from "./libroPersona.validator";
@@ -13,14 +14,41 @@ export type LibroRepositoryDeps = {
     db: Database;
 };
 
+// Fila de libro con el título de su colección ya resuelto por el join:
+// `coleccion_titulo` es null si el libro no tiene colección, si la colección
+// no es del mismo usuario o si está borrada.
+export type LibroConColeccion = Libro & { coleccion_titulo: string | null };
+
 export function createLibroRepository({ db }: LibroRepositoryDeps) {
     const builder = new ServiceBuilder(db, librosTable, libroFilterMap);
+
+    // Select base de toda lectura de libros: LEFT JOIN a `colecciones` (nunca
+    // INNER: un libro sin colección desaparecería del listado) que trae
+    // `coleccion_titulo` en el mismo SELECT, sin una segunda query. Las
+    // condiciones de vigencia y de usuario de la colección van en el ON del
+    // join para no descartar libros: si no matchean, el título queda null.
+    const selectConColeccion = () =>
+        db
+            .select({
+                ...getTableColumns(librosTable),
+                coleccion_titulo: coleccionesTable.titulo
+            })
+            .from(librosTable)
+            .leftJoin(
+                coleccionesTable,
+                and(
+                    eq(coleccionesTable.id, librosTable.coleccion_id),
+                    eq(coleccionesTable.user, librosTable.user),
+                    isNull(coleccionesTable.deletedAt)
+                )
+            )
+            .$dynamic();
 
     // Ordenado por título: mismo `ORDER BY titulo ASC` que el `Libro.getAll`
     // actual. `ServiceBuilder.findAll` no expone `orderBy` en su firma, así que
     // se resuelve con un `select` custom, igual que `selectWithoutPassword` en
     // `user.repository.ts`.
-    const selectOrderedByTitulo = () => db.select().from(librosTable).orderBy(librosTable.titulo).$dynamic();
+    const selectOrderedByTitulo = () => selectConColeccion().orderBy(librosTable.titulo);
 
     // Sin paginar: usada por el export a CSV (`listaLibros`), que necesita
     // todas las filas, no una página.
@@ -39,13 +67,24 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
     // Los endpoints públicos siguen recibiendo `isbn` en la URL, no `id_libro`
     // (interno): bradb's `findOne(pk)` necesita `id_libro`, así que la búsqueda
     // pública se resuelve con una query propia.
-    const findOne = async (isbn: string, userId: number): Promise<Libro> => {
-        const rows = await db
-            .select()
-            .from(librosTable)
-            .where(and(eq(librosTable.isbn, isbn), eq(librosTable.user, userId), isNull(librosTable.deletedAt)));
+    const findOne = async (isbn: string, userId: number): Promise<LibroConColeccion> => {
+        const rows = await selectConColeccion().where(
+            and(eq(librosTable.isbn, isbn), eq(librosTable.user, userId), isNull(librosTable.deletedAt))
+        );
 
         if (rows.length === 0) throw new NotFound(`No existe un libro con isbn ${isbn}`);
+        return rows[0];
+    };
+
+    // Relee por la PK interna (`id_libro`): la usan create/update/uploadPortada
+    // para devolver `coleccion_titulo` ya resuelto por el join, incluso si el
+    // PUT cambió el isbn del libro.
+    const findOneById = async (idLibro: number, userId: number): Promise<LibroConColeccion> => {
+        const rows = await selectConColeccion().where(
+            and(eq(librosTable.id_libro, idLibro), eq(librosTable.user, userId), isNull(librosTable.deletedAt))
+        );
+
+        if (rows.length === 0) throw new NotFound(`No existe un libro con id ${idLibro}`);
         return rows[0];
     };
 
@@ -98,6 +137,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
 
     return {
         findOne,
+        findOneById,
         exists,
         findAllOrdered,
         findAllPaginated,

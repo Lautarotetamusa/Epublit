@@ -1,5 +1,5 @@
 import { FilterMap } from "bradb";
-import { eq, ilike } from "drizzle-orm";
+import { eq, ilike, isNull, sql } from "drizzle-orm";
 import { librosTable } from "./libro.schema";
 import { libroValidator } from "./libro.validator";
 
@@ -8,5 +8,8 @@ export const libroFilterMap: FilterMap<typeof libroValidator.filter> = {
     isbn: (val) => eq(librosTable.isbn, val),
     titulo: (val) => ilike(librosTable.titulo, `%${val}%`),
     precio: (val) => eq(librosTable.precio, val),
-    stock: (val) => eq(librosTable.stock, val)
+    stock: (val) => eq(librosTable.stock, val),
+    // `sin_coleccion=false` no filtra nada (el catálogo completo, como hoy):
+    // devolver una condición siempre verdadera deja `buildFilters` intacto.
+    sin_coleccion: (val) => (val ? isNull(librosTable.coleccion_id) : sql`true`)
 };

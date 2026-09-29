@@ -8,7 +8,13 @@ const NAV_ITEMS = [
     { value: "", label: "Inicio", icon: "layout-dashboard" },
     { section: "Catálogo" },
     { value: "libros", label: "Libros", icon: "library" },
+    { value: "colecciones", label: "Colecciones", icon: "book-open" },
     { value: "personas", label: "Personas", icon: "user-round" },
+    // Depósito es su propia sección: es otro trabajo (dónde están los libros)
+    // distinto del catálogo (qué libros hay).
+    { section: "Depósito" },
+    { value: "depositos", label: "Depósitos", icon: "building-2" },
+    { value: "movimientos", label: "Movimientos", icon: "package" },
     { section: "Comercial" },
     { value: "clientes", label: "Clientes", icon: "store" },
     { value: "ventas", label: "Ventas", icon: "receipt-text" },

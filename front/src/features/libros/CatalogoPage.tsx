@@ -25,6 +25,15 @@ export function CatalogoPage() {
                             Nueva venta ({selected.size})
                         </Button>
                     ) : null}
+                    {selected.size > 0 ? (
+                        <Button
+                            variant="secondary"
+                            iconStart="arrow-right"
+                            onClick={() => navigate(`/movimientos/nuevo?isbns=${[...selected].join(",")}`)}
+                        >
+                            Nuevo movimiento ({selected.size})
+                        </Button>
+                    ) : null}
                     <Button iconStart="plus" onClick={() => navigate("/libros/nuevo")}>
                         Nuevo libro
                     </Button>
@@ -67,7 +76,20 @@ export function CatalogoPage() {
                     { header: "Título", key: "titulo" },
                     { header: "ISBN", key: "isbn", mono: true },
                     { header: "Precio", align: "right", cell: (row: Libro) => row.precio.toLocaleString("es-AR") },
-                    { header: "Stock", key: "stock", align: "right" },
+                    {
+                        // Total de los depósitos, de sólo lectura: para cargar o
+                        // corregir stock se registra un movimiento, no se edita acá
+                        // (ver specs/008-movimientos-deposito/design.md).
+                        header: "Stock total",
+                        align: "right",
+                        mono: true,
+                        cell: (row: Libro) =>
+                            row.stock === null || row.stock === 0 ? (
+                                <span style={{ color: "var(--text-subtle)" }}>Sin stock</span>
+                            ) : (
+                                row.stock.toLocaleString("es-AR")
+                            )
+                    },
                     { header: "Edición", cell: (row: Libro) => new Date(row.fecha_edicion).toLocaleDateString("es-AR") }
                 ]}
                 rows={libros}

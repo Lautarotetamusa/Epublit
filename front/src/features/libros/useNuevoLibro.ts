@@ -8,10 +8,13 @@ export function useNuevoLibro() {
     // La portada se sube en un segundo paso porque el endpoint de subida
     // (multipart) necesita el ISBN del libro ya creado (ver
     // specs/003-libro-campos-extendidos/design.md).
-    const create = async (input: CreateLibroInput, portadaFile: File | null) => {
+    //
+    // La colección sí viaja en el payload (`coleccion_id`, `null` = sin
+    // colección), ver specs/007-colecciones.
+    const create = async (input: CreateLibroInput, portadaFile: File | null, idColeccion: number | null) => {
         setSaving(true);
         try {
-            const response = await createLibro(input);
+            const response = await createLibro({ ...input, coleccion_id: idColeccion });
             if (portadaFile) await uploadLibroPortada(response.data.isbn, portadaFile);
             return response.data;
         } finally {

@@ -1,11 +1,17 @@
+import { useSearchParams } from "react-router-dom";
 import { Card, Combobox, Field, Button } from "../../design-system";
 import { useDevolucionForm } from "./useDevolucionForm";
 import { SeleccionLibrosField } from "../operaciones/SeleccionLibrosField";
+import { parsePrecargaOperacion } from "../../lib/precargaOperacion";
 import { useToast } from "../../notifications/ToastProvider";
 
 export function DevolucionesPage() {
     const { showToast } = useToast();
-    const form = useDevolucionForm(() => showToast("success", "Devolución registrada correctamente"));
+    const [searchParams] = useSearchParams();
+    const form = useDevolucionForm(
+        () => showToast("success", "Devolución registrada correctamente"),
+        parsePrecargaOperacion(searchParams)
+    );
 
     const handleSubmit = async () => {
         const error = await form.submit();

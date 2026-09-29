@@ -1,0 +1,19 @@
+# Contexto de build mínimo: nada de artefactos locales, secretos ni datos de
+# runtime (esos entran por variables de entorno y volúmenes, no en la imagen).
+node_modules
+dist
+coverage
+.jscpd-report
+test
+docs
+*.log
+nohup.out
+
+# Secretos y config real (nunca dentro de la imagen).
+.env
+.env.*
+.prod.env
+
+# Credenciales AFIP y comprobantes generados: se montan como volúmenes.
+afipkeys
+files

@@ -5,6 +5,7 @@ import { listLibros } from "../../api/libro";
 import type { Libro } from "../../api/libro";
 import { createConsignacion } from "../../api/operaciones";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
+import { mockDepositoPrincipal, mockStockEnPrincipal } from "../depositos/depositosMock";
 
 export function useConsignacionForm(onCreated: () => void) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -19,7 +20,16 @@ export function useConsignacionForm(onCreated: () => void) {
         listLibros({ pageSize: 1000 }).then((r) => setLibros(r.items));
     }, []);
 
-    const librosDisponibles = libros.map((l) => ({ isbn: l.isbn, titulo: l.titulo, precio: l.precio, stock: l.stock ?? 0 }));
+    // Una consignación descuenta del depósito principal (ver
+    // specs/008-movimientos-deposito/plan.md): el disponible del picker es el
+    // del principal, no el total de todos los depósitos. El stock que queda en
+    // poder del cliente es un mundo aparte y no entra en este número.
+    const librosDisponibles = libros.map((l) => ({
+        isbn: l.isbn,
+        titulo: l.titulo,
+        precio: l.precio,
+        stock: mockStockEnPrincipal(l.isbn, l.stock ?? 0)
+    }));
     const { seleccionados, agregar, actualizar, quitar, reset } = useSeleccionLibros(librosDisponibles);
 
     const submit = async (): Promise<string | null> => {
@@ -42,5 +52,5 @@ export function useConsignacionForm(onCreated: () => void) {
         }
     };
 
-    return { clientes, clienteId, setClienteId, librosDisponibles, seleccionados, agregar, actualizar, quitar, submitting, submit };
+    return { clientes, clienteId, setClienteId, librosDisponibles, seleccionados, agregar, actualizar, quitar, submitting, submit, depositoPrincipal: mockDepositoPrincipal().nombre };
 }

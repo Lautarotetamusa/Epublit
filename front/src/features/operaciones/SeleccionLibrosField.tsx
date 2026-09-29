@@ -12,6 +12,9 @@ type Props = {
     onQuitar: (isbn: string) => void;
     disabled?: boolean;
     placeholder?: string;
+    // Aclaración de dónde sale el stock que muestra el picker (ej. el depósito
+    // principal para venta/consignación: ver specs/008-movimientos-deposito).
+    hint?: React.ReactNode;
 };
 
 // Picker de "libro + cantidad" + tabla de seleccionados con total: la misma
@@ -19,7 +22,7 @@ type Props = {
 // El picker va arriba de la tabla (se completa antes de poder revisarla) y
 // la cantidad de cada fila ya cargada se edita ahí mismo con +/- (QuantityStepper),
 // sin tener que quitarla y volver a agregarla ni tipear a mano.
-export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgregar, onActualizarCantidad, onQuitar, disabled, placeholder }: Props) {
+export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgregar, onActualizarCantidad, onQuitar, disabled, placeholder, hint }: Props) {
     const { showToast } = useToast();
     const [isbn, setIsbn] = useState("");
     const [cantidad, setCantidad] = useState(1);
@@ -87,6 +90,8 @@ export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgreg
                     Agregar
                 </Button>
             </div>
+
+            {hint ? <p style={{ marginTop: "var(--space-3)", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>{hint}</p> : null}
 
             {seleccionados.length > 0 ? (
                 <>

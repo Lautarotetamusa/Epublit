@@ -7,7 +7,7 @@ import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
 import { TIPO_CLIENTE_LABEL, tipoClienteBadgeTone } from "./tipoCliente";
 import { ClienteFormFields, isClienteFormValid } from "./ClienteFormFields";
-import type { Cliente } from "../../api/cliente";
+import type { Cliente, StockCliente } from "../../api/cliente";
 
 export function FichaClientePage() {
     const { id = "" } = useParams();
@@ -33,40 +33,121 @@ export function FichaClientePage() {
                 }}
             />
             <DatosImpositivosCard cliente={cliente} />
-            <Card
-                title="Libros en consignación"
-                padded={false}
-                actions={
-                    stock.length > 0 ? (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            loading={syncing}
-                            onClick={async () => {
-                                try {
-                                    await syncPrecios();
-                                    showToast("success", "Precios actualizados correctamente");
-                                } catch (err) {
-                                    showToast("error", getErrorMessage(err));
-                                }
-                            }}
-                        >
-                            Actualizar lista de precios
-                        </Button>
-                    ) : null
-                }
-            >
-                <Table
-                    columns={[
-                        { header: "Título", key: "titulo" },
-                        { header: "ISBN", key: "isbn", mono: true },
-                        { header: "Stock", key: "stock", align: "right" },
-                        { header: "Precio unit.", key: "precio", align: "right" }
-                    ]}
-                    rows={stock}
-                    empty={<EmptyState icon="boxes" title="Este cliente no tiene libros en consignación" />}
+            {/* `key`: la selección pertenece a los libros de un cliente, no
+                debe sobrevivir a un cambio de ficha sin desmontar. */}
+            <LibrosConsignadosCard
+                key={cliente.id}
+                clienteId={cliente.id}
+                stock={stock}
+                syncing={syncing}
+                onSyncPrecios={syncPrecios}
+            />
+        </div>
+    );
+}
+
+function LibrosConsignadosCard({
+    clienteId,
+    stock,
+    syncing,
+    onSyncPrecios
+}: {
+    clienteId: number;
+    stock: StockCliente[];
+    syncing: boolean;
+    onSyncPrecios: () => Promise<void>;
+}) {
+    const navigate = useNavigate();
+    const { showToast } = useToast();
+    const [selected, setSelected] = useState<Set<string | number>>(new Set());
+    const isbnsSeleccionados = [...selected].join(",");
+
+    const handleSyncPrecios = async () => {
+        try {
+            await onSyncPrecios();
+            showToast("success", "Precios actualizados correctamente");
+        } catch (err) {
+            showToast("error", getErrorMessage(err));
+        }
+    };
+
+    return (
+        <Card
+            title="Libros en consignación"
+            padded={false}
+            actions={
+                stock.length > 0 ? (
+                    <Button variant="secondary" size="sm" loading={syncing} onClick={handleSyncPrecios}>
+                        Actualizar lista de precios
+                    </Button>
+                ) : null
+            }
+        >
+            {selected.size > 0 ? (
+                <BarraAccionesSeleccion
+                    cantidad={selected.size}
+                    onDevolucion={() => navigate(`/devoluciones?clienteId=${clienteId}&isbns=${isbnsSeleccionados}`)}
+                    onVentaConsignacion={() =>
+                        navigate(`/ventas/nueva?clienteId=${clienteId}&tipoVenta=consignacion&isbns=${isbnsSeleccionados}`)
+                    }
                 />
-            </Card>
+            ) : null}
+            <Table
+                selectable
+                selectedKeys={selected}
+                onSelectionChange={setSelected}
+                rowKey={(s: StockCliente) => s.isbn}
+                columns={[
+                    { header: "Título", key: "titulo" },
+                    { header: "ISBN", key: "isbn", mono: true },
+                    { header: "Stock", key: "stock", align: "right", mono: true },
+                    { header: "Precio unit.", align: "right", mono: true, cell: (s: StockCliente) => s.precio.toLocaleString("es-AR") }
+                ]}
+                rows={stock}
+                empty={<EmptyState icon="boxes" title="Este cliente no tiene libros en consignación" />}
+            />
+        </Card>
+    );
+}
+
+// Las dos operaciones posibles sobre los libros elegidos viven pegadas a la
+// tabla (y no en las `actions` del Card, como en el catálogo) porque acá
+// conviven con una acción de la lista completa ("Actualizar lista de precios")
+// y son dos: mostrarlas en el header las apretaría contra el título y las
+// alejaría del checkbox que las habilita.
+function BarraAccionesSeleccion({
+    cantidad,
+    onDevolucion,
+    onVentaConsignacion
+}: {
+    cantidad: number;
+    onDevolucion: () => void;
+    onVentaConsignacion: () => void;
+}) {
+    return (
+        <div
+            style={{
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: "var(--space-4)",
+                padding: "var(--space-3) var(--space-5)",
+                background: "var(--surface-card)",
+                borderBottom: "1px solid var(--border-subtle)"
+            }}
+        >
+            <span aria-live="polite" style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                {cantidad === 1 ? "1 libro seleccionado" : `${cantidad} libros seleccionados`}
+            </span>
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                <Button variant="secondary" size="sm" iconStart="truck" onClick={onDevolucion}>
+                    Registrar devolución
+                </Button>
+                <Button variant="secondary" size="sm" iconStart="receipt-text" onClick={onVentaConsignacion}>
+                    Venta sobre consignación
+                </Button>
+            </div>
         </div>
     );
 }

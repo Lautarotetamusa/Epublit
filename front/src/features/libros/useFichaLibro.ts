@@ -5,16 +5,26 @@ import { createPersona } from "../../api/persona";
 import type { CreatePersonaInput, TipoPersona } from "../../api/persona";
 import { addLibroPersonas, updateLibroPersonas, removeLibroPersonas } from "../../api/libroPersona";
 import { useTodasLasPersonas } from "./useTodasLasPersonas";
+import { useColecciones } from "../colecciones/useColecciones";
+import { mockTotalDeLibro } from "../depositos/depositosMock";
 
 export function useFichaLibro(isbn: string) {
     const [libro, setLibro] = useState<LibroConPersonas | null>(null);
     const { personas, setPersonas, loading: loadingPersonas } = useTodasLasPersonas();
+    const { colecciones, loading: loadingColecciones } = useColecciones();
+    // A qué colección pertenece el libro: lo devuelve el propio libro
+    // (`coleccion_id`, ver specs/007-colecciones). `null` = sin colección.
+    const [idColeccion, setIdColeccion] = useState<number | null>(null);
     const [loadingLibro, setLoadingLibro] = useState(true);
 
     const fetchLibro = useCallback(async () => {
         setLoadingLibro(true);
         const response = await getLibro(isbn);
-        setLibro(response.data);
+        // El stock del libro es el total de sus depósitos: mientras el backend
+        // no lo calcule (ver specs/008), el total sale del mock de movimientos,
+        // que es el que cambia cuando se registra un movimiento.
+        setLibro({ ...response.data, stock: mockTotalDeLibro(response.data.isbn, response.data.stock ?? 0) });
+        setIdColeccion(response.data.coleccion_id);
         setLoadingLibro(false);
     }, [isbn]);
 
@@ -22,10 +32,13 @@ export function useFichaLibro(isbn: string) {
         fetchLibro();
     }, [fetchLibro]);
 
-    const loading = loadingLibro || loadingPersonas;
+    const loading = loadingLibro || loadingPersonas || loadingColecciones;
 
-    const update = async (input: UpdateLibroInput, portadaFile: File | null) => {
-        await updateLibro(isbn, input);
+    // La colección viaja en el payload del libro: el formulario siempre manda
+    // el select (una colección o `null`), así que el PUT nunca la deja sin
+    // tocar. La portada se sube aparte, con el libro ya actualizado.
+    const update = async (input: UpdateLibroInput, portadaFile: File | null, idColeccion: number | null) => {
+        await updateLibro(isbn, { ...input, coleccion_id: idColeccion });
         if (portadaFile) await uploadLibroPortada(isbn, portadaFile);
         await fetchLibro();
     };
@@ -52,5 +65,16 @@ export function useFichaLibro(isbn: string) {
         await fetchLibro();
     };
 
-    return { libro, personas, loading, update, agregarPersonaExistente, agregarPersonaNueva, actualizarPorcentaje, quitarPersona };
+    return {
+        libro,
+        personas,
+        colecciones,
+        idColeccion,
+        loading,
+        update,
+        agregarPersonaExistente,
+        agregarPersonaNueva,
+        actualizarPorcentaje,
+        quitarPersona
+    };
 }

@@ -22,6 +22,13 @@
       "when": 1790620395318,
       "tag": "0002_brown_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790690285107,
+      "tag": "0003_worthless_lily_hollister",
+      "breakpoints": true
     }
   ]
 }

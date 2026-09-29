@@ -7,6 +7,7 @@
 import { Database } from "../../db/client";
 import { Storage } from "../../lib/storage";
 import { PersonaRepository } from "../persona";
+import { ColeccionRepository } from "../coleccion";
 import { createLibroPrecioRepository } from "./libroPrecio.repository";
 import { createLibroRepository } from "./libro.repository";
 import { createLibroPersonaRepository } from "./libroPersona.repository";
@@ -20,20 +21,24 @@ export type { Libro, LibroInsert, LibroUpdate, LibroFilter, LibroCantidad } from
 export type { TipoPersona, LibroPersonaBody, LibroPersonaBodyBatch, LibroPersonaRemoveBody, LibroPersonaRemoveBatch } from "./libroPersona.validator";
 export type { LibroService, PublicLibro, PortadaFile } from "./libro.service";
 export type { LibroPersonaService } from "./libroPersona.service";
-export type { LibroRepository } from "./libro.repository";
+export type { LibroRepository, LibroConColeccion } from "./libro.repository";
 
 export type LibroModuleDeps = {
     db: Database;
     personaRepository: PersonaRepository;
+    // Sólo lectura de colecciones (ownership) para validar la asignación en
+    // create/update; el título lo resuelve el LEFT JOIN de libro.repository
+    // (ver specs/007-colecciones, tareas 10 y 11).
+    coleccionRepository: Pick<ColeccionRepository, "findOne">;
     storage: Storage;
 };
 
-export function createLibroModule({ db, personaRepository, storage }: LibroModuleDeps) {
+export function createLibroModule({ db, personaRepository, coleccionRepository, storage }: LibroModuleDeps) {
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
 
-    const service = createLibroService({ db, repository, libroPrecioRepository, storage });
+    const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, storage });
     const personaService = createLibroPersonaService({
         db,
         repository: libroPersonaRepository,

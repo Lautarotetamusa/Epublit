@@ -4,6 +4,7 @@ import { createMockComprobanteService } from "../src/lib/comprobantes/comprobant
 import { createLocalStorage } from "../src/lib/storage";
 import { env } from "../src/env";
 import { createPersonaModule } from "../src/modules/persona";
+import { createColeccionModule } from "../src/modules/coleccion";
 import { createLibroModule } from "../src/modules/libro";
 import { createUserModule } from "../src/modules/user";
 import { createClienteModule } from "../src/modules/cliente";
@@ -11,6 +12,7 @@ import { createTransaccionModule } from "../src/modules/transaccion";
 import { resetSeedData } from "./reset";
 import { seedUsers, PASSWORD_SEED } from "./users.seeder";
 import { seedPersonas } from "./personas.seeder";
+import { seedColecciones } from "./colecciones.seeder";
 import { seedClientes } from "./clientes.seeder";
 import { seedLibros } from "./libros.seeder";
 import { seedLibrosPersonas } from "./librosPersonas.seeder";
@@ -33,7 +35,8 @@ async function main(): Promise<void> {
 
     const user = createUserModule({ db, afipService });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, storage });
+    const coleccion = createColeccionModule({ db, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, storage });
     const cliente = createClienteModule({ db, afipService });
     const transaccion = createTransaccionModule({
         db,
@@ -47,6 +50,7 @@ async function main(): Promise<void> {
     });
 
     const users = await seedUsers(user.service);
+    await seedColecciones(users, coleccion.service);
     const personas = await seedPersonas(users, persona.service);
     const clientes = await seedClientes(users);
     const libros = await seedLibros(users, libro.service);
