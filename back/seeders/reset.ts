@@ -4,6 +4,10 @@ import { personasTable } from "../src/modules/persona/persona.schema";
 import {
     usersTable,
     coleccionesTable,
+    depositosTable,
+    depositoLibrosTable,
+    movimientosTable,
+    movimientosLibrosTable,
     clientesTable,
     librosTable,
     libroClienteTable,
@@ -16,6 +20,10 @@ import {
 } from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
+    movimientosLibrosTable,
+    movimientosTable,
+    depositoLibrosTable,
+    depositosTable,
     ventasTable,
     librosTransaccionesTable,
     transaccionesTable,

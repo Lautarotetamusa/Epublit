@@ -8,6 +8,7 @@ import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { facturar } from "../src/lib/afip/Afip";
+import { cargarStockPrincipal } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
@@ -37,8 +38,11 @@ test("Facturar", async () => {
     const resLibro = await request(app)
         .post('/libro/')
         .set('Authorization', `Bearer ${token}`)
-        .send({ isbn: isbnLibro, titulo: 'Test afip', fecha_edicion: '2020-01-01', precio: 1000, stock: 5 });
+        .send({ isbn: isbnLibro, titulo: 'Test afip', fecha_edicion: '2020-01-01', precio: 1000 });
     expect(resLibro.status).toBe(201);
+
+    const movimiento = await cargarStockPrincipal(app, token, isbnLibro, 5);
+    expect(movimiento.status).toBe(201);
 
     const resClientes = await request(app).get('/cliente?tipo=particular').set('Authorization', `Bearer ${token}`);
     const cliente = resClientes.body.items[0];

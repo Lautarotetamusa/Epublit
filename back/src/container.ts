@@ -6,6 +6,8 @@ import { createLocalStorage } from "./lib/storage";
 import { Storage } from "./lib/storage/storage";
 import { createPersonaModule } from "./modules/persona";
 import { createColeccionModule } from "./modules/coleccion";
+import { createDepositoModule } from "./modules/deposito";
+import { createMovimientoModule } from "./modules/movimiento";
 import { createLibroModule } from "./modules/libro";
 import { createUserModule } from "./modules/user";
 import { createClienteModule } from "./modules/cliente";
@@ -23,16 +25,21 @@ export function createContainer({
     storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST }),
     comprobanteService = createComprobanteService({ storage })
 }: CreateContainerDeps = {}) {
-    const user = createUserModule({ db, afipService });
+    // Depósito primero: el alta de usuario le crea su depósito principal y el
+    // resto de los módulos leen/escriben stock por depósito.
+    const deposito = createDepositoModule({ db });
+    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, storage });
     const cliente = createClienteModule({ db, afipService });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository });
     const transaccion = createTransaccionModule({
         db,
         libroService: libro.service,
         clienteRepository: cliente.repository,
         clienteStockService: cliente.stockService,
+        depositoRepository: deposito.repository,
         userRepository: user.repository,
         afipService,
         comprobanteService,
@@ -41,7 +48,7 @@ export function createContainer({
 
     const liquidacion = createLiquidacionModule({ db });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, coleccion };
+    return { persona, libro, user, cliente, transaccion, liquidacion, coleccion, deposito, movimiento };
 }
 
 export type Container = ReturnType<typeof createContainer>;

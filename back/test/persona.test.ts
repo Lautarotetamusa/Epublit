@@ -83,6 +83,16 @@ describe('GET /persona/:id', () => {
         expect(res.status).toEqual(200);
         expect(res.body.data.dni).toEqual(DNI_PERSONA_1);
         expect(res.body.data.libros).toBeInstanceOf(Array);
+
+        // El stock del libro ya no es una columna propia: la lectura de la
+        // persona tiene que devolver el mismo total derivado que `GET /libro`.
+        for (const libro of res.body.data.libros) {
+            const detalle = await request(app)
+                .get(`/libro/${libro.isbn}`)
+                .set('Authorization', `Bearer ${token}`);
+
+            expect(libro.stock).toEqual(detalle.body.data.stock);
+        }
     });
 });
 

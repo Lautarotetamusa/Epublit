@@ -9,6 +9,7 @@ export function createLibroRoutes(libroController: LibroController, libroPersona
     // valida tipo/tamaño exacto (413 si pasa los 5MB del plan) y lo pasa
     // directo a `storage.write`, sin pisar filesystem temporal. El límite
     // acá es sólo un techo de protección del proceso (no el 413 de negocio).
+    // eslint-disable-next-line sonarjs/content-length -- techo del proceso, no el límite de negocio (5 MB, validado en el service)
     const upload = multer({ limits: { fileSize: 20 * 1024 * 1024 } });
 
     // Create new libro: `service.create` maneja su propia transacción Postgres.
@@ -21,6 +22,8 @@ export function createLibroRoutes(libroController: LibroController, libroPersona
     router.get('/:isbn', libroController.getOne);
 
     router.get('/:isbn/precio', libroController.getPrecios)
+
+    router.get('/:isbn/depositos', libroController.getDepositos);
 
     router.put('/:isbn', libroController.update);
 

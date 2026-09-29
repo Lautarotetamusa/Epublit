@@ -5,6 +5,7 @@
 // el ciclo contra `createUserService`, mismo motivo que en Persona/Libro.
 import { Database } from "../../db/client";
 import { AfipService } from "../../lib/afip/Afip";
+import { DepositoRepository } from "../deposito";
 import { createUserRepository } from "./user.repository";
 import { createUserService } from "./user.service";
 import { createUserController } from "./user.controller";
@@ -17,11 +18,13 @@ export type { UserRepository } from "./user.repository";
 export type UserModuleDeps = {
     db: Database;
     afipService: AfipService;
+    // Sólo inserción del depósito principal en el alta del usuario.
+    depositoRepository: Pick<DepositoRepository, "insert">;
 };
 
-export function createUserModule({ db, afipService }: UserModuleDeps) {
+export function createUserModule({ db, afipService, depositoRepository }: UserModuleDeps) {
     const repository = createUserRepository({ db });
-    const service = createUserService({ db, repository, afipService });
+    const service = createUserService({ db, repository, afipService, depositoRepository });
     const controller = createUserController({ service });
     const router = createUserRoutes(controller);
 

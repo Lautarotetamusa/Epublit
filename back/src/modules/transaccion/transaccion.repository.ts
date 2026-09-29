@@ -4,6 +4,7 @@ import { transaccionesTable } from "./transaccion.schema";
 import { clientesTable } from "../cliente/cliente.schema";
 import { librosTransaccionesTable } from "./librosTransacciones.schema";
 import { librosTable } from "../libro/libro.schema";
+import { stockDeLibro } from "../libro/libro.stock";
 import { TipoTransaccion, TransaccionInsert } from "./transaccion.validator";
 import { LibroOperacion, TransaccionConCliente } from "./operacion.types";
 import { NotFound } from "bradb";
@@ -63,23 +64,19 @@ export function createTransaccionRepository({ db }: TransaccionRepositoryDeps) {
     };
 
     const getLibros = async (idTransaccion: number): Promise<LibroOperacion[]> => {
-        const rows = await db
+        return db
             .select({
                 id_libro: librosTable.id_libro,
                 isbn: librosTable.isbn,
                 titulo: librosTable.titulo,
                 cantidad: librosTransaccionesTable.cantidad,
                 precio: librosTransaccionesTable.precio,
-                stock: librosTable.stock
+                // Stock total derivado (suma de depósitos), no la columna legada.
+                stock: stockDeLibro()
             })
             .from(librosTransaccionesTable)
             .innerJoin(librosTable, eq(librosTable.id_libro, librosTransaccionesTable.id_libro))
             .where(eq(librosTransaccionesTable.id_transaccion, idTransaccion));
-
-        // `librosTable.stock` es nullable a nivel de columna (default 0); acá
-        // siempre viene de un libro ya vendido/consignado, así que null se lee
-        // como 0 (mismo criterio que el resto del feature para stock ausente).
-        return rows.map((row) => ({ ...row, stock: row.stock ?? 0 }));
     };
 
     return {

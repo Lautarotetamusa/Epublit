@@ -76,7 +76,6 @@ describe('campos extendidos de libro', () => {
                     titulo: 'Libro con campos extendidos',
                     fecha_edicion: '2020-02-17',
                     precio: 10000,
-                    stock: 0,
                     alto: 20.5,
                     ancho: 15.2,
                     largo: 2.1,
@@ -106,7 +105,6 @@ describe('campos extendidos de libro', () => {
                     titulo: 'Libro sin campos extendidos',
                     fecha_edicion: '2020-02-17',
                     precio: 10000,
-                    stock: 0
                 });
 
             expectCreated(res);
@@ -125,7 +123,6 @@ describe('campos extendidos de libro', () => {
                     titulo: 'Libro inválido',
                     fecha_edicion: '2020-02-17',
                     precio: 10000,
-                    stock: 0,
                     [campo]: campo === 'paginas' ? 0 : -1
                 });
 
@@ -141,7 +138,6 @@ describe('campos extendidos de libro', () => {
                     titulo: 'Libro con trailer inválido',
                     fecha_edicion: '2020-02-17',
                     precio: 10000,
-                    stock: 0,
                     book_trailer_url: 'https://vimeo.com/12345'
                 });
 
@@ -157,7 +153,6 @@ describe('campos extendidos de libro', () => {
                     titulo: 'Libro con trailer vacío',
                     fecha_edicion: '2020-02-17',
                     precio: 10000,
-                    stock: 0,
                     book_trailer_url: ''
                 });
 
@@ -251,7 +246,6 @@ describe('POST /libro/:isbn/portada', () => {
                 titulo: 'Libro para portada',
                 fecha_edicion: '2020-02-17',
                 precio: 10000,
-                stock: 0
             });
     });
 

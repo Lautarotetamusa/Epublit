@@ -122,8 +122,7 @@ describe('POST /libro', () => {
                 isbn: isbn(9999),
                 titulo: 'Libro de prueba POST',
                 fecha_edicion: '2020-02-17',
-                precio: 10000,
-                stock: 0
+                precio: 10000
             });
 
         expectCreated(res);

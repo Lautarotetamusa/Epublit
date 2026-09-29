@@ -15,7 +15,7 @@ import { createMockComprobanteService } from '../src/lib/comprobantes/comprobant
 import { transaccionesTable } from '../src/modules/transaccion/transaccion.schema';
 import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
 import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
-import { expectBadRequest, expectDataResponse, delay } from './util';
+import { expectBadRequest, expectDataResponse, delay, cargarStockPrincipal } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn, dni, cuit } from '../seeders/data';
 
@@ -65,12 +65,17 @@ beforeAll(async () => {
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
 
-    const crearLibro = async (isbnLibro: string, precio: number) => {
+    const crearLibro = async (isbnLibro: string, precio: number, t = token) => {
         const r = await request(app)
             .post('/libro/')
-            .set('Authorization', `Bearer ${token}`)
-            .send({ isbn: isbnLibro, titulo: 'Test liquidacion', fecha_edicion: '2020-01-01', precio, stock: 100 });
+            .set('Authorization', `Bearer ${t}`)
+            .send({ isbn: isbnLibro, titulo: 'Test liquidacion', fecha_edicion: '2020-01-01', precio });
         expectDataResponse(r, 201);
+
+        // El stock de las ventas/consignaciones sale del depósito principal.
+        const movimiento = await cargarStockPrincipal(app, t, isbnLibro, 100);
+        expect(movimiento.status).toBe(201);
+
         return r.body.data;
     };
 
@@ -408,8 +413,11 @@ describe('GET /liquidacion: aislamiento por usuario', () => {
         const resLibroAjeno = await request(app)
             .post('/libro/')
             .set('Authorization', `Bearer ${tokenOtro}`)
-            .send({ isbn: isbnAjeno, titulo: 'Libro de otro usuario', fecha_edicion: '2020-01-01', precio: 999, stock: 100 });
+            .send({ isbn: isbnAjeno, titulo: 'Libro de otro usuario', fecha_edicion: '2020-01-01', precio: 999 });
         expectDataResponse(resLibroAjeno, 201);
+
+        const movimientoAjeno = await cargarStockPrincipal(app, tokenOtro, isbnAjeno, 100);
+        expect(movimientoAjeno.status).toBe(201);
 
         const resClienteAjeno = await request(app)
             .post('/cliente/')

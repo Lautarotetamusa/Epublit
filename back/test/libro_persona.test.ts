@@ -22,7 +22,6 @@ const libro: any = {
     titulo: "Test libro_persona",
     fecha_edicion: "2020-02-17",
     precio: 10000,
-    stock: 0
 };
 const personaAutor: any = { nombre: "Autor Test", dni: dni(9990) };
 const personaIlustrador: any = { nombre: "Ilustrador Test", dni: dni(9991) };

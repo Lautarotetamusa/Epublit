@@ -72,7 +72,6 @@ function crearLibro(isbnLibro: string, titulo: string, extra: Record<string, unk
             titulo,
             fecha_edicion: '2020-02-17',
             precio: 10000,
-            stock: 0,
             ...extra
         }),
         t

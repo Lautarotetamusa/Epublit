@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, isNull, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
 import { librosTable } from "./libro.schema";
@@ -6,6 +6,7 @@ import { librosPersonasTable } from "./libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
 import { libroFilterMap } from "./libro.filter";
+import { stockDeLibro } from "./libro.stock";
 import { Libro } from "./libro.validator";
 import { tipoPersona } from "./libroPersona.validator";
 import { NotFound } from "bradb";
@@ -14,10 +15,15 @@ export type LibroRepositoryDeps = {
     db: Database;
 };
 
-// Fila de libro con el título de su colección ya resuelto por el join:
-// `coleccion_titulo` es null si el libro no tiene colección, si la colección
-// no es del mismo usuario o si está borrada.
-export type LibroConColeccion = Libro & { coleccion_titulo: string | null };
+// Fila de libro con el título de su colección y su stock ya resueltos por
+// join: `stock` es la suma de sus cantidades en todos los depósitos y
+// `disponible_principal` la de su depósito principal (ver
+// specs/008-movimientos-deposito). El libro ya no tiene stock propio.
+export type LibroConColeccion = Omit<Libro, "stock"> & {
+    stock: number;
+    disponible_principal: number;
+    coleccion_titulo: string | null;
+};
 
 export function createLibroRepository({ db }: LibroRepositoryDeps) {
     const builder = new ServiceBuilder(db, librosTable, libroFilterMap);
@@ -31,6 +37,8 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         db
             .select({
                 ...getTableColumns(librosTable),
+                stock: stockDeLibro(),
+                disponible_principal: stockDeLibro(true),
                 coleccion_titulo: coleccionesTable.titulo
             })
             .from(librosTable)
@@ -125,16 +133,6 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         };
     };
 
-    // Reemplaza `Libro.updateStock` (MySQL), sin equivalente hoy en Postgres.
-    // Incremento atómico en SQL (`stock = stock + delta`), no lectura-modificación-
-    // escritura en JS, para no perder actualizaciones concurrentes.
-    const moveStock = async (idLibro: number, delta: number, tx?: Tx): Promise<void> => {
-        await (tx ?? db)
-            .update(librosTable)
-            .set({ stock: sql`${librosTable.stock} + ${delta}` })
-            .where(eq(librosTable.id_libro, idLibro));
-    };
-
     return {
         findOne,
         findOneById,
@@ -145,8 +143,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         update,
         remove,
         removeAllPersonas,
-        getPersonas,
-        moveStock
+        getPersonas
     };
 }
 

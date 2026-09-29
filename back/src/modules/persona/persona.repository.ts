@@ -4,6 +4,7 @@ import { Database } from "../../db/client";
 import { personasTable } from "./persona.schema";
 import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { librosTable } from "../libro/libro.schema";
+import { stockDeLibro } from "../libro/libro.stock";
 import { personaFilterMap } from "./persona.filter";
 import { TipoPersona } from "../libro/libroPersona.validator";
 
@@ -92,7 +93,7 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
                 titulo: librosTable.titulo,
                 fecha_edicion: librosTable.fecha_edicion,
                 precio: librosTable.precio,
-                stock: librosTable.stock,
+                stock: stockDeLibro(),
                 user: librosTable.user,
                 tipo: librosPersonasTable.tipo
             })

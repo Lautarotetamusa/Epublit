@@ -4,6 +4,7 @@ import { UserRepository } from "./user.repository";
 import { UserInsert, UserUpdate, User, CreateUserInput } from "./user.validator";
 import { Unauthorized } from "bradb";
 import { ValidationError } from "../../lib/http/errors";
+import { DepositoRepository, NOMBRE_DEPOSITO_PRINCIPAL } from "../deposito";
 import {
     createUserFolder,
     createKey,
@@ -19,17 +20,24 @@ export type UserServiceDeps = {
     db: Database;
     repository: UserRepository;
     afipService: AfipService;
+    // Sólo escritura: crea el depósito principal del usuario en el mismo alta
+    // (ver specs/008-movimientos-deposito).
+    depositoRepository: Pick<DepositoRepository, "insert">;
 };
 
-export function createUserService({ db, repository, afipService }: UserServiceDeps) {
-    // Alta completa del usuario y sus clientes por defecto (MOSTRADOR,
-    // CONSUMIDOR FINAL) en una única transacción Postgres: la transacción
-    // es responsabilidad del service, el repository sólo expone los
-    // inserts crudos.
+export function createUserService({ db, repository, afipService, depositoRepository }: UserServiceDeps) {
+    // Alta completa del usuario, sus clientes por defecto (MOSTRADOR,
+    // CONSUMIDOR FINAL) y su depósito principal en una única transacción
+    // Postgres: la transacción es responsabilidad del service, el repository
+    // sólo expone los inserts crudos.
     const createUser = async (data: UserInsert): Promise<User> => {
         return db.transaction(async (tx) => {
             const user = await repository.insertUser(data, tx);
             await repository.insertDefaultClientes(user.id, tx);
+            await depositoRepository.insert(
+                { nombre: NOMBRE_DEPOSITO_PRINCIPAL, principal: true, user: user.id },
+                tx
+            );
 
             return repository.stripPassword(user);
         });

@@ -6,6 +6,7 @@ import { Storage } from "../../lib/storage";
 import { UnsupportedMediaType, PayloadTooLarge } from "../../lib/http/errors";
 import { Duplicated } from "bradb";
 import { ColeccionRepository } from "../coleccion";
+import { DepositoRepository } from "../deposito";
 
 // Sólo estos dos tipos de imagen (ver plan specs/003-libro-campos-extendidos).
 const ALLOWED_PORTADA_MIME: Record<string, string> = {
@@ -34,10 +35,13 @@ export type LibroServiceDeps = {
     // Sólo lectura: validar que la colección asignada sea del usuario antes de
     // guardarla (ver módulo Colección). El título lo resuelve el join.
     coleccionRepository: Pick<ColeccionRepository, "findOne">;
+    // Sólo lectura: desglose del stock de un libro entre sus depósitos (ver
+    // specs/008-movimientos-deposito). El stock del libro ya no es propio.
+    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro">;
     storage: Storage;
 };
 
-export function createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, storage }: LibroServiceDeps) {
+export function createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, storage }: LibroServiceDeps) {
     // Shape público de un libro: cambia `portada_key` (detalle de storage)
     // por `portada_url` (utilizable directo por el front), igual que
     // `operacion.service.ts` con los comprobantes.
@@ -153,6 +157,19 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         return toPublic(await repository.findOneById(updated.id_libro, userId));
     };
 
+    // Desglose del stock de un libro entre los depósitos del usuario donde
+    // tiene cantidad mayor a 0, más el total (la suma del desglose).
+    const getDepositos = async (isbn: string, userId: number) => {
+        const libro = await repository.findOne(isbn, userId);
+        const depositos = await depositoRepository.getDesgloseLibro(libro.id_libro, userId);
+
+        return {
+            isbn: libro.isbn,
+            total: depositos.reduce((suma, deposito) => suma + deposito.cantidad, 0),
+            depositos
+        };
+    };
+
     return {
         findOne: repository.findOne,
         findOneWithPersonas,
@@ -164,9 +181,9 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         remove,
         uploadPortada,
         getPersonas: repository.getPersonas,
+        getDepositos,
         // Ya viene ordenado del más reciente al más antiguo desde `libroPrecioRepository`.
-        getPrecios: libroPrecioRepository.getByIsbn,
-        moveStock: repository.moveStock
+        getPrecios: libroPrecioRepository.getByIsbn
     };
 }
 

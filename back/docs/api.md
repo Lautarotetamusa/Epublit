@@ -24,6 +24,15 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `POST   /coleccion/:id/portada`
 - `DELETE /coleccion/:id/portada`
 
+## deposito (/deposito)
+
+- `POST   /deposito/`
+- `GET    /deposito/`
+- `GET    /deposito/:id`
+- `PUT    /deposito/:id`
+- `DELETE /deposito/:id`
+- `GET    /deposito/:id/libros`
+
 ## libro (/libro)
 
 - `POST   /libro/`
@@ -31,6 +40,7 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `GET    /libro`
 - `GET    /libro/:isbn`
 - `GET    /libro/:isbn/precio`
+- `GET    /libro/:isbn/depositos`
 - `PUT    /libro/:isbn`
 - `DELETE /libro/:isbn`
 - `POST   /libro/:isbn/portada`
@@ -41,6 +51,12 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 ## liquidacion (/liquidacion)
 
 - `GET    /liquidacion/`
+
+## movimiento (/movimiento)
+
+- `POST   /movimiento/`
+- `GET    /movimiento/`
+- `GET    /movimiento/:id`
 
 ## persona (/persona)
 

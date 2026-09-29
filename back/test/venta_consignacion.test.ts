@@ -68,7 +68,7 @@ describe('VENTA EN CONSIGNACION', () => {
                 const res = await request(app)
                     .post('/libro/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ isbn, titulo: 'Test venta consignacion', fecha_edicion: '2020-01-01', precio: precioHistorico, stock: 0 });
+                    .send({ isbn, titulo: 'Test venta consignacion', fecha_edicion: '2020-01-01', precio: precioHistorico });
 
                 expect(res.status).toBe(201);
             }

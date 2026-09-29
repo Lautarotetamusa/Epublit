@@ -9,6 +9,7 @@ import { ComprobanteService } from "../../lib/comprobantes/comprobante";
 import { Storage } from "../../lib/storage/storage";
 import { LibroService } from "../libro";
 import { ClienteRepository, ClienteStockService } from "../cliente";
+import { DepositoRepository } from "../deposito";
 import { UserRepository } from "../user";
 import { createTransaccionRepository } from "./transaccion.repository";
 import { createVentaRepository } from "./venta.repository";
@@ -29,16 +30,18 @@ export type TransaccionModuleDeps = {
     libroService: LibroService;
     clienteRepository: ClienteRepository;
     clienteStockService: ClienteStockService;
+    // Efecto de stock del depósito principal de las cuatro operaciones.
+    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "moveStock">;
     userRepository: UserRepository;
     afipService: AfipService;
     comprobanteService: ComprobanteService;
     storage: Storage;
 };
 
-export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, userRepository, afipService, comprobanteService, storage }: TransaccionModuleDeps) {
+export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, depositoRepository, userRepository, afipService, comprobanteService, storage }: TransaccionModuleDeps) {
     const repository = createTransaccionRepository({ db });
     const ventaRepository = createVentaRepository({ db });
-    const operacionConfig = createOperacionConfig({ libroService, clienteStockService, afipService, comprobanteService });
+    const operacionConfig = createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService });
     const operacionService = createOperacionService({
         db,
         userRepository,

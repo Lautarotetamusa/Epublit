@@ -17,11 +17,16 @@ export class ValidationError extends BadRequest {}
 export class ApiError extends Error{
     status: number;
     name: string;
+    // Datos extra del rechazo (ej. qué libros no alcanzan) que el contrato
+    // necesita devolver además del mensaje: `handleErrors` los aplana dentro
+    // del error del sobre `{success:false, errors:[...]}`.
+    details?: Record<string, unknown>;
 
-    constructor(status: number, message: string, name: string){
+    constructor(status: number, message: string, name: string, details?: Record<string, unknown>){
         super(message);
         this.status = status;
         this.name = name;
+        this.details = details;
     }
 }
 
@@ -68,6 +73,31 @@ export class Conflict extends ApiError {
     }
 }
 
+// Movimiento rechazado por saldo insuficiente en el depósito origen: además
+// del mensaje lleva el detalle libro por libro (pedido vs disponible).
+export type LibroSinStock = { isbn: string; titulo: string; pedido: number; disponible: number };
+
+export class StockInsuficiente extends ApiError {
+    constructor(message: string, libros: LibroSinStock[]){
+        super(409, message, "StockInsuficiente", { libros });
+    }
+}
+
+// Borrado de un depósito bloqueado porque todavía tiene stock: el rechazo
+// incluye las cifras que lo bloquean, para que la pantalla pueda mostrarlas.
+export class DepositoConStock extends ApiError {
+    constructor(message: string, ejemplares: number, titulos: number){
+        super(409, message, "DepositoConStock", { ejemplares, titulos });
+    }
+}
+
+// Borrado del depósito principal (403, distinguible del 409 de "tiene stock").
+export class DepositoPrincipal extends ApiError {
+    constructor(message: string){
+        super(403, message, "DepositoPrincipal");
+    }
+}
+
 // `next` es obligatorio en la firma aunque no se use: Express reconoce un
 // manejador de errores por su aridad de 4 argumentos, no por el nombre del
 // parámetro; quitarlo haría que el handler dejara de recibir los errores.
@@ -96,7 +126,8 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
         success: false,
         errors: [{
             code: err.name,
-            message: err.message
+            message: err.message,
+            ...err.details
         }]
     });
 

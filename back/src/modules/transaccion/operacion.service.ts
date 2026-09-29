@@ -125,7 +125,7 @@ export function createOperacionService({ db, userRepository, clienteRepository, 
                 );
             }
 
-            await config.moverStock(libros, cliente, tx);
+            await config.moverStock(libros, cliente, user.id, tx);
 
             const transactionConCliente = {
                 ...transaction,

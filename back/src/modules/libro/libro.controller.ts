@@ -54,6 +54,17 @@ export function createLibroController({ service }: LibroControllerDeps) {
         ok(res, libro);
     };
 
+    // Desglose del stock del libro entre depósitos (ver
+    // specs/008-movimientos-deposito): el stock del libro es la suma.
+    const getDepositos: RequestHandler = async (req, res) => {
+        const isbn = String(req.params.isbn);
+        const userId = res.locals.user.id;
+
+        const desglose = await service.getDepositos(isbn, userId);
+
+        ok(res, desglose);
+    };
+
     // Exporta a CSV todo el catálogo del usuario (sin paginar, `findAllOrdered`):
     // sigue siendo un detalle de formato HTTP (armar el archivo y mandarlo por
     // `res.download`), no una regla de negocio, así que se queda acá.
@@ -97,6 +108,7 @@ export function createLibroController({ service }: LibroControllerDeps) {
     return {
         getAll,
         getOne,
+        getDepositos,
         getPrecios,
         create,
         remove,

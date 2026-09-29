@@ -16,7 +16,7 @@ import { transaccionesTable } from '../src/modules/transaccion/transaccion.schem
 import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
 import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
 import { librosTable } from '../src/modules/libro/libro.schema';
-import {expectBadRequest, expectDataResponse, expectCreated, expectNotFound} from './util';
+import {expectBadRequest, expectDataResponse, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
@@ -70,9 +70,13 @@ describe('VENTA', () => {
                 const res = await request(app)
                     .post('/libro/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ isbn: isbnLibro, titulo: 'Test venta', fecha_edicion: '2020-01-01', precio: 1000, stock: 3 });
+                    .send({ isbn: isbnLibro, titulo: 'Test venta', fecha_edicion: '2020-01-01', precio: 1000 });
 
                 expectCreated(res);
+                // El stock ya no se carga en el alta: se carga con un ingreso al
+                // depósito principal (ver specs/008-movimientos-deposito).
+                const movimiento = await cargarStockPrincipal(app, token, isbnLibro, 3);
+                expect(movimiento.status).toBe(201);
                 venta.libros.push({ isbn: isbnLibro, cantidad: 3 });
             }
         });
@@ -147,6 +151,9 @@ describe('VENTA', () => {
                 expect(res.status).toBe(200);
                 expect(res.body.data.type).toEqual('venta');
                 expect(res.body.data.libros).toHaveLength(1);
+                // El detalle informa el stock derivado del libro (lo que quedó
+                // en el depósito principal tras la venta), no la columna legada.
+                expect(res.body.data.libros[0]).toMatchObject({ isbn: isbnsVenta[0], stock: 1 });
             });
 
             test('El libro redujo su stock', async () => {
@@ -244,8 +251,10 @@ describe('VENTA', () => {
                 const res = await request(app)
                     .post('/libro/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ isbn: isbnLibro, titulo: 'Test filtro ventas', fecha_edicion: '2020-01-01', precio: 500, stock: 10 });
+                    .send({ isbn: isbnLibro, titulo: 'Test filtro ventas', fecha_edicion: '2020-01-01', precio: 500 });
                 expectCreated(res);
+                const movimiento = await cargarStockPrincipal(app, token, isbnLibro, 10);
+                expect(movimiento.status).toBe(201);
             }
 
             let res = await request(app)

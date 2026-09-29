@@ -2,6 +2,7 @@ import { OperacionConfig, LibroOperacion, ComprobanteCtx } from "./operacion.typ
 import { LibroService } from "../libro";
 import { ClienteStockService } from "../cliente";
 import { tipoCliente } from "../cliente";
+import { DepositoRepository } from "../deposito";
 import { TipoTransaccion, createTransaccion, tipoTransaccion } from "./transaccion.validator";
 import { createVenta, createVentaConsignado } from "./venta.validator";
 import { LibroCantidad } from "../libro/libro.validator";
@@ -14,6 +15,10 @@ import { Client } from "../cliente/cliente.validator";
 export type OperacionConfigDeps = {
     libroService: LibroService;
     clienteStockService: ClienteStockService;
+    // Efecto de stock de las cuatro operaciones: ahora vive en el depósito
+    // principal del usuario, no en una columna global del libro (ver
+    // specs/008-movimientos-deposito, tarea 11).
+    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "moveStock">;
     afipService: AfipService;
     comprobanteService: ComprobanteService;
 };
@@ -23,11 +28,11 @@ export type OperacionConfigDeps = {
 // importar el composition root (`container.ts`) — así el módulo transaccion no
 // depende del container, que es justo lo que evita el ciclo container.ts ↔
 // modules/transaccion al agregar este módulo al composition root.
-export function createOperacionConfig({ libroService, clienteStockService, afipService, comprobanteService }: OperacionConfigDeps): Record<TipoTransaccion, OperacionConfig> {
+export function createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService }: OperacionConfigDeps): Record<TipoTransaccion, OperacionConfig> {
     // Resuelve stock/precio *actuales* del libro (`librosTable`), compartido por
-    // `venta`/`consignacion` (ver plan, "Resolución de libros por tipo de
-    // operación"): ambas usan la misma fuente, sólo cambia qué hacen con el
-    // resultado en `moverStock`.
+    // `venta`/`consignacion`: el `stock` disponible de una operación que
+    // descuenta es el del depósito principal (ver
+    // specs/008-movimientos-deposito, tarea 11), no el total del libro.
     const resolverLibrosDeLibro = async (libros: LibroCantidad[], userId: number): Promise<LibroOperacion[]> => {
         return Promise.all(
             libros.map(async (item) => {
@@ -38,7 +43,7 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
                     titulo: libro.titulo,
                     cantidad: item.cantidad,
                     precio: libro.precio,
-                    stock: libro.stock ?? 0
+                    stock: libro.disponible_principal
                 };
             })
         );
@@ -76,10 +81,21 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
     };
 
     // Compartido por `consignacion`/`ventaConsignacion`/`devolucion#moverStock`:
-    // mueve el stock del libro en lo del cliente (no el general, ver
-    // `librosTable.stock` en `venta`/`consignacion`).
+    // mueve el stock del libro en lo del cliente (no el del depósito principal,
+    // ver `moverStockPrincipal`).
     const moverStockCliente = (cliente: Client, libro: LibroOperacion, delta: number, tx: Tx): Promise<void> =>
         clienteStockService.moveStock(cliente.id, { id_libro: libro.id_libro, isbn: libro.isbn, precio: libro.precio }, delta, tx);
+
+    // Efecto de `venta`/`consignacion` (resta) y `devolucion` (suma) sobre el
+    // depósito principal del usuario. `ventaConsignacion` no lo usa: opera
+    // sólo sobre el stock del cliente.
+    const moverStockPrincipal = async (libros: LibroOperacion[], userId: number, signo: number, tx: Tx): Promise<void> => {
+        const principal = await depositoRepository.findPrincipal(userId);
+
+        for (const libro of libros) {
+            await depositoRepository.moveStock(principal.id, libro.id_libro, userId, signo * libro.cantidad, tx);
+        }
+    };
 
     // Compartido por `venta`/`ventaConsignacion` (mismo `if` que hoy en
     // `venta.controller.ts#vender`/`ventaConsignado`): factura sólo si el
@@ -114,10 +130,8 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
         // `VentaFirme.clientValidation` (MySQL) no la sobreescribía: siempre true.
         clientValidation: () => true,
         resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId),
-        moverStock: async (libros, _cliente, tx) => {
-            for (const libro of libros) {
-                await libroService.moveStock(libro.id_libro, -libro.cantidad, tx);
-            }
+        moverStock: async (libros, _cliente, userId, tx) => {
+            await moverStockPrincipal(libros, userId, -1, tx);
         },
         generarComprobante: (ctx) => facturarSiCorresponde(ctx, "facturas")
     };
@@ -129,9 +143,9 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
         bodyParser: createTransaccion,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,
         resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId),
-        moverStock: async (libros, cliente, tx) => {
+        moverStock: async (libros, cliente, userId, tx) => {
+            await moverStockPrincipal(libros, userId, -1, tx);
             for (const libro of libros) {
-                await libroService.moveStock(libro.id_libro, -libro.cantidad, tx);
                 await moverStockCliente(cliente, libro, libro.cantidad, tx);
             }
         },
@@ -171,8 +185,8 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
                 })
             );
         },
-        // No toca `librosTable.stock` (spec: "no el stock general del libro").
-        moverStock: async (libros, cliente, tx) => {
+        // No toca el depósito principal (spec: "no el stock general del libro").
+        moverStock: async (libros, cliente, _userId, tx) => {
             for (const libro of libros) {
                 await moverStockCliente(cliente, libro, -libro.cantidad, tx);
             }
@@ -200,9 +214,9 @@ export function createOperacionConfig({ libroService, clienteStockService, afipS
                 })
             );
         },
-        moverStock: async (libros, cliente, tx) => {
+        moverStock: async (libros, cliente, userId, tx) => {
+            await moverStockPrincipal(libros, userId, 1, tx);
             for (const libro of libros) {
-                await libroService.moveStock(libro.id_libro, libro.cantidad, tx);
                 await moverStockCliente(cliente, libro, -libro.cantidad, tx);
             }
         },

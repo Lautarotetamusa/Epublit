@@ -63,6 +63,6 @@ export type OperacionConfig = {
         userId: number,
         args?: { fecha?: Date }
     ) => Promise<LibroOperacion[]>;
-    moverStock: (libros: LibroOperacion[], cliente: Client, tx: Tx) => Promise<void>;
+    moverStock: (libros: LibroOperacion[], cliente: Client, userId: number, tx: Tx) => Promise<void>;
     generarComprobante: ((ctx: ComprobanteCtx, tx: Tx) => Promise<void>) | null;
 };

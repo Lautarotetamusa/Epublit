@@ -8,6 +8,7 @@ import { Database } from "../../db/client";
 import { Storage } from "../../lib/storage";
 import { PersonaRepository } from "../persona";
 import { ColeccionRepository } from "../coleccion";
+import { DepositoRepository } from "../deposito";
 import { createLibroPrecioRepository } from "./libroPrecio.repository";
 import { createLibroRepository } from "./libro.repository";
 import { createLibroPersonaRepository } from "./libroPersona.repository";
@@ -30,15 +31,18 @@ export type LibroModuleDeps = {
     // create/update; el título lo resuelve el LEFT JOIN de libro.repository
     // (ver specs/007-colecciones, tareas 10 y 11).
     coleccionRepository: Pick<ColeccionRepository, "findOne">;
+    // Sólo lectura del stock por depósito (desglose de un libro), ver
+    // specs/008-movimientos-deposito.
+    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro">;
     storage: Storage;
 };
 
-export function createLibroModule({ db, personaRepository, coleccionRepository, storage }: LibroModuleDeps) {
+export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, storage }: LibroModuleDeps) {
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
 
-    const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, storage });
+    const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, storage });
     const personaService = createLibroPersonaService({
         db,
         repository: libroPersonaRepository,

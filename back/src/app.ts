@@ -32,6 +32,8 @@ export function createApp(container: Container): Express {
 
     app.use('/persona', auth, container.persona.router);
     app.use('/coleccion', auth, container.coleccion.router);
+    app.use('/deposito', auth, container.deposito.router);
+    app.use('/movimiento', auth, container.movimiento.router);
     app.use('/libro', auth, container.libro.router);
     app.use('/cliente', auth, container.cliente.router);
     app.use('/liquidacion', auth, container.liquidacion.router);

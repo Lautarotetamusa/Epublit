@@ -1,5 +1,6 @@
 import {expect} from 'vitest';
-import { Response } from 'supertest';
+import request, { Response } from 'supertest';
+import type { Express } from 'express';
 
 export function expectNotFound(res: Response){
     expectErrorResponse(res, 404);
@@ -55,4 +56,28 @@ export function expectDataResponse(res: Response, status: number){
 
 export function delay(time: number) {
     return new Promise(resolve => setTimeout(resolve, time));
-} 
+}
+
+// El stock ya no se setea en el alta del libro: se carga con un movimiento de
+// ingreso (`exterior` → depósito principal) para los tests que necesitan
+// saldo. Devuelve la respuesta del POST por si el test quiere inspeccionarla.
+export function cargarStockPrincipal(app: Express, token: string, isbnLibro: string, cantidad: number) {
+    const auth = { Authorization: `Bearer ${token}` };
+
+    return request(app)
+        .get('/deposito/')
+        .set(auth)
+        .then((depositos) => {
+            const principal = depositos.body.data.find((d: { principal: boolean }) => d.principal);
+
+            return request(app)
+                .post('/movimiento/')
+                .set(auth)
+                .send({
+                    origen: { tipo: 'exterior' },
+                    destino: { tipo: 'deposito', id: principal.id },
+                    libros: [{ isbn: isbnLibro, cantidad }]
+                });
+        });
+}
+ 

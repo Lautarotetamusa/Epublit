@@ -13,7 +13,7 @@ import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { env } from '../src/env';
-import {expectBadRequest, expectCreated, expectNotFound} from './util';
+import {expectBadRequest, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 
 const afipService = createMockAfipService({
@@ -66,9 +66,13 @@ describe('CONSIGNACION', () => {
                 const res = await request(app)
                     .post('/libro/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ isbn, titulo: 'Test consignacion', fecha_edicion: '2020-01-01', precio: 500, stock: 3 });
+                    .send({ isbn, titulo: 'Test consignacion', fecha_edicion: '2020-01-01', precio: 500 });
 
                 expectCreated(res);
+                // El stock del que sale la consignación vive en el depósito
+                // principal (ver specs/008-movimientos-deposito).
+                const movimiento = await cargarStockPrincipal(app, token, isbn, 3);
+                expect(movimiento.status).toBe(201);
                 consignacion.libros.push({ isbn, cantidad: 3 });
             }
         });

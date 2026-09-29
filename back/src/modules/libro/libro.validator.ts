@@ -34,8 +34,13 @@ const insert = createInsertSchema(librosTable, {
     deletedAt: true,
     // `portada_key` es interno (key de storage): se setea sólo desde
     // `service.uploadPortada`, nunca desde el body de create/update.
-    portada_key: true
-});
+    portada_key: true,
+    // El stock ya no es un dato editable del libro: vive sólo como cantidad
+    // por depósito y se mueve con movimientos (ver specs/008-movimientos-deposito).
+    stock: true
+    // `.strict()` para que mandar `stock` (u otro campo desconocido) sea 400,
+    // no un campo ignorado en silencio.
+}).strict();
 const update = insert.partial();
 const filter = z
     .object({

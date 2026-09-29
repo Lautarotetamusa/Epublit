@@ -5,6 +5,7 @@ import { createLocalStorage } from "../src/lib/storage";
 import { env } from "../src/env";
 import { createPersonaModule } from "../src/modules/persona";
 import { createColeccionModule } from "../src/modules/coleccion";
+import { createDepositoModule } from "../src/modules/deposito";
 import { createLibroModule } from "../src/modules/libro";
 import { createUserModule } from "../src/modules/user";
 import { createClienteModule } from "../src/modules/cliente";
@@ -33,16 +34,18 @@ async function main(): Promise<void> {
     const comprobanteService = createMockComprobanteService();
     const storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST });
 
-    const user = createUserModule({ db, afipService });
+    const deposito = createDepositoModule({ db });
+    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, storage });
     const cliente = createClienteModule({ db, afipService });
     const transaccion = createTransaccionModule({
         db,
         libroService: libro.service,
         clienteRepository: cliente.repository,
         clienteStockService: cliente.stockService,
+        depositoRepository: deposito.repository,
         userRepository: user.repository,
         afipService,
         comprobanteService,
@@ -53,7 +56,7 @@ async function main(): Promise<void> {
     await seedColecciones(users, coleccion.service);
     const personas = await seedPersonas(users, persona.service);
     const clientes = await seedClientes(users);
-    const libros = await seedLibros(users, libro.service);
+    const libros = await seedLibros(users, libro.service, deposito.repository);
 
     await seedLibrosPersonas(users, libros, personas, libro.personaService);
     await seedLibroCliente(users, libros, clientes, cliente.stockService);
@@ -61,7 +64,7 @@ async function main(): Promise<void> {
         users,
         libros,
         clientes,
-        libro.service,
+        deposito.repository,
         cliente.stockService,
         transaccion.repository,
         transaccion.ventaRepository
