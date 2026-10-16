@@ -37,6 +37,7 @@ export function createApp(container: Container): Express {
     app.use('/cliente', auth, container.cliente.router);
     app.use('/liquidacion', auth, container.liquidacion.router);
     app.use('/liquidaciones', auth, container.liquidaciones.router);
+    app.use('/metricas', auth, container.metricas.router);
 
     app.use('/anticipos', auth, container.anticipo.router);
 

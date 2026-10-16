@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, timestamp, real, primaryKey, foreignKey, pgEnum, check } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, timestamp, real, boolean, primaryKey, foreignKey, pgEnum, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { depositosTable } from "../deposito/deposito.schema";
@@ -36,6 +36,11 @@ export const movimientosTable = pgTable(
         // Key de storage del archivo emitido (factura/remito/comprobante) o
         // `null` en los movimientos manuales.
         file_path: varchar("file_path", { length: 80 }),
+        // Marca los ingresos que reconstruyó la migración de stock preexistente
+        // (ver specs/008-movimientos-deposito, tarea 2): no son un lanzamiento
+        // ni una reimpresión, así que las métricas los excluyen de «ejemplares
+        // nuevos». Los ingresos reales (POST /movimiento) quedan en `false`.
+        es_migracion: boolean("es_migracion").notNull().default(false),
         user: integer("user")
             .notNull()
             .references(() => usersTable.id)

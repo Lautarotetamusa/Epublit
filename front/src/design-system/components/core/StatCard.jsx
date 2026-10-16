@@ -1,13 +1,18 @@
 import React from 'react';
 import { Icon } from './Icon.jsx';
 
-export function StatCard({ label, value, unit, delta, deltaTone='success', icon, style, ...rest }) {
+export function StatCard({ label, value, unit, delta, deltaTone='success', icon, variant='card', style, ...rest }) {
   const dc = deltaTone === 'error' ? 'var(--text-error)' : deltaTone === 'muted' ? 'var(--text-muted)' : 'var(--text-success)';
+  // `bare` suelta el marco de tarjeta: la cifra se usa como celda adentro de un
+  // contenedor que ya es una Card (una tarjeta dentro de otra tarjeta no).
+  const bare = variant === 'bare';
   return (
     <div {...rest} style={{
-      background:'var(--surface-card)', border:'1px solid var(--border-subtle)',
-      borderRadius:'var(--radius-md)', boxShadow:'var(--shadow-xs)',
-      padding:'var(--space-4) var(--space-5)', ...style,
+      background: bare ? 'transparent' : 'var(--surface-card)',
+      border: bare ? 'none' : '1px solid var(--border-subtle)',
+      borderRadius: bare ? 0 : 'var(--radius-md)',
+      boxShadow: bare ? 'none' : 'var(--shadow-xs)',
+      padding: bare ? 0 : 'var(--space-4) var(--space-5)', ...style,
     }}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'var(--space-3)'}}>
         <span style={{fontSize:'var(--text-2xs)',fontWeight:'var(--weight-semibold)',letterSpacing:'var(--tracking-caps)',textTransform:'uppercase',color:'var(--text-muted)'}}>{label}</span>

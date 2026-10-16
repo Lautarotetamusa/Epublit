@@ -26,6 +26,7 @@ import { seedLibroCliente } from "./libroCliente.seeder";
 import { seedOperaciones } from "./operaciones.seeder";
 import { seedAnticipos } from "./anticipos.seeder";
 import { seedLiquidaciones } from "./liquidaciones.seeder";
+import { seedMetricas } from "./metricas.seeder";
 
 // Orden fijo por dependencia de FKs: cada seeder recibe lo que ya generaron
 // los anteriores (DI por parámetros, no un estado global compartido).
@@ -86,6 +87,16 @@ async function main(): Promise<void> {
 
     await seedAnticipos(users, libros, deposito.repository, movimiento.repository, anticipo.service);
     await seedLiquidaciones(users, liquidaciones.service);
+
+    // Último: reparte ventas e ingresos de los últimos meses para el panel de
+    // métricas (ver specs/014) sin tocar las ventas de octubre que usan
+    // Liquidaciones ni los anticipos ya generados.
+    await seedMetricas(users, libros, clientes, {
+        depositoRepository: deposito.repository,
+        clienteStockService: cliente.stockService,
+        movimientoRepository: movimiento.repository,
+        ventaRepository: transaccion.ventaRepository
+    });
 
     console.log(`Seed listo: ${users.length} usuarios, password de todos: "${PASSWORD_SEED}"`);
     for (const u of users) {

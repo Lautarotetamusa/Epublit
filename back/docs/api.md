@@ -72,6 +72,14 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `PUT    /medio_pago/:id`
 - `DELETE /medio_pago/:id`
 
+## metricas (/metricas)
+
+- `GET    /metricas/meses`
+- `GET    /metricas/resumen`
+- `GET    /metricas/cortes`
+- `GET    /metricas/serie`
+- `GET    /metricas/medios-pago`
+
 ## movimiento (/movimiento)
 
 - `POST   /movimiento/`

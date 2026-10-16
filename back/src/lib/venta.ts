@@ -7,3 +7,9 @@
 export function calcularNeto(total: number, comision: number): number {
     return parseFloat((total - (comision / 100) * total).toFixed(2));
 }
+
+// Importes monetarios: dos decimales, para que las sumas de los cortes cierren
+// con el total sin arrastrar error de punto flotante.
+export function redondear2(valor: number): number {
+    return parseFloat(valor.toFixed(2));
+}

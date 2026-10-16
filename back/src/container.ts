@@ -17,6 +17,7 @@ import { createAnticipoModule } from "./modules/anticipo";
 import { createTransaccionModule } from "./modules/transaccion";
 import { createLiquidacionesModule } from "./modules/liquidaciones";
 import { createLiquidacionModule } from "./modules/liquidacion";
+import { createMetricasModule } from "./modules/metricas";
 
 export type CreateContainerDeps = {
     afipService?: AfipService;
@@ -64,8 +65,9 @@ export function createContainer({
 
     const liquidaciones = createLiquidacionesModule({ db });
     const liquidacion = createLiquidacionModule({ liquidacionesService: liquidaciones.service });
+    const metricas = createMetricasModule({ db });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol };
+    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, metricas };
 }
 
 export type Container = ReturnType<typeof createContainer>;
