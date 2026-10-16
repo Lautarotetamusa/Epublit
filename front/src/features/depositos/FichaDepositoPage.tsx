@@ -88,7 +88,7 @@ export function FichaDepositoPage() {
                         variant="secondary"
                         size="sm"
                         iconStart="arrow-right"
-                        onClick={() => navigate(`/movimientos?tipo=transferencia&origen=${deposito.id}`)}
+                        onClick={() => navigate(`/movimientos/nuevo?tipo=transferencia&origen=${deposito.id}`)}
                     >
                         Registrar movimiento
                     </Button>
@@ -127,7 +127,7 @@ export function FichaDepositoPage() {
                             action={
                                 <Button
                                     iconStart="plus"
-                                    onClick={() => navigate(`/movimientos?tipo=ingreso&destino=${deposito.id}`)}
+                                    onClick={() => navigate(`/movimientos/nuevo?tipo=ingreso&destino=${deposito.id}`)}
                                 >
                                     Registrar ingreso
                                 </Button>
@@ -160,7 +160,7 @@ export function FichaDepositoPage() {
                         <Button
                             variant="secondary"
                             iconStart="arrow-right"
-                            onClick={() => navigate(`/movimientos?tipo=transferencia&origen=${deposito.id}`)}
+                            onClick={() => navigate(`/movimientos/nuevo?tipo=transferencia&origen=${deposito.id}`)}
                         >
                             Mover este stock
                         </Button>

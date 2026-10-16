@@ -1,32 +1,16 @@
-import {z} from 'zod';
-import { createInsertSchema } from 'drizzle-zod';
-import { librosPersonasTable } from './libroPersona.schema'
+import { z } from 'zod';
 
-export const tipoPersona = {
-    autor: "autor",
-    ilustrador: "ilustrador"
-}  as const;
-export type TipoPersona = keyof typeof tipoPersona;
-const tipoPersonaKeys = Object.keys(tipoPersona) as [TipoPersona];
-
-export const libroPersonaSchema = z.object({
-    porcentaje: z.number().min(0).max(100),
-    tipo: z.enum(tipoPersonaKeys),
-    isbn: z.string(),
+// `rol` es el id del rol de la cuenta con el que la persona trabaja en el
+// libro (ver specs/011-roles): reemplaza al enum fijo `autor | ilustrador` que
+// identificaba la relación. `isbn`/`id_libro` se resuelven server-side (del
+// isbn de la URL), no vienen del body.
+const body = z.object({
     id_persona: z.number(),
-    id_libro: z.number()
-});
-
-// `isbn`/`id_libro` se resuelven server-side (del isbn de la URL), no vienen
-// del body. `porcentaje` se sobreescribe como requerido: la columna tiene
-// `default(0)` en `librosPersonasTable`, así que `createInsertSchema` lo
-// marcaría opcional, y sin esto "no enviado" y "enviado como 0" serían
-// indistinguibles (el bug que este módulo corrige, ver plan).
-const body = createInsertSchema(librosPersonasTable, {
+    rol: z.number(),
     porcentaje: z.number().min(0).max(100)
-}).omit({ isbn: true, id_libro: true });
+});
 const bodyBatch = body.or(z.array(body).min(1));
-const removeBody = body.pick({ id_persona: true, tipo: true });
+const removeBody = body.pick({ id_persona: true, rol: true });
 const removeBatch = removeBody.or(z.array(removeBody).min(1));
 
 export type LibroPersonaBody = z.infer<typeof body>;

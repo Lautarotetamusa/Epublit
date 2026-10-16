@@ -36,6 +36,34 @@
       "when": 1790693600299,
       "tag": "0004_empty_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790084098568,
+      "tag": "0005_ledger_unificado",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792085956357,
+      "tag": "0006_cliente_en_venta",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792090492127,
+      "tag": "0007_confused_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792095359197,
+      "tag": "0008_roles",
+      "breakpoints": true
     }
   ]
 }

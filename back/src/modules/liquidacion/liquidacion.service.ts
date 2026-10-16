@@ -16,7 +16,7 @@ type LibroLiquidacion = {
 type DetallePersona = {
     id_libro: number;
     titulo: string;
-    tipo: "autor" | "ilustrador";
+    rol: { id: number; nombre: string };
     porcentaje: number;
     importe: number;
 };
@@ -42,7 +42,7 @@ const round2 = (n: number): number => parseFloat(n.toFixed(2));
 // `desde`/`hasta` (YYYY-MM-DD) son inclusivos: el rango de fecha/hora que se
 // consulta va desde el inicio del día `desde` hasta el final del día
 // `hasta`, ambos en UTC (mismo huso con el que se guarda `fecha` en
-// `transaccionesTable`, que usa `defaultNow()`).
+// `movimientos`, que usa `defaultNow()`).
 const inicioDelDia = (fecha: string): Date => new Date(`${fecha}T00:00:00.000Z`);
 const finDelDia = (fecha: string): Date => new Date(`${fecha}T23:59:59.999Z`);
 
@@ -103,7 +103,7 @@ const agruparPersonas = (
         persona.detalle.push({
             id_libro: libro.id_libro,
             titulo: libro.titulo,
-            tipo: fila.tipo,
+            rol: { id: fila.rol_id, nombre: fila.rol_nombre },
             porcentaje,
             importe
         });

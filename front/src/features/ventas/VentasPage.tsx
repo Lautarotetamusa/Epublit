@@ -37,7 +37,7 @@ export function VentasPage() {
                 mediosPago={mediosPago}
                 onClienteChange={filtros.setClienteId}
                 onTipoChange={filtros.setTipo}
-                onMedioPagoChange={filtros.setMedioPago}
+                onMedioPagoChange={filtros.setMedioPagoId}
                 onDesdeChange={filtros.setDesde}
                 onHastaChange={filtros.setHasta}
                 onLimpiar={filtros.limpiar}
@@ -48,7 +48,7 @@ export function VentasPage() {
                     { header: "Tipo", cell: (row: Venta) => (row.type === "venta" ? "En firme" : "Sobre consignado") },
                     { header: "Cliente", key: "nombre_cliente" },
                     { header: "CUIT", key: "cuit", mono: true },
-                    { header: "Medio de pago", key: "medio_pago" },
+                    { header: "Medio de pago", cell: (row: Venta) => row.medio_pago.nombre },
                     { header: "Fecha", cell: (row: Venta) => new Date(row.fecha).toLocaleDateString("es-AR") },
                     { header: "Total", align: "right", cell: (row: Venta) => row.total.toLocaleString("es-AR") }
                 ]}

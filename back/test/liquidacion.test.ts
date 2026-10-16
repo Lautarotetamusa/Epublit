@@ -12,10 +12,8 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
-import { transaccionesTable } from '../src/modules/transaccion/transaccion.schema';
-import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
-import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
-import { expectBadRequest, expectDataResponse, delay, cargarStockPrincipal } from './util';
+import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
+import { expectBadRequest, expectDataResponse, delay, cargarStockPrincipal, getMedioPagoId, getRolId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn, dni, cuit } from '../seeders/data';
 
@@ -44,6 +42,9 @@ const fueraDeRangoDespues = new Date(hoy.getTime() + 60 * 24 * 60 * 60 * 1000);
 
 let token: string;
 let userId: number;
+let efectivoId: number;
+let rolAutor: number;
+let rolIlustrador: number;
 let cliente: { id: number };
 let libroA: any, libroB: any, libroC: any, libroD: any, libroE: any, libroF: any;
 let personaP1: any, personaP2: any, personaP3: any;
@@ -52,11 +53,11 @@ afterAll(() => {
     db.$client.end();
 });
 
-async function moverFechaTransaccion(idTransaccion: number, fecha: Date) {
+async function moverFechaTransaccion(idMovimiento: number, fecha: Date) {
     await db
-        .update(transaccionesTable)
+        .update(movimientosTable)
         .set({ fecha })
-        .where(and(eq(transaccionesTable.id, idTransaccion), eq(transaccionesTable.user, userId)));
+        .where(and(eq(movimientosTable.id, idMovimiento), eq(movimientosTable.user, userId)));
 }
 
 beforeAll(async () => {
@@ -64,6 +65,9 @@ beforeAll(async () => {
         .post('/user/login')
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
+    efectivoId = await getMedioPagoId(app, token, 'efectivo');
+    rolAutor = await getRolId(app, token, 'autor');
+    rolIlustrador = await getRolId(app, token, 'ilustrador');
 
     const crearLibro = async (isbnLibro: string, precio: number, t = token) => {
         const r = await request(app)
@@ -105,13 +109,13 @@ beforeAll(async () => {
     // ilustrador de isbnD (30%). P2: ilustrador de isbnA (20%). P3: autor de
     // isbnC con porcentaje 0.
     await request(app).post(`/libro/${isbnA}/personas`).set('Authorization', `Bearer ${token}`)
-        .send({ id_persona: personaP1.id, tipo: 'autor', porcentaje: 10 });
+        .send({ id_persona: personaP1.id, rol: rolAutor, porcentaje: 10 });
     await request(app).post(`/libro/${isbnA}/personas`).set('Authorization', `Bearer ${token}`)
-        .send({ id_persona: personaP2.id, tipo: 'ilustrador', porcentaje: 20 });
+        .send({ id_persona: personaP2.id, rol: rolIlustrador, porcentaje: 20 });
     await request(app).post(`/libro/${isbnD}/personas`).set('Authorization', `Bearer ${token}`)
-        .send({ id_persona: personaP1.id, tipo: 'ilustrador', porcentaje: 30 });
+        .send({ id_persona: personaP1.id, rol: rolIlustrador, porcentaje: 30 });
     await request(app).post(`/libro/${isbnC}/personas`).set('Authorization', `Bearer ${token}`)
-        .send({ id_persona: personaP3.id, tipo: 'autor', porcentaje: 0 });
+        .send({ id_persona: personaP3.id, rol: rolAutor, porcentaje: 0 });
 
     const resCliente = await request(app)
         .post('/cliente/')
@@ -190,7 +194,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 cliente: cliente.id,
-                medio_pago: 'efectivo',
+                medio_pago: efectivoId,
                 tipo_cbte: 11,
                 libros: [{ isbn: isbnA, cantidad: 5 }, { isbn: isbnD, cantidad: 2 }]
             });
@@ -211,7 +215,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
         const putPorcentaje = await request(app)
             .put(`/libro/${isbnA}/personas`)
             .set('Authorization', `Bearer ${token}`)
-            .send({ id_persona: personaP1.id, tipo: 'autor', porcentaje: 25 });
+            .send({ id_persona: personaP1.id, rol: rolAutor, porcentaje: 25 });
         expect(putPorcentaje.status).toBe(201);
 
         // Venta 2: isbnA a precio catálogo actualizado (200).
@@ -220,7 +224,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 cliente: cliente.id,
-                medio_pago: 'efectivo',
+                medio_pago: efectivoId,
                 tipo_cbte: 11,
                 libros: [{ isbn: isbnA, cantidad: 4 }]
             });
@@ -232,27 +236,19 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 cliente: cliente.id,
-                medio_pago: 'efectivo',
+                medio_pago: efectivoId,
                 tipo_cbte: 11,
                 libros: [{ isbn: isbnF, cantidad: 3 }]
             });
         expectDataResponse(ventaF, 201);
 
-        // isbnC: precarga manual de libro_cliente/precio_libro_cliente (mismo
-        // patrón que test/venta_consignacion.test.ts) para poder vender en
-        // consignación con un precio histórico conocido.
-        await db.insert(libroClienteTable).values({
-            id_cliente: cliente.id,
-            id_libro: libroC.id_libro,
-            isbn: isbnC,
-            stock: 10,
-            precio: 300
-        });
-        await db.insert(precioLibroClienteTable).values({
-            id_cliente: cliente.id,
-            id_libro: libroC.id_libro,
-            precio: 300
-        });
+        // isbnC: la consignación mueve el stock al depósito del cliente y
+        // congela el precio, para poder vender en consignación.
+        const consignacionC = await request(app)
+            .post('/consignacion/')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ cliente: cliente.id, libros: [{ isbn: isbnC, cantidad: 10 }] });
+        expectDataResponse(consignacionC, 201);
         await delay(1200);
 
         const ventaConsignacion = await request(app)
@@ -262,7 +258,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
                 cliente: cliente.id,
                 libros: [{ isbn: isbnC, cantidad: 3 }],
                 fecha_venta: new Date().toISOString(),
-                medio_pago: 'efectivo',
+                medio_pago: efectivoId,
                 tipo_cbte: 11
             });
         expectDataResponse(ventaConsignacion, 201);
@@ -286,7 +282,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
         const ventaAntes = await request(app)
             .post('/venta/')
             .set('Authorization', `Bearer ${token}`)
-            .send({ cliente: cliente.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [{ isbn: isbnA, cantidad: 1 }] });
+            .send({ cliente: cliente.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnA, cantidad: 1 }] });
         expectDataResponse(ventaAntes, 201);
         await moverFechaTransaccion(ventaAntes.body.data.id, fueraDeRangoAntes);
 
@@ -294,7 +290,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
         const ventaDespues = await request(app)
             .post('/venta/')
             .set('Authorization', `Bearer ${token}`)
-            .send({ cliente: cliente.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [{ isbn: isbnA, cantidad: 1 }] });
+            .send({ cliente: cliente.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnA, cantidad: 1 }] });
         expectDataResponse(ventaDespues, 201);
         await moverFechaTransaccion(ventaDespues.body.data.id, fueraDeRangoDespues);
     });
@@ -361,12 +357,12 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
         expect(p1.detalle).toHaveLength(2);
 
         const detalleA = p1.detalle.find((d: any) => d.id_libro === libroA.id_libro);
-        expect(detalleA.tipo).toEqual('autor');
+        expect(detalleA.rol.nombre).toEqual('autor');
         expect(detalleA.porcentaje).toEqual(25);
         expect(detalleA.importe).toEqual(325); // 1300 * 25%
 
         const detalleD = p1.detalle.find((d: any) => d.id_libro === libroD.id_libro);
-        expect(detalleD.tipo).toEqual('ilustrador');
+        expect(detalleD.rol.nombre).toEqual('ilustrador');
         expect(detalleD.porcentaje).toEqual(30);
         expect(detalleD.importe).toEqual(30); // 100 * 30%
 
@@ -376,7 +372,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
         const p2 = porId(personaP2.id);
         expect(p2).toBeDefined();
         expect(p2.detalle).toHaveLength(1);
-        expect(p2.detalle[0].tipo).toEqual('ilustrador');
+        expect(p2.detalle[0].rol.nombre).toEqual('ilustrador');
         expect(p2.detalle[0].importe).toEqual(260); // 1300 * 20%
         expect(p2.total_a_pagar).toEqual(260);
 
@@ -397,6 +393,55 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
     });
 });
 
+describe('GET /liquidacion: rol de la cuenta por línea de detalle', () => {
+    test('incluye un rol creado por el usuario, refleja el renombre y sobrevive la baja del rol', async () => {
+        const altaRol = await request(app).post('/rol').set('Authorization', `Bearer ${token}`).send({ nombre: 'corrector-liq' });
+        expectDataResponse(altaRol, 201);
+        const rolId = altaRol.body.data.id;
+
+        const altaPersona = await request(app)
+            .post('/persona')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ nombre: 'Corrector liquidacion', dni: dni(9973) });
+        expectDataResponse(altaPersona, 201);
+        const personaId = altaPersona.body.data.id;
+
+        const asignacion = await request(app)
+            .post(`/libro/${isbnA}/personas`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ id_persona: personaId, rol: rolId, porcentaje: 5 });
+        expectDataResponse(asignacion, 201);
+
+        const getLiquidacion = async () =>
+            (await request(app).get(`/liquidacion?desde=${desde}&hasta=${hasta}`).set('Authorization', `Bearer ${token}`)).body.data;
+        const personaDe = (data: any) => data.personas.find((p: any) => p.id_persona === personaId);
+
+        const primera = personaDe(await getLiquidacion());
+        expect(primera).toBeDefined();
+        expect(primera.detalle).toHaveLength(1);
+        expect(primera.detalle[0].rol).toMatchObject({ id: rolId, nombre: 'corrector-liq' });
+        expect(primera.detalle[0].importe).toEqual(65); // 1300 * 5%
+
+        // Renombrar el rol cambia el nombre que muestra la liquidación.
+        const renombre = await request(app)
+            .put(`/rol/${rolId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ nombre: 'correctora-liq' });
+        expectDataResponse(renombre, 200);
+        const segunda = personaDe(await getLiquidacion());
+        expect(segunda.detalle[0].rol).toMatchObject({ id: rolId, nombre: 'correctora-liq' });
+
+        // Una persona dada de baja deja de contar para el bloqueo de la baja del
+        // rol: el rol se da de baja, pero la línea histórica sigue mostrando su
+        // nombre.
+        expect((await request(app).delete(`/persona/${personaId}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+        expect((await request(app).delete(`/rol/${rolId}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+
+        const tercera = personaDe(await getLiquidacion());
+        expect(tercera.detalle[0].rol).toMatchObject({ id: rolId, nombre: 'correctora-liq' });
+    });
+});
+
 describe('GET /liquidacion: aislamiento por usuario', () => {
     test('la venta de otro usuario en el mismo rango no aparece en la liquidación', async () => {
         const resAntes = await request(app)
@@ -408,6 +453,7 @@ describe('GET /liquidacion: aislamiento por usuario', () => {
             .post('/user/login')
             .send({ username: 'editorial_norte', password: PASSWORD_SEED });
         const tokenOtro = resLoginOtro.body.token;
+        const efectivoIdOtro = await getMedioPagoId(app, tokenOtro, 'efectivo');
 
         const isbnAjeno = isbn(9970); // mismo string que isbnA, pero bajo otro usuario: isbn es único por usuario.
         const resLibroAjeno = await request(app)
@@ -430,7 +476,7 @@ describe('GET /liquidacion: aislamiento por usuario', () => {
             .set('Authorization', `Bearer ${tokenOtro}`)
             .send({
                 cliente: resClienteAjeno.body.data.id,
-                medio_pago: 'efectivo',
+                medio_pago: efectivoIdOtro,
                 tipo_cbte: 11,
                 libros: [{ isbn: isbnAjeno, cantidad: 10 }]
             });

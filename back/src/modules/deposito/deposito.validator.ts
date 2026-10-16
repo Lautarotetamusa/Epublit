@@ -11,7 +11,7 @@ const select = createSelectSchema(depositosTable);
 // `.strict()`: el flag `principal` es de sólo lectura y el body no puede
 // traerlo (tampoco `id`/`user`/`deletedAt`, que son internos).
 const body = createInsertSchema(depositosTable, { nombre })
-    .omit({ principal: true, user: true, deletedAt: true })
+    .omit({ principal: true, user: true, deletedAt: true, id_cliente: true })
     .strict();
 // Alta y edición comparten forma: en ambas el nombre es obligatorio y la
 // descripción opcional (`null` explícito la pisa).

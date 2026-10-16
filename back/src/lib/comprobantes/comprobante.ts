@@ -4,9 +4,9 @@ import { VentaRow } from '../../modules/transaccion/venta.validator';
 import { User } from '../../modules/user/user.validator';
 import { Client as Cliente } from '../../modules/cliente/cliente.validator';
 import { Comprobante } from '../afip/Afip';
-import { join } from 'path';
 import { tiposComprobantes } from '../../modules/transaccion/venta.validator';
-import { LibroOperacion, TransaccionConCliente } from '../../modules/transaccion/operacion.types';
+import { LibroOperacion, MovimientoComprobante } from '../../modules/transaccion/operacion.types';
+import { MedioPago } from '../../modules/medioPago';
 import { Storage } from '../storage/storage';
 
 // Plantillas HTML/CSS bundleadas con el código (no son un archivo de
@@ -14,26 +14,21 @@ import { Storage } from '../storage/storage';
 // filesystem local directo, sin pasar por `storage`.
 const templatesPath = './src/lib/comprobantes';
 
-// `filesFolder` reemplaza a `Venta.filesFolder`/`Consignacion.filesFolder`
-// (propiedades estáticas de la jerarquía vieja, ya no existen): ahora viaja
-// como dato explícito, resuelto por la `OperacionConfig` de quien llama
-// (`src/modules/transaccion/operacion.config.ts`).
+// El archivo se guarda en la key de storage que ya trae el movimiento
+// (`facturas/...` o `remitos/...`): el emisor no decide la carpeta.
 type CreateFactura = {
     venta: VentaRow
-    // `file_path` vive en la transacción (no en la venta): `ventasTable` no
-    // tiene esa columna, ver `src/modules/transaccion/venta.schema.ts`.
-    transaction: TransaccionConCliente
+    medioPago: MedioPago | null
+    transaction: MovimientoComprobante
     comprobante: Comprobante
     cliente: Cliente,
-    libros: LibroOperacion[],
-    filesFolder: string
+    libros: LibroOperacion[]
 };
 
 type CreateRemito = {
-    consignacion: TransaccionConCliente,
+    consignacion: MovimientoComprobante,
     cliente: Cliente,
-    libros: LibroOperacion[],
-    filesFolder: string
+    libros: LibroOperacion[]
 };
 
 type args = {
@@ -93,10 +88,10 @@ export function createComprobanteService({ storage }: ComprobanteServiceDeps) {
 
         let key: string;
         if ('venta' in data){
-            key = join(data.filesFolder, data.transaction.file_path);
+            key = data.transaction.file_path;
             html = factura(html, data);
         }else{
-            key = join(data.filesFolder, data.consignacion.file_path);
+            key = data.consignacion.file_path;
             html = remito(html, data);
         }
 
@@ -116,7 +111,7 @@ export function createComprobanteService({ storage }: ComprobanteServiceDeps) {
 
 export type ComprobanteService = ReturnType<typeof createComprobanteService>;
 
-function factura(html: string, {venta, cliente, libros, comprobante}: CreateFactura){
+function factura(html: string, {venta, medioPago, cliente, libros, comprobante}: CreateFactura){
     let table = '';
     const logoAfip = fs.readFileSync(`${templatesPath}/factura/logoAfip.png`, 'base64');
     html = html.replace('{{logo}}', `<img class="logo" src="data:image/jpeg;base64,${logoAfip}">`);
@@ -145,7 +140,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     html = html.replace('{{LIBROS}}', table);
     /**/
 
-    html = html.replace('{{cond_venta}}', venta.medio_pago ?? '');
+    html = html.replace('{{cond_venta}}', medioPago?.nombre ?? '');
 
     //QR
     html = html.replace('<img class="qr" src="">', `<img class="qr" src="${comprobante.qr}">`)
@@ -160,7 +155,7 @@ function factura(html: string, {venta, cliente, libros, comprobante}: CreateFact
     /**/
 
     /*parse comprobante*/
-    html = html.replace('{{tipo_factura}}', tiposComprobantes[comprobante.CbteTipo as any as keyof typeof tiposComprobantes].cod);
+    html = html.replace('{{tipo_factura}}', tiposComprobantes[Number(comprobante.CbteTipo) as keyof typeof tiposComprobantes].cod);
     html = html.replace('{{cod_factura}}', comprobante.CbteTipo);
     html = html.replace('{{punto_venta}}', String(comprobante.PtoVta).padStart(5, '0'));
     html = html.replace('{{cae}}', comprobante.CodAutorizacion);

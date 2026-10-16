@@ -4,11 +4,11 @@ import { Database, Tx } from "../../db/client";
 import { librosTable } from "./libro.schema";
 import { librosPersonasTable } from "./libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
+import { rolesTable } from "../rol/rol.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
 import { libroFilterMap } from "./libro.filter";
 import { stockDeLibro } from "./libro.stock";
 import { Libro } from "./libro.validator";
-import { tipoPersona } from "./libroPersona.validator";
 import { NotFound } from "bradb";
 
 export type LibroRepositoryDeps = {
@@ -106,13 +106,16 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         return rows.length > 0;
     };
 
-    // Desasocia autores/ilustradores actuales de un libro: usada por
+    // Desasocia todas las personas actuales de un libro: usada por
     // `remove` (business) antes del soft delete, igual que `Libro.delete`
     // vía `LibroPersona._delete` en MySQL.
     const removeAllPersonas = async (idLibro: number, tx?: Tx) => {
         await (tx ?? db).delete(librosPersonasTable).where(eq(librosPersonasTable.id_libro, idLibro));
     };
 
+    // Personas del libro en una única lista, cada una con el rol de la cuenta
+    // (`{ id, nombre }`) leído del rol, no de un valor copiado en la relación:
+    // la misma persona puede aparecer con roles distintos (ver specs/011-roles).
     const getPersonas = async (idLibro: number, userId: number) => {
         const personas = await db
             .select({
@@ -120,17 +123,21 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                 dni: personasTable.dni,
                 nombre: personasTable.nombre,
                 email: personasTable.email,
-                tipo: librosPersonasTable.tipo,
+                rol_id: rolesTable.id,
+                rol_nombre: rolesTable.nombre,
                 porcentaje: librosPersonasTable.porcentaje
             })
             .from(librosPersonasTable)
             .innerJoin(personasTable, eq(personasTable.id, librosPersonasTable.id_persona))
+            // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
+            // su nombre en las relaciones históricas que lo referencian.
+            .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
             .where(and(eq(librosPersonasTable.id_libro, idLibro), eq(personasTable.user, userId)));
 
-        return {
-            autores: personas.filter((p) => p.tipo === tipoPersona.autor),
-            ilustradores: personas.filter((p) => p.tipo === tipoPersona.ilustrador)
-        };
+        return personas.map(({ rol_id, rol_nombre, ...persona }) => ({
+            ...persona,
+            rol: { id: rol_id, nombre: rol_nombre }
+        }));
     };
 
     return {

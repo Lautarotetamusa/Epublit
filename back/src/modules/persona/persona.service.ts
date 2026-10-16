@@ -2,9 +2,10 @@ import { Duplicated } from "bradb";
 import { PersonaRepository } from "./persona.repository";
 import { Persona, PersonaInsert, PersonaUpdate } from "./persona.validator";
 import { Storage } from "../../lib/storage";
-import { UnsupportedMediaType, PayloadTooLarge, UnprocessableEntity } from "../../lib/http/errors";
+import { UnsupportedMediaType, PayloadTooLarge, UnprocessableEntity, ValidationError } from "../../lib/http/errors";
 import { getImageSize } from "../../lib/image/imageSize";
 import { UserRepository } from "../user";
+import { RolRepository } from "../rol";
 
 // Sólo estos dos tipos de imagen (ver plan specs/004-persona-foto-bio).
 const ALLOWED_FOTO_MIME: Record<string, string> = {
@@ -28,9 +29,12 @@ export type PersonaServiceDeps = {
     // Sólo se necesita `findOne` para leer las restricciones de foto
     // configuradas por el usuario dueño de la persona.
     userRepository: Pick<UserRepository, "findOne">;
+    // Sólo lectura: valida que el filtro del listado por rol apunte a un rol de
+    // la cuenta (ver specs/011-roles, tarea 10).
+    rolRepository: Pick<RolRepository, "existsEnCuenta">;
 };
 
-export function createPersonaService({ repository, storage, userRepository }: PersonaServiceDeps) {
+export function createPersonaService({ repository, storage, userRepository, rolRepository }: PersonaServiceDeps) {
     // Shape público de una persona: cambia `foto_key` (detalle de storage)
     // por `foto_url` (utilizable directo por el front), igual que
     // `libro.service.ts` con la portada.
@@ -77,6 +81,21 @@ export function createPersonaService({ repository, storage, userRepository }: Pe
         userId: Parameters<PersonaRepository["findAll"]>[0],
         pagination: Parameters<PersonaRepository["findAll"]>[1]
     ) => toPublicList(await repository.findAll(userId, pagination));
+
+    // Filtro del listado por rol de la cuenta (ver specs/011-roles, tarea 10):
+    // un id que no es un rol de la cuenta es 400; un rol dado de baja sigue
+    // siendo un rol de la cuenta y filtra sus participaciones históricas.
+    const getAllByRol = async (
+        rolId: number,
+        userId: number,
+        pagination: Parameters<PersonaRepository["getAllByRol"]>[2]
+    ) => {
+        if (!(await rolRepository.existsEnCuenta(rolId, userId))) {
+            throw new ValidationError(`No existe un rol con id ${rolId}`);
+        }
+
+        return repository.getAllByRol(rolId, userId, pagination);
+    };
 
     // Valida contra las restricciones configuradas por el usuario dueño de
     // la persona (specs/004-persona-foto-bio, tarea 6): tamaño máximo y
@@ -146,7 +165,7 @@ export function createPersonaService({ repository, storage, userRepository }: Pe
         create,
         update,
         remove: repository.remove,
-        getAllByTipo: repository.getAllByTipo,
+        getAllByRol,
         getLibros: repository.getLibros,
         uploadFoto,
         removeFoto

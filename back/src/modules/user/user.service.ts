@@ -5,6 +5,8 @@ import { UserInsert, UserUpdate, User, CreateUserInput } from "./user.validator"
 import { Unauthorized } from "bradb";
 import { ValidationError } from "../../lib/http/errors";
 import { DepositoRepository, NOMBRE_DEPOSITO_PRINCIPAL } from "../deposito";
+import { MedioPagoRepository } from "../medioPago";
+import { RolRepository } from "../rol";
 import {
     createUserFolder,
     createKey,
@@ -23,21 +25,39 @@ export type UserServiceDeps = {
     // Sólo escritura: crea el depósito principal del usuario en el mismo alta
     // (ver specs/008-movimientos-deposito).
     depositoRepository: Pick<DepositoRepository, "insert">;
+    // Sólo escritura: crea los 5 medios de pago por defecto en el mismo alta
+    // (ver specs/010-medios-pago).
+    medioPagoRepository: Pick<MedioPagoRepository, "insertDefaults">;
+    // Sólo escritura: crea los roles por defecto (autor, ilustrador) en el
+    // mismo alta (ver specs/011-roles).
+    rolRepository: Pick<RolRepository, "insertDefaults">;
 };
 
-export function createUserService({ db, repository, afipService, depositoRepository }: UserServiceDeps) {
+export function createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository }: UserServiceDeps) {
     // Alta completa del usuario, sus clientes por defecto (MOSTRADOR,
-    // CONSUMIDOR FINAL) y su depósito principal en una única transacción
-    // Postgres: la transacción es responsabilidad del service, el repository
-    // sólo expone los inserts crudos.
+    // CONSUMIDOR FINAL), su depósito principal, sus medios de pago por
+    // defecto y sus roles por defecto en una única transacción Postgres: la
+    // transacción es responsabilidad del service, el repository sólo expone
+    // los inserts crudos.
     const createUser = async (data: UserInsert): Promise<User> => {
         return db.transaction(async (tx) => {
             const user = await repository.insertUser(data, tx);
-            await repository.insertDefaultClientes(user.id, tx);
+            const clientesPorDefecto = await repository.insertDefaultClientes(user.id, tx);
             await depositoRepository.insert(
                 { nombre: NOMBRE_DEPOSITO_PRINCIPAL, principal: true, user: user.id },
                 tx
             );
+            await medioPagoRepository.insertDefaults(user.id, tx);
+            await rolRepository.insertDefaults(user.id, tx);
+
+            // Cada cliente tiene su depósito real propio (ver
+            // specs/009-ledger-unificado).
+            for (const cliente of clientesPorDefecto) {
+                await depositoRepository.insert(
+                    { nombre: cliente.nombre, principal: false, user: user.id, id_cliente: cliente.id },
+                    tx
+                );
+            }
 
             return repository.stripPassword(user);
         });

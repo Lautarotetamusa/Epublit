@@ -12,11 +12,11 @@ import {
     librosTable,
     libroClienteTable,
     librosPersonasTable,
-    transaccionesTable,
-    librosTransaccionesTable,
     precioLibroClienteTable,
     precioLibrosTable,
-    ventasTable
+    ventasTable,
+    mediosPagoTable,
+    rolesTable
 } from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
@@ -25,8 +25,8 @@ const TABLAS_SEEDEADAS = [
     depositoLibrosTable,
     depositosTable,
     ventasTable,
-    librosTransaccionesTable,
-    transaccionesTable,
+    mediosPagoTable,
+    rolesTable,
     precioLibroClienteTable,
     libroClienteTable,
     librosPersonasTable,

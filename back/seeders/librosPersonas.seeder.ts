@@ -1,27 +1,34 @@
 import { PublicLibro, LibroPersonaBody, LibroPersonaService } from "../src/modules/libro";
 import { PublicPersona } from "../src/modules/persona";
+import { RolService } from "../src/modules/rol";
 import { SeedUser } from "./users.seeder";
 
 // Reusa `libroPersonaService.addToLibro`: valida que libro y personas sean
-// del mismo usuario, la misma regla que aplicaría el endpoint real.
+// del mismo usuario, la misma regla que aplicaría el endpoint real. El rol de
+// cada participación sale de los roles por defecto de la cuenta (autor,
+// ilustrador), que el alta del usuario ya creó.
 export async function seedLibrosPersonas(
     users: SeedUser[],
     libros: PublicLibro[],
     personas: PublicPersona[],
-    libroPersonaService: LibroPersonaService
+    libroPersonaService: LibroPersonaService,
+    rolService: RolService
 ): Promise<void> {
     for (const user of users) {
         const librosDelUsuario = libros.filter((libro) => libro.user === user.id);
         const personasDelUsuario = personas.filter((persona) => persona.user === user.id);
+        const roles = await rolService.findActivos(user.id);
+        const rolAutor = roles.find((rol) => rol.nombre === "autor")!;
+        const rolIlustrador = roles.find((rol) => rol.nombre === "ilustrador")!;
 
         for (const [i, libro] of librosDelUsuario.entries()) {
             const autor = personasDelUsuario[i % personasDelUsuario.length];
             const ilustrador = personasDelUsuario[(i + 1) % personasDelUsuario.length];
 
-            const items: LibroPersonaBody[] = [{ id_persona: autor.id, tipo: "autor", porcentaje: 10 }];
+            const items: LibroPersonaBody[] = [{ id_persona: autor.id, rol: rolAutor.id, porcentaje: 10 }];
             // Un libro de cada tres también tiene ilustrador, para variar los datos.
             if (i % 3 === 0 && ilustrador.id !== autor.id) {
-                items.push({ id_persona: ilustrador.id, tipo: "ilustrador", porcentaje: 5 });
+                items.push({ id_persona: ilustrador.id, rol: rolIlustrador.id, porcentaje: 5 });
             }
 
             await libroPersonaService.addToLibro(libro.isbn, user.id, items);

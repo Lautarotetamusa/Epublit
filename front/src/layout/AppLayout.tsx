@@ -10,6 +10,7 @@ const NAV_ITEMS = [
     { value: "libros", label: "Libros", icon: "library" },
     { value: "colecciones", label: "Colecciones", icon: "book-open" },
     { value: "personas", label: "Personas", icon: "user-round" },
+    { value: "roles", label: "Roles", icon: "tag" },
     // Depósito es su propia sección: es otro trabajo (dónde están los libros)
     // distinto del catálogo (qué libros hay).
     { section: "Depósito" },
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
     { section: "Comercial" },
     { value: "clientes", label: "Clientes", icon: "store" },
     { value: "ventas", label: "Ventas", icon: "receipt-text" },
+    { value: "medios-pago", label: "Medios de pago", icon: "banknote" },
     { value: "liquidaciones", label: "Liquidaciones", icon: "percent" },
     { value: "consignaciones", label: "Consignaciones", icon: "boxes" },
     { value: "devoluciones", label: "Devoluciones", icon: "truck" }

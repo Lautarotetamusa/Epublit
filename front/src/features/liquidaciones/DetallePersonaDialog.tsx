@@ -1,15 +1,8 @@
 import { Dialog, Table, Button, Badge } from "../../design-system";
-import type { PersonaLiquidacionDetalle, PersonaLiquidada, TipoPersonaLiquidacion } from "../../api/liquidacion";
+import type { PersonaLiquidacionDetalle, PersonaLiquidada } from "../../api/liquidacion";
+import { rolesDePersona } from "./rolesDePersona";
 import { formatMoney } from "./money";
-
-const TIPO_LABEL = { autor: "Autor", ilustrador: "Ilustrador" } as const;
-
-// Los roles distintos presentes en el detalle (puede ser autora de un libro
-// e ilustradora de otro en el mismo período).
-function rolesDePersona(persona: PersonaLiquidada): TipoPersonaLiquidacion[] {
-    const roles = new Set(persona.detalle.map((d) => d.tipo));
-    return [...roles];
-}
+import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 
 type Props = {
     persona: PersonaLiquidada;
@@ -32,15 +25,18 @@ export function DetallePersonaDialog({ persona, onClose }: Props) {
         >
             <div style={{ marginBottom: "var(--space-4)", display: "flex", gap: "var(--space-1)" }}>
                 {rolesDePersona(persona).map((rol) => (
-                    <Badge key={rol} tone={rol === "autor" ? "brand" : "accent"}>
-                        {TIPO_LABEL[rol]}
+                    <Badge key={rol.id} tone={tonoDeRol(rol)}>
+                        {nombreVisible(rol.nombre)}
                     </Badge>
                 ))}
             </div>
             <Table
                 columns={[
                     { header: "Libro", key: "titulo", wrap: true },
-                    { header: "Rol", cell: (d: PersonaLiquidacionDetalle) => <Badge tone={d.tipo === "autor" ? "brand" : "accent"}>{TIPO_LABEL[d.tipo]}</Badge> },
+                    {
+                        header: "Rol",
+                        cell: (d: PersonaLiquidacionDetalle) => <Badge tone={tonoDeRol(d.rol)}>{nombreVisible(d.rol.nombre)}</Badge>
+                    },
                     { header: "Porcentaje", align: "right", mono: true, cell: (d) => `${d.porcentaje}%` },
                     { header: "Importe", align: "right", mono: true, cell: (d) => formatMoney(d.importe) }
                 ]}

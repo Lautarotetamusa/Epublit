@@ -40,7 +40,7 @@ export function PersonaFormFields({ values, onChange }: { values: PersonaFormVal
             <Field label="DNI" required style={{ marginTop: "var(--space-4)" }}>
                 <Input value={values.dni} onChange={(e) => onChange({ dni: sanitizeInteger(e.target.value) })} />
             </Field>
-            <Field label="Biografía" style={{ marginTop: "var(--space-4)" }} hint="Aparece en la ficha del autor o ilustrador.">
+            <Field label="Biografía" style={{ marginTop: "var(--space-4)" }} hint="Queda en su ficha, junto a los libros en los que participa.">
                 <Textarea rows={5} value={values.bio} onChange={(e) => onChange({ bio: e.target.value })} />
             </Field>
         </>

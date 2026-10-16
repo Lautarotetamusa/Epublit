@@ -1,10 +1,11 @@
 import { ZodSchema } from "zod";
 import { Tx } from "../../db/client";
-import { TipoTransaccion, TransaccionRow, CreateTransaccion } from "./transaccion.validator";
+import { TipoTransaccion, CreateTransaccion } from "./transaccion.validator";
 import { VentaRow, CreateVentaConsignado } from "./venta.validator";
 import { Client, TipoCliente } from "../cliente/cliente.validator";
 import { LibroCantidad } from "../libro/libro.validator";
 import { User } from "../user/user.validator";
+import { MedioPago } from "../medioPago";
 
 // Superficie común de los cuatro `bodyParser` (`createTransaccion`/
 // `createVenta`/`createVentaConsignado`), que el controller genérico
@@ -14,7 +15,7 @@ import { User } from "../user/user.validator";
 export type OperacionBody = CreateTransaccion & Partial<CreateVentaConsignado>;
 
 // Shape compartido devuelto por `resolverLibros` de las cuatro operaciones y
-// por `transaccionService.getLibros`.
+// por `movimientoRepository.getLibrosDe`.
 export type LibroOperacion = {
     id_libro: number;
     isbn: string;
@@ -24,27 +25,30 @@ export type LibroOperacion = {
     stock: number;
 };
 
-// Resultado del JOIN `transacciones`+`clientes` que hace
-// `transaccionService.getAll`/`getById`.
-export type TransaccionConCliente = TransaccionRow & {
-    nombre_cliente: string;
-    cuit: string | null;
-    email: string | null;
-    cond_fiscal: string | null;
-    tipo_cliente: TipoCliente | null;
-};
+// Extremo del movimiento comercial, antes de persistirlo.
+export type ExtremoOperacion =
+    | { tipo: "deposito"; id: number }
+    | { tipo: "exterior" };
 
-// `venta` es `null` para `consignacion`/`devolucion`, que no insertan en
-// `ventasTable`. Se pasa `user` completo (no sólo `userId`) porque
-// `generarComprobante` de `venta`/`ventaConsignacion` necesita
-// `getAfipClient(user)`/`facturar(...)` (cuit, punto_venta, etc.), y
-// `emitirComprobante` necesita razon_social/domicilio/cond_fiscal/etc.
+// `venta` es `null` para `consignacion`/`devolucion`, que no crean extensión de
+// venta. Se pasa `user` completo (no sólo `userId`) porque `generarComprobante`
+// de `venta`/`ventaConsignacion` necesita `getAfipClient(user)`/`facturar(...)`.
+// `medioPago` (resuelto antes de abrir la transacción) lo consume el
+// comprobante para mostrar el nombre del medio.
 export type ComprobanteCtx = {
-    transaction: TransaccionConCliente;
+    transaction: MovimientoComprobante;
     venta: VentaRow | null;
+    medioPago: MedioPago | null;
     libros: LibroOperacion[];
     cliente: Client;
     user: User;
+};
+
+// Lo único que el emisor de comprobantes necesita del movimiento: su id (para
+// numerar el remito) y la key de storage del archivo.
+export type MovimientoComprobante = {
+    id: number;
+    file_path: string;
 };
 
 // Reemplaza la jerarquía `Transaccion`/`Venta`/`VentaFirme`/`VentaConsignado`/
@@ -53,6 +57,7 @@ export type ComprobanteCtx = {
 // "Enfoque técnico" — CLAUDE.md, "Inyección de dependencias > herencia").
 export type OperacionConfig = {
     tipo: TipoTransaccion;
+    // Carpeta de storage del archivo emitido (facturas/remitos).
     filesFolder: string;
     esVenta: boolean;
     bodyParser: ZodSchema;
@@ -63,6 +68,9 @@ export type OperacionConfig = {
         userId: number,
         args?: { fecha?: Date }
     ) => Promise<LibroOperacion[]>;
-    moverStock: (libros: LibroOperacion[], cliente: Client, userId: number, tx: Tx) => Promise<void>;
+    // Extremos del movimiento según el tipo (principal/depósito del cliente).
+    obtenerExtremos: (cliente: Client, userId: number) => Promise<{ origen: ExtremoOperacion; destino: ExtremoOperacion }>;
+    // Congela el precio por libro (sólo consignación).
+    fijarPrecios?: (libros: LibroOperacion[], cliente: Client, tx: Tx) => Promise<void>;
     generarComprobante: ((ctx: ComprobanteCtx, tx: Tx) => Promise<void>) | null;
 };

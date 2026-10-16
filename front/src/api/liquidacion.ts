@@ -1,4 +1,5 @@
 import { api, toQueryString } from "./client";
+import type { Rol } from "./rol";
 
 // Refleja back/src/modules/liquidacion/liquidacion.service.ts.
 export type LibroLiquidado = {
@@ -10,14 +11,14 @@ export type LibroLiquidado = {
     importe_total: number;
 };
 
-export type TipoPersonaLiquidacion = "autor" | "ilustrador";
-
-// El backend pone `tipo` por línea de detalle, no a nivel persona: una misma
-// persona puede ser autora de un libro e ilustradora de otro en el mismo período.
+// El rol de la cuenta con el que esa persona participa del libro (plan 011):
+// todos los roles de la cuenta, no sólo `autor` e `ilustrador`. Va por línea de
+// detalle y no a nivel persona: una misma persona puede participar de un libro
+// con un rol y de otro con otro (o del mismo libro con dos roles).
 export type PersonaLiquidacionDetalle = {
     id_libro: number;
     titulo: string;
-    tipo: TipoPersonaLiquidacion;
+    rol: Rol;
     porcentaje: number;
     importe: number;
 };
@@ -44,5 +45,8 @@ export type GenerarLiquidacionInput = {
     hasta: string;
 };
 
+// Cada línea de `detalle` ya trae el rol de la cuenta como `{ id, nombre }`
+// (ver back/src/modules/liquidacion/liquidacion.service.ts): la liquidación
+// incluye todos los roles, no sólo los fijos.
 export const generarLiquidacion = (input: GenerarLiquidacionInput): Promise<{ success: true; data: Liquidacion }> =>
     api.get(`/liquidacion${toQueryString(input)}`);

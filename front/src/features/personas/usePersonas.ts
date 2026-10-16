@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { listPersonas, deletePersona } from "../../api/persona";
-import type { Persona, TipoPersona } from "../../api/persona";
+import type { Persona } from "../../api/persona";
+import type { Rol } from "../../api/rol";
 import type { Pagination } from "../../api/client";
 import { getFotoMock } from "./personaFotoMock";
 
 const PAGE_SIZE = 10;
 
-export function usePersonas(tipo: TipoPersona | undefined) {
+// `rol` es el rol de la cuenta por el que se filtra el listado (plan 011); sin
+// rol, el listado trae todas las personas, incluidas las que no trabajan en
+// ningún libro.
+export function usePersonas(rol: Rol | null) {
     const [personas, setPersonas] = useState<Persona[]>([]);
     const [pagination, setPagination] = useState<Pagination | null>(null);
     const [page, setPage] = useState(1);
@@ -14,13 +18,13 @@ export function usePersonas(tipo: TipoPersona | undefined) {
 
     const fetchPersonas = useCallback(async () => {
         setLoading(true);
-        const response = await listPersonas({ tipo, page, pageSize: PAGE_SIZE });
+        const response = await listPersonas({ rol: rol ?? undefined, page, pageSize: PAGE_SIZE });
         // Merge con el mock local de foto (ver personaFotoMock.ts): el
         // listado real todavía no trae `fotoUrl` desde el backend.
         setPersonas(response.items.map((p) => ({ ...p, fotoUrl: p.fotoUrl ?? getFotoMock(p.id) })));
         setPagination(response.pagination);
         setLoading(false);
-    }, [tipo, page]);
+    }, [rol, page]);
 
     useEffect(() => {
         fetchPersonas();
@@ -30,7 +34,7 @@ export function usePersonas(tipo: TipoPersona | undefined) {
     // podría no existir en la lista nueva.
     useEffect(() => {
         setPage(1);
-    }, [tipo]);
+    }, [rol]);
 
     const remove = async (id: number) => {
         await deletePersona(id);

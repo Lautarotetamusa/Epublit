@@ -1,47 +1,57 @@
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { Database } from "../../db/client";
-import { transaccionesTable } from "../transaccion/transaccion.schema";
-import { librosTransaccionesTable } from "../transaccion/librosTransacciones.schema";
+import { movimientosTable, movimientosLibrosTable } from "../movimiento/movimiento.schema";
 import { librosTable } from "../libro/libro.schema";
 import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
+import { rolesTable } from "../rol/rol.schema";
 
 export type LiquidacionRepositoryDeps = {
     db: Database;
 };
 
-// Tipos de transacción que cuentan como venta para la liquidación (plan,
+// Tipos de movimiento que cuentan como venta para la liquidación (plan,
 // tarea 2): `devolucion`/`consignacion` quedan afuera a propósito.
 const TIPOS_VENTA = ["venta", "ventaConsignacion"] as const;
 
 export function createLiquidacionRepository({ db }: LiquidacionRepositoryDeps) {
-    // Una fila por línea de venta (libro dentro de una transacción venta/
-    // ventaConsignacion) en el rango, con el precio histórico ya guardado en
-    // `libros_transacciones` (nunca el precio actual del libro).
+    // Una fila por línea de venta (libro dentro de un movimiento venta/
+    // ventaConsignacion) en el rango, con el precio histórico congelado en
+    // `movimientos_libros` (nunca el precio actual del libro).
     const getLineasVenta = async (userId: number, desde: Date, hasta: Date) => {
         return db
             .select({
                 id_libro: librosTable.id_libro,
                 isbn: librosTable.isbn,
                 titulo: librosTable.titulo,
-                cantidad: librosTransaccionesTable.cantidad,
-                precio: librosTransaccionesTable.precio
+                cantidad: movimientosLibrosTable.cantidad,
+                precio: sql<number>`coalesce(${movimientosLibrosTable.precio}, 0)`.mapWith(Number)
             })
-            .from(librosTransaccionesTable)
-            .innerJoin(transaccionesTable, eq(transaccionesTable.id, librosTransaccionesTable.id_transaccion))
-            .innerJoin(librosTable, eq(librosTable.id_libro, librosTransaccionesTable.id_libro))
+            .from(movimientosLibrosTable)
+            .innerJoin(
+                movimientosTable,
+                and(
+                    eq(movimientosTable.id, movimientosLibrosTable.movimiento_id),
+                    eq(movimientosTable.user, movimientosLibrosTable.user)
+                )
+            )
+            .innerJoin(
+                librosTable,
+                and(eq(librosTable.id_libro, movimientosLibrosTable.id_libro), eq(librosTable.user, movimientosLibrosTable.user))
+            )
             .where(
                 and(
-                    eq(transaccionesTable.user, userId),
-                    inArray(transaccionesTable.type, TIPOS_VENTA),
-                    gte(transaccionesTable.fecha, desde),
-                    lte(transaccionesTable.fecha, hasta)
+                    eq(movimientosTable.user, userId),
+                    inArray(movimientosTable.tipo, TIPOS_VENTA),
+                    gte(movimientosTable.fecha, desde),
+                    lte(movimientosTable.fecha, hasta)
                 )
             );
     };
 
-    // Personas (autor/ilustrador) asociadas a los libros vendidos, con el
-    // porcentaje vigente (no hay historial de porcentaje en el sistema).
+    // Personas asociadas a los libros vendidos, con el porcentaje vigente (no
+    // hay historial de porcentaje en el sistema) y el rol de la cuenta con el
+    // que participan de ese libro (ver specs/011-roles, tarea 13).
     const getPersonasPorLibro = async (idLibros: number[], userId: number) => {
         if (idLibros.length === 0) return [];
 
@@ -49,12 +59,16 @@ export function createLiquidacionRepository({ db }: LiquidacionRepositoryDeps) {
             .select({
                 id_libro: librosPersonasTable.id_libro,
                 id_persona: librosPersonasTable.id_persona,
-                tipo: librosPersonasTable.tipo,
+                rol_id: rolesTable.id,
+                rol_nombre: rolesTable.nombre,
                 porcentaje: librosPersonasTable.porcentaje,
                 nombre: personasTable.nombre
             })
             .from(librosPersonasTable)
             .innerJoin(personasTable, eq(personasTable.id, librosPersonasTable.id_persona))
+            // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
+            // su nombre en las líneas históricas que lo referencian.
+            .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
             .where(and(inArray(librosPersonasTable.id_libro, idLibros), eq(personasTable.user, userId)));
     };
 

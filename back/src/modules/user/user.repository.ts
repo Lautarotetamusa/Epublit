@@ -96,7 +96,7 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
     // Ver `db/migrations/auto_client_inserts.sql` (trigger MySQL que
     // reemplaza este insert para usuarios nuevos, que ya no pasan por MySQL).
     const insertDefaultClientes = async (userId: number, tx?: Tx) => {
-        await (tx ?? db).insert(clientesTable).values([
+        return (tx ?? db).insert(clientesTable).values([
             {
                 nombre: "CONSUMIDOR FINAL",
                 tipo: "particular",
@@ -113,7 +113,7 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
                 domicilio: "",
                 user: userId
             }
-        ]);
+        ]).returning();
     };
 
     const removeUser = async (id: number, tx?: Tx) => {

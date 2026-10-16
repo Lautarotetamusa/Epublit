@@ -8,7 +8,7 @@ import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { facturar } from "../src/lib/afip/Afip";
-import { cargarStockPrincipal } from './util';
+import { cargarStockPrincipal, getMedioPagoId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
@@ -18,6 +18,7 @@ const app = createApp(container);
 
 const isbnLibro = isbn(9995);
 let token: string;
+let efectivoId: number;
 
 beforeAll(async () => {
     const res = await request(app)
@@ -25,6 +26,7 @@ beforeAll(async () => {
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
+    efectivoId = await getMedioPagoId(app, token, 'efectivo');
 });
 
 afterAll(() => {
@@ -50,13 +52,13 @@ test("Facturar", async () => {
     const resVenta = await request(app)
         .post('/venta/')
         .set('Authorization', `Bearer ${token}`)
-        .send({ cliente: cliente.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [{ isbn: isbnLibro, cantidad: 1 }] });
+        .send({ cliente: cliente.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnLibro, cantidad: 1 }] });
     expect(resVenta.status).toBe(201);
     const id = resVenta.body.data.id;
 
     const venta = await container.transaccion.ventaRepository.getById(id, user.id);
-    const transaction = await container.transaccion.repository.getById(id, user.id);
-    const clienteRow = await container.cliente.service.findOne({ id: transaction.id_cliente, user: user.id });
+    const transaction = await container.movimiento.repository.getById(id, user.id);
+    const clienteRow = await container.cliente.service.findOne({ id: transaction.id_cliente!, user: user.id });
 
     const comprobante = await facturar(user.punto_venta || 1, venta, clienteRow, afipService.getClient(user));
     expect(comprobante).not.toBeNull();

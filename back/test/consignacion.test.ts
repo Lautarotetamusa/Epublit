@@ -13,7 +13,7 @@ import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { env } from '../src/env';
-import {expectBadRequest, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
+import {expectBadRequest, expectConflict, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 
 const afipService = createMockAfipService({
@@ -93,7 +93,13 @@ describe('CONSIGNACION', () => {
                     .post('/consignacion/')
                     .set('Authorization', `Bearer ${token}`)
                     .send({ cliente: cliente.id, libros: [{ isbn: isbnsConsignacion[0], cantidad: 999 }] });
-                expectBadRequest(res);
+                expectConflict(res);
+                expect(res.body.errors[0].code).toBe('StockInsuficiente');
+                expect(res.body.errors[0].libros[0]).toMatchObject({
+                    isbn: isbnsConsignacion[0],
+                    pedido: 999,
+                    disponible: 3
+                });
             });
 
             test('No se debe poder consignar a un cliente consumidor final', async () => {
@@ -127,14 +133,15 @@ describe('CONSIGNACION', () => {
                 expect(comprobanteService.emitirComprobante).toHaveBeenCalled();
             });
 
-            test('Los libros redujeron su stock general', async () => {
+            test('El stock total no cambia: pasa del principal al depósito del cliente', async () => {
                 for (const libro of consignacion.libros) {
                     const res = await request(app)
                         .get(`/libro/${libro.isbn}`)
                         .set('Authorization', `Bearer ${token}`);
 
                     expect(res.status).toEqual(200);
-                    expect(res.body.data.stock).toEqual(0);
+                    expect(res.body.data.stock).toEqual(libro.cantidad);
+                    expect(res.body.data.disponible_principal).toEqual(0);
                 }
             });
 

@@ -4,9 +4,9 @@ import { Database } from "../../db/client";
 import { personasTable } from "./persona.schema";
 import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { librosTable } from "../libro/libro.schema";
+import { rolesTable } from "../rol/rol.schema";
 import { stockDeLibro } from "../libro/libro.stock";
 import { personaFilterMap } from "./persona.filter";
-import { TipoPersona } from "../libro/libroPersona.validator";
 
 export type PersonaRepositoryDeps = {
     db: Database;
@@ -41,7 +41,10 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
         return findAllPaginated({ user: userId }, pagination);
     };
 
-    const buildQueryByTipo = (tipo: TipoPersona, userId: number) =>
+    // Personas que participan de al menos un libro con ese rol de la cuenta
+    // (ver specs/011-roles, tarea 10). El ownership del rol lo valida el
+    // service antes de llegar acá.
+    const buildQueryByRol = (rolId: number, userId: number) =>
         db
             .selectDistinctOn([personasTable.id], {
                 id: personasTable.id,
@@ -55,18 +58,18 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
             .where(
                 and(
                     isNull(personasTable.deletedAt),
-                    eq(librosPersonasTable.tipo, tipo),
+                    eq(librosPersonasTable.id_rol, rolId),
                     eq(personasTable.user, userId)
                 )
             )
             .$dynamic();
 
-    const getAllByTipo = async (tipo: TipoPersona, userId: number, pagination: Pagination) => {
-        const sub = buildQueryByTipo(tipo, userId).as("sub");
+    const getAllByRol = async (rolId: number, userId: number, pagination: Pagination) => {
+        const sub = buildQueryByRol(rolId, userId).as("sub");
         const [{ count: total }] = await db.select({ count: count() }).from(sub);
 
         const offset = (pagination.page - 1) * pagination.pageSize;
-        const items = await buildQueryByTipo(tipo, userId).limit(pagination.pageSize).offset(offset);
+        const items = await buildQueryByRol(rolId, userId).limit(pagination.pageSize).offset(offset);
 
         pagination.total = total;
         pagination.count = items.length;
@@ -86,7 +89,7 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
     };
 
     const getLibros = async (personaId: number, userId: number) => {
-        return db
+        const filas = await db
             .select({
                 id_libro: librosTable.id_libro,
                 isbn: librosTable.isbn,
@@ -95,16 +98,22 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
                 precio: librosTable.precio,
                 stock: stockDeLibro(),
                 user: librosTable.user,
-                tipo: librosPersonasTable.tipo
+                rol_id: rolesTable.id,
+                rol_nombre: rolesTable.nombre
             })
             .from(librosTable)
             .innerJoin(librosPersonasTable, eq(librosTable.isbn, librosPersonasTable.isbn))
+            // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
+            // su nombre en las relaciones históricas que lo referencian.
+            .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
             .where(
                 and(
                     eq(librosPersonasTable.id_persona, personaId),
                     eq(librosTable.user, userId)
                 )
             );
+
+        return filas.map(({ rol_id, rol_nombre, ...libro }) => ({ ...libro, rol: { id: rol_id, nombre: rol_nombre } }));
     };
 
     return {
@@ -114,7 +123,7 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
         remove,
         exists,
         findAll,
-        getAllByTipo,
+        getAllByRol,
         findOwnedIds,
         getLibros
     };

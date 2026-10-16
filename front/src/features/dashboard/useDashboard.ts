@@ -12,14 +12,6 @@ function lastDayOfMonth(): string {
     return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
 }
 
-const MEDIO_LABEL: Record<string, string> = {
-    efectivo: "Efectivo",
-    debito: "Débito",
-    credito: "Crédito",
-    mercadopago: "Mercado Pago",
-    transferencia: "Transferencia"
-};
-
 export function useDashboard() {
     const [ventas, setVentas] = useState<Venta[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,9 +42,12 @@ export function useDashboard() {
 
     const porMedioPago = useMemo(() => {
         const acc: Record<string, number> = {};
-        for (const v of filtradas) acc[v.medio_pago] = (acc[v.medio_pago] ?? 0) + v.total;
+        // Se agrupa por el nombre en vivo del medio: las ventas con un medio
+        // ya dado de baja siguen entrando (el nombre queda legible, ver
+        // specs/010-medios-pago).
+        for (const v of filtradas) acc[v.medio_pago.nombre] = (acc[v.medio_pago.nombre] ?? 0) + v.total;
         return Object.entries(acc)
-            .map(([medio, total]) => ({ medio: MEDIO_LABEL[medio] ?? medio, total }))
+            .map(([medio, total]) => ({ medio, total }))
             .sort((a, b) => b.total - a.total);
     }, [filtradas]);
 

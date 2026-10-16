@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Deposito, Extremo, ExtremoInput, Movimiento, TipoMovimiento } from "../../api/deposito";
+import type { Deposito, Extremo, ExtremoInput, Movimiento, TipoMovimientoManual } from "../../api/deposito";
 import { createMovimiento, faltantesDeStock, getDepositoLibros } from "../../api/deposito";
 import type { FaltanteStock } from "../../api/deposito";
 import { getErrorMessage } from "../../lib/errors";
@@ -36,7 +36,7 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
     const { catalogo, loading: loadingCatalogo } = useCatalogoParaStock();
     const { depositos, loading: loadingDepositos } = useDepositos();
 
-    const [tipo, setTipo] = useState<TipoMovimiento>(() => precarga?.tipo ?? "transferencia");
+    const [tipo, setTipo] = useState<TipoMovimientoManual>(() => precarga?.tipo ?? "transferencia");
     const [origenId, setOrigenId] = useState<number | "">(() => precarga?.origenId ?? "");
     const [destinoId, setDestinoId] = useState<number | "">(() => precarga?.destinoId ?? "");
     const [lineas, setLineas] = useState<LineaGuardada[]>([]);
@@ -150,7 +150,7 @@ export function useMovimientoForm(precarga: PrecargaMovimiento | undefined, onCr
         setLineas((actual) => actual.filter((linea) => linea.isbn !== isbn));
     };
 
-    const cambiarTipo = (nuevo: TipoMovimiento) => {
+    const cambiarTipo = (nuevo: TipoMovimientoManual) => {
         setTipo(nuevo);
         setFaltantesServidor([]);
         // Cada tipo deja un extremo fijo (el exterior) y otro seleccionable; el

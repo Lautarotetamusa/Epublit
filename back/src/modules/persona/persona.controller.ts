@@ -1,7 +1,7 @@
 import { RequestHandler } from "express"
 import { newPagination } from "bradb";
+import { z } from "zod";
 import { personaValidator } from "./persona.validator";
-import { libroPersonaSchema } from "../libro/libroPersona.validator";
 import { PersonaService } from "./persona.service";
 import { created, ok, updated, deleted, list } from "../../lib/http/responses";
 import { ValidationError } from "../../lib/http/errors";
@@ -52,8 +52,8 @@ export function createPersonaController({ service }: PersonaControllerDeps) {
         const userId = res.locals.user.id;
         const pagination = newPagination(req.query);
 
-        const personas = 'tipo' in req.query
-            ? await service.getAllByTipo(libroPersonaSchema.shape.tipo.parse(req.query.tipo), userId, pagination)
+        const personas = 'rol' in req.query
+            ? await service.getAllByRol(z.coerce.number().int().positive().parse(req.query.rol), userId, pagination)
             : await service.findAll(userId, pagination);
 
         list(res, personas, pagination);

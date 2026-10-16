@@ -1,6 +1,9 @@
 import { createPkSchema } from "bradb";
 import { z } from "zod";
-import { movimientosTable } from "./movimiento.schema";
+import { movimientosTable, movimientoTipoEnum, extremoTipoEnum } from "./movimiento.schema";
+
+export type MovimientoTipo = (typeof movimientoTipoEnum.enumValues)[number];
+export type ExtremoTipo = (typeof extremoTipoEnum.enumValues)[number];
 
 // Los extremos `cliente` quedan reservados para una historia futura: al no ser
 // un literal válido, el parseo los rechaza con 400 (igual que `deposito` sin
@@ -48,20 +51,33 @@ const insert = z
         }
     });
 
-// `pagina`/`porPagina` inválidos (no enteros o menores a 1) devuelven 400.
-const paginacion = z.object({
-    pagina: z.coerce.number().int().min(1).default(1),
-    porPagina: z.coerce.number().int().min(1).default(10)
-});
+// Filtros de `GET /movimiento/`: todos opcionales, combinables por AND entre
+// sí y con la paginación. `tipo` fuera del enum, `deposito`/`cliente` no
+// numéricos, fechas inválidas y `pagina`/`porPagina` no enteros o menores a 1
+// devuelven 400.
+const listMovimientosFilter = z
+    .object({
+        tipo: z.enum(movimientoTipoEnum.enumValues).optional(),
+        deposito: z.coerce.number().int().positive().optional(),
+        cliente: z.coerce.number().int().positive().optional(),
+        desde: z.coerce.date().optional(),
+        hasta: z.coerce.date().optional(),
+        pagina: z.coerce.number().int().min(1).default(1),
+        porPagina: z.coerce.number().int().min(1).default(10)
+    })
+    .refine((data) => !data.desde || !data.hasta || data.desde <= data.hasta, {
+        message: "'desde' no puede ser posterior a 'hasta'",
+        path: ["desde"]
+    });
 
 const pk = createPkSchema(movimientosTable).pick({ id: true });
 
 export type MovimientoInsert = z.infer<typeof insert>;
-export type MovimientoPaginacion = z.infer<typeof paginacion>;
+export type ListMovimientosFilter = z.infer<typeof listMovimientosFilter>;
 export type ExtremoInput = z.infer<typeof extremo>;
 
 export const movimientoValidator = {
     insert,
-    paginacion,
+    listMovimientosFilter,
     pk
 };

@@ -1,4 +1,6 @@
 export * from "../modules/user/user.schema";
+export * from "../modules/rol/rol.schema";
+export * from "../modules/medioPago/medioPago.schema";
 export * from "../modules/coleccion/coleccion.schema";
 export * from "../modules/deposito/deposito.schema";
 export * from "../modules/deposito/depositoLibros.schema";
@@ -8,8 +10,6 @@ export * from "../modules/cliente/cliente.schema";
 export * from "../modules/libro/libro.schema";
 export * from "../modules/cliente/libroCliente.schema";
 export * from "../modules/libro/libroPersona.schema";
-export * from "../modules/transaccion/transaccion.schema";
-export * from "../modules/transaccion/librosTransacciones.schema";
 export * from "../modules/cliente/precioLibroCliente.schema";
 export * from "../modules/libro/libroPrecio.schema";
 export * from "../modules/transaccion/venta.schema";

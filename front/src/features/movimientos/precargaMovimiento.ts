@@ -1,4 +1,4 @@
-import type { TipoMovimiento } from "../../api/deposito";
+import type { TipoMovimientoManual } from "../../api/deposito";
 import { parsePrecargaOperacion } from "../../lib/precargaOperacion";
 import { TIPOS_MOVIMIENTO } from "./movimientoFormato";
 
@@ -7,7 +7,7 @@ import { TIPOS_MOVIMIENTO } from "./movimientoFormato";
 // entra, y la ficha de un depósito manda desde dónde sale:
 // `?tipo=transferencia&origen=1&destino=2&isbns=978950...`
 export type PrecargaMovimiento = {
-    tipo?: TipoMovimiento;
+    tipo?: TipoMovimientoManual;
     isbns?: string[];
     origenId?: number;
     destinoId?: number;
@@ -21,7 +21,7 @@ export function parsePrecargaMovimiento(searchParams: URLSearchParams): Precarga
 
     return {
         isbns,
-        tipo: TIPOS_MOVIMIENTO.includes(tipo as TipoMovimiento) ? (tipo as TipoMovimiento) : undefined,
+        tipo: TIPOS_MOVIMIENTO.includes(tipo as TipoMovimientoManual) ? (tipo as TipoMovimientoManual) : undefined,
         origenId: origen ? Number(origen) : undefined,
         destinoId: destino ? Number(destino) : undefined
     };

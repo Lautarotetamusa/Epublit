@@ -35,6 +35,17 @@ export function NuevaVentaPage() {
         if (error) showToast("error", error);
     };
 
+    // El neto que le queda al usuario por la comisión del medio de pago: se
+    // calcula sobre el total de la venta (con el descuento aplicado, igual que
+    // el backend) y sólo se muestra si el medio elegido cobra comisión.
+    const medioSeleccionado = form.mediosPago.find((m) => m.id === form.medioPago);
+    const descuentoPct = Number(form.descuento) || 0;
+    const totalConDescuento = form.total - form.total * descuentoPct * 0.01;
+    const notaComision =
+        medioSeleccionado && medioSeleccionado.comision > 0
+            ? `Comisión ${medioSeleccionado.comision}% · Neto ${(totalConDescuento * (1 - medioSeleccionado.comision * 0.01)).toLocaleString("es-AR")}`
+            : undefined;
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <Breadcrumb items={["Ventas", "Nueva venta"]} onNavigate={(_item, index) => index === 0 && navigate("/ventas")} />
@@ -72,9 +83,9 @@ export function NuevaVentaPage() {
                             </Field>
                             <Field label="Medio de pago" required>
                                 <Select
-                                    value={form.medioPago}
-                                    onChange={(e) => form.setMedioPago(e.target.value as typeof form.medioPago)}
-                                    options={form.mediosPago.map((m) => ({ value: m, label: m[0].toUpperCase() + m.slice(1) }))}
+                                    value={form.medioPago === "" ? "" : String(form.medioPago)}
+                                    onChange={(e) => form.setMedioPago(e.target.value === "" ? "" : Number(e.target.value))}
+                                    options={form.mediosPago.map((m) => ({ value: String(m.id), label: m.nombre }))}
                                     placeholder="Seleccioná un medio de pago"
                                 />
                             </Field>
@@ -100,6 +111,8 @@ export function NuevaVentaPage() {
                                         <>El stock sale del depósito principal («{form.depositoPrincipal}»).</>
                                     ) : undefined
                                 }
+                                descuento={descuentoPct}
+                                totalNota={notaComision}
                             />
                         </div>
 

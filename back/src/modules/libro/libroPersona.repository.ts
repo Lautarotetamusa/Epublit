@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { Database, Tx } from "../../db/client";
 import { librosPersonasTable } from "./libroPersona.schema";
 import { LibroPersonaBody, LibroPersonaRemoveBody } from "./libroPersona.validator";
@@ -12,29 +12,30 @@ export type LibroPersonaRepositoryDeps = {
 // que ese chequeo no lo puede dar una PK/ServiceBuilder por sí sola y se hace
 // explícito en el service, no acá.
 export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps) {
-    const findExistingIds = async (idLibro: number, ids: number[], tx?: Tx) => {
-        return (tx ?? db)
-            .select({ id_persona: librosPersonasTable.id_persona })
-            .from(librosPersonasTable)
-            .where(and(eq(librosPersonasTable.id_libro, idLibro), inArray(librosPersonasTable.id_persona, ids)));
-    };
+    // La identidad de una participación es la terna libro + persona + rol: dos
+    // items coinciden si comparten persona y rol (el libro es el de la query).
+    const porPersonaYRol = (items: { id_persona: number; rol: number }[]) =>
+        items.map((item) => and(eq(librosPersonasTable.id_persona, item.id_persona), eq(librosPersonasTable.id_rol, item.rol)));
 
-    const findExisting = async (idLibro: number, items: LibroPersonaBody[], tx?: Tx) => {
+    const findExisting = async (idLibro: number, items: LibroPersonaRemoveBody[], tx?: Tx) => {
         return (tx ?? db)
-            .select({ id_persona: librosPersonasTable.id_persona, tipo: librosPersonasTable.tipo })
+            .select({ id_persona: librosPersonasTable.id_persona, id_rol: librosPersonasTable.id_rol })
             .from(librosPersonasTable)
-            .where(
-                and(
-                    eq(librosPersonasTable.id_libro, idLibro),
-                    or(...items.map((item) => and(eq(librosPersonasTable.id_persona, item.id_persona), eq(librosPersonasTable.tipo, item.tipo))))
-                )
-            );
+            .where(and(eq(librosPersonasTable.id_libro, idLibro), or(...porPersonaYRol(items))));
     };
 
     const insertMany = async (idLibro: number, isbn: string, items: LibroPersonaBody[], tx?: Tx) => {
         return (tx ?? db)
             .insert(librosPersonasTable)
-            .values(items.map((item) => ({ ...item, isbn, id_libro: idLibro })))
+            .values(
+                items.map((item) => ({
+                    id_persona: item.id_persona,
+                    id_rol: item.rol,
+                    porcentaje: item.porcentaje,
+                    isbn,
+                    id_libro: idLibro
+                }))
+            )
             .returning();
     };
 
@@ -46,7 +47,7 @@ export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps)
                 and(
                     eq(librosPersonasTable.id_libro, idLibro),
                     eq(librosPersonasTable.id_persona, item.id_persona),
-                    eq(librosPersonasTable.tipo, item.tipo)
+                    eq(librosPersonasTable.id_rol, item.rol)
                 )
             )
             .returning();
@@ -54,19 +55,13 @@ export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps)
         return actualizada;
     };
 
-    const removeMany = async (idLibro: number, items: LibroPersonaRemoveBody[]) => {
-        await db
+    const removeMany = async (idLibro: number, items: LibroPersonaRemoveBody[], tx?: Tx) => {
+        await (tx ?? db)
             .delete(librosPersonasTable)
-            .where(
-                and(
-                    eq(librosPersonasTable.id_libro, idLibro),
-                    or(...items.map((item) => and(eq(librosPersonasTable.id_persona, item.id_persona), eq(librosPersonasTable.tipo, item.tipo))))
-                )
-            );
+            .where(and(eq(librosPersonasTable.id_libro, idLibro), or(...porPersonaYRol(items))));
     };
 
     return {
-        findExistingIds,
         findExisting,
         insertMany,
         updatePorcentaje,

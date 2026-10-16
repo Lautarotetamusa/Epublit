@@ -29,7 +29,7 @@ export function CatalogoPage() {
                         <Button
                             variant="secondary"
                             iconStart="arrow-right"
-                            onClick={() => navigate(`/movimientos?isbns=${[...selected].join(",")}`)}
+                            onClick={() => navigate(`/movimientos/nuevo?isbns=${[...selected].join(",")}`)}
                         >
                             Nuevo movimiento ({selected.size})
                         </Button>

@@ -6,9 +6,10 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
-import { expectBadRequest } from './util';
+import { expectBadRequest, expectConflict } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { cuit, isbn } from '../seeders/data';
+import { env } from '../src/env';
 
 // `devolucion` nunca llama a AFIP ni genera comprobante (`generarComprobante:
 // null` en operacion.config.ts): los mocks acá son sólo para poder armar el
@@ -63,10 +64,11 @@ describe('POST /devolucion', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({ cliente: clienteInscripto.id, libros: [{ isbn: ISBN_EN_CONSIGNACION, cantidad: 999 }] });
 
-        expectBadRequest(res);
+        expectConflict(res);
+        expect(res.body.errors[0].code).toBe('StockInsuficiente');
     });
 
-    test('devolución exitosa: reduce el stock del cliente y aumenta el stock general', async () => {
+    test('devolución exitosa: reduce el stock del cliente, sube el principal y el total no cambia', async () => {
         const res = await request(app)
             .post('/devolucion/')
             .set('Authorization', `Bearer ${token}`)
@@ -74,8 +76,8 @@ describe('POST /devolucion', () => {
 
         expect(res.status).toBe(201);
         expect(res.body.data.type).toEqual('devolucion');
-        // Nunca genera archivo (ver operacion.config.ts).
-        expect(res.body.data.file_path).toEqual('');
+        // La devolución emite un comprobante (remito) y lo adjunta al movimiento.
+        expect(res.body.data.file_path).toContain(env.HOST);
 
         const resStock = await request(app)
             .get(`/cliente/${clienteInscripto.id}/stock`)
@@ -86,7 +88,7 @@ describe('POST /devolucion', () => {
         const resLibro = await request(app)
             .get(`/libro/${ISBN_EN_CONSIGNACION}`)
             .set('Authorization', `Bearer ${token}`);
-        expect(resLibro.body.data.stock).toEqual(stockGeneralInicial + 2);
+        expect(resLibro.body.data.stock).toEqual(stockGeneralInicial);
     });
 
     test('GET /devolucion lista la devolución propia', async () => {

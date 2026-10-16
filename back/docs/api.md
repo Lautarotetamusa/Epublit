@@ -52,6 +52,13 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 
 - `GET    /liquidacion/`
 
+## medioPago (/medio_pago)
+
+- `GET    /medio_pago/`
+- `POST   /medio_pago/`
+- `PUT    /medio_pago/:id`
+- `DELETE /medio_pago/:id`
+
 ## movimiento (/movimiento)
 
 - `POST   /movimiento/`
@@ -68,8 +75,16 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `POST   /persona/:id/foto`
 - `DELETE /persona/:id/foto`
 
+## rol (/rol)
+
+- `GET    /rol/`
+- `POST   /rol/`
+- `PUT    /rol/:id`
+- `DELETE /rol/:id`
+
 ## transaccion ()
 
+- `GET    /venta/medios_pago`
 - `GET    /:tipo`
 - `GET    /:tipo/:id`
 - `POST   /:tipo`

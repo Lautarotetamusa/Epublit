@@ -86,7 +86,7 @@ function LibrosConsignadosCard({
             {selected.size > 0 ? (
                 <BarraAccionesSeleccion
                     cantidad={selected.size}
-                    onDevolucion={() => navigate(`/devoluciones?clienteId=${clienteId}&isbns=${isbnsSeleccionados}`)}
+                    onDevolucion={() => navigate(`/devoluciones/nueva?clienteId=${clienteId}&isbns=${isbnsSeleccionados}`)}
                     onVentaConsignacion={() =>
                         navigate(`/ventas/nueva?clienteId=${clienteId}&tipoVenta=consignacion&isbns=${isbnsSeleccionados}`)
                     }

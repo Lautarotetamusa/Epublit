@@ -14,7 +14,7 @@ type VentasFiltrosProps = {
     mediosPago: MedioPago[];
     onClienteChange: (id: VentasFiltrosState["clienteId"]) => void;
     onTipoChange: (tipo: VentasFiltrosState["tipo"]) => void;
-    onMedioPagoChange: (medio: VentasFiltrosState["medioPago"]) => void;
+    onMedioPagoChange: (medioPagoId: VentasFiltrosState["medioPagoId"]) => void;
     onDesdeChange: (fecha: string) => void;
     onHastaChange: (fecha: string) => void;
     onLimpiar: () => void;
@@ -59,9 +59,9 @@ export function VentasFiltros({
                 </Field>
                 <Field label="Medio de pago">
                     <Select
-                        value={filtros.medioPago}
-                        onChange={(e) => onMedioPagoChange(e.target.value as VentasFiltrosState["medioPago"])}
-                        options={mediosPago.map((medio) => ({ value: medio, label: medio[0].toUpperCase() + medio.slice(1) }))}
+                        value={filtros.medioPagoId === "" ? "" : String(filtros.medioPagoId)}
+                        onChange={(e) => onMedioPagoChange(e.target.value === "" ? "" : Number(e.target.value))}
+                        options={mediosPago.map((medio) => ({ value: String(medio.id), label: medio.nombre }))}
                         placeholder="Todos los medios"
                     />
                 </Field>

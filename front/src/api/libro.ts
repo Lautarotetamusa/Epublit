@@ -1,6 +1,7 @@
 import { api, toQueryString } from "./client";
 import type { ListEnvelope } from "./client";
-import type { Persona, TipoPersona } from "./persona";
+import type { Persona } from "./persona";
+import type { Rol } from "./rol";
 import type { StockEnDeposito } from "./deposito";
 
 // Refleja back/src/modules/libro/libro.schema.ts.
@@ -42,16 +43,19 @@ export type Libro = {
 // stock y depósitos.
 export type LibroBase = Pick<Libro, "isbn" | "titulo" | "stock">;
 
+// Una persona que trabaja en el libro, con el rol de la cuenta con el que lo
+// hace: el rol reemplaza al enum fijo `autor | ilustrador` (ver
+// specs/011-roles/plan.md). La misma persona puede aparecer dos veces, con
+// roles distintos.
 export type PersonaEnLibro = Pick<Persona, "nombre" | "email"> & {
     id_persona: number;
     dni: string;
-    tipo: TipoPersona;
+    rol: Rol;
     porcentaje: number;
 };
 
 export type LibroConPersonas = Libro & {
-    autores: PersonaEnLibro[];
-    ilustradores: PersonaEnLibro[];
+    personas: PersonaEnLibro[];
 };
 
 export type CreateLibroInput = {
@@ -88,6 +92,8 @@ export type ListLibrosParams = {
 
 export const listLibros = (params: ListLibrosParams = {}): Promise<ListEnvelope<Libro>> => api.get(`/libro${toQueryString(params)}`);
 
+// El backend expone las personas del libro en una única lista, cada una con su
+// rol de la cuenta (`{ id, nombre }`), ver specs/011-roles/tarea 11.
 export const getLibro = (isbn: string): Promise<{ success: true; data: LibroConPersonas }> => api.get(`/libro/${isbn}`);
 
 // Desglose del stock de un libro entre los depósitos del usuario donde tiene

@@ -1,5 +1,6 @@
 import { api, toQueryString, ApiError } from "./client";
 import type { ApiErrorItem } from "./client";
+import type { MedioPago } from "./operaciones";
 
 // Cliente real de depósitos, stock por depósito y movimientos (ver
 // back/src/modules/deposito y back/src/modules/movimiento, y
@@ -42,10 +43,22 @@ export type Extremo = { tipo: "deposito"; id: number; nombre: string } | { tipo:
 // nombre, sólo el identificador del depósito elegido.
 export type ExtremoInput = { tipo: "deposito"; id: number } | { tipo: "exterior" };
 
-// Los tres casos que puede expresar un movimiento, derivados de sus extremos:
-// exterior → depósito (entra stock), depósito → exterior (sale stock) y
-// depósito → depósito (se mueve stock).
-export type TipoMovimiento = "ingreso" | "baja" | "transferencia";
+// El tipo de un movimiento es explícito: ya no se deriva de sus extremos (ver
+// specs/009-ledger-unificado). Una venta y una baja comparten depósito →
+// exterior y sólo se distinguen por el tipo. Los tres primeros son los que
+// registra el alta manual; el resto los generan las operaciones comerciales.
+export type TipoMovimiento =
+    | "ingreso"
+    | "baja"
+    | "transferencia"
+    | "venta"
+    | "consignacion"
+    | "ventaConsignacion"
+    | "devolucion";
+
+// Los que puede registrar el alta manual (`POST /movimiento/`): el formulario
+// se tipa con esto para no habilitar un tipo que el backend rechaza.
+export type TipoMovimientoManual = "ingreso" | "baja" | "transferencia";
 
 export type LineaMovimientoInput = {
     isbn: string;
@@ -62,14 +75,36 @@ export type LibroEnMovimiento = {
     isbn: string;
     titulo: string;
     cantidad: number;
+    // Precio unitario: sólo lo traen los movimientos comerciales.
+    precio?: number;
+};
+
+// Cliente de una operación comercial; `null` en los movimientos manuales.
+export type ClienteDeMovimiento = { id: number; nombre: string };
+
+// Extensión de venta derivada del movimiento: existe sólo en `venta` y
+// `ventaConsignacion`. `tipo_cbte` es el número de comprobante AFIP,
+// `medio_pago` el objeto de la cuenta (el nombre sigue siendo legible aunque
+// el medio esté dado de baja) y `descuento`/`total`/`neto` importes.
+export type VentaDeMovimiento = {
+    tipo_cbte: number;
+    medio_pago: MedioPago | null;
+    descuento: number | null;
+    total: number;
+    neto: number;
 };
 
 export type Movimiento = {
     id: number;
     fecha: string;
+    tipo: TipoMovimiento;
     origen: Extremo;
     destino: Extremo;
     libros: LibroEnMovimiento[];
+    cliente: ClienteDeMovimiento | null;
+    // URL del comprobante/remito emitido, o `null` en los movimientos manuales.
+    file_path: string | null;
+    venta: VentaDeMovimiento | null;
 };
 
 // Página del historial: la paginación la resuelve el servidor.
@@ -87,6 +122,10 @@ export type StockEnDeposito = {
     nombre: string;
     cantidad: number;
     principal: boolean;
+    // Depósito propio de un cliente (stock consignado): `null` cuando es un
+    // depósito del usuario. La ficha del libro los distingue para no linkear a
+    // `/depositos/:id`, que daría 404.
+    cliente_id: number | null;
 };
 
 // Desglose de un libro entre los depósitos donde tiene stock, más el total
@@ -126,8 +165,21 @@ export const updateDeposito = (id: number, input: UpdateDepositoInput): Promise<
 // 204 sin body: no hay sobre `{ success }` que leer (ver plan, "Diseño de API").
 export const deleteDeposito = (id: number): Promise<void> => api.del<void>(`/deposito/${id}`);
 
+// Params del `GET /movimiento/`: los filtros viajan al backend (el listado
+// pagina server-side, ver `PaginaMovimientos`), `deposito` matchea si el id es
+// origen o destino y `hasta` es inclusivo.
+export type ListMovimientosParams = {
+    pagina?: number;
+    porPagina?: number;
+    tipo?: TipoMovimiento;
+    deposito?: number;
+    cliente?: number;
+    desde?: string;
+    hasta?: string;
+};
+
 export const listMovimientos = (
-    params: { pagina?: number; porPagina?: number } = {}
+    params: ListMovimientosParams = {}
 ): Promise<{ success: true; data: PaginaMovimientos }> => api.get(`/movimiento${toQueryString(params)}`);
 
 export const getMovimiento = (id: number): Promise<{ success: true; data: Movimiento }> => api.get(`/movimiento/${id}`);

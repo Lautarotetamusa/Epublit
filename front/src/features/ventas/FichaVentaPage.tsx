@@ -19,8 +19,10 @@ export function FichaVentaPage() {
                 <dl style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-4)" }}>
                     <Detalle label="Tipo" value={venta.type === "venta" ? "En firme" : "Sobre consignado"} />
                     <Detalle label="CUIT" value={venta.cuit ?? "-"} />
-                    <Detalle label="Medio de pago" value={venta.medio_pago} />
+                    <Detalle label="Medio de pago" value={venta.medio_pago.nombre} />
                     <Detalle label="Fecha" value={new Date(venta.fecha).toLocaleDateString("es-AR")} />
+                    <Detalle label="Comisión (%)" value={`${venta.medio_pago.comision.toLocaleString("es-AR")}%`} />
+                    <Detalle label="Neto" value={venta.neto.toLocaleString("es-AR")} />
                 </dl>
             </Card>
 

@@ -26,7 +26,7 @@ export function createDepositoService({ repository }: DepositoServiceDeps) {
     };
 
     const findAll = async (userId: number): Promise<PublicDeposito[]> => {
-        const depositos = await repository.findAll({ user: userId });
+        const depositos = await repository.findPropios(userId);
         const resumenes = await repository.getResumenes(userId);
 
         return depositos.map((deposito) =>
@@ -35,14 +35,15 @@ export function createDepositoService({ repository }: DepositoServiceDeps) {
     };
 
     const findOne = async (id: number, userId: number): Promise<PublicDeposito> => {
-        const deposito = await repository.findOne({ id, user: userId });
+        const deposito = await repository.findPropio(id, userId);
 
         return toPublic(deposito, await repository.getResumen(id, userId));
     };
 
     const update = async (id: number, userId: number, data: DepositoUpdate): Promise<PublicDeposito> => {
-        // Valida existencia/dueño antes de tocar nada (404 si no es del usuario).
-        await repository.findOne({ id, user: userId });
+        // Valida existencia/dueño antes de tocar nada (404 si no es del usuario
+        // o si es el depósito propio de un cliente).
+        await repository.findPropio(id, userId);
 
         await repository.update({ id, user: userId }, data);
 
@@ -51,9 +52,9 @@ export function createDepositoService({ repository }: DepositoServiceDeps) {
 
     // Dos rechazos distintos de negocio: el principal (403) y el que todavía
     // tiene stock (409, con las cifras que lo bloquean). El 404 de inexistente
-    // o de otro usuario sale de `findOne`.
+    // o de otro usuario sale de `findPropio`.
     const remove = async (id: number, userId: number): Promise<void> => {
-        const deposito = await repository.findOne({ id, user: userId });
+        const deposito = await repository.findPropio(id, userId);
 
         if (deposito.principal) {
             throw new DepositoPrincipal("El depósito principal no se puede eliminar");
@@ -72,7 +73,7 @@ export function createDepositoService({ repository }: DepositoServiceDeps) {
     };
 
     const getLibros = async (id: number, userId: number) => {
-        const deposito = await repository.findOne({ id, user: userId });
+        const deposito = await repository.findPropio(id, userId);
 
         return {
             deposito: toPublic(deposito, await repository.getResumen(id, userId)),

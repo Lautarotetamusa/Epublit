@@ -6,6 +6,8 @@
 import { Database } from "../../db/client";
 import { AfipService } from "../../lib/afip/Afip";
 import { DepositoRepository } from "../deposito";
+import { MedioPagoRepository } from "../medioPago";
+import { RolRepository } from "../rol";
 import { createUserRepository } from "./user.repository";
 import { createUserService } from "./user.service";
 import { createUserController } from "./user.controller";
@@ -20,11 +22,15 @@ export type UserModuleDeps = {
     afipService: AfipService;
     // Sólo inserción del depósito principal en el alta del usuario.
     depositoRepository: Pick<DepositoRepository, "insert">;
+    // Sólo inserción de los medios de pago por defecto en el alta.
+    medioPagoRepository: Pick<MedioPagoRepository, "insertDefaults">;
+    // Sólo inserción de los roles por defecto en el alta.
+    rolRepository: Pick<RolRepository, "insertDefaults">;
 };
 
-export function createUserModule({ db, afipService, depositoRepository }: UserModuleDeps) {
+export function createUserModule({ db, afipService, depositoRepository, medioPagoRepository, rolRepository }: UserModuleDeps) {
     const repository = createUserRepository({ db });
-    const service = createUserService({ db, repository, afipService, depositoRepository });
+    const service = createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository });
     const controller = createUserController({ service });
     const router = createUserRoutes(controller);
 

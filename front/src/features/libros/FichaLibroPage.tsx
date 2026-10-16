@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, Button, Breadcrumb } from "../../design-system";
+import { Card, Button, Breadcrumb, EmptyState } from "../../design-system";
 import type { Coleccion } from "../../api/coleccion";
 import { useFichaLibro } from "./useFichaLibro";
 import { PersonasLibroSection } from "./PersonasLibroSection";
@@ -17,8 +17,10 @@ export function FichaLibroPage() {
         libro,
         personas,
         colecciones,
+        roles,
         idColeccion,
         loading,
+        error,
         update,
         agregarPersonaExistente,
         agregarPersonaNueva,
@@ -28,7 +30,20 @@ export function FichaLibroPage() {
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    if (loading || !libro) return <FullscreenSpinner />;
+    if (loading) return <FullscreenSpinner />;
+
+    if (!libro) {
+        return (
+            <Card>
+                <EmptyState
+                    icon="library"
+                    title="No se pudo cargar el libro"
+                    description={error ?? "Puede que lo hayas eliminado, o que el enlace esté mal."}
+                    action={<Button onClick={() => navigate("/libros")}>Volver a libros</Button>}
+                />
+            </Card>
+        );
+    }
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -49,8 +64,9 @@ export function FichaLibroPage() {
             />
             <StockLibroCard libro={libro} />
             <PersonasLibroSection
-                personasEnLibro={[...libro.autores, ...libro.ilustradores]}
+                personasEnLibro={libro.personas}
                 todasLasPersonas={personas}
+                roles={roles}
                 onAgregarExistente={agregarPersonaExistente}
                 onAgregarNueva={agregarPersonaNueva}
                 onActualizarPorcentaje={actualizarPorcentaje}

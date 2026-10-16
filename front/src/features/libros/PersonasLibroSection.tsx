@@ -1,43 +1,50 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Card, Button, IconButton, Input, Field, Select, Dialog, Table, Badge } from "../../design-system";
+import { useNavigate } from "react-router-dom";
+import { Alert, Card, Button, IconButton, Input, Field, Select, Dialog, Table, Badge } from "../../design-system";
 import type { PersonaEnLibro } from "../../api/libro";
-import type { Persona, CreatePersonaInput, TipoPersona } from "../../api/persona";
+import type { Rol } from "../../api/rol";
+import type { Persona, CreatePersonaInput } from "../../api/persona";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
 import { sanitizeDecimal, sanitizeInteger, clampRange } from "../../lib/numericInput";
 import { isValidEmail } from "../../lib/validation";
-
-const TIPO_LABEL: Record<TipoPersona, string> = { autor: "Autor", ilustrador: "Ilustrador" };
-const TIPO_OPTIONS = Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }));
+import { nombreVisible, opcionesDeRol, tonoDeRol } from "../roles/presentacionRol";
 
 type Props = {
     personasEnLibro: PersonaEnLibro[];
     todasLasPersonas: Persona[];
-    onAgregarExistente: (tipo: TipoPersona, idPersona: number, porcentaje: number) => Promise<void>;
-    onAgregarNueva: (tipo: TipoPersona, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
-    onActualizarPorcentaje: (tipo: TipoPersona, idPersona: number, porcentaje: number) => Promise<void>;
-    onQuitar: (tipo: TipoPersona, idPersona: number) => Promise<void>;
+    // Los roles activos de la cuenta (plan 011): el rol con el que una persona
+    // trabaja en un libro ya no es un enum fijo, sale de acá.
+    roles: Rol[];
+    onAgregarExistente: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
+    onAgregarNueva: (rol: Rol, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
+    onActualizarPorcentaje: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
+    onQuitar: (rol: Rol, idPersona: number) => Promise<void>;
 };
 
-// Autores e ilustradores son la misma relación libro-persona con distinto
-// `tipo` (ver back/src/modules/libroPersona), así que comparten una sola
-// tabla en vez de una sección por tipo.
+// Todas las personas del libro son la misma relación libro-persona con distinto
+// rol (ver back/src/modules/libroPersona), así que comparten una sola tabla en
+// vez de una sección por rol.
 export function PersonasLibroSection({
     personasEnLibro,
     todasLasPersonas,
+    roles,
     onAgregarExistente,
     onAgregarNueva,
     onActualizarPorcentaje,
     onQuitar
 }: Props) {
     const { showToast } = useToast();
+    const navigate = useNavigate();
     const [showExistente, setShowExistente] = useState(false);
     const [showNueva, setShowNueva] = useState(false);
 
+    const sinRoles = roles.length === 0;
+
     const handleQuitar = async (p: PersonaEnLibro) => {
         try {
-            await onQuitar(p.tipo, p.id_persona);
+            await onQuitar(p.rol, p.id_persona);
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -48,7 +55,7 @@ export function PersonasLibroSection({
         const porcentaje = Number(value);
         if (porcentaje === p.porcentaje || Number.isNaN(porcentaje)) return;
         try {
-            await onActualizarPorcentaje(p.tipo, p.id_persona, porcentaje);
+            await onActualizarPorcentaje(p.rol, p.id_persona, porcentaje);
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -56,26 +63,38 @@ export function PersonasLibroSection({
 
     return (
         <Card
-            title="Autores e ilustradores"
+            title="Personas en el libro"
+            subtitle="Una persona puede tener más de un rol en el mismo libro."
             padded={false}
             actions={
                 <>
-                    <Button variant="secondary" size="sm" onClick={() => setShowExistente(true)}>
+                    <Button variant="secondary" size="sm" disabled={sinRoles} onClick={() => setShowExistente(true)}>
                         Persona existente
                     </Button>
-                    <Button variant="secondary" size="sm" onClick={() => setShowNueva(true)}>
+                    <Button variant="secondary" size="sm" disabled={sinRoles} onClick={() => setShowNueva(true)}>
                         Nueva persona
                     </Button>
                 </>
             }
         >
+            {sinRoles ? (
+                <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border-subtle)" }}>
+                    <Alert tone="warning" title="Todavía no hay roles cargados">
+                        Sin roles no se puede asignar a nadie a un libro. Cargá al menos uno para seguir.
+                    </Alert>
+                    <Button variant="secondary" size="sm" style={{ marginTop: "var(--space-3)" }} onClick={() => navigate("/roles/nuevo")}>
+                        Nuevo rol
+                    </Button>
+                </div>
+            ) : null}
+
             <Table
                 columns={[
                     { header: "Nombre", key: "nombre" },
                     {
                         header: "Rol",
                         cell: (p: PersonaEnLibro) => (
-                            <Badge tone={p.tipo === "autor" ? "brand" : "accent"}>{TIPO_LABEL[p.tipo]}</Badge>
+                            <Badge tone={tonoDeRol(p.rol)}>{nombreVisible(p.rol.nombre)}</Badge>
                         )
                     },
                     {
@@ -108,17 +127,18 @@ export function PersonasLibroSection({
                     }
                 ]}
                 rows={personasEnLibro}
-                empty="Todavía no hay autores ni ilustradores en este libro."
+                empty="Todavía no hay personas en este libro."
             />
 
             {showExistente ? (
                 <AgregarExistenteDialog
                     personasEnLibro={personasEnLibro}
                     todasLasPersonas={todasLasPersonas}
+                    roles={roles}
                     onClose={() => setShowExistente(false)}
-                    onSave={async (tipo, idPersona, porcentaje) => {
+                    onSave={async (rol, idPersona, porcentaje) => {
                         try {
-                            await onAgregarExistente(tipo, idPersona, porcentaje);
+                            await onAgregarExistente(rol, idPersona, porcentaje);
                             setShowExistente(false);
                         } catch (err) {
                             showToast("error", getErrorMessage(err));
@@ -129,10 +149,11 @@ export function PersonasLibroSection({
 
             {showNueva ? (
                 <AgregarNuevaDialog
+                    roles={roles}
                     onClose={() => setShowNueva(false)}
-                    onSave={async (tipo, input, porcentaje) => {
+                    onSave={async (rol, input, porcentaje) => {
                         try {
-                            await onAgregarNueva(tipo, input, porcentaje);
+                            await onAgregarNueva(rol, input, porcentaje);
                             setShowNueva(false);
                         } catch (err) {
                             showToast("error", getErrorMessage(err));
@@ -144,37 +165,40 @@ export function PersonasLibroSection({
     );
 }
 
+// Ya trabajó en algún libro con ese rol: no se puede repetir la misma persona
+// con el mismo rol en el mismo libro (plan 011, tarea 8).
+const disponiblesPara = (todasLasPersonas: Persona[], personasEnLibro: PersonaEnLibro[], idRol: number): Persona[] =>
+    todasLasPersonas.filter((p) => !personasEnLibro.some((pl) => pl.id_persona === p.id && pl.rol.id === idRol));
+
 function AgregarExistenteDialog({
     personasEnLibro,
     todasLasPersonas,
+    roles,
     onClose,
     onSave
 }: {
     personasEnLibro: PersonaEnLibro[];
     todasLasPersonas: Persona[];
+    roles: Rol[];
     onClose: () => void;
-    onSave: (tipo: TipoPersona, idPersona: number, porcentaje: number) => Promise<void>;
+    onSave: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
 }) {
-    const [tipo, setTipo] = useState<TipoPersona>("autor");
-    const disponibles = todasLasPersonas.filter(
-        (p) => !personasEnLibro.some((pl) => pl.id_persona === p.id && pl.tipo === tipo)
-    );
+    const [idRol, setIdRol] = useState(roles[0]?.id ?? 0);
+    const disponibles = disponiblesPara(todasLasPersonas, personasEnLibro, idRol);
     const [idPersona, setIdPersona] = useState<number | "">(disponibles[0]?.id ?? "");
     const [porcentaje, setPorcentaje] = useState("0");
     const [saving, setSaving] = useState(false);
 
-    const handleTipoChange = (nuevoTipo: TipoPersona) => {
-        setTipo(nuevoTipo);
-        const disponiblesParaTipo = todasLasPersonas.filter(
-            (p) => !personasEnLibro.some((pl) => pl.id_persona === p.id && pl.tipo === nuevoTipo)
-        );
-        setIdPersona(disponiblesParaTipo[0]?.id ?? "");
+    const handleRolChange = (nuevoId: number) => {
+        setIdRol(nuevoId);
+        setIdPersona(disponiblesPara(todasLasPersonas, personasEnLibro, nuevoId)[0]?.id ?? "");
     };
 
     const handleSave = async () => {
-        if (idPersona === "") return;
+        const rol = roles.find((candidato) => candidato.id === idRol);
+        if (idPersona === "" || !rol) return;
         setSaving(true);
-        await onSave(tipo, Number(idPersona), Number(clampRange(porcentaje, 0, 100)));
+        await onSave(rol, Number(idPersona), Number(clampRange(porcentaje, 0, 100)));
         setSaving(false);
     };
 
@@ -195,13 +219,14 @@ function AgregarExistenteDialog({
             }
         >
             <Field label="Rol">
-                <Select value={tipo} onChange={(e) => handleTipoChange(e.target.value as TipoPersona)} options={TIPO_OPTIONS} />
+                <Select value={String(idRol)} onChange={(e) => handleRolChange(Number(e.target.value))} options={opcionesDeRol(roles)} />
             </Field>
             <Field label="Persona" style={{ marginTop: "var(--space-4)" }}>
                 <Select
                     value={String(idPersona)}
                     onChange={(e) => setIdPersona(Number(e.target.value))}
                     options={disponibles.map((p) => ({ value: String(p.id), label: p.nombre }))}
+                    placeholder={disponibles.length === 0 ? "No queda nadie con ese rol" : undefined}
                 />
             </Field>
             <Field label="Porcentaje" style={{ marginTop: "var(--space-4)" }}>
@@ -218,13 +243,15 @@ function AgregarExistenteDialog({
 }
 
 function AgregarNuevaDialog({
+    roles,
     onClose,
     onSave
 }: {
+    roles: Rol[];
     onClose: () => void;
-    onSave: (tipo: TipoPersona, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
+    onSave: (rol: Rol, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
 }) {
-    const [tipo, setTipo] = useState<TipoPersona>("autor");
+    const [idRol, setIdRol] = useState(roles[0]?.id ?? 0);
     const [inputs, setInputs] = useState({ nombre: "", email: "", dni: "", porcentaje: "0" });
     const [saving, setSaving] = useState(false);
     const [emailTouched, setEmailTouched] = useState(false);
@@ -233,8 +260,10 @@ function AgregarNuevaDialog({
 
     const handleSave = async (event: FormEvent) => {
         event.preventDefault();
+        const rol = roles.find((candidato) => candidato.id === idRol);
+        if (!rol) return;
         setSaving(true);
-        await onSave(tipo, { nombre: inputs.nombre, email: inputs.email, dni: inputs.dni }, Number(clampRange(inputs.porcentaje, 0, 100)));
+        await onSave(rol, { nombre: inputs.nombre, email: inputs.email, dni: inputs.dni }, Number(clampRange(inputs.porcentaje, 0, 100)));
         setSaving(false);
     };
 
@@ -256,7 +285,7 @@ function AgregarNuevaDialog({
         >
             <form onSubmit={handleSave}>
                 <Field label="Rol">
-                    <Select value={tipo} onChange={(e) => setTipo(e.target.value as TipoPersona)} options={TIPO_OPTIONS} />
+                    <Select value={String(idRol)} onChange={(e) => setIdRol(Number(e.target.value))} options={opcionesDeRol(roles)} />
                 </Field>
                 <Field label="Nombre" required style={{ marginTop: "var(--space-4)" }}>
                     <Input value={inputs.nombre} onChange={(e) => setInputs((v) => ({ ...v, nombre: e.target.value }))} />

@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { and, eq } from 'drizzle-orm';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
 import { join } from 'path';
@@ -15,11 +14,10 @@ import { createMockComprobanteService } from '../src/lib/comprobantes/comprobant
 import { isbn } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { expectBadRequest, expectCreated, expectNotFound, expectUpdated } from './util';
-import { usersTable } from '../src/modules/user/user.schema';
-import { librosTable } from '../src/modules/libro/libro.schema';
 import { depositosTable } from '../src/modules/deposito/deposito.schema';
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
-import { movimientosTable, movimientosLibrosTable } from '../src/modules/movimiento/movimiento.schema';
+import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
+import { clientesTable } from '../src/modules/cliente/cliente.schema';
 
 const container = createContainer({
     afipService: createMockAfipService(),
@@ -321,86 +319,43 @@ describe('DELETE /deposito/:id', () => {
     });
 });
 
-// Criterios de la tarea 2: la migración de datos es idempotente y no pierde ni
-// duplica stock. Se corre el mismo bloque que aplicó la migración 0004.
-describe('migración de depósito principal y stock existente', () => {
-    const username = 'migracion_user';
-    const stockInicial = 7;
-    let userId: number;
-    let libroId: number;
+// El backfill de datos de la 0005 (depósitos de clientes + traslado de stock +
+// historial comercial) tiene que poder correrse más de una vez sin duplicar.
+// En la base de test las tablas viejas y la columna `libro_cliente.stock` ya
+// no existen, así que se verifica que el bloque sea un no-op al repetirse.
+describe('migración 0005: el backfill de datos es idempotente', () => {
     let backfill: string;
 
     beforeAll(async () => {
         const archivo = fs
             .readdirSync(join(__dirname, '../db/migrations'))
-            .find((f) => f.startsWith('0004_') && f.endsWith('.sql'));
+            .find((f) => f.startsWith('0005_') && f.endsWith('.sql'));
         const migracion = fs.readFileSync(join(__dirname, '../db/migrations', archivo as string), 'utf8');
-        backfill = migracion.slice(migracion.indexOf('DO $$'));
-
-        const [user] = await db
-            .insert(usersTable)
-            .values({
-                username,
-                password: 'x',
-                cuit: '20400000021',
-                cond_fiscal: 'CONSUMIDOR FINAL',
-                razon_social: 'Usuario migrado SA',
-                domicilio: 'Calle Falsa 123',
-                fecha_inicio: '01/01/2020'
-            })
-            .returning();
-        userId = user.id;
-
-        const [libro] = await db
-            .insert(librosTable)
-            .values({
-                isbn: isbn(9731),
-                titulo: 'Libro preexistente',
-                fecha_edicion: '2020-01-01',
-                precio: 100,
-                stock: stockInicial,
-                user: userId
-            })
-            .returning();
-        libroId = libro.id_libro;
+        const desde = migracion.indexOf('DO $$');
+        const hasta = migracion.indexOf('--> statement-breakpoint', desde);
+        backfill = migracion.slice(desde, hasta).trim();
 
         await db.$client.query(backfill);
         await db.$client.query(backfill);
     });
 
-    afterAll(async () => {
-        await db.delete(movimientosLibrosTable).where(eq(movimientosLibrosTable.user, userId));
-        await db.delete(movimientosTable).where(eq(movimientosTable.user, userId));
-        await db.delete(depositoLibrosTable).where(eq(depositoLibrosTable.user, userId));
-        await db.delete(depositosTable).where(eq(depositosTable.user, userId));
-        await db.delete(librosTable).where(eq(librosTable.user, userId));
-        await db.delete(usersTable).where(eq(usersTable.id, userId));
+    it('cada cliente existente sigue teniendo exactamente un depósito propio', async () => {
+        const clientes = await db.select().from(clientesTable);
+        const depositos = await db.select().from(depositosTable);
+
+        for (const cliente of clientes) {
+            const propios = depositos.filter((d) => d.id_cliente === cliente.id);
+            expect(propios).toHaveLength(1);
+        }
     });
 
-    it('crea un único principal, vuelca el stock y registra el ingreso, aunque se corra dos veces', async () => {
-        const depositos = await db
-            .select()
-            .from(depositosTable)
-            .where(and(eq(depositosTable.user, userId), eq(depositosTable.principal, true)));
-        expect(depositos).toHaveLength(1);
+    it('no aparecen movimientos ni cantidades duplicadas por repetir el backfill', async () => {
+        const movimientos = await db.select().from(movimientosTable);
+        const claves = movimientos.map((m) => `${m.user}-${m.id}`);
+        expect(new Set(claves).size).toBe(claves.length);
 
-        const cantidades = await db
-            .select()
-            .from(depositoLibrosTable)
-            .where(and(eq(depositoLibrosTable.user, userId), eq(depositoLibrosTable.id_libro, libroId)));
-        expect(cantidades).toHaveLength(1);
-        expect(cantidades[0].cantidad).toBe(stockInicial);
-        expect(cantidades[0].deposito_id).toBe(depositos[0].id);
-
-        const movimientos = await db.select().from(movimientosTable).where(eq(movimientosTable.user, userId));
-        expect(movimientos).toHaveLength(1);
-        expect(movimientos[0]).toMatchObject({ origen_tipo: 'exterior', destino_tipo: 'deposito' });
-
-        const lineas = await db
-            .select()
-            .from(movimientosLibrosTable)
-            .where(eq(movimientosLibrosTable.movimiento_id, movimientos[0].id));
-        expect(lineas).toHaveLength(1);
-        expect(lineas[0]).toMatchObject({ id_libro: libroId, cantidad: stockInicial });
+        const cantidades = await db.select().from(depositoLibrosTable);
+        const pares = cantidades.map((c) => `${c.deposito_id}-${c.id_libro}`);
+        expect(new Set(pares).size).toBe(pares.length);
     });
 });

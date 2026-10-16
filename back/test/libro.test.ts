@@ -92,15 +92,27 @@ describe('GET /libro/:isbn', () => {
         expectNotFound(res);
     });
 
-    it('devuelve el libro con autores/ilustradores', async () => {
+    it('devuelve el libro con sus personas y el rol de cada una', async () => {
         const res = await request(app)
             .get(`/libro/${ISBN_LIBRO_1}`)
             .set('Authorization', `Bearer ${token}`);
 
         expect(res.status).toEqual(200);
         expect(res.body.data.isbn).toEqual(ISBN_LIBRO_1);
-        expect(res.body.data.autores).toBeInstanceOf(Array);
-        expect(res.body.data.ilustradores).toBeInstanceOf(Array);
+        // Una única lista (ya no `autores`/`ilustradores`), cada persona con su
+        // rol de la cuenta como { id, nombre } (ver specs/011-roles, tarea 11).
+        expect(res.body.data.personas).toBeInstanceOf(Array);
+        expect(res.body.data.autores).toBeUndefined();
+        expect(res.body.data.ilustradores).toBeUndefined();
+        for (const persona of res.body.data.personas) {
+            expect(persona).toMatchObject({
+                id_persona: expect.any(Number),
+                dni: expect.any(String),
+                nombre: expect.any(String),
+                rol: { id: expect.any(Number), nombre: expect.any(String) }
+            });
+            expect(persona.porcentaje).toBeTypeOf('number');
+        }
     });
 });
 

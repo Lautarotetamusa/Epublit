@@ -3,14 +3,14 @@ import type { TipoCliente } from "./cliente";
 
 export type TipoOperacion = "venta" | "consignacion" | "devolucion" | "ventaConsignacion";
 
-export const medioPago = {
-    efectivo: "efectivo",
-    debito: "debito",
-    credito: "credito",
-    mercadopago: "mercadopago",
-    transferencia: "transferencia"
-} as const;
-export type MedioPago = keyof typeof medioPago;
+// El medio de pago dejó de ser un valor fijo y pasó a ser un recurso de cada
+// cuenta (ver specs/010-medios-pago). El tipo vive acá porque la venta lo
+// expone en `Venta.medio_pago` y `getMediosPago` ya vivía en este módulo.
+export type MedioPago = {
+    id: number;
+    nombre: string;
+    comision: number;
+};
 
 // Refleja back/src/modules/transaccion/venta.validator.ts#tiposComprobantes:
 // sólo "11" (Factura C) está habilitado hoy en la práctica (el resto exige
@@ -53,6 +53,8 @@ export type Venta = Operacion & {
     medio_pago: MedioPago;
     tipo_cbte: TipoCbte;
     total: number;
+    // Derivado de la comisión congelada en la venta: `total − (comision/100)·total`.
+    neto: number;
 };
 
 export type OperacionDetalle = Operacion & { libros: LibroOperacion[] };
@@ -64,7 +66,8 @@ export type CreateVentaInput = {
     cliente: number;
     libros: LibroCantidadInput[];
     descuento?: number;
-    medio_pago: MedioPago;
+    // Id del medio de pago de la cuenta (ya no el valor fijo de antes).
+    medio_pago: number;
     tipo_cbte: TipoCbte;
 };
 
@@ -78,8 +81,8 @@ export type CreateConsignacionInput = {
     libros: LibroCantidadInput[];
 };
 
-// `GET /venta/medios_pago` es la única ruta que devuelve un array pelado
-// (sin sobre `{success,data}`, ver back/src/app.ts).
+// `GET /venta/medios_pago` devuelve el mismo array pelado que `GET /medio_pago/`
+// (sin sobre `{success,data}`, ver back/src/modules/medioPago/medioPago.controller.ts).
 export const getMediosPago = (): Promise<MedioPago[]> => api.get("/venta/medios_pago");
 
 // Las 4 rutas de operaciones (`/venta`, `/consignacion`, `/devolucion`,
@@ -101,6 +104,8 @@ export const createConsignacion = (
     input: CreateConsignacionInput
 ): Promise<{ success: true; data: OperacionDetalle }> => api.post("/consignacion", input);
 
+export const listDevoluciones = (): Promise<{ success: true; data: Operacion[] }> => api.get("/devolucion");
+export const getDevolucion = (id: number): Promise<{ success: true; data: OperacionDetalle }> => api.get(`/devolucion/${id}`);
 export const createDevolucion = (
     input: CreateConsignacionInput
 ): Promise<{ success: true; data: OperacionDetalle }> => api.post("/devolucion", input);

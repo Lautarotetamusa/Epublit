@@ -4,6 +4,26 @@ import type { Libro } from "../../api/libro";
 import type { StockEnDeposito } from "../../api/deposito";
 import { useDesgloseLibro } from "./useDesgloseLibro";
 
+// Un renglón del desglose. Un depósito propio linkea a su ficha; el depósito de
+// un cliente es stock consignado y no tiene ficha de depósito (daría 404), así
+// que se distingue con otro icono, se rotula "en consignación" y va a la ficha
+// del cliente.
+function CeldaDeposito({ row }: { row: StockEnDeposito }) {
+    const enConsignacion = row.cliente_id !== null;
+
+    return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <Icon name={enConsignacion ? "store" : "building-2"} size={14} color="var(--text-subtle)" />
+            {row.nombre}
+            {enConsignacion ? (
+                <span style={{ color: "var(--text-subtle)" }}>(en consignación)</span>
+            ) : row.principal ? (
+                <span style={{ color: "var(--text-subtle)" }}>(principal)</span>
+            ) : null}
+        </span>
+    );
+}
+
 // El stock de un libro: el total (suma de los depósitos, sólo lectura) y el
 // desglose de en qué depósitos está y cuánto en cada uno. No hay ningún campo
 // para editarlo: para cargar o corregir ejemplares se registra un movimiento.
@@ -11,12 +31,15 @@ export function StockLibroCard({ libro }: { libro: Libro }) {
     const navigate = useNavigate();
     const { depositos, loading } = useDesgloseLibro(libro.isbn);
     const total = libro.stock ?? 0;
-    const irAIngreso = () => navigate(`/movimientos?tipo=ingreso&isbns=${libro.isbn}`);
+    const irAIngreso = () => navigate(`/movimientos/nuevo?tipo=ingreso&isbns=${libro.isbn}`);
+
+    const abrirFila = (row: StockEnDeposito) =>
+        navigate(row.cliente_id !== null ? `/clientes/${row.cliente_id}` : `/depositos/${row.id}`);
 
     return (
         <Card
             title="Stock"
-            subtitle="La suma de los depósitos donde está el libro. Sólo se modifica con movimientos."
+            subtitle="La suma de los depósitos donde está el libro, incluido lo consignado en clientes. Sólo se modifica con movimientos."
             padded={false}
             actions={
                 <Button variant="secondary" size="sm" iconStart="arrow-right" onClick={irAIngreso}>
@@ -44,20 +67,11 @@ export function StockLibroCard({ libro }: { libro: Libro }) {
 
             <Table
                 columns={[
-                    {
-                        header: "Depósito",
-                        cell: (row: StockEnDeposito) => (
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
-                                <Icon name="building-2" size={14} color="var(--text-subtle)" />
-                                {row.nombre}
-                                {row.principal ? <span style={{ color: "var(--text-subtle)" }}>(principal)</span> : null}
-                            </span>
-                        )
-                    },
+                    { header: "Depósito", cell: (row: StockEnDeposito) => <CeldaDeposito row={row} /> },
                     { header: "Ejemplares", key: "cantidad", align: "right", mono: true }
                 ]}
                 rows={depositos}
-                onRowClick={(row: StockEnDeposito) => navigate(`/depositos/${row.id}`)}
+                onRowClick={abrirFila}
                 empty={
                     loading ? (
                         "Cargando..."

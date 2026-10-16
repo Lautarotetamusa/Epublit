@@ -143,7 +143,7 @@ function EditarPerfilDialog({
     );
 }
 
-// Restricciones para la foto de autores/ilustradores (ver PhotoUpload en el
+// Restricciones para la foto de las personas (ver PhotoUpload en el
 // sistema de diseño): viven acá, editables por la editorial, en vez de
 // fijas en el componente — así una editorial puede pedir fotos más livianas
 // o de mayor resolución sin que alguien toque código (ver "Datos
@@ -156,7 +156,7 @@ function RestriccionesFotoCard({ user, onSave }: { user: RestriccionesFoto; onSa
     return (
         <Card
             title="Restricciones de fotos"
-            subtitle="Se aplican al subir la foto de un autor o ilustrador."
+            subtitle="Se aplican al subir la foto de una persona."
             actions={
                 <Button variant="secondary" size="sm" iconStart="pencil" onClick={() => setShowEdit(true)}>
                     Editar restricciones

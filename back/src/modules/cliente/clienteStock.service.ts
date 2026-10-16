@@ -1,4 +1,5 @@
 import { Database } from "../../db/client";
+import { DepositoRepository } from "../deposito";
 import { ClienteRepository } from "./cliente.repository";
 import { ClienteStockRepository } from "./clienteStock.repository";
 
@@ -6,13 +7,18 @@ export type ClienteStockServiceDeps = {
     db: Database;
     repository: ClienteStockRepository;
     clienteRepository: ClienteRepository;
+    // El stock consignado vive en el depósito propio del cliente.
+    depositoRepository: Pick<DepositoRepository, "findClienteDeposito">;
 };
 
-export function createClienteStockService({ db, repository, clienteRepository }: ClienteStockServiceDeps) {
+export function createClienteStockService({ db, repository, clienteRepository, depositoRepository }: ClienteStockServiceDeps) {
     const getStock = async (clienteId: number, userId: number, fecha?: Date) => {
         const cliente = await clienteRepository.findOne({ id: clienteId, user: userId });
+        const deposito = await depositoRepository.findClienteDeposito(cliente.id, userId);
 
-        return fecha === undefined ? repository.getStockActual(cliente.id) : repository.getStockAFecha(cliente.id, fecha);
+        return fecha === undefined
+            ? repository.getStockActual(deposito.id, cliente.id)
+            : repository.getStockAFecha(deposito.id, cliente.id, fecha);
     };
 
     // A diferencia del `Cliente.updatePrecios` actual, no lanza si ningún precio
@@ -50,7 +56,7 @@ export function createClienteStockService({ db, repository, clienteRepository }:
     return {
         getStock,
         syncPrecios,
-        moveStock: repository.moveStock
+        setPrecio: repository.setPrecio
     };
 }
 

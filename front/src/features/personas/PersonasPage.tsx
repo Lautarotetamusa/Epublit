@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Table, Pagination, Button, IconButton, EmptyState, Avatar, Field, SegmentedControl } from "../../design-system";
+import { Card, Table, Pagination, Button, IconButton, EmptyState, Avatar, Field, Select } from "../../design-system";
 import type { Persona } from "../../api/persona";
 import { usePersonas } from "./usePersonas";
+import { useRoles } from "../roles/useRoles";
+import { nombreVisible, opcionesDeRol } from "../roles/presentacionRol";
 import { useToast } from "../../notifications/ToastProvider";
 import { useConfirm } from "../../notifications/ConfirmProvider";
 import { getErrorMessage } from "../../lib/errors";
-import { ROL_FILTRO_OPTIONS } from "./tipoPersona";
-import type { RolFiltro } from "./tipoPersona";
 
 export function PersonasPage() {
-    const [rol, setRol] = useState<RolFiltro>("todos");
-    const { personas, pagination, page, setPage, loading, remove } = usePersonas(rol === "todos" ? undefined : rol);
+    const { roles } = useRoles();
+    // El filtro es por el rol de la cuenta (plan 011): "todos" simplemente no
+    // manda el filtro.
+    const [idRol, setIdRol] = useState<number | "">("");
+    const rolFiltrado = roles.find((rol) => rol.id === idRol) ?? null;
+    const { personas, pagination, page, setPage, loading, remove } = usePersonas(rolFiltrado);
     const { showToast } = useToast();
     const confirm = useConfirm();
     const navigate = useNavigate();
@@ -47,7 +51,12 @@ export function PersonasPage() {
         >
             <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border-subtle)" }}>
                 <Field label="Rol" style={{ maxWidth: 420 }}>
-                    <SegmentedControl options={ROL_FILTRO_OPTIONS} value={rol} onChange={(value) => setRol(value as RolFiltro)} />
+                    <Select
+                        value={idRol === "" ? "" : String(idRol)}
+                        onChange={(e) => setIdRol(e.target.value === "" ? "" : Number(e.target.value))}
+                        options={opcionesDeRol(roles)}
+                        placeholder="Todos los roles"
+                    />
                 </Field>
             </div>
             <Table
@@ -96,14 +105,14 @@ export function PersonasPage() {
                 empty={
                     loading ? (
                         "Cargando..."
-                    ) : rol !== "todos" ? (
+                    ) : rolFiltrado ? (
                         <EmptyState
                             icon="users"
-                            title={`Todavía no hay ${ROL_FILTRO_OPTIONS.find((t) => t.value === rol)?.label.toLowerCase()}`}
-                            description="Cuando cargues un libro con ese rol, aparece acá."
+                            title={`Todavía no hay personas con el rol «${nombreVisible(rolFiltrado.nombre)}»`}
+                            description="Cuando le asignes ese rol a alguien en un libro, aparece acá."
                         />
                     ) : (
-                        <EmptyState icon="users" title="Todavía no hay personas" description="Autores e ilustradores aparecen acá una vez cargados." />
+                        <EmptyState icon="users" title="Todavía no hay personas" description="Cargá la primera persona con el botón de arriba." />
                     )
                 }
             />

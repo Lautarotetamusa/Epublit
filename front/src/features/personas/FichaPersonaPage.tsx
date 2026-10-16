@@ -11,6 +11,7 @@ import { useConfirm } from "../../notifications/ConfirmProvider";
 import { getErrorMessage } from "../../lib/errors";
 import { PersonaFormPanel } from "./PersonaFormPanel";
 import type { PersonaFormValues } from "./PersonaFormFields";
+import { LibrosDePersonaSection } from "./LibrosDePersonaSection";
 
 export function FichaPersonaPage() {
     const { id = "" } = useParams();
@@ -67,6 +68,7 @@ export function FichaPersonaPage() {
                     onRejectedFoto={(message) => showToast("error", message)}
                 />
             </Card>
+            <LibrosDePersonaSection libros={persona.libros} onAbrirLibro={(isbn) => navigate(`/libros/${isbn}`)} />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { Database } from "../../db/client";
 import { Storage } from "../../lib/storage";
 import { UserRepository } from "../user";
+import { RolRepository } from "../rol";
 import { createPersonaRepository } from "./persona.repository";
 import { createPersonaService } from "./persona.service";
 import { createPersonaController } from "./persona.controller";
@@ -14,11 +15,13 @@ export type PersonaModuleDeps = {
     db: Database;
     storage: Storage;
     userRepository: Pick<UserRepository, "findOne">;
+    // Sólo lectura: valida el filtro del listado por rol de la cuenta.
+    rolRepository: Pick<RolRepository, "existsEnCuenta">;
 };
 
-export function createPersonaModule({ db, storage, userRepository }: PersonaModuleDeps) {
+export function createPersonaModule({ db, storage, userRepository, rolRepository }: PersonaModuleDeps) {
     const repository = createPersonaRepository({ db });
-    const service = createPersonaService({ repository, storage, userRepository });
+    const service = createPersonaService({ repository, storage, userRepository, rolRepository });
     const controller = createPersonaController({ service });
     const router = createPersonaRoutes(controller);
 

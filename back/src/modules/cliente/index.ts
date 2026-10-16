@@ -5,6 +5,7 @@
 // ciclo contra `createClienteService`, mismo motivo que en Persona/Libro.
 import { Database } from "../../db/client";
 import { AfipService } from "../../lib/afip/Afip";
+import { DepositoRepository } from "../deposito";
 import { createClienteRepository } from "./cliente.repository";
 import { createClienteStockRepository } from "./clienteStock.repository";
 import { createClienteService } from "./cliente.service";
@@ -22,14 +23,15 @@ export type { ClienteRepository } from "./cliente.repository";
 export type ClienteModuleDeps = {
     db: Database;
     afipService: AfipService;
+    depositoRepository: Pick<DepositoRepository, "insert" | "findClienteDeposito">;
 };
 
-export function createClienteModule({ db, afipService }: ClienteModuleDeps) {
+export function createClienteModule({ db, afipService, depositoRepository }: ClienteModuleDeps) {
     const repository = createClienteRepository({ db });
     const stockRepository = createClienteStockRepository({ db });
 
-    const service = createClienteService({ repository, afipService });
-    const stockService = createClienteStockService({ db, repository: stockRepository, clienteRepository: repository });
+    const service = createClienteService({ db, repository, afipService, depositoRepository });
+    const stockService = createClienteStockService({ db, repository: stockRepository, clienteRepository: repository, depositoRepository });
 
     const controller = createClienteController({ service, stockService });
     const router = createClienteRoutes(controller);

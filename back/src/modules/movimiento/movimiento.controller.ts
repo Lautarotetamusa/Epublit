@@ -19,8 +19,8 @@ export function createMovimientoController({ service }: MovimientoControllerDeps
     };
 
     const getAll: RequestHandler = async (req, res) => {
-        const { pagina, porPagina } = movimientoValidator.paginacion.parse(req.query);
-        const resultado = await service.listar(res.locals.user.id, pagina, porPagina);
+        const filter = movimientoValidator.listMovimientosFilter.parse(req.query);
+        const resultado = await service.listar(res.locals.user.id, filter);
 
         ok(res, resultado);
     };

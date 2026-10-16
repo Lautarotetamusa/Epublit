@@ -9,6 +9,7 @@ import { Storage } from "../../lib/storage";
 import { PersonaRepository } from "../persona";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
+import { RolRepository } from "../rol";
 import { createLibroPrecioRepository } from "./libroPrecio.repository";
 import { createLibroRepository } from "./libro.repository";
 import { createLibroPersonaRepository } from "./libroPersona.repository";
@@ -19,7 +20,7 @@ import { createLibroPersonaController } from "./libroPersona.controller";
 import { createLibroRoutes } from "./libro.routes";
 
 export type { Libro, LibroInsert, LibroUpdate, LibroFilter, LibroCantidad } from "./libro.validator";
-export type { TipoPersona, LibroPersonaBody, LibroPersonaBodyBatch, LibroPersonaRemoveBody, LibroPersonaRemoveBatch } from "./libroPersona.validator";
+export type { LibroPersonaBody, LibroPersonaBodyBatch, LibroPersonaRemoveBody, LibroPersonaRemoveBatch } from "./libroPersona.validator";
 export type { LibroService, PublicLibro, PortadaFile } from "./libro.service";
 export type { LibroPersonaService } from "./libroPersona.service";
 export type { LibroRepository, LibroConColeccion } from "./libro.repository";
@@ -34,10 +35,13 @@ export type LibroModuleDeps = {
     // Sólo lectura del stock por depósito (desglose de un libro), ver
     // specs/008-movimientos-deposito.
     depositoRepository: Pick<DepositoRepository, "getDesgloseLibro">;
+    // Sólo lectura de roles (ownership + vigencia) para validar la asignación
+    // de personas a un libro (ver specs/011-roles).
+    rolRepository: Pick<RolRepository, "findOne">;
     storage: Storage;
 };
 
-export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, storage }: LibroModuleDeps) {
+export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, rolRepository, storage }: LibroModuleDeps) {
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
@@ -47,7 +51,8 @@ export function createLibroModule({ db, personaRepository, coleccionRepository, 
         db,
         repository: libroPersonaRepository,
         libroRepository: repository,
-        personaRepository
+        personaRepository,
+        rolRepository
     });
 
     const libroController = createLibroController({ service });

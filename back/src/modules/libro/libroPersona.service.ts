@@ -1,6 +1,7 @@
 import { Database } from "../../db/client";
 import { LibroRepository } from "./libro.repository";
 import { PersonaRepository } from "../persona/persona.repository";
+import { RolRepository } from "../rol";
 import { LibroPersonaRepository } from "./libroPersona.repository";
 import { Duplicated, NotFound } from "bradb";
 import { LibroPersonaBody, LibroPersonaRemoveBody } from "./libroPersona.validator";
@@ -10,20 +11,53 @@ export type LibroPersonaServiceDeps = {
     repository: LibroPersonaRepository;
     libroRepository: LibroRepository;
     personaRepository: PersonaRepository;
+    // Sólo lectura: valida que cada rol asignado exista, sea de la cuenta y
+    // esté activo (404 del contrato, ver plan tarea 8).
+    rolRepository: Pick<RolRepository, "findOne">;
 };
 
-export function createLibroPersonaService({ db, repository, libroRepository, personaRepository }: LibroPersonaServiceDeps) {
+export function createLibroPersonaService({
+    db,
+    repository,
+    libroRepository,
+    personaRepository,
+    rolRepository
+}: LibroPersonaServiceDeps) {
     const uniqueIds = (items: { id_persona: number }[]): number[] =>
         Array.from(new Set(items.map((item) => item.id_persona)));
+
+    // `findOne` de bradb da 404 si el rol no existe, es de otra cuenta o está
+    // dado de baja: los tres casos de rechazo del contrato.
+    const assertRolesDeLaCuenta = async (rolIds: number[], userId: number) => {
+        for (const rolId of new Set(rolIds)) {
+            await rolRepository.findOne({ id: rolId, user: userId });
+        }
+    };
+
+    // Dos items del mismo request no pueden repetir la combinación persona +
+    // rol: la PK (libro, persona, rol) los rechazaría con un error de base en
+    // vez del 409 del contrato.
+    const assertSinRepetidos = (items: LibroPersonaBody[]) => {
+        const claves = items.map((item) => `${item.id_persona}:${item.rol}`);
+        if (new Set(claves).size !== claves.length) {
+            throw new Duplicated("Alguna persona ya trabaja en ese libro con ese rol");
+        }
+    };
 
     const addToLibro = async (isbn: string, userId: number, items: LibroPersonaBody[]) => {
         const libro = await libroRepository.findOne(isbn, userId);
         const ids = uniqueIds(items);
 
         const personas = await db.transaction(async (tx) => {
-            const duplicadas = await repository.findExistingIds(libro.id_libro, ids, tx);
+            await assertRolesDeLaCuenta(
+                items.map((item) => item.rol),
+                userId
+            );
+            assertSinRepetidos(items);
+
+            const duplicadas = await repository.findExisting(libro.id_libro, items, tx);
             if (duplicadas.length > 0) {
-                throw new Duplicated("Alguna persona ya trabaja en ese libro");
+                throw new Duplicated("Alguna persona ya trabaja en ese libro con ese rol");
             }
 
             const personasPropias = await personaRepository.findOwnedIds(ids, userId);
@@ -44,9 +78,14 @@ export function createLibroPersonaService({ db, repository, libroRepository, per
         const libro = await libroRepository.findOne(isbn, userId);
 
         const personas = await db.transaction(async (tx) => {
+            await assertRolesDeLaCuenta(
+                items.map((item) => item.rol),
+                userId
+            );
+
             const existentes = await repository.findExisting(libro.id_libro, items, tx);
             if (existentes.length < items.length) {
-                throw new NotFound("Alguna persona no trabaja en este libro");
+                throw new NotFound("Alguna persona no trabaja en este libro con ese rol");
             }
 
             const actualizadas = [];
@@ -66,9 +105,14 @@ export function createLibroPersonaService({ db, repository, libroRepository, per
     const removeFromLibro = async (isbn: string, userId: number, items: LibroPersonaRemoveBody[]) => {
         const libro = await libroRepository.findOne(isbn, userId);
 
-        // Sin validar existencia previa ni envolver en transacción: borrar una
-        // asociación inexistente no debe fallar (comportamiento actual a preservar).
-        await repository.removeMany(libro.id_libro, items);
+        await db.transaction(async (tx) => {
+            const existentes = await repository.findExisting(libro.id_libro, items, tx);
+            if (existentes.length < items.length) {
+                throw new NotFound("Alguna persona no trabaja en este libro con ese rol");
+            }
+
+            await repository.removeMany(libro.id_libro, items, tx);
+        });
 
         return { libro, personas: items };
     };

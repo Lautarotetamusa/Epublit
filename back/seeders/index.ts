@@ -6,9 +6,12 @@ import { env } from "../src/env";
 import { createPersonaModule } from "../src/modules/persona";
 import { createColeccionModule } from "../src/modules/coleccion";
 import { createDepositoModule } from "../src/modules/deposito";
+import { createMovimientoModule } from "../src/modules/movimiento";
 import { createLibroModule } from "../src/modules/libro";
 import { createUserModule } from "../src/modules/user";
 import { createClienteModule } from "../src/modules/cliente";
+import { createMedioPagoModule } from "../src/modules/medioPago";
+import { createRolModule } from "../src/modules/rol";
 import { createTransaccionModule } from "../src/modules/transaccion";
 import { resetSeedData } from "./reset";
 import { seedUsers, PASSWORD_SEED } from "./users.seeder";
@@ -35,18 +38,23 @@ async function main(): Promise<void> {
     const storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST });
 
     const deposito = createDepositoModule({ db });
-    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository });
-    const persona = createPersonaModule({ db, storage, userRepository: user.repository });
+    const medioPago = createMedioPagoModule({ db });
+    const rol = createRolModule({ db });
+    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
+    const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, storage });
-    const cliente = createClienteModule({ db, afipService });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, storage });
+    const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, storage });
     const transaccion = createTransaccionModule({
         db,
         libroService: libro.service,
         clienteRepository: cliente.repository,
         clienteStockService: cliente.stockService,
+        movimientoRepository: movimiento.repository,
         depositoRepository: deposito.repository,
         userRepository: user.repository,
+        medioPagoService: medioPago.service,
         afipService,
         comprobanteService,
         storage
@@ -55,18 +63,18 @@ async function main(): Promise<void> {
     const users = await seedUsers(user.service);
     await seedColecciones(users, coleccion.service);
     const personas = await seedPersonas(users, persona.service);
-    const clientes = await seedClientes(users);
+    const clientes = await seedClientes(users, deposito.repository);
     const libros = await seedLibros(users, libro.service, deposito.repository);
 
-    await seedLibrosPersonas(users, libros, personas, libro.personaService);
-    await seedLibroCliente(users, libros, clientes, cliente.stockService);
+    await seedLibrosPersonas(users, libros, personas, libro.personaService, rol.service);
+    await seedLibroCliente(users, libros, clientes, deposito.repository, cliente.stockService);
     await seedOperaciones(
         users,
         libros,
         clientes,
         deposito.repository,
         cliente.stockService,
-        transaccion.repository,
+        movimiento.repository,
         transaccion.ventaRepository
     );
 

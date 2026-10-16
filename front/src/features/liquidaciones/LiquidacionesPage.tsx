@@ -1,20 +1,13 @@
 import { useState } from "react";
 import { Card, StatCard, Table, Badge, Button, IconButton, Field, Input, EmptyState, Pagination } from "../../design-system";
-import type { Liquidacion, PersonaLiquidada, TipoPersonaLiquidacion } from "../../api/liquidacion";
+import type { Liquidacion, PersonaLiquidada } from "../../api/liquidacion";
 import { useLiquidacion } from "./useLiquidacion";
 import { DetallePersonaDialog } from "./DetallePersonaDialog";
+import { rolesDePersona } from "./rolesDePersona";
 import { formatMoney } from "./money";
+import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 import { downloadCsv } from "../../lib/csv";
 import { useClientPagination } from "../../lib/useClientPagination";
-
-const TIPO_LABEL = { autor: "Autor", ilustrador: "Ilustrador" } as const;
-
-// Los roles distintos presentes en el detalle de una persona (puede ser
-// autora de un libro e ilustradora de otro en el mismo período).
-function rolesDePersona(persona: PersonaLiquidada): TipoPersonaLiquidacion[] {
-    const roles = new Set(persona.detalle.map((d) => d.tipo));
-    return [...roles];
-}
 
 const hoy = new Date();
 const primerDiaDelMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
@@ -133,8 +126,8 @@ export function LiquidacionesPage() {
                                 cell: (p: PersonaLiquidada) => (
                                     <div style={{ display: "flex", gap: "var(--space-1)", flexWrap: "wrap" }}>
                                         {rolesDePersona(p).map((rol) => (
-                                            <Badge key={rol} tone={rol === "autor" ? "brand" : "accent"}>
-                                                {TIPO_LABEL[rol]}
+                                            <Badge key={rol.id} tone={tonoDeRol(rol)}>
+                                                {nombreVisible(rol.nombre)}
                                             </Badge>
                                         ))}
                                     </div>
@@ -156,7 +149,7 @@ export function LiquidacionesPage() {
                         onRowClick={(p: PersonaLiquidada) => setPersonaSeleccionada(p)}
                     />
                 ) : (
-                    <EmptyState icon="users" title="No hay nadie para liquidar en este período" description="Ningún libro con ventas tiene autores o ilustradores cargados." />
+                    <EmptyState icon="users" title="No hay nadie para liquidar en este período" description="Ningún libro con ventas tiene personas con un rol cargado." />
                 )}
                 {personasPag.total > 0 ? (
                     <div style={{ padding: "var(--space-4)" }}>

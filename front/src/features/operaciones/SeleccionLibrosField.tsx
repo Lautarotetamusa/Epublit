@@ -15,6 +15,13 @@ type Props = {
     // Aclaración de dónde sale el stock que muestra el picker (ej. el depósito
     // principal para venta/consignación: ver specs/008-movimientos-deposito).
     hint?: React.ReactNode;
+    // Porcentaje de descuento aplicado al total (0 en las operaciones que no
+    // descuentan, como consignación/devolución): el total mostrado ya lo
+    // incluye, para que el total y el neto de abajo no se contradigan.
+    descuento?: number;
+    // Línea extra debajo del total (ej. la comisión del medio de pago y el neto
+    // de una venta).
+    totalNota?: React.ReactNode;
 };
 
 // Picker de "libro + cantidad" + tabla de seleccionados con total: la misma
@@ -22,12 +29,13 @@ type Props = {
 // El picker va arriba de la tabla (se completa antes de poder revisarla) y
 // la cantidad de cada fila ya cargada se edita ahí mismo con +/- (QuantityStepper),
 // sin tener que quitarla y volver a agregarla ni tipear a mano.
-export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgregar, onActualizarCantidad, onQuitar, disabled, placeholder, hint }: Props) {
+export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgregar, onActualizarCantidad, onQuitar, disabled, placeholder, hint, descuento = 0, totalNota }: Props) {
     const { showToast } = useToast();
     const [isbn, setIsbn] = useState("");
     const [cantidad, setCantidad] = useState(1);
 
     const libroElegido = librosDisponibles.find((l) => l.isbn === isbn);
+    const totalConDescuento = seleccionados.reduce((acc, item) => acc + item.cantidad * item.precio, 0) * (1 - descuento * 0.01);
 
     const handleAgregar = () => {
         if (!isbn) {
@@ -124,8 +132,13 @@ export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgreg
                         rows={seleccionados}
                     />
                     <p style={{ textAlign: "right", marginTop: "var(--space-2)", fontFamily: "var(--font-mono)" }}>
-                        Total: {seleccionados.reduce((acc, item) => acc + item.cantidad * item.precio, 0).toLocaleString("es-AR")}
+                        Total: {totalConDescuento.toLocaleString("es-AR")}
                     </p>
+                    {totalNota ? (
+                        <p style={{ textAlign: "right", marginTop: "var(--space-1)", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                            {totalNota}
+                        </p>
+                    ) : null}
                 </>
             ) : null}
         </div>

@@ -1,14 +1,8 @@
-import type { Extremo, Movimiento, TipoMovimiento } from "../../api/deposito";
+import type { Extremo, TipoMovimiento, TipoMovimientoManual } from "../../api/deposito";
 
-// Cómo se presenta un movimiento. El tipo NO se guarda: se deriva de sus
-// extremos, que es lo único que lo define (ver api/deposito.ts). Así el
-// historial no puede quedar con un tipo que contradiga su origen y destino.
-export function tipoDe(movimiento: Pick<Movimiento, "origen" | "destino">): TipoMovimiento {
-    if (movimiento.origen.tipo === "exterior") return "ingreso";
-    if (movimiento.destino.tipo === "exterior") return "baja";
-    return "transferencia";
-}
-
+// Cómo se presenta cada movimiento. El tipo viaja explícito en el movimiento
+// (ver api/deposito.ts): el historial no lo deduce de los extremos, porque una
+// venta y una baja comparten depósito → exterior.
 export const TIPO_MOVIMIENTO: Record<
     TipoMovimiento,
     { label: string; tono: "success" | "warning" | "brand"; icono: string; explicacion: string }
@@ -30,10 +24,36 @@ export const TIPO_MOVIMIENTO: Record<
         tono: "brand",
         icono: "arrow-right",
         explicacion: "Pasa stock de un depósito a otro."
+    },
+    venta: {
+        label: "Venta",
+        tono: "success",
+        icono: "banknote",
+        explicacion: "Venta en firme: el stock sale del depósito principal."
+    },
+    consignacion: {
+        label: "Consignación",
+        tono: "brand",
+        icono: "truck",
+        explicacion: "El stock pasa al depósito de un cliente en consignación."
+    },
+    ventaConsignacion: {
+        label: "Venta sobre consignación",
+        tono: "success",
+        icono: "store",
+        explicacion: "Venta del stock que estaba consignado en un cliente."
+    },
+    devolucion: {
+        label: "Devolución",
+        tono: "warning",
+        icono: "package",
+        explicacion: "El stock consignado vuelve del cliente al depósito principal."
     }
 };
 
-export const TIPOS_MOVIMIENTO: TipoMovimiento[] = ["ingreso", "baja", "transferencia"];
+// Sólo estos tres los registra el alta manual: alimentan el SegmentedControl
+// del formulario (ver MovimientosPage).
+export const TIPOS_MOVIMIENTO: TipoMovimientoManual[] = ["ingreso", "baja", "transferencia"];
 
 export function nombreDeExtremo(extremo: Extremo): string {
     return extremo.tipo === "exterior" ? "Exterior" : extremo.nombre;

@@ -3,13 +3,19 @@ import { Client, ClienteInsert, ClienteUpdate, tipoCliente } from "./cliente.val
 import { AfipService } from "../../lib/afip/Afip";
 import { Duplicated } from "bradb";
 import { ValidationError } from "../../lib/http/errors";
+import { Database } from "../../db/client";
+import { DepositoRepository } from "../deposito";
 
 export type ClienteServiceDeps = {
+    db: Database;
     repository: ClienteRepository;
     afipService: AfipService;
+    // Sólo escritura: crea el depósito real propio del cliente en el mismo alta
+    // (ver specs/009-ledger-unificado).
+    depositoRepository: Pick<DepositoRepository, "insert">;
 };
 
-export function createClienteService({ repository, afipService }: ClienteServiceDeps) {
+export function createClienteService({ db, repository, afipService, depositoRepository }: ClienteServiceDeps) {
     // Regla de negocio compartida por `create`/`update`: no puede haber dos
     // clientes "inscripto" con el mismo cuit para el mismo usuario.
     const assertCuitDisponible = async (cuit: string, userId: number): Promise<void> => {
@@ -40,11 +46,23 @@ export function createClienteService({ repository, afipService }: ClienteService
         await assertCuitDisponible(body.cuit, userId);
         const datosAfip = await resolveDatosAfip(body.cuit);
 
-        return repository.insert({
-            ...body,
-            ...datosAfip,
-            user: userId,
-            tipo: tipoCliente.inscripto
+        return db.transaction(async (tx) => {
+            const cliente = await repository.insert(
+                {
+                    ...body,
+                    ...datosAfip,
+                    user: userId,
+                    tipo: tipoCliente.inscripto
+                },
+                tx
+            );
+
+            await depositoRepository.insert(
+                { nombre: cliente.nombre, principal: false, user: userId, id_cliente: cliente.id },
+                tx
+            );
+
+            return cliente;
         });
     };
 

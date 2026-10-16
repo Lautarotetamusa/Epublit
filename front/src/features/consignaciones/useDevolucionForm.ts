@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { listClientes, getCliente, getStockCliente } from "../../api/cliente";
 import type { Cliente } from "../../api/cliente";
 import { createDevolucion } from "../../api/operaciones";
+import type { OperacionDetalle } from "../../api/operaciones";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
 import type { LibroDisponible } from "../operaciones/useSeleccionLibros";
 
@@ -17,7 +18,7 @@ export type DevolucionFormInitial = {
 // diferencia de la app vieja, que pedía `cliente?stock=1`): se listan todos
 // los inscriptos y, si uno no tiene nada consignado, el picker de libros
 // simplemente queda vacío (mismo resultado visible, un pedido más).
-export function useDevolucionForm(onCreated: () => void, initial?: DevolucionFormInitial) {
+export function useDevolucionForm(onCreated: (devolucion: OperacionDetalle) => void, initial?: DevolucionFormInitial) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [clienteId, setClienteId] = useState<number | "">("");
     const [librosDisponibles, setLibrosDisponibles] = useState<LibroDisponible[]>([]);
@@ -78,14 +79,14 @@ export function useDevolucionForm(onCreated: () => void, initial?: DevolucionFor
 
         setSubmitting(true);
         try {
-            await createDevolucion({
+            const response = await createDevolucion({
                 cliente: clienteId,
                 libros: seleccionados.map((s) => ({ isbn: s.isbn, cantidad: s.cantidad }))
             });
             setClienteId("");
             setLibrosDisponibles([]);
             reset();
-            onCreated();
+            onCreated(response.data);
             return null;
         } finally {
             setSubmitting(false);

@@ -20,13 +20,11 @@ export type DepositoResumen = {
 export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
     const builder = new ServiceBuilder(db, depositosTable, depositoFilterMap);
 
-    const findOne = builder.findOne();
     const insert = builder.create();
     const update = builder.update();
     // Baja lógica (bradb detecta `deleted_at`): el nombre sigue disponible
     // para los movimientos históricos que mencionan el depósito.
     const remove = builder.delete();
-    const findAll = builder.findAll(false);
 
     const findPrincipal = async (userId: number) => {
         const rows = await db
@@ -41,6 +39,57 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
             );
 
         if (rows.length === 0) throw new NotFound(`El usuario ${userId} no tiene depósito principal`);
+        return rows[0];
+    };
+
+    // Depósito administrable por el usuario: excluye el depósito propio de un
+    // cliente (`id_cliente`), que no se lista ni se edita por `/deposito`
+    // (ver specs/009-ledger-unificado). Un id de depósito de cliente da 404.
+    const findPropio = async (id: number, userId: number) => {
+        const rows = await db
+            .select()
+            .from(depositosTable)
+            .where(
+                and(
+                    eq(depositosTable.id, id),
+                    eq(depositosTable.user, userId),
+                    isNull(depositosTable.id_cliente),
+                    isNull(depositosTable.deletedAt)
+                )
+            );
+
+        if (rows.length === 0) throw new NotFound(`No se encontró el depósito con id ${id}`);
+        return rows[0];
+    };
+
+    const findPropios = async (userId: number) => {
+        return db
+            .select()
+            .from(depositosTable)
+            .where(
+                and(
+                    eq(depositosTable.user, userId),
+                    isNull(depositosTable.id_cliente),
+                    isNull(depositosTable.deletedAt)
+                )
+            )
+            .orderBy(asc(depositosTable.id));
+    };
+
+    // Depósito real propio del cliente, donde vive su stock consignado.
+    const findClienteDeposito = async (clienteId: number, userId: number) => {
+        const rows = await db
+            .select()
+            .from(depositosTable)
+            .where(
+                and(
+                    eq(depositosTable.id_cliente, clienteId),
+                    eq(depositosTable.user, userId),
+                    isNull(depositosTable.deletedAt)
+                )
+            );
+
+        if (rows.length === 0) throw new NotFound(`El cliente ${clienteId} no tiene depósito propio`);
         return rows[0];
     };
 
@@ -97,14 +146,20 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
     };
 
     // Desglose de un libro entre los depósitos (vigentes) donde tiene cantidad
-    // mayor a 0, con el principal primero.
+    // mayor a 0, con el principal primero. Incluye los depósitos de clientes:
+    // el stock total del libro es la suma del desglose (ver
+    // specs/009-ledger-unificado).
     const getDesgloseLibro = async (idLibro: number, userId: number) => {
         return db
             .select({
                 id: depositosTable.id,
                 nombre: depositosTable.nombre,
                 cantidad: depositoLibrosTable.cantidad,
-                principal: depositosTable.principal
+                principal: depositosTable.principal,
+                // Depósito propio de un cliente (stock consignado): la ficha del
+                // libro lo distingue para no linkear a `/deposito/:id` (ver
+                // specs/009-ledger-unificado).
+                cliente_id: depositosTable.id_cliente
             })
             .from(depositoLibrosTable)
             .innerJoin(
@@ -150,12 +205,13 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
     };
 
     return {
-        findOne,
         insert,
         update,
         remove,
-        findAll,
         findPrincipal,
+        findPropio,
+        findPropios,
+        findClienteDeposito,
         getResumenes,
         getResumen,
         getLibros,

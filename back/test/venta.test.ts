@@ -12,11 +12,8 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
-import { transaccionesTable } from '../src/modules/transaccion/transaccion.schema';
-import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
-import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
-import { librosTable } from '../src/modules/libro/libro.schema';
-import {expectBadRequest, expectDataResponse, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
+import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
+import {expectBadRequest, expectConflict, expectDataResponse, expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
@@ -31,6 +28,8 @@ const app = createApp(container);
 let token: string;
 let clienteInscripto: { id: number; tipo: string };
 let clienteNegro: { id: number; tipo: string };
+let efectivoId: number;
+let transferenciaId: number;
 
 // Libros propios (no seedeados) para no interferir con el stock que otros
 // archivos de test puedan estar leyendo de los libros del seed.
@@ -44,6 +43,8 @@ beforeAll(async () => {
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
+    efectivoId = await getMedioPagoId(app, token, 'efectivo');
+    transferenciaId = await getMedioPagoId(app, token, 'transferencia');
 });
 
 afterAll(() => {
@@ -85,7 +86,7 @@ describe('VENTA', () => {
     describe('POST /venta', () => {
         describe('Bad request', () => {
             test('Venta no tiene cliente', async () => {
-                const { cliente, ...sinCliente } = { ...venta, cliente: clienteInscripto?.id, medio_pago: 'efectivo', tipo_cbte: 11 };
+                const { cliente, ...sinCliente } = { ...venta, cliente: clienteInscripto?.id, medio_pago: efectivoId, tipo_cbte: 11 };
 
                 const res = await request(app)
                     .post('/venta/')
@@ -98,7 +99,7 @@ describe('VENTA', () => {
                 const res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
-                    .send({ cliente: clienteInscripto.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [] });
+                    .send({ cliente: clienteInscripto.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [] });
                 expectBadRequest(res);
             });
 
@@ -110,17 +111,19 @@ describe('VENTA', () => {
                 expectBadRequest(res);
             });
 
-            test('Un libro no tiene suficiente stock', async () => {
+            test('Un libro no tiene suficiente stock: 409 con detalle por libro', async () => {
                 const res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
                     .send({
                         cliente: clienteInscripto.id,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11,
                         libros: [{ isbn: isbnsVenta[0], cantidad: 999 }]
                     });
-                expectBadRequest(res);
+                expectConflict(res);
+                expect(res.body.errors[0].code).toBe('StockInsuficiente');
+                expect(res.body.errors[0].libros[0]).toMatchObject({ isbn: isbnsVenta[0], pedido: 999 });
             });
         });
 
@@ -131,7 +134,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`)
                     .send({
                         cliente: clienteInscripto.id,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11,
                         libros: [{ isbn: isbnsVenta[0], cantidad: 2 }]
                     });
@@ -183,7 +186,7 @@ describe('VENTA', () => {
                     .set('Authorization', `Bearer ${token}`)
                     .send({
                         cliente: clienteNegro.id,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11,
                         libros: [{ isbn: isbnsVenta[1], cantidad: 1 }]
                     });
@@ -232,8 +235,8 @@ describe('VENTA', () => {
         let ventaTransferenciaId: number;
         let ventaConsigId: number;
 
-        const setFecha = async (idTransaccion: number, fecha: string) => {
-            await db.update(transaccionesTable).set({ fecha: new Date(fecha) }).where(eq(transaccionesTable.id, idTransaccion));
+        const setFecha = async (idMovimiento: number, fecha: string) => {
+            await db.update(movimientosTable).set({ fecha: new Date(fecha) }).where(eq(movimientosTable.id, idMovimiento));
         };
 
         beforeAll(async () => {
@@ -260,7 +263,7 @@ describe('VENTA', () => {
             let res = await request(app)
                 .post('/venta/')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ cliente: clienteFiltro.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [{ isbn: isbnsFiltro[0], cantidad: 1 }] });
+                .send({ cliente: clienteFiltro.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnsFiltro[0], cantidad: 1 }] });
             expectCreated(res);
             ventaEfectivoId = res.body.data.id;
             await setFecha(ventaEfectivoId, '2024-01-10');
@@ -268,27 +271,19 @@ describe('VENTA', () => {
             res = await request(app)
                 .post('/venta/')
                 .set('Authorization', `Bearer ${token}`)
-                .send({ cliente: clienteFiltro.id, medio_pago: 'transferencia', tipo_cbte: 11, libros: [{ isbn: isbnsFiltro[0], cantidad: 1 }] });
+                .send({ cliente: clienteFiltro.id, medio_pago: transferenciaId, tipo_cbte: 11, libros: [{ isbn: isbnsFiltro[0], cantidad: 1 }] });
             expectCreated(res);
             ventaTransferenciaId = res.body.data.id;
             await setFecha(ventaTransferenciaId, '2024-02-10');
 
-            // Venta sobre consignado: precarga directa de stock/precio del
-            // cliente (mismo mecanismo que venta_consignacion.test.ts, acá
-            // sin precio histórico porque no hace falta para estos tests).
-            const [libroConsig] = await db.select().from(librosTable).where(eq(librosTable.isbn, isbnsFiltro[1]));
-            await db.insert(libroClienteTable).values({
-                id_cliente: clienteFiltro.id,
-                id_libro: libroConsig.id_libro,
-                isbn: libroConsig.isbn,
-                stock: 5,
-                precio: 500
-            });
-            await db.insert(precioLibroClienteTable).values({
-                id_cliente: clienteFiltro.id,
-                id_libro: libroConsig.id_libro,
-                precio: 500
-            });
+            // Venta sobre consignado: la consignación previa mueve el stock al
+            // depósito del cliente y congela el precio (ver
+            // specs/009-ledger-unificado).
+            res = await request(app)
+                .post('/consignacion/')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ cliente: clienteFiltro.id, libros: [{ isbn: isbnsFiltro[1], cantidad: 5 }] });
+            expectCreated(res);
 
             res = await request(app)
                 .post('/ventaConsignacion/')
@@ -297,7 +292,7 @@ describe('VENTA', () => {
                     cliente: clienteFiltro.id,
                     libros: [{ isbn: isbnsFiltro[1], cantidad: 1 }],
                     fecha_venta: new Date().toISOString(),
-                    medio_pago: 'efectivo',
+                    medio_pago: efectivoId,
                     tipo_cbte: 11
                 });
             expectCreated(res);
@@ -379,7 +374,7 @@ describe('VENTA', () => {
         describe('Filtro por medio de pago', () => {
             test('medioPago válido trae sólo ese medio de pago', async () => {
                 const res = await request(app)
-                    .get(`/venta?cliente=${clienteFiltro.id}&medioPago=transferencia`)
+                    .get(`/venta?cliente=${clienteFiltro.id}&medioPago=${transferenciaId}`)
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);
@@ -445,7 +440,7 @@ describe('VENTA', () => {
         describe('Combinar filtros', () => {
             test('cliente + tipo + medioPago combinados con AND', async () => {
                 const res = await request(app)
-                    .get(`/venta?cliente=${clienteFiltro.id}&tipo=venta&medioPago=efectivo`)
+                    .get(`/venta?cliente=${clienteFiltro.id}&tipo=venta&medioPago=${efectivoId}`)
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);
@@ -455,7 +450,7 @@ describe('VENTA', () => {
 
             test('combo que no matchea ninguna venta: 200 con lista vacía', async () => {
                 const res = await request(app)
-                    .get(`/venta?cliente=${clienteFiltro.id}&tipo=ventaConsignacion&medioPago=transferencia`)
+                    .get(`/venta?cliente=${clienteFiltro.id}&tipo=ventaConsignacion&medioPago=${transferenciaId}`)
                     .set('Authorization', `Bearer ${token}`);
 
                 expect(res.status).toBe(200);

@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
-import request from 'supertest';
+import request, { Response } from 'supertest';
 import * as dotenv from 'dotenv';
 import { join } from 'path';
+import { eq } from 'drizzle-orm';
 
 dotenv.config({ path: join(__dirname, '../.env') });
 
@@ -10,9 +11,10 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
+import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
 import { isbn } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
-import { expectBadRequest, expectCreated, expectNotFound } from './util';
+import { expectBadRequest, expectCreated, expectNotFound, getMedioPagoId } from './util';
 
 const container = createContainer({
     afipService: createMockAfipService(),
@@ -22,6 +24,7 @@ const app = createApp(container);
 
 let token: string;
 let otroToken: string;
+let efectivoId: number;
 
 const auth = (req: request.Test, t = token) => req.set('Authorization', `Bearer ${t}`);
 
@@ -76,6 +79,7 @@ beforeAll(async () => {
     ]);
     token = res.body.token;
     otroToken = otroRes.body.token;
+    efectivoId = await getMedioPagoId(app, token, 'efectivo');
 
     depPrincipal = await principal();
     depA = await crearDeposito('Depósito A movimientos');
@@ -379,6 +383,180 @@ describe('GET /movimiento', () => {
     });
 });
 
+describe('GET /movimiento - filtros', () => {
+    const isbnsFiltro = [isbn(9851), isbn(9852)];
+
+    const setFecha = async (idMovimiento: number, fecha: string) => {
+        await db.update(movimientosTable).set({ fecha: new Date(fecha) }).where(eq(movimientosTable.id, idMovimiento));
+    };
+    const ids = (res: Response): number[] => res.body.data.movimientos.map((m: { id: number }) => m.id);
+
+    let depFiltro: { id: number; nombre: string };
+    let clienteFiltro: { id: number };
+    let ingresoId: number;
+    let transferenciaId: number;
+    let bajaId: number;
+    let ventaId: number;
+    let consignacionId: number;
+    let devolucionId: number;
+
+    beforeAll(async () => {
+        depFiltro = await crearDeposito('Depósito filtros movimientos');
+        await crearLibro(isbnsFiltro[0], 'Libro filtro movimientos A', 1000);
+        await crearLibro(isbnsFiltro[1], 'Libro filtro movimientos B', 1000);
+
+        // depFiltro aparece como destino (ingreso) y como origen
+        // (transferencia y baja), con fechas distintas para el filtro de rango.
+        const resIngreso = await ingreso(depFiltro.id, [{ isbn: isbnsFiltro[0], cantidad: 5 }]);
+        expectCreated(resIngreso);
+        ingresoId = resIngreso.body.data.id;
+        await setFecha(ingresoId, '2024-01-10T08:00:00');
+
+        const resTransferencia = await movimiento(
+            { tipo: 'deposito', id: depFiltro.id },
+            { tipo: 'deposito', id: depB.id },
+            [{ isbn: isbnsFiltro[0], cantidad: 2 }]
+        );
+        expectCreated(resTransferencia);
+        transferenciaId = resTransferencia.body.data.id;
+        await setFecha(transferenciaId, '2024-02-10T00:30:00');
+
+        const resBaja = await movimiento(
+            { tipo: 'deposito', id: depFiltro.id },
+            { tipo: 'exterior' },
+            [{ isbn: isbnsFiltro[0], cantidad: 1 }]
+        );
+        expectCreated(resBaja);
+        bajaId = resBaja.body.data.id;
+        await setFecha(bajaId, '2024-03-10T12:00:00');
+
+        // Movimientos comerciales de un cliente propio: la venta trae el
+        // cliente por `ventas.id_cliente`, la consignación por el depósito
+        // destino y la devolución por el depósito origen.
+        const resCliente = await auth(
+            request(app)
+                .post('/cliente/')
+                .send({ nombre: 'Cliente filtros movimientos', email: 'filtrosmov@test.com', cuit: '20400000061' })
+        );
+        expectCreated(resCliente);
+        clienteFiltro = resCliente.body.data;
+
+        await ingreso(depPrincipal.id, [{ isbn: isbnsFiltro[1], cantidad: 10 }]);
+
+        const resVenta = await auth(
+            request(app)
+                .post('/venta/')
+                .send({ cliente: clienteFiltro.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnsFiltro[1], cantidad: 1 }] })
+        );
+        expectCreated(resVenta);
+        ventaId = resVenta.body.data.id;
+
+        const resConsignacion = await auth(
+            request(app).post('/consignacion/').send({ cliente: clienteFiltro.id, libros: [{ isbn: isbnsFiltro[1], cantidad: 2 }] })
+        );
+        expectCreated(resConsignacion);
+        consignacionId = resConsignacion.body.data.id;
+
+        const resDevolucion = await auth(
+            request(app).post('/devolucion/').send({ cliente: clienteFiltro.id, libros: [{ isbn: isbnsFiltro[1], cantidad: 1 }] })
+        );
+        expectCreated(resDevolucion);
+        devolucionId = resDevolucion.body.data.id;
+    });
+
+    it('deposito: trae los movimientos donde es origen o destino y el total acompaña', async () => {
+        const res = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&porPagina=100`));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.total).toBe(3);
+        expect(ids(res).sort()).toEqual([ingresoId, transferenciaId, bajaId].sort());
+        for (const mov of res.body.data.movimientos) {
+            const extremos = [mov.origen.id, mov.destino.id].filter((id: number | undefined) => id !== undefined);
+            expect(extremos).toContain(depFiltro.id);
+        }
+    });
+
+    it('deposito + paginación: el total refleja el filtro aunque la página traiga una sola fila', async () => {
+        const res = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&pagina=1&porPagina=1`));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.movimientos).toHaveLength(1);
+        expect(res.body.data.total).toBe(3);
+        expect(res.body.data.totalPaginas).toBe(3);
+    });
+
+    it('tipo: sólo devuelve movimientos de ese tipo', async () => {
+        const res = await auth(request(app).get('/movimiento/?tipo=transferencia&porPagina=1000'));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.total).toBeGreaterThan(0);
+        for (const mov of res.body.data.movimientos) expect(mov.tipo).toBe('transferencia');
+        expect(res.body.data.total).toBe(res.body.data.movimientos.length);
+    });
+
+    it('tipo + deposito combinados con AND', async () => {
+        const res = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&tipo=baja&porPagina=100`));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.total).toBe(1);
+        expect(ids(res)).toEqual([bajaId]);
+    });
+
+    it('tipo fuera del conjunto: 400', async () => {
+        const res = await auth(request(app).get('/movimiento/?tipo=no-existe'));
+        expectBadRequest(res);
+        expect(res.status).toBe(400);
+    });
+
+    it('cliente: trae venta, consignación y devolución de ese cliente', async () => {
+        const res = await auth(request(app).get(`/movimiento/?cliente=${clienteFiltro.id}&porPagina=100`));
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.total).toBe(3);
+        expect(ids(res).sort()).toEqual([ventaId, consignacionId, devolucionId].sort());
+        for (const mov of res.body.data.movimientos) expect(mov.cliente.id).toBe(clienteFiltro.id);
+    });
+
+    it('cliente o depósito no numéricos: 400', async () => {
+        const depositoInvalido = await auth(request(app).get('/movimiento/?deposito=abc'));
+        const clienteInvalido = await auth(request(app).get('/movimiento/?cliente=abc'));
+
+        expectBadRequest(depositoInvalido);
+        expectBadRequest(clienteInvalido);
+        expect([depositoInvalido.status, clienteInvalido.status]).toEqual([400, 400]);
+    });
+
+    it('desde/hasta: rango por día con `hasta` inclusive', async () => {
+        const soloDesde = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&desde=2024-02-01&porPagina=100`));
+        expect(soloDesde.body.data.total).toBe(2);
+        expect(ids(soloDesde).sort()).toEqual([transferenciaId, bajaId].sort());
+
+        // La transferencia del 10/02 a las 00:30 entra con `hasta=2024-02-10`
+        // (fin del día), no con una comparación a las 00:00.
+        const soloHasta = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&hasta=2024-02-10&porPagina=100`));
+        expect(soloHasta.body.data.total).toBe(2);
+        expect(ids(soloHasta).sort()).toEqual([ingresoId, transferenciaId].sort());
+
+        const rango = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&desde=2024-01-01&hasta=2024-01-31&porPagina=100`));
+        expect(rango.body.data.total).toBe(1);
+        expect(ids(rango)).toEqual([ingresoId]);
+    });
+
+    it('desde posterior a hasta: 400', async () => {
+        const res = await auth(request(app).get('/movimiento/?desde=2024-05-01&hasta=2024-01-01'));
+        expectBadRequest(res);
+        expect(res.status).toBe(400);
+    });
+
+    it('un usuario no ve movimientos filtrados por un depósito ajeno', async () => {
+        const res = await auth(request(app).get(`/movimiento/?deposito=${depFiltro.id}&porPagina=100`), otroToken);
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.total).toBe(0);
+        expect(res.body.data.movimientos).toEqual([]);
+    });
+});
+
 describe('stock y disponible_principal del libro', () => {
     const isbnLibro = isbn(9811);
 
@@ -519,7 +697,7 @@ describe('las operaciones existentes mueven el depósito principal', () => {
 
     it('una venta reduce el principal y el total', async () => {
         const res = await auth(
-            request(app).post('/venta/').send({ cliente: clienteNegro.id, medio_pago: 'efectivo', tipo_cbte: 11, libros: [{ isbn: isbnOperacion, cantidad: 3 }] })
+            request(app).post('/venta/').send({ cliente: clienteNegro.id, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbnOperacion, cantidad: 3 }] })
         );
         expect(res.status).toBe(201);
 
@@ -538,29 +716,29 @@ describe('las operaciones existentes mueven el depósito principal', () => {
         expect(libro.stock).toBe(7);
     });
 
-    it('una consignación baja el principal (y el total); el stock del cliente es un mundo aparte', async () => {
+    it('una consignación baja el principal pero NO el total (pasa al depósito del cliente)', async () => {
         const res = await auth(request(app).post('/consignacion/').send({ cliente: cliente.id, libros: [{ isbn: isbnOperacion, cantidad: 2 }] }));
         expect(res.status).toBe(201);
 
         const libro = await stockDe(isbnOperacion);
         expect(libro.disponible_principal).toBe(3);
-        expect(libro.stock).toBe(5);
+        expect(libro.stock).toBe(7);
 
         const stockCliente = await auth(request(app).get(`/cliente/${cliente.id}/stock`));
         const enCliente = stockCliente.body.data.find((l: { isbn: string }) => l.isbn === isbnOperacion);
         expect(enCliente.stock).toBe(2);
     });
 
-    it('una devolución sube el principal (y el total)', async () => {
+    it('una devolución sube el principal y el total no cambia', async () => {
         const res = await auth(request(app).post('/devolucion/').send({ cliente: cliente.id, libros: [{ isbn: isbnOperacion, cantidad: 1 }] }));
         expect(res.status).toBe(201);
 
         const libro = await stockDe(isbnOperacion);
         expect(libro.disponible_principal).toBe(4);
-        expect(libro.stock).toBe(6);
+        expect(libro.stock).toBe(7);
     });
 
-    it('una venta-consignación no toca el principal (sólo el stock consignado del cliente)', async () => {
+    it('una venta-consignación no toca el principal y baja el total (sale al exterior)', async () => {
         const antes = await stockDe(isbnOperacion);
 
         const res = await auth(
@@ -570,7 +748,7 @@ describe('las operaciones existentes mueven el depósito principal', () => {
                     cliente: cliente.id,
                     libros: [{ isbn: isbnOperacion, cantidad: 1 }],
                     fecha_venta: new Date().toISOString(),
-                    medio_pago: 'efectivo',
+                    medio_pago: efectivoId,
                     tipo_cbte: 11
                 })
         );
@@ -578,6 +756,6 @@ describe('las operaciones existentes mueven el depósito principal', () => {
 
         const despues = await stockDe(isbnOperacion);
         expect(despues.disponible_principal).toBe(antes.disponible_principal);
-        expect(despues.stock).toBe(antes.stock);
+        expect(despues.stock).toBe(antes.stock - 1);
     });
 });

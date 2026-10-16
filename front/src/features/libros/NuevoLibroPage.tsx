@@ -9,6 +9,7 @@ import { useNuevoLibro } from "./useNuevoLibro";
 import { useTodasLasPersonas } from "./useTodasLasPersonas";
 import { usePersonasPendientes } from "./usePersonasPendientes";
 import { useColecciones } from "../colecciones/useColecciones";
+import { useRoles } from "../roles/useRoles";
 import { addLibroPersonas } from "../../api/libroPersona";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
@@ -17,6 +18,7 @@ export function NuevoLibroPage() {
     const { saving, create } = useNuevoLibro();
     const { personas, setPersonas } = useTodasLasPersonas();
     const { colecciones } = useColecciones();
+    const { roles } = useRoles();
     const { pendientes, agregarExistente, agregarNueva, actualizarPorcentaje, quitar } = usePersonasPendientes(personas, (persona) =>
         setPersonas((current) => [...current, persona])
     );
@@ -63,7 +65,7 @@ export function NuevoLibroPage() {
             if (pendientes.length > 0) {
                 await addLibroPersonas(
                     libro.isbn,
-                    pendientes.map((p) => ({ id_persona: p.id_persona, tipo: p.tipo, porcentaje: p.porcentaje }))
+                    pendientes.map((p) => ({ id_persona: p.id_persona, rol: p.rol, porcentaje: p.porcentaje }))
                 );
             }
             showToast("success", "Libro creado correctamente");
@@ -94,6 +96,7 @@ export function NuevoLibroPage() {
             <PersonasLibroSection
                 personasEnLibro={pendientes}
                 todasLasPersonas={personas}
+                roles={roles}
                 onAgregarExistente={agregarExistente}
                 onAgregarNueva={agregarNueva}
                 onActualizarPorcentaje={actualizarPorcentaje}

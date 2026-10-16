@@ -80,4 +80,22 @@ export function cargarStockPrincipal(app: Express, token: string, isbnLibro: str
                 });
         });
 }
+
+// Id del medio de pago de la cuenta (los 5 por defecto se crean al registrar
+// el usuario): los tests venden por id, no por nombre.
+export async function getMedioPagoId(app: Express, token: string, nombre: string): Promise<number> {
+    const res = await request(app).get('/venta/medios_pago').set({ Authorization: `Bearer ${token}` });
+    const medio = res.body.find((m: { nombre: string }) => m.nombre === nombre);
+
+    return medio.id;
+}
+
+// Id del rol de la cuenta (autor/ilustrador se crean al registrar el usuario):
+// los tests de libro↔persona, personas y liquidación referencian el rol por id.
+export async function getRolId(app: Express, token: string, nombre: string): Promise<number> {
+    const res = await request(app).get('/rol').set({ Authorization: `Bearer ${token}` });
+    const rol = res.body.find((r: { nombre: string }) => r.nombre === nombre);
+
+    return rol.id;
+}
  

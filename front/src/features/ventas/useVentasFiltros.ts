@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { MedioPago, TipoOperacion, Venta } from "../../api/operaciones";
+import type { TipoOperacion, Venta } from "../../api/operaciones";
 
 // Sólo las dos formas de venta que lista `VentasPage` (nunca consignación ni
 // devolución pura, ver `Venta` en api/operaciones.ts).
@@ -8,12 +8,12 @@ export type TipoVentaFiltro = Extract<TipoOperacion, "venta" | "ventaConsignacio
 export type VentasFiltrosState = {
     clienteId: number | "";
     tipo: TipoVentaFiltro | "";
-    medioPago: MedioPago | "";
+    medioPagoId: number | "";
     desde: string;
     hasta: string;
 };
 
-const filtrosVacios: VentasFiltrosState = { clienteId: "", tipo: "", medioPago: "", desde: "", hasta: "" };
+const filtrosVacios: VentasFiltrosState = { clienteId: "", tipo: "", medioPagoId: "", desde: "", hasta: "" };
 
 // Filtra en el cliente sobre el listado que ya trajo `useVentas`: hoy
 // `GET /venta` no acepta query params y siempre devuelve todo (mismo
@@ -29,7 +29,7 @@ export function useVentasFiltros(ventas: Venta[]) {
             ventas.filter((venta) => {
                 if (filtros.clienteId !== "" && venta.id_cliente !== filtros.clienteId) return false;
                 if (filtros.tipo !== "" && venta.type !== filtros.tipo) return false;
-                if (filtros.medioPago !== "" && venta.medio_pago !== filtros.medioPago) return false;
+                if (filtros.medioPagoId !== "" && venta.medio_pago.id !== filtros.medioPagoId) return false;
                 const fecha = venta.fecha.slice(0, 10);
                 if (filtros.desde && fecha < filtros.desde) return false;
                 if (filtros.hasta && fecha > filtros.hasta) return false;
@@ -44,7 +44,7 @@ export function useVentasFiltros(ventas: Venta[]) {
         filtros,
         setClienteId: (clienteId: VentasFiltrosState["clienteId"]) => setFiltros((actual) => ({ ...actual, clienteId })),
         setTipo: (tipo: VentasFiltrosState["tipo"]) => setFiltros((actual) => ({ ...actual, tipo })),
-        setMedioPago: (medioPago: VentasFiltrosState["medioPago"]) => setFiltros((actual) => ({ ...actual, medioPago })),
+        setMedioPagoId: (medioPagoId: VentasFiltrosState["medioPagoId"]) => setFiltros((actual) => ({ ...actual, medioPagoId })),
         setDesde: (desde: string) => setFiltros((actual) => ({ ...actual, desde })),
         setHasta: (hasta: string) => setFiltros((actual) => ({ ...actual, hasta })),
         limpiar: () => setFiltros(filtrosVacios),

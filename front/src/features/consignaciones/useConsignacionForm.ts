@@ -5,9 +5,10 @@ import { listLibros } from "../../api/libro";
 import type { Libro } from "../../api/libro";
 import { listDepositos } from "../../api/deposito";
 import { createConsignacion } from "../../api/operaciones";
+import type { OperacionDetalle } from "../../api/operaciones";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
 
-export function useConsignacionForm(onCreated: () => void) {
+export function useConsignacionForm(onCreated: (consignacion: OperacionDetalle) => void) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [libros, setLibros] = useState<Libro[]>([]);
     const [depositoPrincipal, setDepositoPrincipal] = useState("");
@@ -43,13 +44,13 @@ export function useConsignacionForm(onCreated: () => void) {
 
         setSubmitting(true);
         try {
-            await createConsignacion({
+            const response = await createConsignacion({
                 cliente: clienteId,
                 libros: seleccionados.map((s) => ({ isbn: s.isbn, cantidad: s.cantidad }))
             });
             setClienteId("");
             reset();
-            onCreated();
+            onCreated(response.data);
             return null;
         } finally {
             setSubmitting(false);

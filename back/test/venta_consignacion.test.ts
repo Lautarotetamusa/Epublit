@@ -1,6 +1,6 @@
 import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
-import { inArray } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -12,10 +12,12 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
-import { librosTable } from '../src/modules/libro/libro.schema';
 import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
 import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
-import {expectBadRequest, delay} from './util';
+import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
+import { depositosTable } from '../src/modules/deposito/deposito.schema';
+import { librosTable } from '../src/modules/libro/libro.schema';
+import {expectBadRequest, expectConflict, delay, getMedioPagoId} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 
 const comprobanteService = createMockComprobanteService({ emitirComprobante: vi.fn().mockResolvedValue(undefined) });
@@ -23,6 +25,7 @@ const container = createContainer({ afipService: createMockAfipService(), compro
 const app = createApp(container);
 
 let token: string;
+let efectivoId: number;
 const cuit = "20438409249";
 const isbnsVentaConsig = ["9200000000001", "9200000000002"];
 const precioHistorico = 1000;
@@ -49,6 +52,7 @@ beforeAll(async () => {
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
+    efectivoId = await getMedioPagoId(app, token, 'efectivo');
 });
 
 describe('VENTA EN CONSIGNACION', () => {
@@ -76,19 +80,29 @@ describe('VENTA EN CONSIGNACION', () => {
 
         test('Cargar stock/precio histórico del cliente directo en Postgres', async () => {
             const libros = await db.select().from(librosTable).where(inArray(librosTable.isbn, isbnsVentaConsig));
+            // El stock consignado vive en el depósito propio del cliente.
+            const [deposito] = await db
+                .select()
+                .from(depositosTable)
+                .where(eq(depositosTable.id_cliente, cliente.id));
 
             for (const libro of libros) {
                 await db.insert(libroClienteTable).values({
                     id_cliente: cliente.id,
                     id_libro: libro.id_libro,
                     isbn: libro.isbn,
-                    stock: stockCliente,
                     precio: precioHistorico
                 });
                 await db.insert(precioLibroClienteTable).values({
                     id_cliente: cliente.id,
                     id_libro: libro.id_libro,
                     precio: precioHistorico
+                });
+                await db.insert(depositoLibrosTable).values({
+                    deposito_id: deposito.id,
+                    id_libro: libro.id_libro,
+                    cantidad: stockCliente,
+                    user: cliente.user
                 });
             }
 
@@ -129,7 +143,7 @@ describe('VENTA EN CONSIGNACION', () => {
                         cliente: negro.id,
                         libros: [{ isbn: isbnsVentaConsig[0], cantidad: 1 }],
                         fecha_venta: fechaHistorica,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11
                     });
 
@@ -144,11 +158,12 @@ describe('VENTA EN CONSIGNACION', () => {
                         cliente: cliente.id,
                         libros: [{ isbn: isbnsVentaConsig[0], cantidad: 999 }],
                         fecha_venta: fechaHistorica,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11
                     });
 
-                expectBadRequest(res);
+                expectConflict(res);
+                expect(res.body.errors[0].code).toBe('StockInsuficiente');
             });
         });
 
@@ -162,7 +177,7 @@ describe('VENTA EN CONSIGNACION', () => {
                         cliente: cliente.id,
                         libros: [{ isbn: isbnsVentaConsig[0], cantidad }],
                         fecha_venta: fechaHistorica,
-                        medio_pago: 'efectivo',
+                        medio_pago: efectivoId,
                         tipo_cbte: 11
                     });
 
@@ -172,7 +187,7 @@ describe('VENTA EN CONSIGNACION', () => {
                 expect(comprobanteService.emitirComprobante).toHaveBeenCalled();
             });
 
-            test('Se redujo el stock del cliente, no el stock general del libro', async () => {
+            test('Se redujo el stock del cliente y el total (el consignado cuenta en el total)', async () => {
                 const resStock = await request(app)
                     .get(`/cliente/${cliente.id}/stock`)
                     .set('Authorization', `Bearer ${token}`);
@@ -183,7 +198,7 @@ describe('VENTA EN CONSIGNACION', () => {
                 const resLibro = await request(app)
                     .get(`/libro/${isbnsVentaConsig[0]}`)
                     .set('Authorization', `Bearer ${token}`);
-                expect(resLibro.body.data.stock).toEqual(0);
+                expect(resLibro.body.data.stock).toEqual(stockCliente - 2);
             });
         });
     });

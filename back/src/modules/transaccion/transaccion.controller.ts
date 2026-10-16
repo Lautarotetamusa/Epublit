@@ -18,13 +18,13 @@ export function createTransaccionController({ service }: TransaccionControllerDe
 
         if (config.esVenta) {
             const filter = listVentasFilter.parse(req.query);
-            const { data, total } = await service.listarVentas(config, userId, filter);
+            const { data, total } = await service.listarVentas(userId, filter);
 
             paginated(res, data, filter.page, filter.pageSize, total);
             return;
         }
 
-        const items = await service.listarOperaciones(config, userId);
+        const items = await service.listarOperaciones(config.tipo, userId);
         ok(res, items);
     };
 
@@ -47,10 +47,19 @@ export function createTransaccionController({ service }: TransaccionControllerDe
         created(res, result, `Se realizó la ${config.tipo} correctamente`);
     };
 
+    // Los formularios de venta siguen consumiendo esta ruta; ahora devuelve los
+    // medios reales de la cuenta. Contrato: array pelado (ver medioPago).
+    const listarMediosPago: RequestHandler = async (_, res) => {
+        const medios = await service.listarMediosPago(res.locals.user.id);
+
+        res.json(medios);
+    };
+
     return {
         listarOperaciones,
         obtenerOperacion,
-        crearOperacion
+        crearOperacion,
+        listarMediosPago
     };
 }
 

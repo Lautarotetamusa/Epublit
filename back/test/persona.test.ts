@@ -10,7 +10,7 @@ dotenv.config({ path: join(__dirname, "../.env") });
 // setup (reset-test-db.sh + DB_NAME por variable de entorno del shell).
 import { app, server } from '../src/index';
 import { db } from '../src/db/client';
-import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList } from './util';
+import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList, getRolId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { dni, email } from '../seeders/data';
 
@@ -22,6 +22,8 @@ const DNI_PERSONA_2 = dni(1);
 const DNI_PERSONA_3 = dni(2);
 
 let token: string;
+let otroToken: string;
+let rolAutor: number;
 
 async function getPersonaPorDni(targetDni: string) {
     const res = await request(app)
@@ -37,6 +39,13 @@ beforeAll(async () => {
         .send({ username: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
+
+    const otro = await request(app)
+        .post('/user/login')
+        .send({ username: 'editorial_norte', password: PASSWORD_SEED });
+    otroToken = otro.body.token;
+
+    rolAutor = await getRolId(app, token, 'autor');
 });
 
 afterAll(() => {
@@ -54,13 +63,19 @@ describe('GET /persona', () => {
         expect(res.body.items.length).toBeGreaterThan(0);
     });
 
-    it('filtra por tipo (autor/ilustrador)', async () => {
+    it('filtra por rol de la cuenta', async () => {
         const res = await request(app)
-            .get('/persona?tipo=autor')
+            .get(`/persona?rol=${rolAutor}`)
             .set('Authorization', `Bearer ${token}`);
 
         expectList(res);
         expect(res.body.items.length).toBeGreaterThan(0);
+    });
+
+    it('con un rol que no es de la cuenta: 400', async () => {
+        const rolAjeno = await getRolId(app, otroToken, 'autor');
+        expectBadRequest(await request(app).get(`/persona?rol=${rolAjeno}`).set('Authorization', `Bearer ${token}`));
+        expectBadRequest(await request(app).get('/persona?rol=999999999').set('Authorization', `Bearer ${token}`));
     });
 });
 
@@ -92,6 +107,8 @@ describe('GET /persona/:id', () => {
                 .set('Authorization', `Bearer ${token}`);
 
             expect(libro.stock).toEqual(detalle.body.data.stock);
+            // Cada libro de la ficha trae el rol de la cuenta (specs/011-roles, tarea 12).
+            expect(libro.rol).toMatchObject({ id: expect.any(Number), nombre: expect.any(String) });
         }
     });
 });

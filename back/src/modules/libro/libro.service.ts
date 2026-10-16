@@ -115,12 +115,13 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
     };
 
     // Compone `findOne` + `getPersonas`: antes el controller hacía las dos
-    // llamadas y las combinaba a mano.
+    // llamadas y las combinaba a mano. Las personas van en una única lista,
+    // cada una con su rol de la cuenta (ver specs/011-roles, tarea 11).
     const findOneWithPersonas = async (isbn: string, userId: number) => {
         const libro = await repository.findOne(isbn, userId);
-        const { autores, ilustradores } = await repository.getPersonas(libro.id_libro, userId);
+        const personas = await repository.getPersonas(libro.id_libro, userId);
 
-        return { ...toPublic(libro), autores, ilustradores };
+        return { ...toPublic(libro), personas };
     };
 
     const findAllOrderedPublic = async (filters: Parameters<LibroRepository["findAllOrdered"]>[0]) =>

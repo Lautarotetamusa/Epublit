@@ -1,4 +1,4 @@
-import { OperacionConfig, LibroOperacion, ComprobanteCtx } from "./operacion.types";
+import { OperacionConfig, LibroOperacion, ComprobanteCtx, ExtremoOperacion } from "./operacion.types";
 import { LibroService } from "../libro";
 import { ClienteStockService } from "../cliente";
 import { tipoCliente } from "../cliente";
@@ -15,10 +15,9 @@ import { Client } from "../cliente/cliente.validator";
 export type OperacionConfigDeps = {
     libroService: LibroService;
     clienteStockService: ClienteStockService;
-    // Efecto de stock de las cuatro operaciones: ahora vive en el depósito
-    // principal del usuario, no en una columna global del libro (ver
-    // specs/008-movimientos-deposito, tarea 11).
-    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "moveStock">;
+    // Depósito principal y depósito propio del cliente: los extremos y el
+    // efecto de stock de las cuatro operaciones (ver specs/009-ledger-unificado).
+    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito">;
     afipService: AfipService;
     comprobanteService: ComprobanteService;
 };
@@ -26,13 +25,21 @@ export type OperacionConfigDeps = {
 // Factory en vez de objeto ya armado: recibe `libroService`/`clienteStockService`
 // ya construidos (los arma `createTransaccionModule`, ver index.ts) en vez de
 // importar el composition root (`container.ts`) — así el módulo transaccion no
-// depende del container, que es justo lo que evita el ciclo container.ts ↔
-// modules/transaccion al agregar este módulo al composition root.
+// depende del container.
 export function createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService }: OperacionConfigDeps): Record<TipoTransaccion, OperacionConfig> {
+    const principal = async (userId: number): Promise<ExtremoOperacion> => ({
+        tipo: "deposito",
+        id: (await depositoRepository.findPrincipal(userId)).id
+    });
+
+    const depositoDelCliente = async (cliente: Client, userId: number): Promise<ExtremoOperacion> => ({
+        tipo: "deposito",
+        id: (await depositoRepository.findClienteDeposito(cliente.id, userId)).id
+    });
+
     // Resuelve stock/precio *actuales* del libro (`librosTable`), compartido por
-    // `venta`/`consignacion`: el `stock` disponible de una operación que
-    // descuenta es el del depósito principal (ver
-    // specs/008-movimientos-deposito, tarea 11), no el total del libro.
+    // `venta`/`consignacion`: el stock disponible de una operación que descuenta
+    // es el del depósito principal (ver specs/008-movimientos-deposito).
     const resolverLibrosDeLibro = async (libros: LibroCantidad[], userId: number): Promise<LibroOperacion[]> => {
         return Promise.all(
             libros.map(async (item) => {
@@ -49,10 +56,10 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         );
     };
 
-    // Caso borde (ver plan): si el cliente nunca tuvo ese libro en consignación,
-    // `libro_cliente` no tiene fila para ese isbn. Se completa `id_libro`/`titulo`
-    // con el catálogo general para no perder el dato en la respuesta/mensaje de
-    // error, aunque el `stock`/`precio` del cliente queden en 0.
+    // Caso borde: si el cliente nunca tuvo ese libro en consignación, no hay
+    // info en su depósito para ese isbn. Se completa `id_libro`/`titulo` con el
+    // catálogo general para no perder el dato en la respuesta/mensaje de error,
+    // aunque el `stock`/`precio` del cliente queden en 0.
     const libroInfoFallback = async (isbn: string, userId: number): Promise<{ id_libro: number; titulo: string }> => {
         const libro = await libroService.findOne(isbn, userId);
         return { id_libro: libro.id_libro, titulo: libro.titulo };
@@ -80,28 +87,10 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         };
     };
 
-    // Compartido por `consignacion`/`ventaConsignacion`/`devolucion#moverStock`:
-    // mueve el stock del libro en lo del cliente (no el del depósito principal,
-    // ver `moverStockPrincipal`).
-    const moverStockCliente = (cliente: Client, libro: LibroOperacion, delta: number, tx: Tx): Promise<void> =>
-        clienteStockService.moveStock(cliente.id, { id_libro: libro.id_libro, isbn: libro.isbn, precio: libro.precio }, delta, tx);
-
-    // Efecto de `venta`/`consignacion` (resta) y `devolucion` (suma) sobre el
-    // depósito principal del usuario. `ventaConsignacion` no lo usa: opera
-    // sólo sobre el stock del cliente.
-    const moverStockPrincipal = async (libros: LibroOperacion[], userId: number, signo: number, tx: Tx): Promise<void> => {
-        const principal = await depositoRepository.findPrincipal(userId);
-
-        for (const libro of libros) {
-            await depositoRepository.moveStock(principal.id, libro.id_libro, userId, signo * libro.cantidad, tx);
-        }
-    };
-
-    // Compartido por `venta`/`ventaConsignacion` (mismo `if` que hoy en
-    // `venta.controller.ts#vender`/`ventaConsignado`): factura sólo si el
-    // cliente no es "negro".
-    async function facturarSiCorresponde(ctx: ComprobanteCtx, filesFolder: string): Promise<void> {
-        const { cliente, user, transaction, venta: ventaRow, libros } = ctx;
+    // Compartido por `venta`/`ventaConsignacion` (mismo `if` que hoy): factura
+    // sólo si el cliente no es "negro".
+    async function facturarSiCorresponde(ctx: ComprobanteCtx): Promise<void> {
+        const { cliente, user, transaction, venta: ventaRow, medioPago, libros } = ctx;
 
         if (cliente.tipo === tipoCliente.negro) return;
         if (ventaRow === null) throw new ValidationError("Falta la venta para facturar");
@@ -112,28 +101,41 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         await comprobanteService.emitirComprobante({
             data: {
                 venta: ventaRow,
+                medioPago,
                 transaction,
                 libros,
                 cliente,
-                comprobante: comprobanteData,
-                filesFolder
+                comprobante: comprobanteData
             },
             user
         });
     }
 
-    const venta: OperacionConfig = {
-        tipo: tipoTransaccion.venta,
+    // Compartido por `consignacion`/`devolucion`: ambas adjuntan un remito al
+    // movimiento (la devolución no tiene plantilla propia).
+    const emitirRemito = async (ctx: ComprobanteCtx): Promise<void> => {
+        await comprobanteService.emitirComprobante({
+            data: {
+                consignacion: ctx.transaction,
+                cliente: ctx.cliente,
+                libros: ctx.libros
+            },
+            user: ctx.user
+        });
+    };
+
+    const venta: OperacionConfig = {        tipo: tipoTransaccion.venta,
         filesFolder: "facturas",
         esVenta: true,
         bodyParser: createVenta,
         // `VentaFirme.clientValidation` (MySQL) no la sobreescribía: siempre true.
         clientValidation: () => true,
         resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId),
-        moverStock: async (libros, _cliente, userId, tx) => {
-            await moverStockPrincipal(libros, userId, -1, tx);
-        },
-        generarComprobante: (ctx) => facturarSiCorresponde(ctx, "facturas")
+        obtenerExtremos: async (_cliente, userId) => ({
+            origen: await principal(userId),
+            destino: { tipo: "exterior" }
+        }),
+        generarComprobante: facturarSiCorresponde
     };
 
     const consignacion: OperacionConfig = {
@@ -143,23 +145,16 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         bodyParser: createTransaccion,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,
         resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId),
-        moverStock: async (libros, cliente, userId, tx) => {
-            await moverStockPrincipal(libros, userId, -1, tx);
+        obtenerExtremos: async (cliente, userId) => ({
+            origen: await principal(userId),
+            destino: await depositoDelCliente(cliente, userId)
+        }),
+        fijarPrecios: async (libros, cliente, tx: Tx) => {
             for (const libro of libros) {
-                await moverStockCliente(cliente, libro, libro.cantidad, tx);
+                await clienteStockService.setPrecio(cliente.id, libro, tx);
             }
         },
-        generarComprobante: async (ctx) => {
-            await comprobanteService.emitirComprobante({
-                data: {
-                    consignacion: ctx.transaction,
-                    cliente: ctx.cliente,
-                    libros: ctx.libros,
-                    filesFolder: consignacion.filesFolder
-                },
-                user: ctx.user
-            });
-        }
+        generarComprobante: emitirRemito
     };
 
     const ventaConsignacion: OperacionConfig = {
@@ -185,20 +180,18 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
                 })
             );
         },
-        // No toca el depósito principal (spec: "no el stock general del libro").
-        moverStock: async (libros, cliente, _userId, tx) => {
-            for (const libro of libros) {
-                await moverStockCliente(cliente, libro, -libro.cantidad, tx);
-            }
-        },
-        generarComprobante: (ctx) => facturarSiCorresponde(ctx, "facturas")
+        obtenerExtremos: async (cliente, userId) => ({
+            origen: await depositoDelCliente(cliente, userId),
+            destino: { tipo: "exterior" }
+        }),
+        generarComprobante: facturarSiCorresponde
     };
 
     const devolucion: OperacionConfig = {
         tipo: tipoTransaccion.devolucion,
-        // Nunca genera archivo: el `file_path: ""` fijo se resuelve al insertar
-        // la transacción en `operacion.service.ts`.
-        filesFolder: "",
+        // El comprobante de la devolución se emite con la plantilla de remito:
+        // no hay un archivo propio de devolución (ver plan, "Archivo opcional").
+        filesFolder: "remitos",
         esVenta: false,
         bodyParser: createTransaccion,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,
@@ -214,13 +207,11 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
                 })
             );
         },
-        moverStock: async (libros, cliente, userId, tx) => {
-            await moverStockPrincipal(libros, userId, 1, tx);
-            for (const libro of libros) {
-                await moverStockCliente(cliente, libro, -libro.cantidad, tx);
-            }
-        },
-        generarComprobante: null
+        obtenerExtremos: async (cliente, userId) => ({
+            origen: await depositoDelCliente(cliente, userId),
+            destino: await principal(userId)
+        }),
+        generarComprobante: emitirRemito
     };
 
     return {

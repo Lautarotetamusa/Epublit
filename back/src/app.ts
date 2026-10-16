@@ -2,7 +2,6 @@ import express, { Express } from "express";
 import cors from 'cors';
 import { Container } from "./container";
 import { auth } from "./lib/auth/auth";
-import { medioPago } from "./modules/transaccion";
 import { handleErrors } from "./lib/http/errors";
 import { env } from "./env";
 
@@ -38,12 +37,12 @@ export function createApp(container: Container): Express {
     app.use('/cliente', auth, container.cliente.router);
     app.use('/liquidacion', auth, container.liquidacion.router);
 
-    // Registrada antes de montar el router de transacciones: si fuera después,
-    // `/venta/:id` (dentro de container.transaccion.router) la interceptaría
-    // primero y "medios_pago" se leería como un id.
-    app.get('/venta/medios_pago', async (_, res) => {
-        return res.json(Object.keys(medioPago));
-    });
+    app.use('/medio_pago', auth, container.medioPago.router);
+
+    app.use('/rol', auth, container.rol.router);
+
+    // `GET /venta/medios_pago` vive dentro del router de transacciones (se
+    // registra antes de `/venta/:id`, ver transaccion.routes.ts).
     app.use('/', container.transaccion.router);
 
     app.use('/user', container.user.router);
