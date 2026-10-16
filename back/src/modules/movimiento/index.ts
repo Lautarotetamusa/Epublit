@@ -4,6 +4,7 @@
 // join.
 import { Database } from "../../db/client";
 import { Storage } from "../../lib/storage";
+import { AnticipoService } from "../anticipo";
 import { DepositoRepository } from "../deposito";
 import { LibroRepository } from "../libro";
 import { createMovimientoRepository } from "./movimiento.repository";
@@ -25,12 +26,13 @@ export type MovimientoModuleDeps = {
     db: Database;
     depositoRepository: DepositoRepository;
     libroRepository: Pick<LibroRepository, "findOne">;
+    anticipoService: Pick<AnticipoService, "generarDeLibro">;
     storage: Storage;
 };
 
-export function createMovimientoModule({ db, depositoRepository, libroRepository, storage }: MovimientoModuleDeps) {
+export function createMovimientoModule({ db, depositoRepository, libroRepository, anticipoService, storage }: MovimientoModuleDeps) {
     const repository = createMovimientoRepository({ db });
-    const service = createMovimientoService({ db, repository, depositoRepository, libroRepository, storage });
+    const service = createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, storage });
     const controller = createMovimientoController({ service });
     const router = createMovimientoRoutes(controller);
 

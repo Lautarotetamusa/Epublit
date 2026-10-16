@@ -1,6 +1,7 @@
 import { Database } from "../../db/client";
 import { StockInsuficiente } from "../../lib/http/errors";
 import { Storage } from "../../lib/storage";
+import { AnticipoService } from "../anticipo";
 import { DepositoRepository } from "../deposito";
 import { LibroRepository } from "../libro";
 import { MovimientoConDetalle, MovimientoRepository, VentaDeMovimiento } from "./movimiento.repository";
@@ -30,10 +31,14 @@ export type MovimientoServiceDeps = {
     repository: MovimientoRepository;
     depositoRepository: DepositoRepository;
     libroRepository: Pick<LibroRepository, "findOne">;
+    // Un ingreso exterior → depósito principal es el lanzamiento del libro (o
+    // su reimpresión): dispara la generación idempotente de anticipos (ver
+    // specs/012-liquidaciones-pagos, tarea 10).
+    anticipoService: Pick<AnticipoService, "generarDeLibro">;
     storage: Storage;
 };
 
-export function createMovimientoService({ db, repository, depositoRepository, libroRepository, storage }: MovimientoServiceDeps) {
+export function createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, storage }: MovimientoServiceDeps) {
     const formatearExtremo = (tipo: string, depositoId: number | null, nombre: string | null): ExtremoPublico =>
         tipo === "deposito"
             ? { tipo: "deposito", id: depositoId as number, nombre: nombre as string }
@@ -115,6 +120,10 @@ export function createMovimientoService({ db, repository, depositoRepository, li
         }
 
         const tipo = derivarTipo(data.origen.tipo, data.destino.tipo);
+        // La primera incorporación al depósito principal lanza el libro; las
+        // posteriores son reimpresiones. En ambos casos se intenta generar el
+        // anticipo (idempotente): sólo la primera crea filas nuevas.
+        const esLanzamientoOReimpresion = data.origen.tipo === "exterior" && destino?.principal === true;
 
         const movimiento = await db.transaction(async (tx) => {
             const row = await repository.insert(
@@ -144,6 +153,12 @@ export function createMovimientoService({ db, repository, depositoRepository, li
             if (destino) {
                 for (const libro of libros) {
                     await depositoRepository.moveStock(destino.id, libro.id_libro, userId, libro.cantidad, tx);
+                }
+            }
+
+            if (esLanzamientoOReimpresion) {
+                for (const libro of libros) {
+                    await anticipoService.generarDeLibro(libro.id_libro, userId, tx);
                 }
             }
 

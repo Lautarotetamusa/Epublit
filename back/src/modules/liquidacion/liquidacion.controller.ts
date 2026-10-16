@@ -1,20 +1,20 @@
 import { RequestHandler } from "express";
-import { liquidacionValidator } from "./liquidacion.validator";
-import { LiquidacionService } from "./liquidacion.service";
 import { ok } from "../../lib/http/responses";
+import { liquidacionesValidator, LiquidacionesService } from "../liquidaciones";
 
+// El reporte del período es la previsualización de una liquidación persistida:
+// reusa el mismo cálculo (ventas del período todavía no cubiertas) y agrega
+// `excluidas`, sin duplicar la lógica en este módulo.
 export type LiquidacionControllerDeps = {
-    service: LiquidacionService;
+    service: Pick<LiquidacionesService, "reporte">;
 };
 
 export function createLiquidacionController({ service }: LiquidacionControllerDeps) {
     const getLiquidacion: RequestHandler = async (req, res) => {
-        const { desde, hasta } = liquidacionValidator.query.parse(req.query);
-        const userId = res.locals.user.id;
+        const { desde, hasta } = liquidacionesValidator.rango.parse(req.query);
+        const reporte = await service.reporte(res.locals.user.id, desde, hasta);
 
-        const liquidacion = await service.generar(userId, desde, hasta);
-
-        ok(res, liquidacion);
+        ok(res, reporte);
     };
 
     return { getLiquidacion };

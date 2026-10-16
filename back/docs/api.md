@@ -2,6 +2,11 @@
 
 Generado por `scripts/generate-api-docs.js`. No editar a mano.
 
+## anticipo (/anticipos)
+
+- `GET    /anticipos/`
+- `POST   /anticipos/:id/pagar`
+
 ## cliente (/cliente)
 
 - `POST   /cliente/`
@@ -51,6 +56,14 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 ## liquidacion (/liquidacion)
 
 - `GET    /liquidacion/`
+
+## liquidaciones (/liquidaciones)
+
+- `GET    /liquidaciones/`
+- `POST   /liquidaciones/`
+- `GET    /liquidaciones/:id`
+- `POST   /liquidaciones/:id/personas/:idPersona/pagos`
+- `DELETE /liquidaciones/:id/pagos/:idPago`
 
 ## medioPago (/medio_pago)
 

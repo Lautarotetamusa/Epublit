@@ -35,6 +35,8 @@ import { VentasPage } from "./features/ventas/VentasPage";
 import { NuevaVentaPage } from "./features/ventas/NuevaVentaPage";
 import { FichaVentaPage } from "./features/ventas/FichaVentaPage";
 import { LiquidacionesPage } from "./features/liquidaciones/LiquidacionesPage";
+import { NuevaLiquidacionPage } from "./features/liquidaciones/NuevaLiquidacionPage";
+import { FichaLiquidacionPage } from "./features/liquidaciones/FichaLiquidacionPage";
 import { ConsignacionesPage } from "./features/consignaciones/ConsignacionesPage";
 import { NuevaConsignacionPage } from "./features/consignaciones/NuevaConsignacionPage";
 import { FichaConsignacionPage } from "./features/consignaciones/FichaConsignacionPage";
@@ -103,6 +105,11 @@ function AppRoutes() {
                 <Route path="/ventas/nueva" element={<NuevaVentaPage />} />
                 <Route path="/ventas/:id" element={<FichaVentaPage />} />
                 <Route path="/liquidaciones" element={<LiquidacionesPage />} />
+                <Route path="/liquidaciones/nueva" element={<NuevaLiquidacionPage />} />
+                {/* `anticipos` es una pestaña de la sección: va antes de `:id`
+                    para no matchear como una liquidación con id "anticipos". */}
+                <Route path="/liquidaciones/anticipos" element={<LiquidacionesPage />} />
+                <Route path="/liquidaciones/:id" element={<FichaLiquidacionPage />} />
                 <Route path="/consignaciones" element={<ConsignacionesPage />} />
                 <Route path="/consignaciones/nueva" element={<NuevaConsignacionPage />} />
                 <Route path="/consignaciones/:id" element={<FichaConsignacionPage />} />

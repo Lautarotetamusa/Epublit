@@ -59,20 +59,24 @@ export function useFichaLibro(isbn: string) {
         await fetchLibro();
     };
 
-    const agregarPersonaExistente = async (rol: Rol, id_persona: number, porcentaje: number) => {
-        await addLibroPersonas(isbn, [{ id_persona, rol, porcentaje }]);
+    // `monto_acordado` es opcional: sin él la relación queda sin anticipo (o,
+    // en la edición, conserva el que ya tenía).
+    const agregarPersonaExistente = async (rol: Rol, id_persona: number, porcentaje: number, monto_acordado?: number) => {
+        await addLibroPersonas(isbn, [{ id_persona, rol, porcentaje, monto_acordado }]);
         await fetchLibro();
     };
 
-    const agregarPersonaNueva = async (rol: Rol, input: CreatePersonaInput, porcentaje: number) => {
+    const agregarPersonaNueva = async (rol: Rol, input: CreatePersonaInput, porcentaje: number, monto_acordado?: number) => {
         const created = await createPersona(input);
-        await addLibroPersonas(isbn, [{ id_persona: created.data.id, rol, porcentaje }]);
+        await addLibroPersonas(isbn, [{ id_persona: created.data.id, rol, porcentaje, monto_acordado }]);
         setPersonas((current) => [...current, created.data]);
         await fetchLibro();
     };
 
-    const actualizarPorcentaje = async (rol: Rol, id_persona: number, porcentaje: number) => {
-        await updateLibroPersonas(isbn, [{ id_persona, rol, porcentaje }]);
+    // El porcentaje siempre viaja (el backend lo exige presente), el anticipo
+    // sólo cuando se pasa: omitido = se deja el valor actual de la relación.
+    const actualizarRelacion = async (rol: Rol, id_persona: number, porcentaje: number, monto_acordado?: number) => {
+        await updateLibroPersonas(isbn, [{ id_persona, rol, porcentaje, monto_acordado }]);
         await fetchLibro();
     };
 
@@ -92,7 +96,7 @@ export function useFichaLibro(isbn: string) {
         update,
         agregarPersonaExistente,
         agregarPersonaNueva,
-        actualizarPorcentaje,
+        actualizarRelacion,
         quitarPersona
     };
 }

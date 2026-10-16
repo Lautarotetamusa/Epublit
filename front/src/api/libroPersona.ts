@@ -8,6 +8,11 @@ export type LibroPersonaInput = {
     id_persona: number;
     rol: Rol;
     porcentaje: number;
+    // Monto acordado del anticipo (opcional): el backend lo copia como snapshot
+    // al generarse el anticipo al lanzar el libro. Omitirlo en el PUT deja el
+    // anticipo actual sin tocar y en el POST no genera anticipo para esa
+    // relación (ver specs/012-liquidaciones-pagos).
+    monto_acordado?: number;
 };
 
 export type LibroPersonaRemoveInput = {
@@ -15,10 +20,13 @@ export type LibroPersonaRemoveInput = {
     rol: Rol;
 };
 
-const comoBody = ({ id_persona, rol, porcentaje }: LibroPersonaInput) => ({
+const comoBody = ({ id_persona, rol, porcentaje, monto_acordado }: LibroPersonaInput) => ({
     id_persona,
     rol: rol.id,
-    porcentaje
+    porcentaje,
+    // `undefined` no lo serializa JSON.stringify: el PUT sólo toca el anticipo
+    // cuando el valor viene con número.
+    monto_acordado
 });
 
 export const addLibroPersonas = async (isbn: string, items: LibroPersonaInput[]): Promise<void> => {

@@ -4,13 +4,14 @@ import type { CreatePersonaInput, Persona } from "../../api/persona";
 import type { Rol } from "../../api/rol";
 import type { PersonaEnLibro } from "../../api/libro";
 
-const toPersonaEnLibro = (persona: Persona, rol: Rol, porcentaje: number): PersonaEnLibro => ({
+const toPersonaEnLibro = (persona: Persona, rol: Rol, porcentaje: number, monto_acordado: number | null): PersonaEnLibro => ({
     id_persona: persona.id,
     nombre: persona.nombre,
     email: persona.email,
     dni: persona.dni,
     rol,
-    porcentaje
+    porcentaje,
+    monto_acordado
 });
 
 // Mismo shape de callbacks que expone `useFichaLibro` (agregar/actualizar/
@@ -22,21 +23,27 @@ const toPersonaEnLibro = (persona: Persona, rol: Rol, porcentaje: number): Perso
 export function usePersonasPendientes(personas: Persona[], onPersonaCreada: (persona: Persona) => void) {
     const [pendientes, setPendientes] = useState<PersonaEnLibro[]>([]);
 
-    const agregarExistente = async (rol: Rol, idPersona: number, porcentaje: number) => {
+    const agregarExistente = async (rol: Rol, idPersona: number, porcentaje: number, montoAcordado?: number) => {
         const persona = personas.find((p) => p.id === idPersona);
         if (!persona) return;
-        setPendientes((current) => [...current, toPersonaEnLibro(persona, rol, porcentaje)]);
+        setPendientes((current) => [...current, toPersonaEnLibro(persona, rol, porcentaje, montoAcordado ?? null)]);
     };
 
-    const agregarNueva = async (rol: Rol, input: CreatePersonaInput, porcentaje: number) => {
+    const agregarNueva = async (rol: Rol, input: CreatePersonaInput, porcentaje: number, montoAcordado?: number) => {
         const creada = await createPersona(input);
         onPersonaCreada(creada.data);
-        setPendientes((current) => [...current, toPersonaEnLibro(creada.data, rol, porcentaje)]);
+        setPendientes((current) => [...current, toPersonaEnLibro(creada.data, rol, porcentaje, montoAcordado ?? null)]);
     };
 
-    const actualizarPorcentaje = async (rol: Rol, idPersona: number, porcentaje: number) => {
+    // Igual que en la ficha: el anticipo omitido conserva el que ya tenía la
+    // fila; sin `null` en la API, borrarlo no está soportado.
+    const actualizarRelacion = async (rol: Rol, idPersona: number, porcentaje: number, montoAcordado?: number) => {
         setPendientes((current) =>
-            current.map((p) => (p.id_persona === idPersona && p.rol.id === rol.id ? { ...p, porcentaje } : p))
+            current.map((p) =>
+                p.id_persona === idPersona && p.rol.id === rol.id
+                    ? { ...p, porcentaje, monto_acordado: montoAcordado === undefined ? p.monto_acordado : montoAcordado }
+                    : p
+            )
         );
     };
 
@@ -44,5 +51,5 @@ export function usePersonasPendientes(personas: Persona[], onPersonaCreada: (per
         setPendientes((current) => current.filter((p) => !(p.id_persona === idPersona && p.rol.id === rol.id)));
     };
 
-    return { pendientes, agregarExistente, agregarNueva, actualizarPorcentaje, quitar };
+    return { pendientes, agregarExistente, agregarNueva, actualizarRelacion, quitar };
 }

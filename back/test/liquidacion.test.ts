@@ -169,7 +169,8 @@ describe('GET /liquidacion: rango sin ventas computables', () => {
             total_facturado: 0,
             ejemplares_vendidos: 0,
             libros: [],
-            personas: []
+            personas: [],
+            excluidas: []
         });
     });
 });

@@ -11,6 +11,11 @@ export const librosPersonasTable = pgTable(
             .notNull()
             .references(() => personasTable.id),
         porcentaje: real("porcentaje").default(0),
+        // Monto acordado del anticipo para esa persona + rol en ese libro
+        // (ver specs/012-liquidaciones-pagos): opcional, se copia como
+        // snapshot al generarse el anticipo en el lanzamiento. `null` = sin
+        // anticipo para esa participación.
+        monto_acordado: real("monto_acordado"),
         // Rol de la cuenta con el que la persona trabaja en ese libro (ver
         // specs/011-roles): referencia al rol, no copia su nombre, así
         // renombrarlo se refleja en todas las personas que lo usan.

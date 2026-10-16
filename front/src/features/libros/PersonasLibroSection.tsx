@@ -7,6 +7,7 @@ import type { Rol } from "../../api/rol";
 import type { Persona, CreatePersonaInput } from "../../api/persona";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
+import { formatMoney } from "../../lib/money";
 import { sanitizeDecimal, sanitizeInteger, clampRange } from "../../lib/numericInput";
 import { isValidEmail } from "../../lib/validation";
 import { nombreVisible, opcionesDeRol, tonoDeRol } from "../roles/presentacionRol";
@@ -17,9 +18,11 @@ type Props = {
     // Los roles activos de la cuenta (plan 011): el rol con el que una persona
     // trabaja en un libro ya no es un enum fijo, sale de acá.
     roles: Rol[];
-    onAgregarExistente: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
-    onAgregarNueva: (rol: Rol, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
-    onActualizarPorcentaje: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
+    onAgregarExistente: (rol: Rol, idPersona: number, porcentaje: number, montoAcordado?: number) => Promise<void>;
+    onAgregarNueva: (rol: Rol, input: CreatePersonaInput, porcentaje: number, montoAcordado?: number) => Promise<void>;
+    // Actualiza la relación: el porcentaje siempre se manda, el anticipo sólo
+    // cuando se pasa (omitido = se conserva el actual).
+    onActualizarRelacion: (rol: Rol, idPersona: number, porcentaje: number, montoAcordado?: number) => Promise<void>;
     onQuitar: (rol: Rol, idPersona: number) => Promise<void>;
 };
 
@@ -32,7 +35,7 @@ export function PersonasLibroSection({
     roles,
     onAgregarExistente,
     onAgregarNueva,
-    onActualizarPorcentaje,
+    onActualizarRelacion,
     onQuitar
 }: Props) {
     const { showToast } = useToast();
@@ -55,7 +58,17 @@ export function PersonasLibroSection({
         const porcentaje = Number(value);
         if (porcentaje === p.porcentaje || Number.isNaN(porcentaje)) return;
         try {
-            await onActualizarPorcentaje(p.rol, p.id_persona, porcentaje);
+            await onActualizarRelacion(p.rol, p.id_persona, porcentaje);
+        } catch (err) {
+            showToast("error", getErrorMessage(err));
+        }
+    };
+
+    // El porcentaje actual viaja siempre: el backend lo exige, así que editar
+    // sólo el anticipo no puede omitirlo.
+    const handleAnticipoBlur = async (p: PersonaEnLibro, monto: number) => {
+        try {
+            await onActualizarRelacion(p.rol, p.id_persona, p.porcentaje, monto);
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -118,6 +131,15 @@ export function PersonasLibroSection({
                         )
                     },
                     {
+                        header: "Anticipo",
+                        align: "right",
+                        cell: (p: PersonaEnLibro) => (
+                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                <AnticipoInput monto={p.monto_acordado} onCommit={(monto) => handleAnticipoBlur(p, monto)} />
+                            </div>
+                        )
+                    },
+                    {
                         header: "",
                         align: "right",
                         width: 48,
@@ -136,9 +158,9 @@ export function PersonasLibroSection({
                     todasLasPersonas={todasLasPersonas}
                     roles={roles}
                     onClose={() => setShowExistente(false)}
-                    onSave={async (rol, idPersona, porcentaje) => {
+                    onSave={async (rol, idPersona, porcentaje, montoAcordado) => {
                         try {
-                            await onAgregarExistente(rol, idPersona, porcentaje);
+                            await onAgregarExistente(rol, idPersona, porcentaje, montoAcordado);
                             setShowExistente(false);
                         } catch (err) {
                             showToast("error", getErrorMessage(err));
@@ -151,9 +173,9 @@ export function PersonasLibroSection({
                 <AgregarNuevaDialog
                     roles={roles}
                     onClose={() => setShowNueva(false)}
-                    onSave={async (rol, input, porcentaje) => {
+                    onSave={async (rol, input, porcentaje, montoAcordado) => {
                         try {
-                            await onAgregarNueva(rol, input, porcentaje);
+                            await onAgregarNueva(rol, input, porcentaje, montoAcordado);
                             setShowNueva(false);
                         } catch (err) {
                             showToast("error", getErrorMessage(err));
@@ -181,12 +203,13 @@ function AgregarExistenteDialog({
     todasLasPersonas: Persona[];
     roles: Rol[];
     onClose: () => void;
-    onSave: (rol: Rol, idPersona: number, porcentaje: number) => Promise<void>;
+    onSave: (rol: Rol, idPersona: number, porcentaje: number, montoAcordado?: number) => Promise<void>;
 }) {
     const [idRol, setIdRol] = useState(roles[0]?.id ?? 0);
     const disponibles = disponiblesPara(todasLasPersonas, personasEnLibro, idRol);
     const [idPersona, setIdPersona] = useState<number | "">(disponibles[0]?.id ?? "");
     const [porcentaje, setPorcentaje] = useState("0");
+    const [montoAcordado, setMontoAcordado] = useState("");
     const [saving, setSaving] = useState(false);
 
     const handleRolChange = (nuevoId: number) => {
@@ -198,7 +221,12 @@ function AgregarExistenteDialog({
         const rol = roles.find((candidato) => candidato.id === idRol);
         if (idPersona === "" || !rol) return;
         setSaving(true);
-        await onSave(rol, Number(idPersona), Number(clampRange(porcentaje, 0, 100)));
+        await onSave(
+            rol,
+            Number(idPersona),
+            Number(clampRange(porcentaje, 0, 100)),
+            montoAcordado.trim() === "" ? undefined : Number(montoAcordado)
+        );
         setSaving(false);
     };
 
@@ -238,6 +266,20 @@ function AgregarExistenteDialog({
                     onBlur={(e) => setPorcentaje(clampRange(e.target.value, 0, 100))}
                 />
             </Field>
+            <Field
+                label="Anticipo"
+                style={{ marginTop: "var(--space-4)" }}
+                hint="Opcional. Se cobra una sola vez al lanzar el libro; una reimpresión no genera otro."
+            >
+                <Input
+                    type="text"
+                    inputMode="decimal"
+                    suffix="ARS"
+                    placeholder="Sin anticipo"
+                    value={montoAcordado}
+                    onChange={(e) => setMontoAcordado(sanitizeDecimal(e.target.value))}
+                />
+            </Field>
         </Dialog>
     );
 }
@@ -249,10 +291,10 @@ function AgregarNuevaDialog({
 }: {
     roles: Rol[];
     onClose: () => void;
-    onSave: (rol: Rol, input: CreatePersonaInput, porcentaje: number) => Promise<void>;
+    onSave: (rol: Rol, input: CreatePersonaInput, porcentaje: number, montoAcordado?: number) => Promise<void>;
 }) {
     const [idRol, setIdRol] = useState(roles[0]?.id ?? 0);
-    const [inputs, setInputs] = useState({ nombre: "", email: "", dni: "", porcentaje: "0" });
+    const [inputs, setInputs] = useState({ nombre: "", email: "", dni: "", porcentaje: "0", montoAcordado: "" });
     const [saving, setSaving] = useState(false);
     const [emailTouched, setEmailTouched] = useState(false);
     const emailInvalid = emailTouched && inputs.email !== "" && !isValidEmail(inputs.email);
@@ -263,7 +305,12 @@ function AgregarNuevaDialog({
         const rol = roles.find((candidato) => candidato.id === idRol);
         if (!rol) return;
         setSaving(true);
-        await onSave(rol, { nombre: inputs.nombre, email: inputs.email, dni: inputs.dni }, Number(clampRange(inputs.porcentaje, 0, 100)));
+        await onSave(
+            rol,
+            { nombre: inputs.nombre, email: inputs.email, dni: inputs.dni },
+            Number(clampRange(inputs.porcentaje, 0, 100)),
+            inputs.montoAcordado.trim() === "" ? undefined : Number(inputs.montoAcordado)
+        );
         setSaving(false);
     };
 
@@ -311,7 +358,64 @@ function AgregarNuevaDialog({
                         onBlur={(e) => setInputs((v) => ({ ...v, porcentaje: clampRange(e.target.value, 0, 100) }))}
                     />
                 </Field>
+                <Field
+                    label="Anticipo"
+                    style={{ marginTop: "var(--space-4)" }}
+                    hint="Opcional. Se cobra una sola vez al lanzar el libro; una reimpresión no genera otro."
+                >
+                    <Input
+                        type="text"
+                        inputMode="decimal"
+                        suffix="ARS"
+                        placeholder="Sin anticipo"
+                        value={inputs.montoAcordado}
+                        onChange={(e) => setInputs((v) => ({ ...v, montoAcordado: sanitizeDecimal(e.target.value) }))}
+                    />
+                </Field>
             </form>
         </Dialog>
+    );
+}
+
+// Anticipo de una fila: en reposo muestra el monto formateado ("—" si no hay)
+// y al enfocarlo pasa a edición con el decimal crudo — un input con
+// "$ 4.600" adentro no se puede tipear. El porcentaje de la misma fila viaja
+// siempre en el PUT, así que lo aporta quien llama.
+function AnticipoInput({ monto, onCommit }: { monto: number | null; onCommit: (monto: number) => Promise<void> }) {
+    const [editando, setEditando] = useState(false);
+    const [draft, setDraft] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    const handleFocus = () => {
+        setDraft(monto === null ? "" : String(monto));
+        setEditando(true);
+    };
+
+    const handleBlur = async () => {
+        setEditando(false);
+        const raw = draft.trim();
+        // Vacío = sin cambio: la API no acepta `null`, así que un anticipo ya
+        // cargado no se puede borrar desde acá, sólo editar su monto.
+        if (raw === "") return;
+        const value = Number(raw);
+        if (Number.isNaN(value) || value === monto) return;
+        setSaving(true);
+        await onCommit(value);
+        setSaving(false);
+    };
+
+    return (
+        <Input
+            type="text"
+            inputMode="decimal"
+            suffix="ARS"
+            placeholder="—"
+            style={{ width: 140 }}
+            disabled={saving}
+            value={editando ? draft : monto === null ? "" : formatMoney(monto)}
+            onFocus={handleFocus}
+            onChange={(e) => setDraft(sanitizeDecimal(e.target.value))}
+            onBlur={handleBlur}
+        />
     );
 }

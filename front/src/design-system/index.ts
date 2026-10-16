@@ -8,6 +8,7 @@ export { Button } from "./components/core/Button.jsx";
 export { Card } from "./components/core/Card.jsx";
 export { Icon } from "./components/core/Icon.jsx";
 export { IconButton } from "./components/core/IconButton.jsx";
+export { ProgressBar } from "./components/core/ProgressBar.jsx";
 export { StatCard } from "./components/core/StatCard.jsx";
 
 export { EmptyState } from "./components/data/EmptyState.jsx";

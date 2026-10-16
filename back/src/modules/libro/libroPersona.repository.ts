@@ -32,6 +32,7 @@ export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps)
                     id_persona: item.id_persona,
                     id_rol: item.rol,
                     porcentaje: item.porcentaje,
+                    monto_acordado: item.monto_acordado ?? null,
                     isbn,
                     id_libro: idLibro
                 }))
@@ -39,10 +40,14 @@ export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps)
             .returning();
     };
 
-    const updatePorcentaje = async (idLibro: number, item: LibroPersonaBody, tx?: Tx) => {
+    const updateParticipacion = async (idLibro: number, item: LibroPersonaBody, tx?: Tx) => {
         const [actualizada] = await (tx ?? db)
             .update(librosPersonasTable)
-            .set({ porcentaje: item.porcentaje })
+            .set({
+                porcentaje: item.porcentaje,
+                // Sin `monto_acordado` en el body se deja el valor actual.
+                ...(item.monto_acordado === undefined ? {} : { monto_acordado: item.monto_acordado })
+            })
             .where(
                 and(
                     eq(librosPersonasTable.id_libro, idLibro),
@@ -64,7 +69,7 @@ export function createLibroPersonaRepository({ db }: LibroPersonaRepositoryDeps)
     return {
         findExisting,
         insertMany,
-        updatePorcentaje,
+        updateParticipacion,
         removeMany
     };
 }

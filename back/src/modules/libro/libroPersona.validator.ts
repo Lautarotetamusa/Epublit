@@ -7,7 +7,11 @@ import { z } from 'zod';
 const body = z.object({
     id_persona: z.number(),
     rol: z.number(),
-    porcentaje: z.number().min(0).max(100)
+    porcentaje: z.number().min(0).max(100),
+    // Monto acordado del anticipo (opcional): se copia como snapshot al
+    // generarse el anticipo en el lanzamiento del libro (ver
+    // specs/012-liquidaciones-pagos, tarea 3).
+    monto_acordado: z.number().min(0).optional()
 });
 const bodyBatch = body.or(z.array(body).min(1));
 const removeBody = body.pick({ id_persona: true, rol: true });

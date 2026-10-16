@@ -6,6 +6,7 @@
 // imports contra `createLibroService`/etc.) — ver src/modules/persona/index.ts.
 import { Database } from "../../db/client";
 import { Storage } from "../../lib/storage";
+import { AnticipoService } from "../anticipo";
 import { PersonaRepository } from "../persona";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
@@ -38,10 +39,13 @@ export type LibroModuleDeps = {
     // Sólo lectura de roles (ownership + vigencia) para validar la asignación
     // de personas a un libro (ver specs/011-roles).
     rolRepository: Pick<RolRepository, "findOne">;
+    // Definir un monto acordado sobre un libro ya lanzado genera su anticipo
+    // (ver specs/012-liquidaciones-pagos, tarea 10).
+    anticipoService: Pick<AnticipoService, "generarDeLibro">;
     storage: Storage;
 };
 
-export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, rolRepository, storage }: LibroModuleDeps) {
+export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, rolRepository, anticipoService, storage }: LibroModuleDeps) {
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
@@ -52,7 +56,8 @@ export function createLibroModule({ db, personaRepository, coleccionRepository, 
         repository: libroPersonaRepository,
         libroRepository: repository,
         personaRepository,
-        rolRepository
+        rolRepository,
+        anticipoService
     });
 
     const libroController = createLibroController({ service });

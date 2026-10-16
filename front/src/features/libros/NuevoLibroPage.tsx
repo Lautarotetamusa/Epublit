@@ -19,7 +19,7 @@ export function NuevoLibroPage() {
     const { personas, setPersonas } = useTodasLasPersonas();
     const { colecciones } = useColecciones();
     const { roles } = useRoles();
-    const { pendientes, agregarExistente, agregarNueva, actualizarPorcentaje, quitar } = usePersonasPendientes(personas, (persona) =>
+    const { pendientes, agregarExistente, agregarNueva, actualizarRelacion, quitar } = usePersonasPendientes(personas, (persona) =>
         setPersonas((current) => [...current, persona])
     );
     const { showToast } = useToast();
@@ -65,7 +65,12 @@ export function NuevoLibroPage() {
             if (pendientes.length > 0) {
                 await addLibroPersonas(
                     libro.isbn,
-                    pendientes.map((p) => ({ id_persona: p.id_persona, rol: p.rol, porcentaje: p.porcentaje }))
+                    pendientes.map((p) => ({
+                        id_persona: p.id_persona,
+                        rol: p.rol,
+                        porcentaje: p.porcentaje,
+                        monto_acordado: p.monto_acordado ?? undefined
+                    }))
                 );
             }
             showToast("success", "Libro creado correctamente");
@@ -99,7 +104,7 @@ export function NuevoLibroPage() {
                 roles={roles}
                 onAgregarExistente={agregarExistente}
                 onAgregarNueva={agregarNueva}
-                onActualizarPorcentaje={actualizarPorcentaje}
+                onActualizarRelacion={actualizarRelacion}
                 onQuitar={quitar}
             />
         </div>

@@ -24,7 +24,7 @@ export function FichaLibroPage() {
         update,
         agregarPersonaExistente,
         agregarPersonaNueva,
-        actualizarPorcentaje,
+        actualizarRelacion,
         quitarPersona
     } = useFichaLibro(isbn);
     const { showToast } = useToast();
@@ -69,7 +69,7 @@ export function FichaLibroPage() {
                 roles={roles}
                 onAgregarExistente={agregarPersonaExistente}
                 onAgregarNueva={agregarPersonaNueva}
-                onActualizarPorcentaje={actualizarPorcentaje}
+                onActualizarRelacion={actualizarRelacion}
                 onQuitar={quitarPersona}
             />
         </div>

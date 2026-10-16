@@ -12,7 +12,9 @@ import { createUserModule } from "../src/modules/user";
 import { createClienteModule } from "../src/modules/cliente";
 import { createMedioPagoModule } from "../src/modules/medioPago";
 import { createRolModule } from "../src/modules/rol";
+import { createAnticipoModule } from "../src/modules/anticipo";
 import { createTransaccionModule } from "../src/modules/transaccion";
+import { createLiquidacionesModule } from "../src/modules/liquidaciones";
 import { resetSeedData } from "./reset";
 import { seedUsers, PASSWORD_SEED } from "./users.seeder";
 import { seedPersonas } from "./personas.seeder";
@@ -22,6 +24,8 @@ import { seedLibros } from "./libros.seeder";
 import { seedLibrosPersonas } from "./librosPersonas.seeder";
 import { seedLibroCliente } from "./libroCliente.seeder";
 import { seedOperaciones } from "./operaciones.seeder";
+import { seedAnticipos } from "./anticipos.seeder";
+import { seedLiquidaciones } from "./liquidaciones.seeder";
 
 // Orden fijo por dependencia de FKs: cada seeder recibe lo que ya generaron
 // los anteriores (DI por parámetros, no un estado global compartido).
@@ -40,12 +44,13 @@ async function main(): Promise<void> {
     const deposito = createDepositoModule({ db });
     const medioPago = createMedioPagoModule({ db });
     const rol = createRolModule({ db });
+    const anticipo = createAnticipoModule({ db });
     const user = createUserModule({ db, afipService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
-    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, storage });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, storage });
     const transaccion = createTransaccionModule({
         db,
         libroService: libro.service,
@@ -59,6 +64,7 @@ async function main(): Promise<void> {
         comprobanteService,
         storage
     });
+    const liquidaciones = createLiquidacionesModule({ db });
 
     const users = await seedUsers(user.service);
     await seedColecciones(users, coleccion.service);
@@ -77,6 +83,9 @@ async function main(): Promise<void> {
         movimiento.repository,
         transaccion.ventaRepository
     );
+
+    await seedAnticipos(users, libros, deposito.repository, movimiento.repository, anticipo.service);
+    await seedLiquidaciones(users, liquidaciones.service);
 
     console.log(`Seed listo: ${users.length} usuarios, password de todos: "${PASSWORD_SEED}"`);
     for (const u of users) {

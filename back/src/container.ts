@@ -13,7 +13,9 @@ import { createUserModule } from "./modules/user";
 import { createClienteModule } from "./modules/cliente";
 import { createRolModule } from "./modules/rol";
 import { createMedioPagoModule } from "./modules/medioPago";
+import { createAnticipoModule } from "./modules/anticipo";
 import { createTransaccionModule } from "./modules/transaccion";
+import { createLiquidacionesModule } from "./modules/liquidaciones";
 import { createLiquidacionModule } from "./modules/liquidacion";
 
 export type CreateContainerDeps = {
@@ -36,12 +38,16 @@ export function createContainer({
     // Medio de pago antes de user: el alta de usuario crea sus 5 medios por
     // defecto, y transaccion los resuelve al vender.
     const medioPago = createMedioPagoModule({ db });
+    // Anticipos antes de libro/movimiento: ambos disparan su generación (el
+    // lanzamiento de un libro es la primera incorporación de stock, ver
+    // specs/012-liquidaciones-pagos).
+    const anticipo = createAnticipoModule({ db });
     const user = createUserModule({ db, afipService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
-    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, storage });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, storage });
     const transaccion = createTransaccionModule({
         db,
         libroService: libro.service,
@@ -56,9 +62,10 @@ export function createContainer({
         storage
     });
 
-    const liquidacion = createLiquidacionModule({ db });
+    const liquidaciones = createLiquidacionesModule({ db });
+    const liquidacion = createLiquidacionModule({ liquidacionesService: liquidaciones.service });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, coleccion, deposito, movimiento, medioPago, rol };
+    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol };
 }
 
 export type Container = ReturnType<typeof createContainer>;

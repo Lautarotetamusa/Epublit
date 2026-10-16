@@ -16,10 +16,22 @@ import {
     precioLibrosTable,
     ventasTable,
     mediosPagoTable,
-    rolesTable
+    rolesTable,
+    liquidacionLineasTable,
+    liquidacionPagosTable,
+    liquidacionVentasTable,
+    liquidacionPersonasTable,
+    liquidacionesTable,
+    anticiposTable
 } from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
+    liquidacionLineasTable,
+    liquidacionPagosTable,
+    liquidacionVentasTable,
+    liquidacionPersonasTable,
+    liquidacionesTable,
+    anticiposTable,
     movimientosLibrosTable,
     movimientosTable,
     depositoLibrosTable,

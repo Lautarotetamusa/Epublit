@@ -125,7 +125,8 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                 email: personasTable.email,
                 rol_id: rolesTable.id,
                 rol_nombre: rolesTable.nombre,
-                porcentaje: librosPersonasTable.porcentaje
+                porcentaje: librosPersonasTable.porcentaje,
+                monto_acordado: librosPersonasTable.monto_acordado
             })
             .from(librosPersonasTable)
             .innerJoin(personasTable, eq(personasTable.id, librosPersonasTable.id_persona))

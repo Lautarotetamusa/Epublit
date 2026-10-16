@@ -30,6 +30,16 @@ export type PersonaLiquidada = {
     total_a_pagar: number;
 };
 
+// Ventas del período que una liquidación anterior ya cubrió: el reporte las
+// informa agrupadas por liquidación, con la cantidad de movimientos que quedaron
+// afuera (ver back liquidaciones.repository.ts#getExcluidas). Como el backend ya
+// las excluye de `libros`/`personas`, esto sólo alimenta el aviso de la pantalla.
+export type Excluida = {
+    liquidacion_id: number;
+    codigo: string;
+    ventas: number;
+};
+
 // A diferencia de otros recursos, `desde`/`hasta` no viven acá: son el
 // input con el que se pidió la liquidación, no parte de la respuesta del
 // backend (ver back/src/modules/liquidacion/liquidacion.service.ts).
@@ -38,6 +48,7 @@ export type Liquidacion = {
     personas: PersonaLiquidada[];
     total_facturado: number;
     ejemplares_vendidos: number;
+    excluidas: Excluida[];
 };
 
 export type GenerarLiquidacionInput = {

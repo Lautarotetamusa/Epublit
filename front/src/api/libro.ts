@@ -52,6 +52,9 @@ export type PersonaEnLibro = Pick<Persona, "nombre" | "email"> & {
     dni: string;
     rol: Rol;
     porcentaje: number;
+    // Anticipo acordado para esta persona + rol en este libro, o `null` si no
+    // se definió todavía (ver specs/012-liquidaciones-pagos).
+    monto_acordado: number | null;
 };
 
 export type LibroConPersonas = Libro & {

@@ -1,4 +1,5 @@
 import { Database } from "../../db/client";
+import { AnticipoService } from "../anticipo";
 import { LibroRepository } from "./libro.repository";
 import { PersonaRepository } from "../persona/persona.repository";
 import { RolRepository } from "../rol";
@@ -14,6 +15,10 @@ export type LibroPersonaServiceDeps = {
     // Sólo lectura: valida que cada rol asignado exista, sea de la cuenta y
     // esté activo (404 del contrato, ver plan tarea 8).
     rolRepository: Pick<RolRepository, "findOne">;
+    // Definir un monto acordado sobre un libro ya lanzado genera su anticipo
+    // (una sola vez): lo resuelve el service de anticipos (ver
+    // specs/012-liquidaciones-pagos, tarea 10).
+    anticipoService: Pick<AnticipoService, "generarDeLibro">;
 };
 
 export function createLibroPersonaService({
@@ -21,7 +26,8 @@ export function createLibroPersonaService({
     repository,
     libroRepository,
     personaRepository,
-    rolRepository
+    rolRepository,
+    anticipoService
 }: LibroPersonaServiceDeps) {
     const uniqueIds = (items: { id_persona: number }[]): number[] =>
         Array.from(new Set(items.map((item) => item.id_persona)));
@@ -65,7 +71,13 @@ export function createLibroPersonaService({
                 throw new NotFound("Alguna persona no existe");
             }
 
-            return repository.insertMany(libro.id_libro, libro.isbn, items, tx);
+            const insertadas = await repository.insertMany(libro.id_libro, libro.isbn, items, tx);
+
+            if (items.some((item) => item.monto_acordado != null)) {
+                await anticipoService.generarDeLibro(libro.id_libro, userId, tx);
+            }
+
+            return insertadas;
         });
 
         return { libro, personas };
@@ -93,8 +105,10 @@ export function createLibroPersonaService({
                 // Sin chequeo de verdad sobre `item.porcentaje`: el schema ya lo
                 // exige presente (incluyendo 0), así que siempre se aplica tal
                 // cual viene (ver spec/plan: corrección del bug de porcentaje 0).
-                actualizadas.push(await repository.updatePorcentaje(libro.id_libro, item, tx));
+                actualizadas.push(await repository.updateParticipacion(libro.id_libro, item, tx));
             }
+
+            await anticipoService.generarDeLibro(libro.id_libro, userId, tx);
 
             return actualizadas;
         });
