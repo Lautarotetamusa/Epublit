@@ -31,3 +31,6 @@ lista_libros.csv
 # `out: "./db/migrations"`); cualquier /migrations en la raíz de back/ es
 # de una corrida con un --out distinto al configurado, no la fuente real.
 /migrations
+
+# JSON intermedio de la migración de producción (auditable, no se versiona).
+scripts/migracion-produccion/datos*.json

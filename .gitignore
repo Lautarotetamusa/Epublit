@@ -11,6 +11,16 @@
 # correspondiente) que termine apareciendo acá.
 node_modules/
 
+# Dumps de producción: contienen datos personales reales (CUIT, emails,
+# hashes de password). Nunca se versionan; se usan sólo para el rehearsal
+# local de specs/015-migracion-produccion.
+backup*.sql
+backup*.sql.gz
+
+# Infra de producción: secretos y backups locales.
+/infra/.env
+/infra/backups/
+
 # Skill de terceros (impeccable.style), 18MB con binario compilado
 # linux-x64: se re-provisiona por máquina vía
 # .claude/hooks/ensure-impeccable-skill.sh, nunca se commitea. `**/` al

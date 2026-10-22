@@ -18,6 +18,7 @@
         "./src/**/*",
         "./src/lib/afip/afip.js/src/Afip_res/*.wsdl",
         "./drizzle.config.ts",
-        "./seeders/**/*"
+        "./seeders/**/*",
+        "./scripts/migracion-produccion/**/*"
     ]
 }

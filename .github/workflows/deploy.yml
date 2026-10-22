@@ -1,0 +1,130 @@
+name: deploy
+
+# ---------------------------------------------------------------------------
+# Deploy de producción. Separado de build.yml:
+#
+#   build.yml  -> publica la imagen del back en GHCR
+#   deploy.yml -> buildea el SPA (static), copia dist + compose + nginx al
+#                 servidor, corre migraciones y levanta el stack
+#
+# Se dispara cuando termina `build` en main (así la imagen :prod ya existe)
+# o a mano con workflow_dispatch.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  REF: ${{ github.event.workflow_run.head_sha || github.sha }}
+  APP_DIR: ${{ vars.PROD_APP_DIR || '/home/ubuntu/epublit' }}
+  REGISTRY: ghcr.io
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Verificar VITE_API_URL_PROD
+        run: |
+          if [ -z "${{ vars.VITE_API_URL_PROD }}" ]; then
+            echo "::error::Falta la variable VITE_API_URL_PROD (ej: https://epublit.com.ar/api)"
+            exit 1
+          fi
+
+      # --- Front: build estático (no se publica imagen) --------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Build del SPA
+        working-directory: front
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL_PROD }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Empaquetar front e infra
+        run: |
+          tar -czf front-dist.tar.gz -C front/dist .
+          tar -czf infra.tar.gz \
+            infra/docker-compose.yml \
+            infra/nginx/templates/default.conf.template
+
+      # --- Copia de archivos ------------------------------------------------
+      - name: Copiar front al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "front-dist.tar.gz"
+          target: ${{ env.APP_DIR }}
+
+      - name: Copiar infra al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          source: "infra.tar.gz"
+          target: ${{ env.APP_DIR }}
+
+      # --- Migraciones + stack ---------------------------------------------
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ env.APP_DIR }}"
+
+            # Front: reemplazo atómico del directorio servido por nginx.
+            # El mount de nginx es www/ (no www/front), así ve el cambio sin
+            # recrear el contenedor.
+            mkdir -p www
+            rm -rf www/front-new www/front-old
+            mkdir -p www/front-new
+            tar -xzf front-dist.tar.gz -C www/front-new
+            if [ -d www/front ]; then mv www/front www/front-old; fi
+            mv www/front-new www/front
+            rm -rf www/front-old front-dist.tar.gz
+
+            # Infra: compose en la raíz y nginx/ al lado (strip de "infra/").
+            tar -xzf infra.tar.gz --strip-components=1
+            rm -f infra.tar.gz
+
+            # GHCR: el GITHUB_TOKEN del workflow es de sólo lectura de packages.
+            echo "${{ secrets.GITHUB_TOKEN }}" \
+              | docker login "${{ env.REGISTRY }}" -u "${{ github.actor }}" --password-stdin
+
+            docker compose pull
+            docker compose --profile tools run --rm migrate
+            docker compose up -d --remove-orphans
+            docker image prune -f
+
+            echo "Deploy OK (${{ env.REF }})"

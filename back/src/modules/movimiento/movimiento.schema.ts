@@ -35,7 +35,9 @@ export const movimientosTable = pgTable(
         destino_deposito_id: integer("destino_deposito_id"),
         // Key de storage del archivo emitido (factura/remito/comprobante) o
         // `null` en los movimientos manuales.
-        file_path: varchar("file_path", { length: 80 }),
+        // 255 y no 80: nombres reales con prefijo (`facturas/…`, `remitos/…`)
+        // llegan a 103 caracteres y la migración de producción los preserva.
+        file_path: varchar("file_path", { length: 255 }),
         // Marca los ingresos que reconstruyó la migración de stock preexistente
         // (ver specs/008-movimientos-deposito, tarea 2): no son un lanzamiento
         // ni una reimpresión, así que las métricas los excluyen de «ejemplares

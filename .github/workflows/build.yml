@@ -1,13 +1,14 @@
 name: build
 
-# Corre en las tres ramas de entorno. El workflow sólo construye y publica la
-# imagen en GHCR (no deploya): cada rama produce su propia imagen etiquetada
-# con el entorno — dev, staging y prod (la rama main).
+# Construye y publica la imagen del BACK en GHCR. No deploya: eso lo hace
+# .github/workflows/deploy.yml.
 #
-# Qué se publica en cada una:
-#   dev      -> back
-#   staging  -> back + front
-#   main     -> back + front
+#   dev     -> back
+#   staging -> back
+#   main    -> back (tag :prod)
+#
+# El front es un SPA de Vite: no se publica como imagen, lo buildea y copia
+# el workflow de deploy.
 on:
   push:
     branches: [dev, staging, main]
@@ -19,64 +20,34 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  # URL del backend horneada en el bundle del front. Se definen como
-  # Repository Variables (Settings -> Secrets and variables -> Actions ->
-  # Variables), una por entorno. Si falta la del entorno, el build avisa.
-  VITE_API_URL_DEV: ${{ vars.VITE_API_URL_DEV }}
-  VITE_API_URL_STAGING: ${{ vars.VITE_API_URL_STAGING }}
-  VITE_API_URL_PROD: ${{ vars.VITE_API_URL_PROD }}
 
 jobs:
-  # Resuelve, según la rama, qué aplicaciones se publican. En dev el front
-  # todavía no tiene imagen, así que sólo se buildea el back. El resultado se
-  # usa como matriz del job de build.
-  targets:
-    name: Resolve targets
+  build:
+    name: back
     runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set.outputs.matrix }}
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Elegir apps según la rama
-        id: set
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve entorno e imagen
+        id: target
         run: |
           case "${GITHUB_REF_NAME}" in
-            dev)     matrix='{"app":["back"]}' ;;
-            staging) matrix='{"app":["back","front"]}' ;;
-            main)    matrix='{"app":["back","front"]}' ;;
+            dev)     environment=dev ;;
+            staging) environment=staging ;;
+            main)    environment=prod ;;
             *)
               echo "::error::La rama '${GITHUB_REF_NAME}' no está soportada por build.yml (dev|staging|main)"
               exit 1
               ;;
           esac
 
-          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
-
-  build:
-    name: ${{ matrix.app }}
-    needs: targets
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJSON(needs.targets.outputs.matrix) }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Resolve entorno, imagen y tags
-        id: target
-        run: |
-          case "${GITHUB_REF_NAME}" in
-            dev)     environment=dev;     api_url="${VITE_API_URL_DEV}" ;;
-            staging) environment=staging; api_url="${VITE_API_URL_STAGING}" ;;
-            main)    environment=prod;    api_url="${VITE_API_URL_PROD}" ;;
-          esac
-
           # GHCR exige nombres en minúscula; github.repository puede traer mayúsculas.
-          image="${REGISTRY}/${GITHUB_REPOSITORY,,}-${{ matrix.app }}"
+          image="${REGISTRY}/${GITHUB_REPOSITORY,,}-back"
 
           tags="${image}:${environment}
           ${image}:${environment}-${GITHUB_SHA}
@@ -96,12 +67,6 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-          # Vite sólo lee VITE_* del entorno al buildear el front.
-          echo "VITE_API_URL=${api_url}" >> "$GITHUB_ENV"
-          if [ "${{ matrix.app }}" = "front" ] && [ -z "${api_url}" ]; then
-            echo "::warning::No hay VITE_API_URL configurada para el entorno '${environment}'; el front quedará sin URL de API."
-          fi
-
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -115,17 +80,15 @@ jobs:
       - name: Build y push
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.app }}
-          file: ./${{ matrix.app }}/Dockerfile
+          context: ./back
+          file: ./back/Dockerfile
           push: true
           pull: true
-          build-args: |
-            VITE_API_URL=${{ env.VITE_API_URL }}
           tags: ${{ steps.target.outputs.tags }}
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.title=epublit-${{ matrix.app }}
+            org.opencontainers.image.title=epublit-back
             org.opencontainers.image.version=${{ steps.target.outputs.environment }}
-          cache-from: type=gha,scope=${{ matrix.app }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+          cache-from: type=gha,scope=back
+          cache-to: type=gha,mode=max,scope=back
