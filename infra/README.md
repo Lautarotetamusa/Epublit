@@ -88,7 +88,7 @@ docker compose up -d
 <repo>/infra/scripts/init-letsencrypt.sh
 ```
 
-> `POSTGRES_PASSWORD` debe ser **alfanumérica**: el back arma `DATABASE_URL`
+> `DB_PASS` debe ser **alfanumérica**: el back arma `DATABASE_URL`
 > por interpolación y una password con `@`, `:` o `/` rompe la URL.
 
 ## Deploy automático
@@ -96,24 +96,30 @@ docker compose up -d
 `.github/workflows/deploy.yml` corre **después** de `build` en `main` (o a
 mano con `workflow_dispatch`):
 
-1. **Front**: `npm ci && npm run build` con `VITE_API_URL_PROD` y copia
-   `front/dist` a `www/front` (reemplazo atómico).
-2. **Infra**: copia `docker-compose.yml` y `nginx/templates/`.
+1. **Front**: `npm ci && npm run build` con la URL derivada de `PUBLIC_URL`
+   (del `.env`) y copia `front/dist` a `www/front` (reemplazo atómico).
+2. **Infra**: copia `docker-compose.yml`, `nginx/templates/` y el `.env`.
 3. **Deploy**: login a GHCR, `docker compose pull`, migraciones
    (`--profile tools run --rm migrate`), `up -d --remove-orphans` y limpieza
    de imágenes.
 
-Secretos/variables necesarios en GitHub:
+Secretos ya cargados en el repo:
 
-| tipo | nombre | qué es |
-|---|---|---|
-| secret | `PROD_HOST` | host SSH |
-| secret | `PROD_USER` | usuario SSH (`ubuntu`) |
-| secret | `PROD_SSH_KEY` | clave privada SSH |
-| variable | `PROD_APP_DIR` | `/home/Epublit` |
-| variable | `VITE_API_URL_PROD` | `https://<dominio>/api` |
+| secret | qué es |
+|---|---|
+| `SERVER_HOST` | host SSH |
+| `SERVER_PORT` | puerto SSH |
+| `SERVER_USERNAME` | usuario SSH |
+| `SSH_PRIVATE_KEY` | clave privada SSH |
+| `SSH_PASSWORD` | **passphrase** de la clave |
+| `DEPLOY_PATH` | `/home/Epublit` |
+| `ENV_FILE_CONTENT` | contenido completo del `.env` (ver `.env.example`) |
+| `AFIP_CERT` / `AFIP_PRIVATE_KEY` | par de homologación (CUIT 20434919798) |
 
-El `.env` **no** lo toca el deploy: vive sólo en el servidor.
+`ENV_FILE_CONTENT` es la fuente de verdad del `.env`: el deploy lo reescribe en
+cada corrida. Tiene que incluir `DB_NAME`, `DB_USER`, `DB_PASS`, `JWT_SECRET`,
+`AFIP_CUIT_PROD`, `DOMAIN` y `PUBLIC_URL` (de esta última se deriva
+`VITE_API_URL` para el build del front).
 
 ## Migración de datos (corte)
 
@@ -185,7 +191,7 @@ Chequeo de que no falte ningún comprobante referenciado:
 cd /home/Epublit
 set -a; . ./.env; set +a
 
-docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \
+docker compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" -Atc \
   "select file_path from movimientos where file_path is not null" > /tmp/paths.txt
 
 faltan=0
@@ -213,7 +219,7 @@ scp infra/.env ubuntu@thorque:/home/Epublit/.env
 ssh ubuntu@thorque 'chmod 600 /home/Epublit/.env && cd /home/Epublit && docker compose up -d back'
 ```
 
-> **No cambies `POSTGRES_PASSWORD` después de inicializar la base**: queda
+> **No cambies `DB_PASS` después de inicializar la base**: queda
 > grabada en el volumen. Para cambiarla hay que hacer `ALTER USER` en Postgres
 > primero. Si cambiás `DOMAIN`/`PUBLIC_URL`, recreá también `nginx` (y volvé a
 > emitir el certificado si cambió el dominio).

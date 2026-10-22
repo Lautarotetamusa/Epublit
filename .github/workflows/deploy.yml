@@ -4,11 +4,17 @@ name: deploy
 # Deploy de producción. Separado de build.yml:
 #
 #   build.yml  -> publica la imagen del back en GHCR
-#   deploy.yml -> buildea el SPA (static), copia dist + compose + nginx al
-#                 servidor, corre migraciones y levanta el stack
+#   deploy.yml -> buildea el SPA (static), copia dist + compose + nginx + .env
+#                 al servidor, corre migraciones y levanta el stack
 #
-# Se dispara cuando termina `build` en main (así la imagen :prod ya existe)
-# o a mano con workflow_dispatch.
+# Usa los secrets ya cargados en el repo:
+#   SERVER_HOST, SERVER_PORT, SERVER_USERNAME, SSH_PRIVATE_KEY, SSH_PASSWORD
+#   (passphrase de la clave), DEPLOY_PATH, ENV_FILE_CONTENT
+#   AFIP_CERT, AFIP_PRIVATE_KEY (par de homologación de los tests)
+#
+# ENV_FILE_CONTENT tiene que ser el .env NUEVO (ver infra/.env.example):
+# DB_NAME/DB_USER/DB_PASS, JWT_SECRET, AFIP_CUIT_PROD, DOMAIN y PUBLIC_URL.
+# De PUBLIC_URL se deriva VITE_API_URL para el build del front.
 # ---------------------------------------------------------------------------
 
 on:
@@ -23,9 +29,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  REF: ${{ github.event.workflow_run.head_sha || github.sha }}
-  APP_DIR: ${{ vars.PROD_APP_DIR || '/home/Epublit' }}
   REGISTRY: ghcr.io
+  REF: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   deploy:
@@ -42,12 +47,21 @@ jobs:
         with:
           ref: ${{ env.REF }}
 
-      - name: Verificar VITE_API_URL_PROD
+      - name: Crear .env desde ENV_FILE_CONTENT
         run: |
-          if [ -z "${{ vars.VITE_API_URL_PROD }}" ]; then
-            echo "::error::Falta la variable VITE_API_URL_PROD (ej: https://epublit.com.ar/api)"
+          printf '%s\n' "$ENV_CONTENT" > .env
+          sed -i 's/\r$//' .env
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+
+      - name: Resolver VITE_API_URL desde PUBLIC_URL
+        run: |
+          PUBLIC_URL="$(grep -E '^PUBLIC_URL=' .env | head -1 | cut -d= -f2- | tr -d '\r')"
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "::error::Falta PUBLIC_URL en ENV_FILE_CONTENT (ej: https://epublit.com.ar)"
             exit 1
           fi
+          echo "VITE_API_URL=${PUBLIC_URL%/}/api" >> "$GITHUB_ENV"
 
       # --- Front: build estático (no se publica imagen) --------------------
       - name: Setup Node
@@ -59,66 +73,84 @@ jobs:
 
       - name: Build del SPA
         working-directory: front
-        env:
-          VITE_API_URL: ${{ vars.VITE_API_URL_PROD }}
         run: |
           npm ci
           npm run build
 
-      - name: Empaquetar front e infra
+      # --- Paquete de deploy ------------------------------------------------
+      - name: Empaquetar
         run: |
-          tar -czf front-dist.tar.gz -C front/dist .
-          tar -czf infra.tar.gz \
-            infra/docker-compose.yml \
-            infra/nginx/templates/default.conf.template
+          rm -rf .deploy deploy.tar.gz
+          mkdir -p .deploy/infra/nginx/templates .deploy/afipkeys/20434919798
+          cp -r front/dist .deploy/front
+          cp infra/docker-compose.yml .deploy/infra/docker-compose.yml
+          cp infra/nginx/templates/default.conf.template .deploy/infra/nginx/templates/
+          cp .env .deploy/.env
+          # Par de homologación (mismo que usan los tests). Las claves reales
+          # de cada cuenta viven en afipkeys/ y se mueven una vez a mano.
+          printf '%s\n' "$AFIP_CERT" > .deploy/afipkeys/20434919798/cert.pem
+          printf '%s\n' "$AFIP_PRIVATE_KEY" > .deploy/afipkeys/20434919798/private_key.key
+          tar -czf deploy.tar.gz -C .deploy .
+        env:
+          AFIP_CERT: ${{ secrets.AFIP_CERT }}
+          AFIP_PRIVATE_KEY: ${{ secrets.AFIP_PRIVATE_KEY }}
 
-      # --- Copia de archivos ------------------------------------------------
-      - name: Copiar front al servidor
+      - name: Copiar al servidor
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          source: "front-dist.tar.gz"
-          target: ${{ env.APP_DIR }}
-
-      - name: Copiar infra al servidor
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          source: "infra.tar.gz"
-          target: ${{ env.APP_DIR }}
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSWORD }}
+          source: "deploy.tar.gz"
+          target: ${{ secrets.DEPLOY_PATH }}
 
       # --- Migraciones + stack ---------------------------------------------
       - name: Deploy
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSWORD }}
           script_stop: true
           script: |
             set -euo pipefail
-            cd "${{ env.APP_DIR }}"
+            cd "${{ secrets.DEPLOY_PATH }}"
 
-            # Front: reemplazo atómico del directorio servido por nginx.
-            # El mount de nginx es www/ (no www/front), así ve el cambio sin
-            # recrear el contenedor.
+            rm -rf .deploy && mkdir -p .deploy
+            tar -xzf deploy.tar.gz -C .deploy
+
+            # Configuración y compose
+            install -m 600 .deploy/.env .env
+            install -m 644 .deploy/infra/docker-compose.yml docker-compose.yml
+            mkdir -p nginx/templates
+            install -m 644 .deploy/infra/nginx/templates/default.conf.template \
+              nginx/templates/default.conf.template
+
+            # AFIP homologación (CUIT 20434919798)
+            if [ -s .deploy/afipkeys/20434919798/cert.pem ]; then
+              mkdir -p afipkeys/20434919798/Tokens
+              install -m 644 .deploy/afipkeys/20434919798/cert.pem \
+                afipkeys/20434919798/cert.pem
+              install -m 600 .deploy/afipkeys/20434919798/private_key.key \
+                afipkeys/20434919798/private_key.key
+            fi
+
+            # Front: reemplazo atómico. nginx monta www/ (no www/front), así
+            # ve el cambio sin recrear el contenedor.
             mkdir -p www
             rm -rf www/front-new www/front-old
-            mkdir -p www/front-new
-            tar -xzf front-dist.tar.gz -C www/front-new
+            mv .deploy/front www/front-new
             if [ -d www/front ]; then mv www/front www/front-old; fi
             mv www/front-new www/front
-            rm -rf www/front-old front-dist.tar.gz
+            rm -rf www/front-old .deploy deploy.tar.gz
 
-            # Infra: compose en la raíz y nginx/ al lado (strip de "infra/").
-            tar -xzf infra.tar.gz --strip-components=1
-            rm -f infra.tar.gz
+            # El back corre como `node` (uid 1000).
+            sudo -n chown -R 1000:1000 files afipkeys 2>/dev/null || true
 
-            # GHCR: el GITHUB_TOKEN del workflow es de sólo lectura de packages.
             echo "${{ secrets.GITHUB_TOKEN }}" \
               | docker login "${{ env.REGISTRY }}" -u "${{ github.actor }}" --password-stdin
 

@@ -20,7 +20,7 @@ if [ -z "${FILE}" ] || [ ! -f "${FILE}" ]; then
     exit 1
 fi
 
-echo "Se va a REEMPLAZAR la base '${POSTGRES_DB}' con ${FILE}."
+echo "Se va a REEMPLAZAR la base '${DB_NAME}' con ${FILE}."
 read -r -p "Escribí 'restaurar' para confirmar: " CONFIRMA
 if [ "${CONFIRMA}" != "restaurar" ]; then
     echo "Cancelado."
@@ -28,7 +28,7 @@ if [ "${CONFIRMA}" != "restaurar" ]; then
 fi
 
 docker compose -f docker-compose.yml exec -T db \
-    pg_restore -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" \
+    pg_restore -U "${DB_USER}" -d "${DB_NAME}" \
     --clean --if-exists --no-owner --single-transaction < "${FILE}"
 
 echo "Restore OK. Reiniciando el back para limpiar conexiones:"

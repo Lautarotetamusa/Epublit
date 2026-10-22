@@ -20,7 +20,7 @@ mkdir -p backups
 OUT="backups/epublit_$(date +%Y%m%d_%H%M%S).dump"
 
 docker compose -f docker-compose.yml exec -T db \
-    pg_dump -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -Fc > "${OUT}"
+    pg_dump -U "${DB_USER}" -d "${DB_NAME}" -Fc > "${OUT}"
 
 echo "Backup OK: ${OUT} ($(du -h "${OUT}" | cut -f1))"
 

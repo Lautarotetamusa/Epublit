@@ -23,9 +23,9 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?definí POSTGRES_DB en .env}
-      POSTGRES_USER: ${POSTGRES_USER:?definí POSTGRES_USER en .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?definí POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${DB_NAME:?definí DB_NAME en .env}
+      POSTGRES_USER: ${DB_USER:?definí DB_USER en .env}
+      POSTGRES_PASSWORD: ${DB_PASS:?definí DB_PASS en .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -41,7 +41,7 @@ services:
   #   docker compose run --rm back node dist/src/db/migrate.js
   # Queda acá con perfil `tools` para poder correrlo a mano igual.
   migrate:
-    image: ${BACK_IMAGE:?definí BACK_IMAGE en .env}
+    image: ${BACK_IMAGE:-ghcr.io/lautarotetamusa/epublit-back:prod}
     profiles: ["tools"]
     depends_on:
       db:
@@ -51,9 +51,6 @@ services:
       NODE_ENV: prod
       DB_HOST: db
       DB_PORT: "5432"
-      DB_USER: ${POSTGRES_USER}
-      DB_PASS: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
     command: ["node", "dist/src/db/migrate.js"]
     restart: "no"
     networks:
@@ -73,9 +70,9 @@ services:
     environment:
       MIGRACION_DB_HOST: db
       MIGRACION_DB_PORT: "5432"
-      MIGRACION_DB_USER: ${POSTGRES_USER}
-      MIGRACION_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      MIGRACION_DB_NAME: ${POSTGRES_DB}
+      MIGRACION_DB_USER: ${DB_USER:?definí DB_USER en .env}
+      MIGRACION_DB_PASSWORD: ${DB_PASS:?definí DB_PASS en .env}
+      MIGRACION_DB_NAME: ${DB_NAME:?definí DB_NAME en .env}
       # El destino de producción no termina en "_migracion"; habilitarlo acá
       # es explícito y queda auditado en este archivo.
       MIGRACION_ALLOW_TARGET: "1"
@@ -92,7 +89,7 @@ services:
       - interna
 
   back:
-    image: ${BACK_IMAGE:?definí BACK_IMAGE en .env}
+    image: ${BACK_IMAGE:-ghcr.io/lautarotetamusa/epublit-back:prod}
     restart: unless-stopped
     depends_on:
       db:
@@ -103,9 +100,6 @@ services:
       PORT: "3000"
       DB_HOST: db
       DB_PORT: "5432"
-      DB_USER: ${POSTGRES_USER}
-      DB_PASS: ${POSTGRES_PASSWORD}
-      DB_NAME: ${POSTGRES_DB}
       FILES_PATH: /app/files
       # Base pública SIN /api: storage.getUrl arma `${HOST}/files/<key>`.
       HOST: ${PUBLIC_URL:?definí PUBLIC_URL en .env}
