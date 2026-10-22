@@ -4,10 +4,10 @@ name: epublit-prod
 # Producción de Epublit (refactor): Postgres + back + nginx de borde.
 #
 # El front NO corre en Docker: es un SPA de Vite que el workflow de deploy
-# buildea y copia como estáticos a FRONT_DIR. El nginx de este compose los
+# buildea y copia como estáticos a ./www. El nginx de este compose los
 # sirve directo (sin un segundo nginx adentro de un contenedor).
 #
-#   /        -> estáticos del SPA (bind mount de FRONT_DIR)
+#   /        -> estáticos del SPA (bind mount de ./www)
 #   /api/    -> back (Express :3000, prefijo recortado)
 #   /files/  -> back (facturas, remitos, portadas, fotos)
 #
@@ -111,9 +111,9 @@ services:
       HOST: ${PUBLIC_URL:?definí PUBLIC_URL en .env}
       CORS_ORIGIN: ${PUBLIC_URL}
     volumes:
-      # Se reusan los directorios de la app vieja (comprobantes y claves AFIP).
-      - ${FILES_DIR:?definí FILES_DIR en .env}:/app/files
-      - ${AFIPKEYS_DIR:?definí AFIPKEYS_DIR en .env}:/app/afipkeys
+      # Autocontenido: todo vive al lado del compose.
+      - ./files:/app/files
+      - ./afipkeys:/app/afipkeys
     healthcheck:
       # No hay endpoint /health: el catch-all de Express responde 404 JSON,
       # que alcanza para saber que el proceso está escuchando.
@@ -144,7 +144,7 @@ services:
       - ./nginx/templates:/etc/nginx/templates:ro
       # Se monta el padre (www/), no el dist: el deploy reemplaza www/front
       # y nginx lo ve al instante, sin recrear el contenedor.
-      - ${FRONT_DIR:?definí FRONT_DIR en .env}:/srv/epublit:ro
+      - ./www:/srv/epublit:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
     # Recarga cada 6 h para tomar certificados renovados por certbot.

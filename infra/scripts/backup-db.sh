@@ -6,7 +6,7 @@
 #
 # Deja el archivo en infra/backups/ y rota los últimos 14.
 # Los archivos (facturas/remitos) y las claves AFIP viven en el host
-# (FILES_DIR / AFIPKEYS_DIR) y se respaldan aparte, ver README.
+# (files/ y afipkeys/) y se respaldan aparte, ver README.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."

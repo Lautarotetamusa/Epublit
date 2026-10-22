@@ -24,7 +24,7 @@ concurrency:
 
 env:
   REF: ${{ github.event.workflow_run.head_sha || github.sha }}
-  APP_DIR: ${{ vars.PROD_APP_DIR || '/home/ubuntu/epublit' }}
+  APP_DIR: ${{ vars.PROD_APP_DIR || '/home/Epublit' }}
   REGISTRY: ghcr.io
 
 jobs:
