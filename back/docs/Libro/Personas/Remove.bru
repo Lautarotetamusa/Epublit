@@ -1,0 +1,23 @@
+meta {
+  name: Remove
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{host}}/libro/9789874864674/personas
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id_persona": 1,
+    "tipo": "autor"
+  }
+}
+
+docs {
+  Acepta objeto único o array. No valida existencia previa: borrar una
+  asociación que no existe no falla (comportamiento actual preservado).
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Get file
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/files/facturas/ejemplo.pdf
+  body: none
+  auth: none
+}
+
+docs {
+  Sin migrar. No pasa por el router principal (`express.static`, montado
+  directo en `src/app.ts` antes del resto de las rutas). Sirve los archivos
+  de `files/facturas` y `files/remitos` generados al facturar/remitir. No
+  requiere autenticación (es un path público con el nombre de archivo
+  generado, no adivinable).
+}

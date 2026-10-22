@@ -57,13 +57,15 @@ se puede ingresar un gasto, un gasto tiene una fecha un monto y una observación
 Balance
 El balance representa la diferencia entre los gastos y las entradas (ventas)
 
-# [Api references](./api.md)
+# [Api references](./back/api.md)
 
 # Instalacion con docker
 Instalar docker
 ![Ubuntu](https://docs.docker.com/engine/install/ubuntu/)
 
 ## The .env file ##
+Crear el archivo en `back/.env` (la raíz sólo tiene un symlink a ese archivo,
+para que `docker compose` pueda leerlo).
 ```env
 DB_HOST=localhost
 DB_USER=user  
@@ -72,7 +74,7 @@ DB_PORT=3306
 DB_NAME=db_name  
 
 PROTOCOL=http
-env=DEV
+NODE_ENV=dev
 
 BACK_PORT=3001
 BACK_PUBLIC_PORT=80

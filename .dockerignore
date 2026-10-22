@@ -1,0 +1,27 @@
+# Contexto de la raíz del repo (lo usa infra/Dockerfile.migracion).
+# Los builds de back/ y front/ tienen sus propios .dockerignore.
+
+# Datos locales de los contenedores (root-only, no se pueden ni leer).
+postgres/
+mysql/
+
+# Artefactos y dependencias
+node_modules/
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Dumps de producción (PII)
+backup*.sql
+backup*.sql.gz
+
+# Backups de infra
+infra/backups/
+
+# Nada de esto entra en la imagen de migración.
+.git/
+.github/
+specs/
+images/
+front/
+**/*.log

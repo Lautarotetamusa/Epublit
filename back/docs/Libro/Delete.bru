@@ -1,0 +1,16 @@
+meta {
+  name: Delete
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{host}}/libro/9789874864674
+  body: none
+  auth: inherit
+}
+
+docs {
+  Baja lógica; también desasocia sus autores/ilustradores actuales
+  (`librosPersonasTable`).
+}

@@ -1,0 +1,162 @@
+name: deploy
+
+# ---------------------------------------------------------------------------
+# Deploy de producción. Separado de build.yml:
+#
+#   build.yml  -> publica la imagen del back en GHCR
+#   deploy.yml -> buildea el SPA (static), copia dist + compose + nginx + .env
+#                 al servidor, corre migraciones y levanta el stack
+#
+# Usa los secrets ya cargados en el repo:
+#   SERVER_HOST, SERVER_PORT, SERVER_USERNAME, SSH_PRIVATE_KEY, SSH_PASSWORD
+#   (passphrase de la clave), DEPLOY_PATH, ENV_FILE_CONTENT
+#   AFIP_CERT, AFIP_PRIVATE_KEY (par de homologación de los tests)
+#
+# ENV_FILE_CONTENT tiene que ser el .env NUEVO (ver infra/.env.example):
+# DB_NAME/DB_USER/DB_PASS, JWT_SECRET, AFIP_CUIT_PROD, DOMAIN y PUBLIC_URL.
+# De PUBLIC_URL se deriva VITE_API_URL para el build del front.
+# ---------------------------------------------------------------------------
+
+on:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  REF: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.REF }}
+
+      - name: Crear .env desde ENV_FILE_CONTENT
+        run: |
+          printf '%s\n' "$ENV_CONTENT" > .env
+          sed -i 's/\r$//' .env
+        env:
+          ENV_CONTENT: ${{ secrets.ENV_FILE_CONTENT }}
+
+      - name: Resolver VITE_API_URL desde PUBLIC_URL
+        run: |
+          PUBLIC_URL="$(grep -E '^PUBLIC_URL=' .env | head -1 | cut -d= -f2- | tr -d '\r')"
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "::error::Falta PUBLIC_URL en ENV_FILE_CONTENT (ej: https://epublit.com.ar)"
+            exit 1
+          fi
+          echo "VITE_API_URL=${PUBLIC_URL%/}/api" >> "$GITHUB_ENV"
+
+      # --- Front: build estático (no se publica imagen) --------------------
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+
+      - name: Build del SPA
+        working-directory: front
+        run: |
+          npm ci
+          npm run build
+
+      # --- Paquete de deploy ------------------------------------------------
+      - name: Empaquetar
+        run: |
+          rm -rf .deploy deploy.tar.gz
+          mkdir -p .deploy/infra/nginx/templates .deploy/afipkeys/20434919798
+          cp -r front/dist .deploy/front
+          cp infra/docker-compose.yml .deploy/infra/docker-compose.yml
+          cp infra/nginx/templates/default.conf.template .deploy/infra/nginx/templates/
+          cp .env .deploy/.env
+          # Par de homologación (mismo que usan los tests). Las claves reales
+          # de cada cuenta viven en afipkeys/ y se mueven una vez a mano.
+          printf '%s\n' "$AFIP_CERT" > .deploy/afipkeys/20434919798/cert.pem
+          printf '%s\n' "$AFIP_PRIVATE_KEY" > .deploy/afipkeys/20434919798/private_key.key
+          tar -czf deploy.tar.gz -C .deploy .
+        env:
+          AFIP_CERT: ${{ secrets.AFIP_CERT }}
+          AFIP_PRIVATE_KEY: ${{ secrets.AFIP_PRIVATE_KEY }}
+
+      - name: Copiar al servidor
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSWORD }}
+          source: "deploy.tar.gz"
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      # --- Migraciones + stack ---------------------------------------------
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSWORD }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            rm -rf .deploy && mkdir -p .deploy
+            tar -xzf deploy.tar.gz -C .deploy
+
+            # Configuración y compose
+            install -m 600 .deploy/.env .env
+            install -m 644 .deploy/infra/docker-compose.yml docker-compose.yml
+            mkdir -p nginx/templates
+            install -m 644 .deploy/infra/nginx/templates/default.conf.template \
+              nginx/templates/default.conf.template
+
+            # AFIP homologación (CUIT 20434919798)
+            if [ -s .deploy/afipkeys/20434919798/cert.pem ]; then
+              mkdir -p afipkeys/20434919798/Tokens
+              install -m 644 .deploy/afipkeys/20434919798/cert.pem \
+                afipkeys/20434919798/cert.pem
+              install -m 600 .deploy/afipkeys/20434919798/private_key.key \
+                afipkeys/20434919798/private_key.key
+            fi
+
+            # Front: reemplazo atómico. nginx monta www/ (no www/front), así
+            # ve el cambio sin recrear el contenedor.
+            mkdir -p www
+            rm -rf www/front-new www/front-old
+            mv .deploy/front www/front-new
+            if [ -d www/front ]; then mv www/front www/front-old; fi
+            mv www/front-new www/front
+            rm -rf www/front-old .deploy deploy.tar.gz
+
+            # El back corre como `node` (uid 1000).
+            sudo -n chown -R 1000:1000 files afipkeys 2>/dev/null || true
+
+            echo "${{ secrets.GITHUB_TOKEN }}" \
+              | docker login "${{ env.REGISTRY }}" -u "${{ github.actor }}" --password-stdin
+
+            docker compose pull
+            docker compose --profile tools run --rm migrate
+            docker compose up -d --remove-orphans
+            docker image prune -f
+
+            echo "Deploy OK (${{ env.REF }})"

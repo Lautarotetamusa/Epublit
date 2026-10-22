@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Feedback" subtitle="Alert, Toast, Tooltip, Dialog" -->
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;background:var(--surface-page)}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Alert, Toast, Tooltip, Dialog, Button, Field, Input } = window.EpublitDesignSystem_2918d4;
+function Demo(){return <div style={{display:'grid',gap:12}}>
+<Alert tone="warning" title="Stock por debajo del mínimo">3 títulos quedaron con menos de 5 ejemplares en depósito.</Alert>
+<Alert tone="error" title="No pudimos validar el CUIT" onClose={()=>{}}>Revisá el número y volvé a guardar.</Alert>
+<Alert tone="info">La liquidación se calcula sobre las ventas informadas por cada librería.</Alert>
+<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
+<Toast message="Libro guardado" action="Ver ficha" onClose={()=>{}} />
+<Tooltip label="Precio de venta al público"><span style={{fontSize:'var(--text-sm)',borderBottom:'1px dotted var(--border-strong)',cursor:'help'}}>PVP</span></Tooltip>
+</div>
+<div style={{position:'relative',height:150,border:'1px solid var(--border-subtle)',borderRadius:'var(--radius-md)',background:'var(--papel-100)',overflow:'hidden'}}>
+<Dialog open title="Nueva liquidación" description="Elegí el punto de venta y el período a liquidar." width={420}
+  footer={<><Button variant="secondary" size="sm">Cancelar</Button><Button size="sm">Crear</Button></>} onClose={()=>{}}>
+<Field label="Punto de venta"><Input defaultValue="Librería Norte" /></Field>
+</Dialog>
+</div>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

@@ -1,0 +1,26 @@
+meta {
+  name: Register
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/user/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "testing",
+    "password": "Test1234.",
+    "cuit": "20173080329",
+    "email": "test@gmail.com"
+  }
+}
+
+docs {
+  Migrado a Postgres. Consulta AFIP con el `cuit`, crea el usuario y genera
+  clave privada + CSR. No requiere autores/ilustradores ni nada de otro
+  módulo. `password` nunca se devuelve en la respuesta.
+}

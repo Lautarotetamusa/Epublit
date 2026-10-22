@@ -1,0 +1,171 @@
+name: epublit-prod
+
+# ---------------------------------------------------------------------------
+# Producción de Epublit (refactor): Postgres + back + nginx de borde.
+#
+# El front NO corre en Docker: es un SPA de Vite que el workflow de deploy
+# buildea y copia como estáticos a ./www. El nginx de este compose los
+# sirve directo (sin un segundo nginx adentro de un contenedor).
+#
+#   /        -> estáticos del SPA (bind mount de ./www)
+#   /api/    -> back (Express :3000, prefijo recortado)
+#   /files/  -> back (facturas, remitos, portadas, fotos)
+#
+# Este archivo lo copia .github/workflows/deploy.yml al servidor junto con
+# nginx/ y el dist del front. El .env se crea una vez a mano.
+#
+# Perfiles:
+#   tools -> migrate (Drizzle) y migracion (datos desde MariaDB, corte único)
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?definí DB_NAME en .env}
+      POSTGRES_USER: ${DB_USER:?definí DB_USER en .env}
+      POSTGRES_PASSWORD: ${DB_PASS:?definí DB_PASS en .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Sin ports: sólo accesible desde la red interna.
+    networks:
+      - interna
+
+  # Migraciones de esquema (Drizzle). El deploy lo corre como job puntual:
+  #   docker compose run --rm back node dist/src/db/migrate.js
+  # Queda acá con perfil `tools` para poder correrlo a mano igual.
+  migrate:
+    image: ${BACK_IMAGE:-ghcr.io/lautarotetamusa/epublit-back:prod}
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: prod
+      DB_HOST: db
+      DB_PORT: "5432"
+    command: ["node", "dist/src/db/migrate.js"]
+    restart: "no"
+    networks:
+      - interna
+
+  # Migración de datos (MariaDB vieja -> Postgres nuevo). Corre una sola vez
+  # en el corte, desde un checkout del repo (necesita el contexto de build).
+  migracion:
+    profiles: ["tools"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.migracion
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      MIGRACION_DB_HOST: db
+      MIGRACION_DB_PORT: "5432"
+      MIGRACION_DB_USER: ${DB_USER:?definí DB_USER en .env}
+      MIGRACION_DB_PASSWORD: ${DB_PASS:?definí DB_PASS en .env}
+      MIGRACION_DB_NAME: ${DB_NAME:?definí DB_NAME en .env}
+      # El destino de producción no termina en "_migracion"; habilitarlo acá
+      # es explícito y queda auditado en este archivo.
+      MIGRACION_ALLOW_TARGET: "1"
+      MYSQL_HOST: ${LEGACY_DB_HOST:-host.docker.internal}
+      MYSQL_PORT: ${LEGACY_DB_PORT:-3306}
+      MYSQL_USER: ${LEGACY_DB_USER:?definí LEGACY_DB_USER en .env}
+      MYSQL_PASSWORD: ${LEGACY_DB_PASSWORD:-}
+      MYSQL_DATABASE: ${LEGACY_DB_NAME:-epublit}
+    extra_hosts:
+      # Para llegar al MariaDB viejo publicado en el host.
+      - "host.docker.internal:host-gateway"
+    restart: "no"
+    networks:
+      - interna
+
+  back:
+    image: ${BACK_IMAGE:-ghcr.io/lautarotetamusa/epublit-back:prod}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: prod
+      PORT: "3000"
+      DB_HOST: db
+      DB_PORT: "5432"
+      FILES_PATH: /app/files
+      # Base pública SIN /api: storage.getUrl arma `${HOST}/files/<key>`.
+      HOST: ${PUBLIC_URL:?definí PUBLIC_URL en .env}
+      CORS_ORIGIN: ${PUBLIC_URL}
+    volumes:
+      # Autocontenido: todo vive al lado del compose.
+      - ./files:/app/files
+      - ./afipkeys:/app/afipkeys
+    healthcheck:
+      # No hay endpoint /health: el catch-all de Express responde 404 JSON,
+      # que alcanza para saber que el proceso está escuchando.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.status===404?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    stop_grace_period: 30s
+    networks:
+      - interna
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - back
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?definí DOMAIN en .env}
+    volumes:
+      - ./nginx/templates:/etc/nginx/templates:ro
+      # Se monta el padre (www/), no el dist: el deploy reemplaza www/front
+      # y nginx lo ve al instante, sin recrear el contenedor.
+      - ./www:/srv/epublit:ro
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    # Recarga cada 6 h para tomar certificados renovados por certbot.
+    command: >
+      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done &
+      nginx -g 'daemon off;'"
+    networks:
+      - interna
+
+  certbot:
+    image: certbot/certbot
+    restart: unless-stopped
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM; while :; do
+      certbot renew --webroot -w /var/www/certbot --quiet;
+      sleep 12h & wait $${!}; done;'
+    networks:
+      - interna
+
+volumes:
+  pgdata:
+  certbot_conf:
+  certbot_www:
+
+networks:
+  interna:
+    driver: bridge

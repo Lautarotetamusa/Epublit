@@ -1,0 +1,18 @@
+meta {
+  name: Get consumidor final
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/cliente/consumidor_final
+  body: none
+  auth: inherit
+}
+
+docs {
+  Sin migrar (MySQL). Nota: en `src/routes/cliente.routes.ts` esta ruta está
+  registrada DESPUÉS de `GET /:id`, así que Express la matchea como `id =
+  "consumidor_final"` y nunca llega al handler dedicado — bug preexistente,
+  no introducido por la migración, documentado acá tal cual está hoy.
+}

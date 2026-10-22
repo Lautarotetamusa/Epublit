@@ -1,0 +1,28 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/devolucion
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "cliente": 1,
+    "libros": [
+      {
+        "isbn": "9789874864674",
+        "cantidad": 3
+      }
+    ]
+  }
+}
+
+docs {
+  Sin migrar (MySQL). Devolución de libros que un cliente tenía en
+  consignación. Si un isbn se repite en `libros`, se suman las cantidades.
+}

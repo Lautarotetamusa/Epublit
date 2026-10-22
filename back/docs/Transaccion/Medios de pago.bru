@@ -1,0 +1,17 @@
+meta {
+  name: Medios de pago
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/venta/medios_pago
+  body: none
+  auth: none
+}
+
+docs {
+  Sin migrar (MySQL). No requiere autenticación. Devuelve el listado fijo de
+  medios de pago válidos (`efectivo`, `debito`, `credito`, `mercadopago`,
+  `transferencia`).
+}

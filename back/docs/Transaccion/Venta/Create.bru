@@ -1,0 +1,32 @@
+meta {
+  name: Create
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/venta
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "cliente": 1,
+    "medio_pago": "efectivo",
+    "tipo_cbte": 11,
+    "descuento": 0,
+    "libros": [
+      {
+        "isbn": "9789874864674",
+        "cantidad": 2
+      }
+    ]
+  }
+}
+
+docs {
+  Sin migrar (MySQL). `tipo_cbte` es el código AFIP del comprobante (11 =
+  Factura C, 6 = Factura B, 1 = Factura A, 51 = Factura M). Si un isbn se
+  repite en `libros`, se suman las cantidades.
+}

@@ -1,0 +1,94 @@
+name: build
+
+# Construye y publica la imagen del BACK en GHCR. No deploya: eso lo hace
+# .github/workflows/deploy.yml.
+#
+#   dev     -> back
+#   staging -> back
+#   main    -> back (tag :prod)
+#
+# El front es un SPA de Vite: no se publica como imagen, lo buildea y copia
+# el workflow de deploy.
+on:
+  push:
+    branches: [dev, staging, main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: back
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve entorno e imagen
+        id: target
+        run: |
+          case "${GITHUB_REF_NAME}" in
+            dev)     environment=dev ;;
+            staging) environment=staging ;;
+            main)    environment=prod ;;
+            *)
+              echo "::error::La rama '${GITHUB_REF_NAME}' no está soportada por build.yml (dev|staging|main)"
+              exit 1
+              ;;
+          esac
+
+          # GHCR exige nombres en minúscula; github.repository puede traer mayúsculas.
+          image="${REGISTRY}/${GITHUB_REPOSITORY,,}-back"
+
+          tags="${image}:${environment}
+          ${image}:${environment}-${GITHUB_SHA}
+          ${image}:sha-${GITHUB_SHA}"
+          if [ "${environment}" = "prod" ]; then
+            tags="${tags}
+          ${image}:latest"
+          fi
+
+          {
+            echo "environment=${environment}"
+            echo "image=${image}"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "tags<<EOF"
+            echo "${tags}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build y push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./back
+          file: ./back/Dockerfile
+          push: true
+          pull: true
+          tags: ${{ steps.target.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.title=epublit-back
+            org.opencontainers.image.version=${{ steps.target.outputs.environment }}
+          cache-from: type=gha,scope=back
+          cache-to: type=gha,mode=max,scope=back

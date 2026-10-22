@@ -1,0 +1,16 @@
+meta {
+  name: Get one
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/libro/9789874864674
+  body: none
+  auth: inherit
+}
+
+docs {
+  Devuelve el libro con sus `autores`/`ilustradores` (arrays vacíos si
+  todavía no se asoció ninguno vía `Libro/Personas/Add`).
+}

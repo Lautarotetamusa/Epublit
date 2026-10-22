@@ -1,42 +1,42 @@
+# Los `$DB_USER`/`$DB_PASS`/`$DB_PORT`/`$PORT` de acá abajo los interpola
+# `docker compose` (no el contenedor), y ese motor sólo lee un `.env` al lado
+# de este archivo (raíz) — por eso hay un symlink `.env -> back/.env` en la
+# raíz: una sola fuente de verdad para el env real del backend.
 services:
-  mysqldb:
-    image: mariadb:10.9.4
+  postgresdb:
+    image: postgres:16
     restart: unless-stopped
-    env_file: ./.env
+    env_file: ./back/.env
     environment:
-      # la root password y la password del user es la misma
-      - MARIADB_DATABASE=epublit_test
-      - MARIADB_USER=$DB_USER
-      - MARIADB_PASSWORD=$DB_PASS
-      - MARIADB_ROOT_PASSWORD=$DB_PASS
+      - POSTGRES_USER=$DB_USER
+      - POSTGRES_PASSWORD=$DB_PASS
+      - POSTGRES_DB=$DB_NAME
     ports:
       - $DB_PORT:$DB_PORT
     volumes:
-      - ./db/init/:/docker-entrypoint-initdb.d #Crear las tablas automaticamente al iniciar
-      # Importante!: Siempre que la carpeta mysql exista previamente, buildear de nuevo el contenedor no tendrá ningun efecto.
-      - ./mysql:/var/lib/mysql #Mantener la misma data de mi base de datos local
+      - ./postgres:/var/lib/postgresql/data #Mantener la misma data de mi base de datos local
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
       interval: 10s
       timeout: 5s
       retries: 5
-  
+
   api:
     depends_on:
-      mysqldb:
+      postgresdb:
         condition: service_healthy
-    build: 
+    build:
       dockerfile: ./Dockerfile
-      context: .
+      context: ./back
     restart: on-failure
-    env_file: ./.env
+    env_file: ./back/.env
     ports:
-      - $BACK_PORT:$BACK_PORT
+      - $PORT:$PORT
     environment:
-      - DB_HOST=mysqldb
-    command: node dist/app.js
+      - DB_HOST=postgresdb
+    command: node dist/src/index.js
     #command: npm run start:dev
     volumes:
-     - ./files:/app/files
-     - ./afipkeys:/app/afipkeys
-     - ./src:/app/src
+     - ./back/files:/app/files
+     - ./back/afipkeys:/app/afipkeys
+     - ./back/src:/app/src

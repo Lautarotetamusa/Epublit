@@ -1,0 +1,19 @@
+meta {
+  name: Get all
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/cliente?tipo=inscripto
+  body: none
+  auth: inherit
+}
+
+params:query {
+  tipo: inscripto
+}
+
+docs {
+  Sin migrar (MySQL). `tipo` es opcional (`inscripto`/`particular`/`negro`).
+}

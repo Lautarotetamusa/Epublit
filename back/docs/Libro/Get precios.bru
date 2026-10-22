@@ -1,0 +1,15 @@
+meta {
+  name: Get precios
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{host}}/libro/9789874864674/precio
+  body: none
+  auth: inherit
+}
+
+docs {
+  Historial de precios (`precio_libros`), del más reciente al más antiguo.
+}

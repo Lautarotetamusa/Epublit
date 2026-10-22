@@ -1,0 +1,26 @@
+meta {
+  name: Update
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{host}}/libro/9789874864674/personas
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "id_persona": 1,
+    "tipo": "autor",
+    "porcentaje": 0
+  }
+}
+
+docs {
+  Acepta objeto único o array. `porcentaje` es requerido (incluso `0`, que
+  ahora sí se aplica — bugfix, ver `specs/003-migrar-libro-persona/spec.md`,
+  antes un `PUT` con porcentaje 0 no cambiaba nada). Editar una combinación
+  persona+tipo que no está asociada al libro falla (todo o nada por lote).
+}

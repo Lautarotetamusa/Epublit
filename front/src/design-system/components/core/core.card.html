@@ -1,0 +1,37 @@
+<!-- @dsCard group="Components" viewport="700x250" name="Core" subtitle="Button, IconButton, Badge, Card, StatCard, Avatar" -->
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>body{padding:20px;background:var(--surface-page)}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}</style>
+</head><body><div id="root"></div>
+<script type="text/babel">
+const { Button, IconButton, Badge, Card, StatCard, Avatar } = window.EpublitDesignSystem_2918d4;
+function Demo(){return <div>
+<div className="row">
+<Button iconStart="plus">Nuevo libro</Button>
+<Button variant="accent">Publicar</Button>
+<Button variant="secondary" iconStart="download">Exportar</Button>
+<Button variant="ghost" size="sm">Cancelar</Button>
+<Button variant="danger" size="sm" iconStart="trash-2">Eliminar</Button>
+<Button size="sm" loading>Guardando</Button>
+<Button size="sm" disabled>Deshabilitado</Button>
+</div>
+<div className="row">
+<IconButton icon="pencil" label="Editar" /><IconButton icon="funnel" label="Filtrar" variant="outline" /><IconButton icon="plus" label="Agregar" variant="solid" /><IconButton icon="ellipsis" label="Más" active />
+<span style={{width:8}} />
+<Badge tone="success" dot>Liquidado</Badge><Badge tone="warning">Pendiente</Badge><Badge tone="error" icon="circle-alert">Sin stock</Badge><Badge tone="brand">Consignación</Badge><Badge tone="accent" icon="store">Ecommerce</Badge><Badge>Borrador</Badge>
+<span style={{width:8}} />
+<Avatar name="Lucía Ferreyra" size="sm" /><Avatar name="Sur Editora" tone="accent" /><Avatar name="Mario Rulfo" tone="neutral" size="lg" />
+</div>
+<div className="grid">
+<StatCard label="Ventas del mes" value="$ 1.842.500" delta="+12% vs. mes anterior" icon="banknote" />
+<Card title="Sur Editora" subtitle="Sello activo · 168 títulos" actions={<Button variant="secondary" size="sm">Ver</Button>} footer="Actualizado hace 2 horas">
+<p style={{margin:0,fontSize:'var(--text-sm)',color:'var(--text-muted)'}}>Contenido de tarjeta sobre papel blanco, borde de un pixel y sombra corta.</p>
+</Card>
+</div>
+</div>}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script></body></html>

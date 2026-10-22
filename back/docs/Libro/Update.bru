@@ -1,0 +1,23 @@
+meta {
+  name: Update
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{host}}/libro/9789874864674
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "precio": 2800,
+    "stock": 200
+  }
+}
+
+docs {
+  Si `precio` cambia respecto al vigente, agrega un registro nuevo al
+  historial de precios además de actualizar el libro.
+}

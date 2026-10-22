@@ -1,0 +1,24 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",   
+        "module": "commonjs",
+        "outDir": "dist",
+        "rootDir": ".",
+        "strict": true,
+        "esModuleInterop": true,
+        "allowJs": true,
+        "skipLibCheck": true,
+        "moduleResolution": "node",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"]
+        }
+    },
+    "include": [
+        "./src/**/*",
+        "./src/lib/afip/afip.js/src/Afip_res/*.wsdl",
+        "./drizzle.config.ts",
+        "./seeders/**/*",
+        "./scripts/migracion-produccion/**/*"
+    ]
+}

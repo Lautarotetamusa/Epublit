@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790176079185,
+      "tag": "0000_magenta_night_thrasher",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790609704367,
+      "tag": "0001_violet_piledriver",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790620395318,
+      "tag": "0002_brown_bastion",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790690285107,
+      "tag": "0003_worthless_lily_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790693600299,
+      "tag": "0004_empty_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790084098568,
+      "tag": "0005_ledger_unificado",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792085956357,
+      "tag": "0006_cliente_en_venta",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792090492127,
+      "tag": "0007_confused_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792095359197,
+      "tag": "0008_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792168921451,
+      "tag": "0009_lovely_sandman",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792176694353,
+      "tag": "0010_nappy_human_cannonball",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792686724697,
+      "tag": "0011_redundant_kabuki",
+      "breakpoints": true
+    }
+  ]
+}

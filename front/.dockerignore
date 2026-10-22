@@ -1,0 +1,20 @@
+# Contexto de build mínimo: el bundle se regenera y las config por entorno se
+# inyectan como build-args (VITE_API_URL), nunca desde el .env local.
+node_modules
+dist
+dist-ssr
+*.local
+
+# Config real por entorno (no se commitea, no debe filtrarse a la imagen).
+.env
+.env.*
+
+logs
+*.log
+.vscode
+.idea
+.DS_Store
+
+Dockerfile
+.dockerignore
+README.md

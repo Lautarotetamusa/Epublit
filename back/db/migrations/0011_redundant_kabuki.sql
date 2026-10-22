@@ -1,0 +1,1 @@
+ALTER TABLE "movimientos" ALTER COLUMN "file_path" SET DATA TYPE varchar(255);

@@ -1,0 +1,1148 @@
+{
+  "id": "99d1108f-591f-42e4-9fb0-cd8869d89ffe",
+  "prevId": "d2873cae-4466-4bf0-9bd9-6ce976d24548",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "users_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "username": {
+          "name": "username",
+          "type": "varchar(25)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cuit": {
+          "name": "cuit",
+          "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cond_fiscal": {
+          "name": "cond_fiscal",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "razon_social": {
+          "name": "razon_social",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicilio": {
+          "name": "domicilio",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "production": {
+          "name": "production",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "ingresos_brutos": {
+          "name": "ingresos_brutos",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "fecha_inicio": {
+          "name": "fecha_inicio",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "punto_venta": {
+          "name": "punto_venta",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_persona_max_size_mb": {
+          "name": "foto_persona_max_size_mb",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_persona_min_ancho_px": {
+          "name": "foto_persona_min_ancho_px",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_persona_min_alto_px": {
+          "name": "foto_persona_min_alto_px",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.personas": {
+      "name": "personas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "personas_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "dni": {
+          "name": "dni",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "foto_key": {
+          "name": "foto_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user": {
+          "name": "user",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "personas_user_users_id_fk": {
+          "name": "personas_user_users_id_fk",
+          "tableFrom": "personas",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "personas_id_user_pk": {
+          "name": "personas_id_user_pk",
+          "columns": [
+            "id",
+            "user"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "personas_id_unique": {
+          "name": "personas_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.clientes": {
+      "name": "clientes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "clientes_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "nombre": {
+          "name": "nombre",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "cuit": {
+          "name": "cuit",
+          "type": "varchar(15)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cond_fiscal": {
+          "name": "cond_fiscal",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "razon_social": {
+          "name": "razon_social",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "domicilio": {
+          "name": "domicilio",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "cliente_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user": {
+          "name": "user",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "clientes_user_users_id_fk": {
+          "name": "clientes_user_users_id_fk",
+          "tableFrom": "clientes",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "clientes_id_user_pk": {
+          "name": "clientes_id_user_pk",
+          "columns": [
+            "id",
+            "user"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "clientes_id_unique": {
+          "name": "clientes_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.libros": {
+      "name": "libros",
+      "schema": "",
+      "columns": {
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "libros_id_libro_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "isbn": {
+          "name": "isbn",
+          "type": "varchar(13)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "titulo": {
+          "name": "titulo",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fecha_edicion": {
+          "name": "fecha_edicion",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "precio": {
+          "name": "precio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stock": {
+          "name": "stock",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "alto": {
+          "name": "alto",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ancho": {
+          "name": "ancho",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "largo": {
+          "name": "largo",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paginas": {
+          "name": "paginas",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brief": {
+          "name": "brief",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "edad_recomendada": {
+          "name": "edad_recomendada",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "book_trailer_url": {
+          "name": "book_trailer_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "portada_key": {
+          "name": "portada_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user": {
+          "name": "user",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "libros_isbn_user_active_idx": {
+          "name": "libros_isbn_user_active_idx",
+          "columns": [
+            {
+              "expression": "isbn",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "deleted_at IS NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "libros_user_users_id_fk": {
+          "name": "libros_user_users_id_fk",
+          "tableFrom": "libros",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "libros_id_libro_user_pk": {
+          "name": "libros_id_libro_user_pk",
+          "columns": [
+            "id_libro",
+            "user"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "libros_id_libro_unique": {
+          "name": "libros_id_libro_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id_libro"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.libro_cliente": {
+      "name": "libro_cliente",
+      "schema": "",
+      "columns": {
+        "id_cliente": {
+          "name": "id_cliente",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "isbn": {
+          "name": "isbn",
+          "type": "varchar(13)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stock": {
+          "name": "stock",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "precio": {
+          "name": "precio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "libro_cliente_id_cliente_clientes_id_fk": {
+          "name": "libro_cliente_id_cliente_clientes_id_fk",
+          "tableFrom": "libro_cliente",
+          "tableTo": "clientes",
+          "columnsFrom": [
+            "id_cliente"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "libro_cliente_id_libro_libros_id_libro_fk": {
+          "name": "libro_cliente_id_libro_libros_id_libro_fk",
+          "tableFrom": "libro_cliente",
+          "tableTo": "libros",
+          "columnsFrom": [
+            "id_libro"
+          ],
+          "columnsTo": [
+            "id_libro"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "libro_cliente_id_libro_id_cliente_pk": {
+          "name": "libro_cliente_id_libro_id_cliente_pk",
+          "columns": [
+            "id_libro",
+            "id_cliente"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.libros_personas": {
+      "name": "libros_personas",
+      "schema": "",
+      "columns": {
+        "isbn": {
+          "name": "isbn",
+          "type": "varchar(13)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_persona": {
+          "name": "id_persona",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "porcentaje": {
+          "name": "porcentaje",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "libro_persona_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "libros_personas_id_persona_personas_id_fk": {
+          "name": "libros_personas_id_persona_personas_id_fk",
+          "tableFrom": "libros_personas",
+          "tableTo": "personas",
+          "columnsFrom": [
+            "id_persona"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "libros_personas_id_libro_libros_id_libro_fk": {
+          "name": "libros_personas_id_libro_libros_id_libro_fk",
+          "tableFrom": "libros_personas",
+          "tableTo": "libros",
+          "columnsFrom": [
+            "id_libro"
+          ],
+          "columnsTo": [
+            "id_libro"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "libros_personas_id_libro_id_persona_tipo_pk": {
+          "name": "libros_personas_id_libro_id_persona_tipo_pk",
+          "columns": [
+            "id_libro",
+            "id_persona",
+            "tipo"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.transacciones": {
+      "name": "transacciones",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "transacciones_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "fecha": {
+          "name": "fecha",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "id_cliente": {
+          "name": "id_cliente",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "transaccion_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user": {
+          "name": "user",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "transacciones_id_cliente_clientes_id_fk": {
+          "name": "transacciones_id_cliente_clientes_id_fk",
+          "tableFrom": "transacciones",
+          "tableTo": "clientes",
+          "columnsFrom": [
+            "id_cliente"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "transacciones_user_users_id_fk": {
+          "name": "transacciones_user_users_id_fk",
+          "tableFrom": "transacciones",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "transacciones_id_user_pk": {
+          "name": "transacciones_id_user_pk",
+          "columns": [
+            "id",
+            "user"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "transacciones_id_unique": {
+          "name": "transacciones_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.libros_transacciones": {
+      "name": "libros_transacciones",
+      "schema": "",
+      "columns": {
+        "id_transaccion": {
+          "name": "id_transaccion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cantidad": {
+          "name": "cantidad",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "precio": {
+          "name": "precio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "libros_transacciones_id_transaccion_transacciones_id_fk": {
+          "name": "libros_transacciones_id_transaccion_transacciones_id_fk",
+          "tableFrom": "libros_transacciones",
+          "tableTo": "transacciones",
+          "columnsFrom": [
+            "id_transaccion"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "libros_transacciones_id_libro_libros_id_libro_fk": {
+          "name": "libros_transacciones_id_libro_libros_id_libro_fk",
+          "tableFrom": "libros_transacciones",
+          "tableTo": "libros",
+          "columnsFrom": [
+            "id_libro"
+          ],
+          "columnsTo": [
+            "id_libro"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "libros_transacciones_id_libro_id_transaccion_pk": {
+          "name": "libros_transacciones_id_libro_id_transaccion_pk",
+          "columns": [
+            "id_libro",
+            "id_transaccion"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "cantidad_positiva": {
+          "name": "cantidad_positiva",
+          "value": "\"libros_transacciones\".\"cantidad\" > 0"
+        },
+        "precio_no_negativo": {
+          "name": "precio_no_negativo",
+          "value": "\"libros_transacciones\".\"precio\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.precio_libro_cliente": {
+      "name": "precio_libro_cliente",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "precio_libro_cliente_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_cliente": {
+          "name": "id_cliente",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "precio": {
+          "name": "precio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "precio_libro_cliente_id_libro_libros_id_libro_fk": {
+          "name": "precio_libro_cliente_id_libro_libros_id_libro_fk",
+          "tableFrom": "precio_libro_cliente",
+          "tableTo": "libros",
+          "columnsFrom": [
+            "id_libro"
+          ],
+          "columnsTo": [
+            "id_libro"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "precio_libro_cliente_id_cliente_clientes_id_fk": {
+          "name": "precio_libro_cliente_id_cliente_clientes_id_fk",
+          "tableFrom": "precio_libro_cliente",
+          "tableTo": "clientes",
+          "columnsFrom": [
+            "id_cliente"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "precio_no_negativo": {
+          "name": "precio_no_negativo",
+          "value": "\"precio_libro_cliente\".\"precio\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.precio_libros": {
+      "name": "precio_libros",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "precio_libros_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "isbn": {
+          "name": "isbn",
+          "type": "varchar(13)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "precio": {
+          "name": "precio",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "user": {
+          "name": "user",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_libro": {
+          "name": "id_libro",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "precio_libros_user_users_id_fk": {
+          "name": "precio_libros_user_users_id_fk",
+          "tableFrom": "precio_libros",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "precio_libros_id_libro_libros_id_libro_fk": {
+          "name": "precio_libros_id_libro_libros_id_libro_fk",
+          "tableFrom": "precio_libros",
+          "tableTo": "libros",
+          "columnsFrom": [
+            "id_libro"
+          ],
+          "columnsTo": [
+            "id_libro"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ventas": {
+      "name": "ventas",
+      "schema": "",
+      "columns": {
+        "descuento": {
+          "name": "descuento",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
+        },
+        "total": {
+          "name": "total",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "medio_pago": {
+          "name": "medio_pago",
+          "type": "medio_pago",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tipo_cbte": {
+          "name": "tipo_cbte",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "id_transaccion": {
+          "name": "id_transaccion",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ventas_id_transaccion_transacciones_id_fk": {
+          "name": "ventas_id_transaccion_transacciones_id_fk",
+          "tableFrom": "ventas",
+          "tableTo": "transacciones",
+          "columnsFrom": [
+            "id_transaccion"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.cliente_tipo": {
+      "name": "cliente_tipo",
+      "schema": "public",
+      "values": [
+        "inscripto",
+        "particular",
+        "negro"
+      ]
+    },
+    "public.libro_persona_tipo": {
+      "name": "libro_persona_tipo",
+      "schema": "public",
+      "values": [
+        "autor",
+        "ilustrador"
+      ]
+    },
+    "public.transaccion_tipo": {
+      "name": "transaccion_tipo",
+      "schema": "public",
+      "values": [
+        "venta",
+        "consignacion",
+        "ventaConsignacion",
+        "devolucion"
+      ]
+    },
+    "public.medio_pago": {
+      "name": "medio_pago",
+      "schema": "public",
+      "values": [
+        "efectivo",
+        "debito",
+        "credito",
+        "mercadopago",
+        "transferencia"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
