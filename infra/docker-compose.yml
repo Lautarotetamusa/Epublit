@@ -97,7 +97,7 @@ services:
     env_file: .env
     environment:
       NODE_ENV: prod
-      PORT: "3000"
+      PORT: "$PORT:3000"
       DB_HOST: db
       DB_PORT: "5432"
       FILES_PATH: /app/files
@@ -124,47 +124,8 @@ services:
     networks:
       - interna
 
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    depends_on:
-      - back
-    ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN: ${DOMAIN:?definí DOMAIN en .env}
-    volumes:
-      - ./nginx/templates:/etc/nginx/templates:ro
-      # Se monta el padre (www/), no el dist: el deploy reemplaza www/front
-      # y nginx lo ve al instante, sin recrear el contenedor.
-      - ./www:/srv/epublit:ro
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    # Recarga cada 6 h para tomar certificados renovados por certbot.
-    command: >
-      /bin/sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done &
-      nginx -g 'daemon off;'"
-    networks:
-      - interna
-
-  certbot:
-    image: certbot/certbot
-    restart: unless-stopped
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    entrypoint: >
-      /bin/sh -c 'trap exit TERM; while :; do
-      certbot renew --webroot -w /var/www/certbot --quiet;
-      sleep 12h & wait $${!}; done;'
-    networks:
-      - interna
-
 volumes:
   pgdata:
-  certbot_conf:
-  certbot_www:
 
 networks:
   interna:
