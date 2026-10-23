@@ -66,7 +66,7 @@
         "logs": "tail -f logs.log",
         "dev": "NODE_OPTIONS='--tls-cipher-list=ECDHE-RSA-AES128-GCM-SHA256' nodemon --ignore afipkeys/ src/index.ts",
         "start:prod": "node --tls-cipher-list='ECDHE-RSA-AES128-GCM-SHA256' dist/src/index.js",
-        "build": "rm -rf ./dist/ && tsc && tsc-alias && cp -r ./src/lib/afip/afip.js/src/Afip_res/ ./dist/src/lib/afip/afip.js/src/Afip_res",
+        "build": "rm -rf ./dist/ && tsc && tsc-alias && cp -r ./src/lib/afip/afip.js/src/Afip_res/ ./dist/src/lib/afip/afip.js/src/Afip_res && cp -r ./src/lib/comprobantes/factura ./src/lib/comprobantes/remito ./dist/src/lib/comprobantes/",
         "lint": "eslint src/",
         "lint:cycles": "madge --circular --extensions ts src",
         "lint:duplicates": "jscpd src --min-lines 4 --min-tokens 30",

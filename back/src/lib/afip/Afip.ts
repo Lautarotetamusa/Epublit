@@ -11,7 +11,11 @@ import { join } from 'path';
 import { assert } from "console";
 import { spawn } from "child_process";
 
-const afipKeysPath = join(__dirname, '../../../afipkeys/');
+// Ruta a las credenciales AFIP. Se resuelve desde el cwd (no desde
+// __dirname): en dev el proceso corre con cwd=back/ y en la imagen el
+// WORKDIR es /app; en los dos casos las claves viven en ./afipkeys.
+// Con __dirname quedaba en /app/dist/afipkeys al compilar.
+const afipKeysPath = join(process.cwd(), 'afipkeys');
 
 export interface IAfip {
     createNextVoucher(data: FacturaPayload): Promise<{voucherNumber: string}>

@@ -11,8 +11,9 @@ import { Storage } from '../storage/storage';
 
 // Plantillas HTML/CSS bundleadas con el código (no son un archivo de
 // negocio generado ni subido por nadie), por eso se siguen leyendo del
-// filesystem local directo, sin pasar por `storage`.
-const templatesPath = './src/lib/comprobantes';
+// filesystem local directo, sin pasar por `storage`. Viven al lado de este
+// archivo (también en dist, ver el script build de package.json).
+const templatesPath = __dirname;
 
 // El archivo se guarda en la key de storage que ya trae el movimiento
 // (`facturas/...` o `remitos/...`): el emisor no decide la carpeta.
