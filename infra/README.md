@@ -98,6 +98,45 @@ docker compose up -d
 > `DB_PASS` debe ser **alfanumérica**: el back arma `DATABASE_URL`
 > por interpolación y una password con `@`, `:` o `/` rompe la URL.
 
+## nginx del host
+
+El compose **no** levanta nginx: el server ya tiene uno (Hostinger). El back
+queda publicado sólo en loopback (`127.0.0.1:${BACK_PORT}`, default 3001) y el
+nginx del host hace:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name epublit.com.ar;
+
+    root /home/Epublit/www/front;   # dist que copia el deploy
+    index index.html;
+    client_max_body_size 25m;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /files/ {
+        proxy_pass http://127.0.0.1:3001/files/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+`BACK_PORT` se define en el `.env`; el contenedor siempre escucha en `3000`.
+
 ## Deploy automático
 
 `.github/workflows/deploy.yml` corre **después** de `build` en `main` (o a

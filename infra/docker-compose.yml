@@ -95,9 +95,14 @@ services:
       db:
         condition: service_healthy
     env_file: .env
+    # Puerto publicado sólo en loopback: el nginx del host (Hostinger)
+    # proxya /api/ y /files/ contra 127.0.0.1:${BACK_PORT}.
+    ports:
+      - "127.0.0.1:${BACK_PORT:-3001}:3000"
     environment:
       NODE_ENV: prod
-      PORT: "$PORT:3000"
+      # Puerto interno de Express (siempre 3000 dentro del contenedor).
+      PORT: "3000"
       DB_HOST: db
       DB_PORT: "5432"
       FILES_PATH: /app/files
