@@ -106,9 +106,11 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
       FILES_PATH: /app/files
-      # Base pública SIN /api: storage.getUrl arma `${HOST}/files/<key>`.
+      # Origen de la API SIN /api: storage.getUrl arma `${HOST}/files/<key>`.
       HOST: ${PUBLIC_URL:?definí PUBLIC_URL en .env}
-      CORS_ORIGIN: ${PUBLIC_URL}
+      # Origen(es) del/los front(s), separados por coma. Es independiente de
+      # PUBLIC_URL: el sitio interno puede vivir en otro dominio.
+      CORS_ORIGIN: ${CORS_ORIGIN:?definí CORS_ORIGIN en .env}
     volumes:
       # Autocontenido: todo vive al lado del compose.
       - ./files:/app/files

@@ -105,11 +105,12 @@ queda publicado sólo en loopback (`127.0.0.1:${BACK_PORT}`, default 3001) y el
 nginx del host hace:
 
 ```nginx
+# API + landing
 server {
     listen 443 ssl;
     server_name epublit.com.ar;
 
-    root /home/Epublit/www/front;   # dist que copia el deploy
+    root /home/Epublit/landing;
     index index.html;
     client_max_body_size 25m;
 
@@ -133,7 +134,26 @@ server {
         try_files $uri $uri/ /index.html;
     }
 }
+
+# SPA interno
+server {
+    listen 443 ssl;
+    server_name app.epublit.com.ar;
+
+    root /home/Epublit/www/front;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
 ```
+
+`PUBLIC_URL` es el origen de la **API** (`https://epublit.com.ar`): de ahí
+salen las URLs de `/files` y el `VITE_API_URL` del build. `CORS_ORIGIN` es el
+origen del **SPA** (`https://app.epublit.com.ar`), separado justamente porque
+viven en dominios distintos. Si el SPA llamara a la API en su mismo origen, no
+haría falta CORS.
 
 `BACK_PORT` se define en el `.env`; el contenedor siempre escucha en `3000`.
 
@@ -164,8 +184,8 @@ Secretos ya cargados en el repo:
 
 `ENV_FILE_CONTENT` es la fuente de verdad del `.env`: el deploy lo reescribe en
 cada corrida. Tiene que incluir `DB_NAME`, `DB_USER`, `DB_PASS`, `JWT_SECRET`,
-`AFIP_CUIT_PROD`, `DOMAIN` y `PUBLIC_URL` (de esta última se deriva
-`VITE_API_URL` para el build del front).
+`AFIP_CUIT_PROD`, `DOMAIN`, `PUBLIC_URL` y `CORS_ORIGIN` (de `PUBLIC_URL` se
+deriva `VITE_API_URL` para el build del front).
 
 ## Migración de datos (corte)
 
