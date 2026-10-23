@@ -7,7 +7,7 @@
 #   ./scripts/push-env.sh otro.env
 #
 # Requiere SERVER_HOST, SERVER_USER y (opcional) SSH_KEY_PATH.
-# APP_DIR default: /home/Epublit
+# DEPLOY_PATH default: /home/Epublit (mismo valor que el secret)
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -21,15 +21,15 @@ fi
 : "${SERVER_HOST:?Falta SERVER_HOST}"
 : "${SERVER_USER:?Falta SERVER_USER}"
 SSH_KEY_PATH="${SSH_KEY_PATH:-$HOME/.ssh/id_rsa}"
-APP_DIR="${APP_DIR:-/home/Epublit}"
+DEPLOY_PATH="${DEPLOY_PATH:-/home/Epublit}"
 
-echo "==> Subiendo ${LOCAL_ENV} a ${SERVER_USER}@${SERVER_HOST}:${APP_DIR}/.env"
-scp -i "${SSH_KEY_PATH}" "${LOCAL_ENV}" "${SERVER_USER}@${SERVER_HOST}:${APP_DIR}/.env"
+echo "==> Subiendo ${LOCAL_ENV} a ${SERVER_USER}@${SERVER_HOST}:${DEPLOY_PATH}/.env"
+scp -i "${SSH_KEY_PATH}" "${LOCAL_ENV}" "${SERVER_USER}@${SERVER_HOST}:${DEPLOY_PATH}/.env"
 
 echo "==> Ajustando permisos y recreando el back"
 ssh -i "${SSH_KEY_PATH}" "${SERVER_USER}@${SERVER_HOST}" \
-    "chmod 600 '${APP_DIR}/.env' && cd '${APP_DIR}' && docker compose up -d back"
+    "chmod 600 '${DEPLOY_PATH}/.env' && cd '${DEPLOY_PATH}' && docker compose up -d back"
 
 echo "==> Listo."
 echo "    Si cambiaste DOMAIN o PUBLIC_URL, recreá también nginx:"
-echo "    ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_HOST} 'cd ${APP_DIR} && docker compose up -d nginx'"
+echo "    ssh -i ${SSH_KEY_PATH} ${SERVER_USER}@${SERVER_HOST} 'cd ${DEPLOY_PATH} && docker compose up -d nginx'"

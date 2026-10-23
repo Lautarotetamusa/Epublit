@@ -1,3 +1,10 @@
+# Infra al momento
+el server de hostinger está ocupado con el chatwoot de la utn y el nuestro
+propio, y con nginx instalado localmente ahi, por eso era un quilombo
+cambiarlo, asi que dejé el docker compose levantando el back con el puerto PORT
+abierto para q nginx lo apunte desde ahi.
+
+
 # infra/ — Producción
 
 Infraestructura de producción del refactor: **Postgres + back + nginx con
