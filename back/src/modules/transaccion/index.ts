@@ -6,6 +6,7 @@ import { Database } from "../../db/client";
 import { AfipService } from "../../lib/afip/Afip";
 import { ComprobanteService } from "../../lib/comprobantes/comprobante";
 import { Storage } from "../../lib/storage/storage";
+import { AvailabilityService } from "../tienda/stock/availability.service";
 import { LibroService } from "../libro";
 import { ClienteRepository, ClienteStockService } from "../cliente";
 import { DepositoRepository } from "../deposito";
@@ -13,6 +14,7 @@ import { MedioPagoService } from "../medioPago";
 import { MovimientoRepository } from "../movimiento";
 import { UserRepository } from "../user";
 import { createVentaRepository } from "./venta.repository";
+import { createSaleService } from "./sale.service";
 import { createOperacionConfig } from "./operacion.config";
 import { createOperacionService } from "./operacion.service";
 import { createTransaccionController } from "./transaccion.controller";
@@ -23,6 +25,7 @@ export { tiposComprobantes } from "./venta.validator";
 export type { VentaRow, VentaInsert, CreateVenta, CreateVentaConsignado, ListVentasFilter, TipoVenta } from "./venta.validator";
 export type { OperacionBody, LibroOperacion, ComprobanteCtx, OperacionConfig, ExtremoOperacion, MovimientoComprobante } from "./operacion.types";
 export type { VentaRepository } from "./venta.repository";
+export type { SaleService, SaleLine, RecordSaleInput, SaleType } from "./sale.service";
 
 export type TransaccionModuleDeps = {
     db: Database;
@@ -39,11 +42,17 @@ export type TransaccionModuleDeps = {
     medioPagoService: MedioPagoService;
     afipService: AfipService;
     comprobanteService: ComprobanteService;
+    availabilityService: Pick<AvailabilityService, "assertCanSell">;
     storage: Storage;
 };
 
-export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, movimientoRepository, depositoRepository, userRepository, medioPagoService, afipService, comprobanteService, storage }: TransaccionModuleDeps) {
+export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, movimientoRepository, depositoRepository, userRepository, medioPagoService, afipService, comprobanteService, availabilityService, storage }: TransaccionModuleDeps) {
     const ventaRepository = createVentaRepository({ db });
+    const saleService = createSaleService({
+        movimientoRepository,
+        ventaRepository,
+        depositoRepository
+    });
     const operacionConfig = createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService });
     const operacionService = createOperacionService({
         db,
@@ -53,13 +62,15 @@ export function createTransaccionModule({ db, libroService, clienteRepository, c
         ventaRepository,
         medioPagoService,
         depositoRepository,
+        availabilityService,
+        saleService,
         storage
     });
 
     const controller = createTransaccionController({ service: operacionService });
     const router = createTransaccionRoutes(controller, operacionConfig);
 
-    return { ventaRepository, router };
+    return { ventaRepository, saleService, router };
 }
 
 export type TransaccionModule = ReturnType<typeof createTransaccionModule>;

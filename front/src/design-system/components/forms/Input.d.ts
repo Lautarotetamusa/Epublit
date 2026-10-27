@@ -7,6 +7,8 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   iconStart?: string;
   /** Static trailing unit in mono type, e.g. "ARS" or "%". */
   suffix?: React.ReactNode;
+  /** Render the value in JetBrains Mono — API keys, tracking codes, ISBN. */
+  mono?: boolean;
   invalid?: boolean;
   size?: 'sm' | 'md' | 'lg';
 }

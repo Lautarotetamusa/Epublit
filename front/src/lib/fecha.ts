@@ -2,12 +2,30 @@
 // design-system/readme.md#fundamentos-de-contenido, "Números"). El backend
 // manda fechas ISO (`YYYY-MM-DD`); la interfaz nunca las muestra crudas.
 export function formatFecha(iso: string): string {
-    return new Date(`${iso}T00:00:00`).toLocaleDateString("es-AR");
+    // Las fechas de calendario llegan como `YYYY-MM-DD`; los timestamps de la
+    // API, como ISO completo. En el segundo caso hay que respetar la hora
+    // local (un pedido de las 22:30 en Argentina puede caer al día siguiente
+    // en UTC).
+    const fecha = iso.includes("T") ? new Date(iso) : new Date(`${iso}T00:00:00`);
+    return fecha.toLocaleDateString("es-AR");
 }
 
 // Rango de un período, con guion medio: "01/06/2026 – 30/06/2026".
 export function formatRango(desde: string, hasta: string): string {
     return `${formatFecha(desde)} – ${formatFecha(hasta)}`;
+}
+
+// Fecha y hora para los hitos de un historial (pedidos, movimientos): el
+// `dd/mm/yyyy` solo no alcanza cuando dos eventos del mismo día importan.
+export function formatFechaHora(iso: string): string {
+    return new Date(iso).toLocaleString("es-AR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+    });
 }
 
 // Un mes se representa con `yyyy-mm`, que es la unidad de período del panel de

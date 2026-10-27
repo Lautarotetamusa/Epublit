@@ -22,10 +22,34 @@ import {
     liquidacionVentasTable,
     liquidacionPersonasTable,
     liquidacionesTable,
-    anticiposTable
+    anticiposTable,
+    integrationsTable,
+    mercadoPagoTable,
+    shippingConfigTable,
+    ordersTable,
+    orderItemsTable,
+    orderHistoryTable,
+    reservationsTable,
+    paymentsTable,
+    webhookEventsTable,
+    shipmentsTable,
+    shipmentEventsTable
 } from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
+    // Tienda (ver specs/016): hijas antes que `pedidos` para que el truncate
+    // explícito no dependa sólo del cascade de `users`.
+    reservationsTable,
+    shipmentsTable,
+    shipmentEventsTable,
+    paymentsTable,
+    webhookEventsTable,
+    orderHistoryTable,
+    orderItemsTable,
+    ordersTable,
+    shippingConfigTable,
+    mercadoPagoTable,
+    integrationsTable,
     liquidacionLineasTable,
     liquidacionPagosTable,
     liquidacionVentasTable,

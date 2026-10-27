@@ -24,6 +24,25 @@ export function createClienteRepository({ db }: ClienteRepositoryDeps) {
         return findAllRaw({ user: userId, ...(tipo ? { tipo } : {}) });
     };
 
+    // Cliente por defecto con el que se factura la tienda: siempre
+    // `particular` (nunca MOSTRADOR `negro`, que se saltea la facturación).
+    const findConsumidorFinal = async (userId: number) => {
+        const [row] = await db
+            .select()
+            .from(clientesTable)
+            .where(
+                and(
+                    eq(clientesTable.user, userId),
+                    eq(clientesTable.nombre, "CONSUMIDOR FINAL"),
+                    eq(clientesTable.tipo, tipoCliente.particular),
+                    isNull(clientesTable.deletedAt)
+                )
+            )
+            .limit(1);
+
+        return row ?? null;
+    };
+
     const existsByCuit = async (cuit: string, userId: number): Promise<boolean> => {
         const rows = await db
             .select({ id: clientesTable.id })
@@ -47,6 +66,7 @@ export function createClienteRepository({ db }: ClienteRepositoryDeps) {
         update,
         remove,
         findAll,
+        findConsumidorFinal,
         existsByCuit
     };
 }

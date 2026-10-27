@@ -85,6 +85,62 @@
       "when": 1792686724697,
       "tag": "0011_redundant_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792777404582,
+      "tag": "0012_libro_stock_negativo_peso",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792777406353,
+      "tag": "0013_integraciones_tienda",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792777407845,
+      "tag": "0014_mercadopago_conexion",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792777409378,
+      "tag": "0015_envio_config",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792777410990,
+      "tag": "0016_pedidos_reservas",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792777412623,
+      "tag": "0017_pagos_envios_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793033601978,
+      "tag": "0018_tienda_checkout_fase2",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793041798395,
+      "tag": "0019_tienda_fase3",
+      "breakpoints": true
     }
   ]
 }

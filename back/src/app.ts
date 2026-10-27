@@ -12,13 +12,21 @@ import { env } from "./env";
 // para poder armar la app con un container distinto (ej. uno de test).
 export function createApp(container: Container): Express {
     const app = express();
+    app.set("trust proxy", env.TRUST_PROXY ?? 0);
 
     // Restringido a los orígenes conocidos del front (ver env.CORS_ORIGIN);
     // `cors()` sin opciones habilita cualquier origen, lo cual no hace falta
     // acá — esta API nunca se llama desde un origen que no controlemos.
-    app.use(cors({ origin: env.CORS_ORIGIN.split(",").map((o) => o.trim()) }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    // API pública de la tienda: maneja su propio CORS por integración y no usa
+    // la sesión del panel (ver specs/016-tienda-ecommerce).
+    app.use('/public/tienda/v1', container.tienda.publicRouter);
+
+    // CORS del panel, restringido a los orígenes conocidos del front (ver
+    // env.CORS_ORIGIN); la API pública ya resolvió el suyo arriba.
+    app.use(cors({ origin: env.CORS_ORIGIN.split(",").map((o) => o.trim()) }));
 
     // Sirve los archivos estáticos (facturas/remitos/logos) directo bajo
     // `/files`, sin un router aparte: es la única ruta de la app que no
@@ -38,6 +46,17 @@ export function createApp(container: Container): Express {
     app.use('/liquidacion', auth, container.liquidacion.router);
     app.use('/liquidaciones', auth, container.liquidaciones.router);
     app.use('/metricas', auth, container.metricas.router);
+
+    app.use('/integraciones', auth, container.tienda.router);
+
+    // OAuth de MercadoPago: el callback llega desde el navegador sin sesión y
+    // se autentica con el state firmado; por eso va antes del auth del panel.
+    app.use('/tienda/mercadopago/callback', container.tienda.oauthCallbackRouter);
+    app.use('/tienda', auth, container.tienda.adminRouter);
+
+    // Panel de pedidos: rutas absolutas bajo `/pedidos` (ver
+    // specs/016-tienda-ecommerce), separado de la configuración de `/tienda`.
+    app.use('/pedidos', auth, container.tienda.orderAdminRouter);
 
     app.use('/anticipos', auth, container.anticipo.router);
 

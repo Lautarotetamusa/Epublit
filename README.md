@@ -73,12 +73,28 @@ DB_NAME=db_name
 
 PROTOCOL=http
 NODE_ENV=dev
+HOST=http://localhost:3001
+PUBLIC_API_URL=http://localhost:3001
 
 BACK_PORT=3001
 BACK_PUBLIC_PORT=80
 
 JWT_SECRET=super_secret_key
 JWT_EXPIRES_IN=7d
+
+# Tienda online: cifrado de credenciales y app global de MercadoPago.
+CREDENTIALS_ENCRYPTION_KEY=cambiar_por_un_secreto_largo_y_aleatorio
+MP_CLIENT_ID=
+MP_CLIENT_SECRET=
+MP_REDIRECT_URI=http://localhost:3001/tienda/mercadopago/callback
+MP_WEBHOOK_SECRET=
+MP_API_BASE_URL=https://api.mercadopago.com
+MP_AUTH_BASE_URL=https://auth.mercadopago.com
+MP_PANEL_URL=http://localhost:5173
+
+# Correo Argentino (producción por defecto; QA cambia las URLs base).
+MICORREO_BASE_URL=https://api.correoargentino.com.ar/micorreo/v1
+PAQAR_BASE_URL=https://api.correoargentino.com.ar/paqar/v1
 ```
 
 1. Agregar docker a sudo

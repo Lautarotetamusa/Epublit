@@ -14,6 +14,7 @@ export { StatCard } from "./components/core/StatCard.jsx";
 export { EmptyState } from "./components/data/EmptyState.jsx";
 export { Pagination } from "./components/data/Pagination.jsx";
 export { Table } from "./components/data/Table.jsx";
+export { Timeline } from "./components/data/Timeline.jsx";
 
 export { Alert } from "./components/feedback/Alert.jsx";
 export { Dialog } from "./components/feedback/Dialog.jsx";

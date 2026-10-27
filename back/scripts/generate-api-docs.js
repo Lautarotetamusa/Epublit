@@ -15,19 +15,40 @@ const OUT_FILE = path.join(ROOT, "docs", "api.md");
 
 function readMountPrefixes() {
     const appSrc = fs.readFileSync(APP_FILE, "utf8");
-    const prefixes = {};
-    const re = /app\.use\('([^']*)',[^)]*container\.(\w+)\.router\)/g;
+    const mounts = [];
+    const re = /app\.use\('([^']*)',[^)]*container\.(\w+)\.(\w+)\)/g;
     let match;
     while ((match = re.exec(appSrc))) {
-        const [, prefix, moduleName] = match;
-        prefixes[moduleName] = prefix === "" ? "/" : prefix;
+        const [, prefix, moduleName, routerName] = match;
+        mounts.push({ moduleName, routerName, prefix: prefix === "" ? "/" : prefix });
     }
-    return prefixes;
+    return mounts;
 }
 
 function cleanPath(rawPath) {
     // Convierte template literals (`/${tipo}`) a un placeholder legible.
     return rawPath.replace(/\$\{(\w+)\}/g, ":$1").replace(/^["'`]|["'`]$/g, "");
+}
+
+function findRoutesFiles(dir, baseDir = dir) {
+    const files = [];
+
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...findRoutesFiles(fullPath, baseDir));
+        } else if (entry.name.endsWith(".routes.ts")) {
+            files.push(path.relative(baseDir, fullPath));
+        }
+    }
+
+    return files;
+}
+
+function extractMountTag(routesFile) {
+    const src = fs.readFileSync(routesFile, "utf8");
+    const match = src.match(/@mount\s+(\w+)/);
+    return match ? match[1] : null;
 }
 
 function extractRoutes(routesFile) {
@@ -43,7 +64,7 @@ function extractRoutes(routesFile) {
 }
 
 function main() {
-    const prefixes = readMountPrefixes();
+    const mounts = readMountPrefixes();
     const moduleDirs = fs.readdirSync(MODULES_DIR).filter((name) =>
         fs.statSync(path.join(MODULES_DIR, name)).isDirectory()
     );
@@ -52,19 +73,47 @@ function main() {
 
     for (const moduleName of moduleDirs.sort()) {
         const moduleDir = path.join(MODULES_DIR, moduleName);
-        const routesFiles = fs.readdirSync(moduleDir).filter((f) => f.endsWith(".routes.ts"));
+        const routesFiles = findRoutesFiles(moduleDir);
         if (routesFiles.length === 0) continue;
 
-        const prefix = prefixes[moduleName] ?? "?";
-        const allRoutes = routesFiles.flatMap((f) => extractRoutes(path.join(moduleDir, f)));
-        if (allRoutes.length === 0) continue;
+        const moduleMounts = mounts.filter((mount) => mount.moduleName === moduleName);
+        if (moduleMounts.length === 0) continue;
 
-        lines.push(`## ${moduleName} (${prefix === "/" ? "" : prefix})`, "");
-        for (const { method, path: routePath } of allRoutes) {
-            const fullPath = prefix === "/" ? routePath : `${prefix}${routePath}`.replace(/\/+/g, "/");
-            lines.push(`- \`${method.padEnd(6)} ${fullPath}\``);
+        const routesForMount = (mount) => {
+            const mountRoutesFiles = routesFiles.filter((f) => {
+                const tag = extractMountTag(path.join(moduleDir, f));
+                return tag === null || tag === mount.routerName;
+            });
+            return mountRoutesFiles.flatMap((f) => extractRoutes(path.join(moduleDir, f)));
+        };
+
+        const pushRoutes = (mount, allRoutes) => {
+            for (const { method, path: routePath } of allRoutes) {
+                const fullPath = mount.prefix === "/" ? routePath : `${mount.prefix}${routePath}`.replace(/\/+/g, "/");
+                lines.push(`- \`${method.padEnd(6)} ${fullPath}\``);
+            }
+        };
+
+        if (moduleMounts.length === 1) {
+            const mount = moduleMounts[0];
+            const allRoutes = routesForMount(mount);
+            if (allRoutes.length === 0) continue;
+
+            lines.push(`## ${moduleName} (${mount.prefix === "/" ? "" : mount.prefix})`, "");
+            pushRoutes(mount, allRoutes);
+            lines.push("");
+            continue;
         }
-        lines.push("");
+
+        lines.push(`## ${moduleName}`, "");
+        for (const mount of moduleMounts) {
+            const allRoutes = routesForMount(mount);
+            if (allRoutes.length === 0) continue;
+
+            lines.push(`### ${mount.routerName} (${mount.prefix === "/" ? "" : mount.prefix})`, "");
+            pushRoutes(mount, allRoutes);
+            lines.push("");
+        }
     }
 
     fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });

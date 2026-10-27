@@ -6,6 +6,7 @@ import { DepositoRepository } from "../deposito";
 import { TipoTransaccion, createTransaccion, tipoTransaccion } from "./transaccion.validator";
 import { createVenta, createVentaConsignado } from "./venta.validator";
 import { LibroCantidad } from "../libro/libro.validator";
+import { disponibleParaVenta } from "../libro/libro.stock";
 import { AfipService } from "../../lib/afip/Afip";
 import { ComprobanteService } from "../../lib/comprobantes/comprobante";
 import { ValidationError } from "../../lib/http/errors";
@@ -38,9 +39,15 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
     });
 
     // Resuelve stock/precio *actuales* del libro (`librosTable`), compartido por
-    // `venta`/`consignacion`: el stock disponible de una operación que descuenta
-    // es el del depósito principal (ver specs/008-movimientos-deposito).
-    const resolverLibrosDeLibro = async (libros: LibroCantidad[], userId: number): Promise<LibroOperacion[]> => {
+    // `venta`/`consignacion`: el stock disponible es el del depósito principal
+    // menos las reservas activas (ver specs/008-movimientos-deposito y
+    // specs/016-tienda-ecommerce). La venta suma el límite negativo permitido;
+    // la consignación sigue exigiendo stock físico.
+    const resolverLibrosDeLibro = async (
+        libros: LibroCantidad[],
+        userId: number,
+        aplicarLimiteNegativo = false
+    ): Promise<LibroOperacion[]> => {
         return Promise.all(
             libros.map(async (item) => {
                 const libro = await libroService.findOne(item.isbn, userId);
@@ -50,7 +57,9 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
                     titulo: libro.titulo,
                     cantidad: item.cantidad,
                     precio: libro.precio,
-                    stock: libro.disponible_principal
+                    stock: aplicarLimiteNegativo
+                        ? disponibleParaVenta(libro.disponible_principal, libro.stock_negativo_permitido)
+                        : Math.max(0, libro.disponible_principal)
                 };
             })
         );
@@ -130,7 +139,7 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         bodyParser: createVenta,
         // `VentaFirme.clientValidation` (MySQL) no la sobreescribía: siempre true.
         clientValidation: () => true,
-        resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId),
+        resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId, true),
         obtenerExtremos: async (_cliente, userId) => ({
             origen: await principal(userId),
             destino: { tipo: "exterior" }

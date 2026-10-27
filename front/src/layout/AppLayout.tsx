@@ -22,7 +22,12 @@ const NAV_ITEMS = [
     { value: "medios-pago", label: "Medios de pago", icon: "banknote" },
     { value: "liquidaciones", label: "Liquidaciones", icon: "percent" },
     { value: "consignaciones", label: "Consignaciones", icon: "boxes" },
-    { value: "devoluciones", label: "Devoluciones", icon: "truck" }
+    { value: "devoluciones", label: "Devoluciones", icon: "truck" },
+    // La tienda online es un canal de venta con su propio ciclo (pedido →
+    // pago → aceptación → envío), distinto del mostrador de Ventas.
+    { section: "Tienda online" },
+    { value: "pedidos", label: "Pedidos", icon: "package" },
+    { value: "tienda", label: "Configuración", icon: "settings" }
 ];
 
 function currentSection(pathname: string): string {

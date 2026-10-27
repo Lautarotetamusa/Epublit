@@ -90,6 +90,8 @@ function EdicionLibroForm({
         alto: number | null;
         ancho: number | null;
         largo: number | null;
+        peso_kg: number | null;
+        stock_negativo_permitido: number;
         brief: string | null;
         paginas: number | null;
         edad_recomendada: number | null;
@@ -106,6 +108,8 @@ function EdicionLibroForm({
             alto?: number;
             ancho?: number;
             largo?: number;
+            peso_kg?: number;
+            stock_negativo_permitido?: number;
             brief?: string;
             paginas?: number;
             edad_recomendada?: number;
@@ -123,13 +127,15 @@ function EdicionLibroForm({
         alto: libro.alto !== null ? String(libro.alto) : "",
         ancho: libro.ancho !== null ? String(libro.ancho) : "",
         largo: libro.largo !== null ? String(libro.largo) : "",
+        pesoKg: libro.peso_kg !== null && libro.peso_kg !== undefined ? String(libro.peso_kg) : "",
         brief: libro.brief ?? "",
         paginas: libro.paginas !== null ? String(libro.paginas) : "",
         edad_recomendada: libro.edad_recomendada !== null ? String(libro.edad_recomendada) : "",
         portadaUrl: libro.portada_url ?? "",
         portadaFile: null,
         bookTrailerUrl: libro.book_trailer_url ?? "",
-        idColeccion: idColeccion !== null ? String(idColeccion) : ""
+        idColeccion: idColeccion !== null ? String(idColeccion) : "",
+        stockNegativoPermitido: String(libro.stock_negativo_permitido)
     });
     const [saving, setSaving] = useState(false);
 
@@ -147,6 +153,8 @@ function EdicionLibroForm({
                 alto: inputs.alto ? Number(inputs.alto) : undefined,
                 ancho: inputs.ancho ? Number(inputs.ancho) : undefined,
                 largo: inputs.largo ? Number(inputs.largo) : undefined,
+                peso_kg: inputs.pesoKg ? Number(inputs.pesoKg) : undefined,
+                stock_negativo_permitido: Number(inputs.stockNegativoPermitido || 0),
                 brief: inputs.brief || undefined,
                 paginas: inputs.paginas ? Number(inputs.paginas) : undefined,
                 edad_recomendada: inputs.edad_recomendada ? Number(inputs.edad_recomendada) : undefined,

@@ -55,6 +55,20 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
 
     const toPublicList = (libros: LibroConColeccion[]): PublicLibro[] => libros.map(toPublic);
 
+    // Las lecturas de libro exponen `foto_url` (no la key interna), igual que
+    // el módulo Persona. El catálogo público después filtra los campos que no
+    // corresponden (dni, email, porcentaje, etc.).
+    const toPersonaPublica = <T extends { foto_key: string | null }>(persona: T) => {
+        const { foto_key, ...rest } = persona;
+        return { ...rest, foto_url: foto_key ? storage.getUrl(foto_key) : null };
+    };
+
+    // El peso se guarda con resolución de gramos (tres decimales).
+    const redondearPeso = <T extends { peso_kg?: number | null }>(data: T): T => {
+        if (data.peso_kg === undefined || data.peso_kg === null) return data;
+        return { ...data, peso_kg: Math.round(data.peso_kg * 1000) / 1000 };
+    };
+
     // `undefined` (campo omitido en el PUT) no cambia la colección actual;
     // `null` la quita; un id la asigna, pero sólo si existe y es del usuario.
     const assertColeccionDelUsuario = async (coleccionId: number | null | undefined, userId: number) => {
@@ -64,14 +78,15 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
     };
 
     const create = async (data: LibroInsert, userId: number) => {
-        if (await repository.exists(data.isbn, userId)) {
+        const datos = redondearPeso(data);
+        if (await repository.exists(datos.isbn, userId)) {
             throw new Duplicated(`El libro con isbn ${data.isbn} ya existe`);
         }
 
         await assertColeccionDelUsuario(data.coleccion_id, userId);
 
         await db.transaction(async (tx) => {
-            const libro = await repository.insert({ ...data, user: userId }, tx);
+            const libro = await repository.insert({ ...datos, user: userId }, tx);
 
             await libroPrecioRepository.insert(
                 {
@@ -84,10 +99,11 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
             );
         });
 
-        return toPublic(await repository.findOne(data.isbn, userId));
+        return toPublic(await repository.findOne(datos.isbn, userId));
     };
 
     const update = async (isbn: string, userId: number, body: LibroUpdate) => {
+        const datos = redondearPeso(body);
         const libro = await repository.findOne(isbn, userId);
 
         await assertColeccionDelUsuario(body.coleccion_id, userId);
@@ -103,7 +119,7 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
             });
         }
 
-        const updated = await repository.update({ id_libro: libro.id_libro, user: userId }, body);
+        const updated = await repository.update({ id_libro: libro.id_libro, user: userId }, datos);
         return toPublic(await repository.findOneById(updated.id_libro, userId));
     };
 
@@ -121,7 +137,37 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         const libro = await repository.findOne(isbn, userId);
         const personas = await repository.getPersonas(libro.id_libro, userId);
 
-        return { ...toPublic(libro), personas };
+        return { ...toPublic(libro), personas: personas.map(toPersonaPublica) };
+    };
+
+    // Catálogo paginado con las personas de cada libro resueltas en una sola
+    // query (evita N+1). Lo comparte el catálogo público.
+    const findCatalogoPaginated = async (
+        filters: Parameters<LibroRepository["findAllPaginated"]>[0],
+        pagination: Parameters<LibroRepository["findAllPaginated"]>[1]
+    ) => {
+        const libros = await repository.findAllPaginated(filters, pagination);
+        const userId = filters?.user;
+        if (userId === undefined) return { libros: [] };
+
+        const personas = await repository.getPersonasByLibros(
+            libros.map((libro) => libro.id_libro),
+            userId
+        );
+
+        const personasPorLibro = new Map<number, typeof personas>();
+        for (const persona of personas) {
+            const actuales = personasPorLibro.get(persona.id_libro) ?? [];
+            actuales.push(persona);
+            personasPorLibro.set(persona.id_libro, actuales);
+        }
+
+        return {
+            libros: libros.map((libro) => ({
+                libro: toPublic(libro),
+                personas: (personasPorLibro.get(libro.id_libro) ?? []).map(toPersonaPublica)
+            }))
+        };
     };
 
     const findAllOrderedPublic = async (filters: Parameters<LibroRepository["findAllOrdered"]>[0]) =>
@@ -177,6 +223,7 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         exists: repository.exists,
         findAllOrdered: findAllOrderedPublic,
         findAllPaginated: findAllPaginatedPublic,
+        findCatalogoPaginated,
         create,
         update,
         remove,

@@ -73,6 +73,26 @@ export class Conflict extends ApiError {
     }
 }
 
+// Un proveedor externo (Correo Argentino, MercadoPago) no respondió o
+// devolvió un error. No se expone el detalle crudo al cliente.
+export class BadGateway extends ApiError {
+    constructor(message: string){
+        super(502, message, "BadGateway");
+    }
+}
+
+export class ExternalServiceError extends Error {
+    constructor(
+        public readonly provider: string,
+        message: string,
+        public readonly status?: number,
+        public readonly details?: unknown
+    ){
+        super(message);
+        this.name = "ExternalServiceError";
+    }
+}
+
 // Movimiento rechazado por saldo insuficiente en el depósito origen: además
 // del mensaje lleva el detalle libro por libro (pedido vs disponible).
 export type LibroSinStock = { isbn: string; titulo: string; pedido: number; disponible: number };
@@ -143,6 +163,19 @@ export function handleErrors(err: Error, req: Request, res: Response, next: Next
             message: err.message
         }]
     });
+
+    // La respuesta del proveedor (ej. `invalid_client` de MercadoPago) solo va
+    // al log: puede traer datos de la cuenta y al cliente no le sirve.
+    if (err instanceof ExternalServiceError) {
+        console.error(`EXTERNAL ERROR [${err.provider}]:`, err.message, err.details);
+        return res.status(502).json({
+            success: false,
+            errors: [{
+                code: "BadGateway",
+                message: err.message
+            }]
+        });
+    }
 
     if (err instanceof AfipError) return res.status(500).json({
         success: false,

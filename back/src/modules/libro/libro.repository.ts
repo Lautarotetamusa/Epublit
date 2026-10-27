@@ -1,4 +1,4 @@
-import { and, eq, getTableColumns, isNull } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
 import { librosTable } from "./libro.schema";
@@ -7,7 +7,7 @@ import { personasTable } from "../persona/persona.schema";
 import { rolesTable } from "../rol/rol.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
 import { libroFilterMap } from "./libro.filter";
-import { stockDeLibro } from "./libro.stock";
+import { disponibleEnPrincipal, stockDeLibro } from "./libro.stock";
 import { Libro } from "./libro.validator";
 import { NotFound } from "bradb";
 
@@ -38,7 +38,9 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
             .select({
                 ...getTableColumns(librosTable),
                 stock: stockDeLibro(),
-                disponible_principal: stockDeLibro(true),
+                // Disponibilidad operativa: físico del principal menos
+                // reservas activas del ecommerce (puede ser negativa).
+                disponible_principal: disponibleEnPrincipal(),
                 coleccion_titulo: coleccionesTable.titulo
             })
             .from(librosTable)
@@ -116,13 +118,18 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
     // Personas del libro en una única lista, cada una con el rol de la cuenta
     // (`{ id, nombre }`) leído del rol, no de un valor copiado en la relación:
     // la misma persona puede aparecer con roles distintos (ver specs/011-roles).
-    const getPersonas = async (idLibro: number, userId: number) => {
-        const personas = await db
+    // Se excluyen personas y roles dados de baja: el catálogo público sólo
+    // expone vinculaciones vigentes (ver specs/016-tienda-ecommerce).
+    const personasDeLibros = (idLibros: number[], userId: number) =>
+        db
             .select({
+                id_libro: librosPersonasTable.id_libro,
                 id_persona: personasTable.id,
                 dni: personasTable.dni,
                 nombre: personasTable.nombre,
                 email: personasTable.email,
+                bio: personasTable.bio,
+                foto_key: personasTable.foto_key,
                 rol_id: rolesTable.id,
                 rol_nombre: rolesTable.nombre,
                 porcentaje: librosPersonasTable.porcentaje,
@@ -130,15 +137,41 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
             })
             .from(librosPersonasTable)
             .innerJoin(personasTable, eq(personasTable.id, librosPersonasTable.id_persona))
-            // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
-            // su nombre en las relaciones históricas que lo referencian.
             .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
-            .where(and(eq(librosPersonasTable.id_libro, idLibro), eq(personasTable.user, userId)));
+            .where(
+                and(
+                    inArray(librosPersonasTable.id_libro, idLibros),
+                    eq(personasTable.user, userId),
+                    isNull(personasTable.deletedAt),
+                    isNull(rolesTable.deletedAt)
+                )
+            )
+            .orderBy(asc(rolesTable.nombre), asc(personasTable.nombre));
 
-        return personas.map(({ rol_id, rol_nombre, ...persona }) => ({
-            ...persona,
-            rol: { id: rol_id, nombre: rol_nombre }
-        }));
+    const toPersona = (persona: Awaited<ReturnType<typeof personasDeLibros>>[number]) => ({
+        id_persona: persona.id_persona,
+        dni: persona.dni,
+        nombre: persona.nombre,
+        email: persona.email,
+        bio: persona.bio,
+        foto_key: persona.foto_key,
+        porcentaje: persona.porcentaje,
+        monto_acordado: persona.monto_acordado,
+        rol: { id: persona.rol_id, nombre: persona.rol_nombre }
+    });
+
+    const getPersonas = async (idLibro: number, userId: number) => {
+        const personas = await personasDeLibros([idLibro], userId);
+        return personas.map(toPersona);
+    };
+
+    // Versión bulk para el listado público: evita una query por libro y
+    // devuelve cada persona con el id del libro al que pertenece.
+    const getPersonasByLibros = async (idLibros: number[], userId: number) => {
+        if (idLibros.length === 0) return [];
+
+        const personas = await personasDeLibros(idLibros, userId);
+        return personas.map((persona) => ({ id_libro: persona.id_libro, ...toPersona(persona) }));
     };
 
     return {
@@ -151,7 +184,8 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         update,
         remove,
         removeAllPersonas,
-        getPersonas
+        getPersonas,
+        getPersonasByLibros
     };
 }
 

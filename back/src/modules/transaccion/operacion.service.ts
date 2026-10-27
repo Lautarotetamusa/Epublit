@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Database, Tx } from "../../db/client";
+import { Database } from "../../db/client";
 import { StockInsuficiente, ValidationError } from "../../lib/http/errors";
 import { calcularNeto } from "../../lib/venta";
 import { Storage } from "../../lib/storage/storage";
@@ -11,7 +11,9 @@ import { MovimientoConDetalle, MovimientoRepository } from "../movimiento";
 import { VentaRepository } from "./venta.repository";
 import { ListVentasFilter } from "./venta.validator";
 import { TipoTransaccion } from "./transaccion.validator";
-import { OperacionConfig, LibroOperacion, OperacionBody, ExtremoOperacion } from "./operacion.types";
+import { OperacionConfig, LibroOperacion, OperacionBody } from "./operacion.types";
+import { AvailabilityService } from "../tienda/stock/availability.service";
+import { SaleService, SaleType, applyStockEffect } from "./sale.service";
 
 export type OperacionServiceDeps = {
     db: Database;
@@ -23,6 +25,11 @@ export type OperacionServiceDeps = {
     // inexistente, ajeno o está dado de baja) y lista los activos.
     medioPagoService: MedioPagoService;
     depositoRepository: Pick<DepositoRepository, "moveStock">;
+    // Misma disponibilidad y bloqueo que las reservas del ecommerce (ver
+    // specs/016-tienda-ecommerce, tarea 5).
+    availabilityService: Pick<AvailabilityService, "assertCanSell">;
+    // Registro compartido de ventas (movimiento + líneas + venta + stock).
+    saleService: SaleService;
     storage: Storage;
 };
 
@@ -62,7 +69,7 @@ const toOperacionPublica = (movimiento: MovimientoConDetalle) => ({
 // como adapter puro que sólo parsea el body con `config.bodyParser` y llama
 // acá. Las lecturas de user/cliente son de sólo ownership (sin regla de
 // negocio propia), así que dependen del repository de esos módulos.
-export function createOperacionService({ db, userRepository, clienteRepository, movimientoRepository, ventaRepository, medioPagoService, depositoRepository, storage }: OperacionServiceDeps) {
+export function createOperacionService({ db, userRepository, clienteRepository, movimientoRepository, ventaRepository, medioPagoService, depositoRepository, availabilityService, saleService, storage }: OperacionServiceDeps) {
     const urlDeArchivo = (filePath: string | null): string | null =>
         filePath === null ? null : storage.getUrl(filePath);
 
@@ -117,27 +124,6 @@ export function createOperacionService({ db, userRepository, clienteRepository, 
         };
     };
 
-    // Aplica el efecto de stock del movimiento: resta del origen y suma en el
-    // destino cuando cada extremo es un depósito (el exterior no mueve nada).
-    const aplicarStock = async (
-        origen: ExtremoOperacion,
-        destino: ExtremoOperacion,
-        libros: LibroOperacion[],
-        userId: number,
-        tx: Tx
-    ): Promise<void> => {
-        if (origen.tipo === "deposito") {
-            for (const libro of libros) {
-                await depositoRepository.moveStock(origen.id, libro.id_libro, userId, -libro.cantidad, tx);
-            }
-        }
-        if (destino.tipo === "deposito") {
-            for (const libro of libros) {
-                await depositoRepository.moveStock(destino.id, libro.id_libro, userId, libro.cantidad, tx);
-            }
-        }
-    };
-
     const crearOperacion = async (config: OperacionConfig, actingUserId: number, body: OperacionBody) => {
         const user = await userRepository.findOne({ id: actingUserId });
         const cliente = await clienteRepository.findOne({ id: body.cliente, user: user.id });
@@ -164,25 +150,23 @@ export function createOperacionService({ db, userRepository, clienteRepository, 
         const filePath = join(config.filesFolder, generateClientPath(cliente.razon_social));
 
         const data = await db.transaction(async (tx) => {
-            const movimiento = await movimientoRepository.insert(
-                {
-                    tipo: config.tipo,
-                    origen_tipo: origen.tipo,
-                    origen_deposito_id: origen.tipo === "deposito" ? origen.id : null,
-                    destino_tipo: destino.tipo,
-                    destino_deposito_id: destino.tipo === "deposito" ? destino.id : null,
-                    file_path: filePath,
-                    user: user.id
-                },
-                tx
-            );
-
-            await movimientoRepository.insertLibros(
-                movimiento.id,
-                user.id,
-                libros.map((libro) => ({ id_libro: libro.id_libro, cantidad: libro.cantidad, precio: libro.precio })),
-                tx
-            );
+            // Revalida dentro de la transacción y con las filas de libro
+            // bloqueadas: dos operaciones concurrentes por el último ejemplar
+            // no pueden superar el piso (ver specs/016-tienda-ecommerce).
+            if (origen.tipo === "deposito") {
+                await availabilityService.assertCanSell(
+                    origen.id,
+                    libros.map((libro) => ({
+                        id_libro: libro.id_libro,
+                        isbn: libro.isbn,
+                        titulo: libro.titulo,
+                        cantidad: libro.cantidad
+                    })),
+                    user.id,
+                    config.tipo === "venta",
+                    tx
+                );
+            }
 
             // `tipo_cbte`/`medio_pago`/`descuento` son opcionales en
             // `OperacionBody` (sólo `createVenta`/`createVentaConsignado` los
@@ -190,27 +174,59 @@ export function createOperacionService({ db, userRepository, clienteRepository, 
             // para esos dos tipos, cuyo `bodyParser` ya los validó. El cliente
             // vive en la venta (no en el movimiento). La comisión del medio se
             // congela en la venta al momento de vender.
+            let movimiento;
             let venta: Awaited<ReturnType<VentaRepository["insert"]>> | null = null;
+
             if (config.esVenta && medioPago !== null) {
-                venta = await ventaRepository.insert(
-                    movimiento.id,
+                const registrada = await saleService.record(
                     {
-                        id_cliente: cliente.id,
-                        descuento: body.descuento ?? 0,
-                        id_medio_pago: medioPago.id,
+                        userId: user.id,
+                        tipo: config.tipo as SaleType,
+                        idCliente: cliente.id,
+                        idMedioPago: medioPago.id,
                         comision: medioPago.comision,
-                        tipo_cbte: body.tipo_cbte!,
-                        total: ventaRepository.calcTotal(libros, body.descuento ?? 0)
+                        tipoCbte: body.tipo_cbte!,
+                        descuento: body.descuento ?? 0,
+                        total: ventaRepository.calcTotal(libros, body.descuento ?? 0),
+                        filePath,
+                        lines: libros,
+                        origen,
+                        destino
                     },
                     tx
                 );
-            }
+                movimiento = registrada.movimiento;
+                venta = registrada.venta;
+            } else {
+                movimiento = await movimientoRepository.insert(
+                    {
+                        tipo: config.tipo,
+                        origen_tipo: origen.tipo,
+                        origen_deposito_id: origen.tipo === "deposito" ? origen.id : null,
+                        destino_tipo: destino.tipo,
+                        destino_deposito_id: destino.tipo === "deposito" ? destino.id : null,
+                        file_path: filePath,
+                        user: user.id
+                    },
+                    tx
+                );
 
-            if (config.fijarPrecios) {
-                await config.fijarPrecios(libros, cliente, tx);
-            }
+                await movimientoRepository.insertLibros(
+                    movimiento.id,
+                    user.id,
+                    libros.map((libro) => ({ id_libro: libro.id_libro, cantidad: libro.cantidad, precio: libro.precio })),
+                    tx
+                );
 
-            await aplicarStock(origen, destino, libros, user.id, tx);
+                if (config.fijarPrecios) {
+                    await config.fijarPrecios(libros, cliente, tx);
+                }
+
+                await applyStockEffect(
+                    { userId: user.id, origen, destino, lines: libros, depositoRepository },
+                    tx
+                );
+            }
 
             if (config.generarComprobante !== null) {
                 await config.generarComprobante(

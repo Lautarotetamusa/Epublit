@@ -20,6 +20,15 @@ const bookTrailerUrl = z
         message: "book_trailer_url debe ser un link de YouTube válido"
     });
 
+// Límite de stock negativo permitido (ver specs/016-tienda-ecommerce): entero
+// no negativo, con el rango de un `integer` de Postgres. No acepta strings ni
+// decimales, y `null` tampoco (el valor por defecto es 0).
+const stockNegativoPermitido = z.number().int().min(0).max(2147483647);
+
+// Peso opcional en kg. Se redondea a gramos (tres decimales) antes de
+// persistir; `null` limpia el valor y `undefined` lo conserva al editar.
+const pesoKg = z.number().positive().max(1_000_000).nullable().optional();
+
 // Validators nuevos (Postgres/Drizzle), usados por libro.controller.ts/libro.service.ts.
 const select = createSelectSchema(librosTable);
 const insert = createInsertSchema(librosTable, {
@@ -28,7 +37,9 @@ const insert = createInsertSchema(librosTable, {
     largo: positiveNumber,
     paginas: positiveInt,
     edad_recomendada: nonNegativeInt,
-    book_trailer_url: bookTrailerUrl
+    book_trailer_url: bookTrailerUrl,
+    stock_negativo_permitido: stockNegativoPermitido.optional(),
+    peso_kg: pesoKg
 }).omit({
     user: true,
     deletedAt: true,
@@ -49,6 +60,9 @@ const filter = z
         titulo: z.string(),
         precio: z.coerce.number(),
         stock: z.coerce.number(),
+        // Búsqueda del catálogo público: título o ISBN, parcial e insensible
+        // a mayúsculas.
+        buscar: z.string().trim().min(1),
         // `z.coerce.boolean()` convertiría "false" en `true` (cualquier string
         // no vacío es truthy): se parsea explícito desde el string de la query.
         sin_coleccion: z.enum(["true", "false"]).transform((value) => value === "true")

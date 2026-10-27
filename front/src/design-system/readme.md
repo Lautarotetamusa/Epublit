@@ -173,7 +173,7 @@ No se usan ilustraciones, texturas ni patrones repetidos.
 | --- | --- |
 | `core/` | `Icon`, `Button`, `IconButton`, `Badge`, `Card`, `StatCard`, `Avatar` |
 | `forms/` | `Field`, `Input`, `Textarea`, `Select`, `Checkbox`, `Radio`, `Switch` |
-| `data/` | `Table`, `Pagination`, `EmptyState` |
+| `data/` | `Table`, `Pagination`, `EmptyState`, `Timeline` |
 | `feedback/` | `Alert`, `Toast`, `Tooltip`, `Dialog` |
 | `navigation/` | `SidebarNav`, `Topbar`, `Tabs`, `Breadcrumb` |
 

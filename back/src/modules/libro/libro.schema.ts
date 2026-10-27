@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, date, real, text, timestamp, primaryKey, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, date, real, text, timestamp, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
@@ -35,6 +35,13 @@ export const librosTable = pgTable(
         // valida que la colección exista y sea del mismo usuario antes de
         // asignarla (ver libro.service.ts).
         coleccion_id: integer("coleccion_id").references(() => coleccionesTable.id),
+        // Límite de stock negativo permitido al vender desde el depósito
+        // principal (ver specs/016-tienda-ecommerce): 0 = no permitir vender
+        // de más. No afecta el stock consignado en depósitos de clientes.
+        stock_negativo_permitido: integer("stock_negativo_permitido").notNull().default(0),
+        // Peso opcional del libro en kg (resolución de gramos), usado para
+        // cotizar envíos. Si falta, se usa el promedio de la cuenta.
+        peso_kg: real("peso_kg"),
         // bradb (ServiceBuilder) detecta soft-delete por la columna `deleted_at`.
         deletedAt: timestamp("deleted_at"),
         user: integer("user")
@@ -51,6 +58,8 @@ export const librosTable = pgTable(
         // isbn eliminado puede reutilizarse (ver spec, "Casos borde").
         uniqueIndex("libros_isbn_user_active_idx")
             .on(table.isbn, table.user)
-            .where(sql`deleted_at IS NULL`)
+            .where(sql`deleted_at IS NULL`),
+        check("libros_stock_negativo_permitido_no_negativo", sql`${table.stock_negativo_permitido} >= 0`),
+        check("libros_peso_kg_positivo", sql`${table.peso_kg} is null or ${table.peso_kg} > 0`)
     ]
 );

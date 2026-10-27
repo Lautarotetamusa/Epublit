@@ -1,11 +1,12 @@
 {
     "dependencies": {
-        "bcrypt": "^5.1.0",
+        "bcrypt": "^5.1.1",
         "bradb": "^3.1.6",
         "cors": "^2.8.5",
         "dotenv": "^16.0.3",
         "drizzle-orm": "^0.44.7",
         "express": "^5.1.0",
+        "express-rate-limit": "^7.5.0",
         "jsonwebtoken": "^9.0.0",
         "multer": "^1.4.5-lts.1",
         "node-forge": "^1.3.1",
@@ -80,5 +81,12 @@
         "db:migrate": "drizzle-kit migrate",
         "db:migrate:run": "ts-node src/db/migrate.ts",
         "db:studio": "drizzle-kit studio"
+    },
+    "allowScripts": {
+        "bcrypt@5.1.1": true,
+        "puppeteer@25.12.0": true,
+        "esbuild@0.18.20": true,
+        "esbuild@0.25.12": true,
+        "esbuild@0.28.2": true
     }
 }

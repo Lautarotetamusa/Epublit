@@ -103,6 +103,55 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `PUT    /rol/:id`
 - `DELETE /rol/:id`
 
+## tienda
+
+### publicRouter (/public/tienda/v1)
+
+- `GET    /public/tienda/v1/config`
+- `GET    /public/tienda/v1/libros`
+- `GET    /public/tienda/v1/libros/:isbn`
+- `POST   /public/tienda/v1/cotizar`
+- `POST   /public/tienda/v1/pedidos`
+- `GET    /public/tienda/v1/pedidos/:codigo`
+- `POST   /public/tienda/v1/pedidos/:codigo/pago`
+- `POST   /public/tienda/v1/pedidos/:codigo/cancelar`
+- `POST   /public/tienda/v1/webhooks/mercadopago`
+
+### router (/integraciones)
+
+- `GET    /integraciones/`
+- `POST   /integraciones/`
+- `PATCH  /integraciones/:id`
+- `DELETE /integraciones/:id`
+
+### oauthCallbackRouter (/tienda/mercadopago/callback)
+
+- `GET    /tienda/mercadopago/callback`
+
+### adminRouter (/tienda)
+
+- `GET    /tienda/mercadopago`
+- `GET    /tienda/mercadopago/conectar`
+- `DELETE /tienda/mercadopago`
+- `GET    /tienda/envios`
+- `PUT    /tienda/envios`
+- `POST   /tienda/envios/probar`
+
+### orderAdminRouter (/pedidos)
+
+- `GET    /pedidos/`
+- `GET    /pedidos/:codigo`
+- `GET    /pedidos/:codigo/comprobante`
+- `POST   /pedidos/:codigo/aceptar`
+- `POST   /pedidos/:codigo/facturar`
+- `POST   /pedidos/:codigo/rechazar`
+- `POST   /pedidos/:codigo/etiqueta`
+- `GET    /pedidos/:codigo/etiqueta`
+- `POST   /pedidos/:codigo/enviar`
+- `POST   /pedidos/:codigo/entregar`
+- `GET    /pedidos/:codigo/envio`
+- `POST   /pedidos/:codigo/envio/refrescar`
+
 ## transaccion ()
 
 - `GET    /venta/medios_pago`

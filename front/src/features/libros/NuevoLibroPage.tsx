@@ -33,13 +33,15 @@ export function NuevoLibroPage() {
         alto: "",
         ancho: "",
         largo: "",
+        pesoKg: "",
         brief: "",
         paginas: "",
         edad_recomendada: "",
         portadaUrl: "",
         portadaFile: null,
         bookTrailerUrl: "",
-        idColeccion: ""
+        idColeccion: "",
+        stockNegativoPermitido: "0"
     });
 
     const handleSubmit = async (event: FormEvent) => {
@@ -54,6 +56,8 @@ export function NuevoLibroPage() {
                     alto: inputs.alto ? Number(inputs.alto) : undefined,
                     ancho: inputs.ancho ? Number(inputs.ancho) : undefined,
                     largo: inputs.largo ? Number(inputs.largo) : undefined,
+                    peso_kg: inputs.pesoKg ? Number(inputs.pesoKg) : undefined,
+                    stock_negativo_permitido: Number(inputs.stockNegativoPermitido || 0),
                     brief: inputs.brief || undefined,
                     paginas: inputs.paginas ? Number(inputs.paginas) : undefined,
                     edad_recomendada: inputs.edad_recomendada ? Number(inputs.edad_recomendada) : undefined,

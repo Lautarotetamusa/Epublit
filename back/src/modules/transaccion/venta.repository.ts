@@ -113,11 +113,30 @@ export function createVentaRepository({ db }: VentaRepositoryDeps) {
         return rows[0];
     };
 
+    // Fila cruda de `ventas` para el emisor de comprobantes (AFIP necesita los
+    // importes, el tipo de comprobante y el cliente, no el join de lectura).
+    const findRowByIdMovimiento = async (idMovimiento: number, userId: number) => {
+        const [row] = await db
+            .select({ venta: ventasTable })
+            .from(ventasTable)
+            .innerJoin(movimientosTable, eq(movimientosTable.id, ventasTable.id_movimiento))
+            .where(
+                and(
+                    eq(ventasTable.id_movimiento, idMovimiento),
+                    eq(movimientosTable.user, userId)
+                )
+            )
+            .limit(1);
+
+        return row?.venta ?? null;
+    };
+
     return {
         insert,
         calcTotal,
         getAll,
-        getById
+        getById,
+        findRowByIdMovimiento
     };
 }
 

@@ -12,6 +12,9 @@ export type LibroFormValues = {
     alto: string;
     ancho: string;
     largo: string;
+    // Peso en kg para que PAQ.AR cotice; vacío = peso promedio de la cuenta.
+    // El campo no lleva hint a propósito (ver specs/016-tienda-ecommerce).
+    pesoKg: string;
     brief: string;
     paginas: string;
     edad_recomendada: string;
@@ -25,6 +28,9 @@ export type LibroFormValues = {
     // pueda usar "" como "Sin colección". Un libro está en una colección o en
     // ninguna (ver specs/006-colecciones).
     idColeccion: string;
+    // Stock que la tienda online puede vender de más cuando el depósito
+    // principal llega a cero.
+    stockNegativoPermitido: string;
 };
 
 type Props = {
@@ -43,6 +49,7 @@ type Props = {
 export function LibroFormFields({ values, onChange, colecciones, isbnEditable }: Props) {
     const portadaPreview = useFilePreview(values.portadaFile, values.portadaUrl);
     const bookTrailerInvalid = values.bookTrailerUrl !== "" && !isValidYoutubeUrl(values.bookTrailerUrl);
+    const pesoInvalido = values.pesoKg !== "" && (!Number.isFinite(Number(values.pesoKg)) || Number(values.pesoKg) <= 0);
 
     return (
         <>
@@ -90,7 +97,14 @@ export function LibroFormFields({ values, onChange, colecciones, isbnEditable }:
                 </Field>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", marginTop: "var(--space-4)" }}>
+            <div
+                style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+                    gap: "var(--space-4)",
+                    marginTop: "var(--space-4)"
+                }}
+            >
                 <Field label="Alto">
                     <Input
                         type="text"
@@ -118,9 +132,19 @@ export function LibroFormFields({ values, onChange, colecciones, isbnEditable }:
                         onChange={(e) => onChange({ largo: sanitizeDecimal(e.target.value) })}
                     />
                 </Field>
+                <Field label="Peso" error={pesoInvalido ? "El peso tiene que ser mayor a 0." : undefined}>
+                    <Input
+                        type="text"
+                        inputMode="decimal"
+                        suffix="kg"
+                        invalid={pesoInvalido}
+                        value={values.pesoKg}
+                        onChange={(e) => onChange({ pesoKg: sanitizeDecimal(e.target.value) })}
+                    />
+                </Field>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)", marginTop: "var(--space-4)" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", marginTop: "var(--space-4)" }}>
                 <Field label="Cantidad de páginas">
                     <Input
                         type="text"
@@ -136,6 +160,18 @@ export function LibroFormFields({ values, onChange, colecciones, isbnEditable }:
                         suffix="años"
                         value={values.edad_recomendada}
                         onChange={(e) => onChange({ edad_recomendada: sanitizeInteger(e.target.value) })}
+                    />
+                </Field>
+                <Field
+                    label="Stock negativo permitido"
+                    hint="Ejemplares que la tienda online puede vender de más si el stock del depósito principal llega a cero. 0 = no permitir."
+                >
+                    <Input
+                        type="text"
+                        inputMode="numeric"
+                        suffix="ej."
+                        value={values.stockNegativoPermitido}
+                        onChange={(e) => onChange({ stockNegativoPermitido: sanitizeInteger(e.target.value) })}
                     />
                 </Field>
             </div>

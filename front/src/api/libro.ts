@@ -26,6 +26,12 @@ export type Libro = {
     alto: number | null;
     ancho: number | null;
     largo: number | null;
+    // Peso en kg para cotizar el envío. Si falta, se usa el peso promedio de
+    // la cuenta (ver specs/016-tienda-ecommerce).
+    peso_kg: number | null;
+    // Ejemplares que la tienda online puede vender de más cuando el stock del
+    // depósito principal llega a cero. `0` = no permitir.
+    stock_negativo_permitido: number;
     brief: string | null;
     paginas: number | null;
     // Años (edad mínima recomendada). Se muestra como "+<edad_recomendada> años".
@@ -71,6 +77,10 @@ export type CreateLibroInput = {
     alto?: number;
     ancho?: number;
     largo?: number;
+    // Opcional: si no viene, la cotización y la etiqueta usan el peso promedio
+    // de la cuenta.
+    peso_kg?: number | null;
+    stock_negativo_permitido?: number;
     brief?: string;
     paginas?: number;
     edad_recomendada?: number;
