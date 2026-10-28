@@ -29,8 +29,24 @@ Internet
 buildea y copia `front/dist` a `www/front`; el nginx de borde lo sirve directo.
 El compose monta `./www` (no el dist) para que el reemplazo se vea al instante.
 
-El front se buildea con `VITE_API_URL=https://<dominio>/api`, así que todo
-vive en el mismo origen y no hay CORS en el navegador.
+En producción el **panel y el API viven en dominios distintos**:
+
+| Uso | URL |
+|---|---|
+| Landing | `https://epublit.com.ar` |
+| Panel (SPA) | `https://app.epublit.com.ar` |
+| API | `https://epublit.com.ar/api` |
+| Archivos | `https://epublit.com.ar/files` |
+| Callback OAuth de MercadoPago | `https://epublit.com.ar/api/tienda/mercadopago/callback` |
+| Vuelta al panel después del OAuth | `https://app.epublit.com.ar/tienda?mercadopago=conectado` |
+
+El front se buildea con `VITE_API_URL=https://epublit.com.ar/api`, así que el
+panel llama al API en el dominio raíz. Por eso `CORS_ORIGIN` incluye
+`https://app.epublit.com.ar`.
+
+`app.epublit.com.ar/api/...` **no** está proxyeado al backend: ese subdominio
+sirve el SPA. Cualquier callback o webhook tiene que usar el dominio raíz
+(`epublit.com.ar/api/...`), no el subdominio del panel.
 
 ## Layout en el servidor
 
@@ -149,10 +165,22 @@ server {
 ```
 
 `PUBLIC_URL` es el origen de la **API** (`https://epublit.com.ar`): de ahí
-salen las URLs de `/files` y el `VITE_API_URL` del build. `CORS_ORIGIN` es el
-origen del **SPA** (`https://app.epublit.com.ar`), separado justamente porque
-viven en dominios distintos. Si el SPA llamara a la API en su mismo origen, no
-haría falta CORS.
+salen las URLs de `/files` y el `VITE_API_URL` del build. `HOST` repite ese
+origen para que el back arme las URLs de archivos, y `PUBLIC_API_URL` agrega el
+prefijo `/api` (`https://epublit.com.ar/api`) para webhooks y callbacks.
+`CORS_ORIGIN` es el origen del **SPA** (`https://app.epublit.com.ar`), separado
+justamente porque panel y API viven en dominios distintos.
+
+`MP_REDIRECT_URI` también tiene que apuntar al **API**, no al panel:
+
+```env
+MP_REDIRECT_URI=https://epublit.com.ar/api/tienda/mercadopago/callback
+MP_PANEL_URL=https://app.epublit.com.ar/
+```
+
+La Redirect URL cargada en la app de MercadoPago tiene que coincidir carácter
+por carácter con `MP_REDIRECT_URI`. El backend procesa el callback y recién
+después redirige al panel usando `MP_PANEL_URL`.
 
 `BACK_PORT` se define en el `.env`; el contenedor siempre escucha en `3000`.
 

@@ -150,12 +150,25 @@ Variables en `back/.env` (ver `infra/.env.example`):
 |---|---|
 | `MP_CLIENT_ID` | Client ID de la aplicación (Credenciales de producción) |
 | `MP_CLIENT_SECRET` | **Client Secret**: unos 32 caracteres, sin prefijo. No confundir con el Access Token (`APP_USR-…`) |
-| `MP_REDIRECT_URI` | `<URL pública del back>/tienda/mercadopago/callback`. Tiene que coincidir carácter por carácter con la cargada en la app de MP |
+| `MP_REDIRECT_URI` | `<PUBLIC_API_URL>/tienda/mercadopago/callback`. En producción: `https://epublit.com.ar/api/tienda/mercadopago/callback`. Tiene que coincidir carácter por carácter con la cargada en la app de MP |
 | `MP_WEBHOOK_SECRET` | Clave secreta de Webhooks **del modo que corresponda** (ver abajo) |
-| `MP_PANEL_URL` | URL del panel a la que vuelve el navegador después del OAuth |
-| `PUBLIC_API_URL` | URL pública del back. Con ella se arma el `notification_url` |
+| `MP_PANEL_URL` | URL del panel a la que vuelve el navegador después del OAuth. En producción: `https://app.epublit.com.ar/` |
+| `PUBLIC_API_URL` | URL pública del back, incluyendo `/api`. En producción: `https://epublit.com.ar/api`. Con ella se arma el `notification_url` |
 | `CREDENTIALS_ENCRYPTION_KEY` | Clave para cifrar los tokens. Si cambia, las conexiones existentes dejan de poder descifrarse |
 | `TRUST_PROXY` | Cantidad de proxies delante del back, para el rate limit por IP |
+
+### Dominios de producción
+
+```text
+https://epublit.com.ar/api      → API / callback de OAuth
+https://epublit.com.ar/files    → archivos
+https://app.epublit.com.ar      → panel / SPA
+```
+
+`app.epublit.com.ar/api/...` **no** está proxyeado al backend: ese subdominio
+sirve el SPA. Por eso `MP_REDIRECT_URI` apunta al dominio raíz y `MP_PANEL_URL`
+al subdominio del panel. Si el callback se configura en `app`, MercadoPago
+redirige al SPA, el backend nunca recibe el `code` y la conexión no se guarda.
 
 En `NODE_ENV=prod` el back **no arranca** si falta alguna de estas variables o
 tiene un valor de dev: `HOST`, `PUBLIC_API_URL`, `MP_REDIRECT_URI` y

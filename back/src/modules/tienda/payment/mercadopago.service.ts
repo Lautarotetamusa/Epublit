@@ -37,9 +37,19 @@ export function createMercadoPagoService({
     config
 }: MercadoPagoServiceDeps) {
     const saveTokens = async (userId: number, mpUserId: string, tokens: MercadoPagoOAuthTokens) => {
+        console.info("[mercadopago] guardando conexión", { userId, mpUserId });
         const user = await client.getUser(tokens.accessToken);
+        console.info("[mercadopago] usuario de MercadoPago obtenido", {
+            userId,
+            mpUserId,
+            tieneAlias: Boolean(user.alias)
+        });
 
         if (await repository.isMpUserConnectedToAnotherAccount(mpUserId, userId)) {
+            console.warn("[mercadopago] la cuenta de MercadoPago ya está conectada a otro usuario", {
+                userId,
+                mpUserId
+            });
             throw new Conflict("Ese usuario de MercadoPago ya está conectado a otra cuenta");
         }
 
@@ -54,11 +64,16 @@ export function createMercadoPagoService({
             vencimiento: expiresAt(tokens)
         });
 
+        console.info("[mercadopago] conexión guardada", { userId, mpUserId });
         return user;
     };
 
     const getStatus = async (userId: number): Promise<MercadoPagoStatus> => {
         const row = await repository.findConnectedByUser(userId);
+        console.info("[mercadopago] estado consultado", {
+            userId,
+            conectado: Boolean(row)
+        });
         if (!row) return { conectado: false };
 
         return {
@@ -78,6 +93,11 @@ export function createMercadoPagoService({
             throw new Conflict("MercadoPago no está configurado en este entorno");
         }
 
+        console.info("[mercadopago] generando URL de autorización", {
+            userId,
+            clientId: config.clientId,
+            redirectUri: config.redirectUri
+        });
         const state = createOAuthState(userId, config.webhookSecret || config.clientSecret);
         const url = new URL(`${config.authBaseUrl}/authorization`);
         url.searchParams.set("client_id", config.clientId);
@@ -92,15 +112,40 @@ export function createMercadoPagoService({
 
     const callback = async (code: string, state: string): Promise<string> => {
         const payload = verifyOAuthState(state, config.webhookSecret || config.clientSecret);
-        if (!payload) throw new ValidationError("Estado de OAuth inválido o vencido");
+        if (!payload) {
+            console.warn("[mercadopago] callback con state inválido o vencido");
+            throw new ValidationError("Estado de OAuth inválido o vencido");
+        }
 
-        const tokens = await client.exchangeCode(code);
-        const mpUserId = tokens.userId ?? (await client.getUser(tokens.accessToken)).id;
-        await saveTokens(payload.userId, mpUserId, tokens);
+        console.info("[mercadopago] callback recibido", { userId: payload.userId });
 
-        const redirect = new URL(`${config.panelUrl.replace(/\/$/, "")}/tienda`);
-        redirect.searchParams.set("mercadopago", "conectado");
-        return redirect.toString();
+        try {
+            const tokens = await client.exchangeCode(code);
+            console.info("[mercadopago] code canjeado", {
+                userId: payload.userId,
+                mpUserId: tokens.userId,
+                clientId: tokens.clientId,
+                scope: tokens.scope,
+                tieneRefreshToken: Boolean(tokens.refreshToken)
+            });
+
+            const mpUserId = tokens.userId ?? (await client.getUser(tokens.accessToken)).id;
+            await saveTokens(payload.userId, mpUserId, tokens);
+
+            const redirect = new URL(`${config.panelUrl.replace(/\/$/, "")}/tienda`);
+            redirect.searchParams.set("mercadopago", "conectado");
+            console.info("[mercadopago] callback completado", {
+                userId: payload.userId,
+                mpUserId
+            });
+            return redirect.toString();
+        } catch (error) {
+            console.error("[mercadopago] error procesando callback", {
+                userId: payload.userId,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
+        }
     };
 
     const disconnect = async (userId: number): Promise<{ conectado: false }> => {
