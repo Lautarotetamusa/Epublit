@@ -27,7 +27,6 @@ export type RecordSaleInput = {
     // Total explícito: para la tienda incluye el envío y no se recalcula con
     // las líneas de libro (ver specs/016-tienda-ecommerce).
     total: number;
-    filePath: string;
     lines: SaleLine[];
     origen: ExtremoOperacion;
     destino: ExtremoOperacion;
@@ -82,7 +81,9 @@ export function createSaleService({
                 origen_deposito_id: input.origen.tipo === "deposito" ? input.origen.id : null,
                 destino_tipo: input.destino.tipo,
                 destino_deposito_id: input.destino.tipo === "deposito" ? input.destino.id : null,
-                file_path: input.filePath,
+                // Los comprobantes nuevos se renderizan desde datos: el
+                // histórico `file_path` queda siempre vacío.
+                file_path: null,
                 user: input.userId
             },
             tx

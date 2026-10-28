@@ -16,6 +16,7 @@ import { sql } from "drizzle-orm";
 import { usersTable } from "../../user/user.schema";
 import { integrationsTable } from "../integration/integration.schema";
 import { movimientosTable } from "../../movimiento/movimiento.schema";
+import { comprobantesTable } from "../../comprobante/comprobante.schema";
 
 export const orderStatusEnum = pgEnum("pedido_estado", [
     "pendiente_pago",
@@ -88,12 +89,10 @@ export const ordersTable = pgTable(
         motivo_rechazo: text("motivo_rechazo"),
         detalle_rechazo: text("detalle_rechazo"),
         venta_id: integer("venta_id"),
-        // eslint-disable-next-line sonarjs/todo-tag -- deuda técnica documentada, no se implementa todavía
-        // TODO(normalización de comprobantes): este snapshot duplica datos
-        // fiscales que hoy sólo viven en el PDF. Reemplazarlo por una FK a la
-        // tabla de comprobantes cuando se implemente la deuda documentada en
-        // specs/016-tienda-ecommerce/comprobantes.md (datos fiscales +
-        // render en el navegador, sin Chromium ni PDFs en disco).
+        // Comprobante fiscal del pedido (ver specs/017-comprobantes-afip).
+        // Las columnas `comprobante_*` de abajo quedan como snapshot histórico
+        // sin uso: no se escriben ni se leen en el flujo nuevo.
+        comprobante_id: integer("comprobante_id"),
         comprobante_tipo: varchar("comprobante_tipo", { length: 2 }),
         comprobante_numero: varchar("comprobante_numero", { length: 30 }),
         comprobante_fecha: timestamp("comprobante_fecha"),
@@ -112,7 +111,15 @@ export const ordersTable = pgTable(
             columns: [table.venta_id, table.user],
             foreignColumns: [movimientosTable.id, movimientosTable.user]
         }),
+        foreignKey({
+            columns: [table.comprobante_id, table.user],
+            foreignColumns: [comprobantesTable.id, comprobantesTable.user]
+        }),
         uniqueIndex("pedidos_codigo_por_cuenta_idx").on(table.user, table.codigo),
+        // Un comprobante no puede estar asociado a dos pedidos.
+        uniqueIndex("pedidos_comprobante_idx")
+            .on(table.comprobante_id)
+            .where(sql`${table.comprobante_id} is not null`),
         // La referencia externa se usa para buscar el pedido desde el webhook.
         uniqueIndex("pedidos_referencia_externa_idx").on(table.referencia_externa),
         uniqueIndex("pedidos_idempotencia_integracion_idx").on(table.integracion_id, table.clave_idempotencia),

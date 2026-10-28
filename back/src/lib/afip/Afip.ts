@@ -1,7 +1,6 @@
 import Afip from "./afip.js/src/Afip";
-import QRcode from 'qrcode';
 import { VentaRow } from '../../modules/transaccion/venta.validator';
-import { NotFound, BadRequest } from 'bradb';
+import { BadRequest, NotFound } from 'bradb';
 import { AfipData } from './afip.validator';
 import { User } from '../../modules/user/user.validator';
 import { Client as Cliente } from '../../modules/cliente/cliente.validator';
@@ -17,25 +16,52 @@ import { spawn } from "child_process";
 // Con __dirname quedaba en /app/dist/afipkeys al compilar.
 const afipKeysPath = join(process.cwd(), 'afipkeys');
 
+export type VentaFiscal = Pick<VentaRow, "tipo_cbte" | "total" | "descuento">;
+
+// Respuesta completa de `FECompConsultar` (getVoucherInfo): sólo se tipan los
+// campos que consume el comprobante.
+export type ComprobanteAfip = {
+    CbteNro?: number | string;
+    PtoVta?: number | string;
+    CbteTipo?: number | string;
+    CbteFch?: string;
+    CAE?: string;
+    CAEFchVto?: string;
+    FchVto?: string;
+    Resultado?: string;
+    Observaciones?: { Obs?: unknown[] };
+    MonId?: string;
+    ImpTotal?: number | string;
+    DocTipo?: number | string;
+    DocNro?: number | string;
+    [key: string]: unknown;
+};
+
 export interface IAfip {
-    createNextVoucher(data: FacturaPayload): Promise<{voucherNumber: string}>
-    getVoucherInfo(voucherNumber: string, ptoVenta: number, tipoCbte: number): Promise<Comprobante>
-    getServerStatus?(): Promise<unknown>
+    getLastVoucher(ptoVenta: number, tipoCbte: number): Promise<number>;
+    createVoucher(data: FacturaPayload & { CbteDesde: number; CbteHasta: number }): Promise<{
+        CAE: string;
+        CAEFchVto: string;
+    }>;
+    getVoucherInfo(voucherNumber: number | string, ptoVenta: number, tipoCbte: number): Promise<ComprobanteAfip | null>;
+    getServerStatus?(): Promise<unknown>;
 }
 
-export class AfipError extends Error{
+export class AfipError extends Error {
     code: number;
 
-    constructor(message: string, code: number){
+    constructor(message: string, code: number) {
         super(message);
         this.code = code;
     }
 }
 
 // Funcion traida desde Afip.ts
-function formatAfipDate(date: string): string {
-    return date.toString()
-    .replace(/(\d{4})(\d{2})(\d{2})/, (string, year, month, day) => `${year}-${month}-${day}`);
+function formatAfipDate(date: string | number): string {
+    const raw = String(date);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+    return raw.replace(/(\d{4})(\d{2})(\d{2})/, (_, year, month, day) => `${year}-${month}-${day}`);
 }
 
 type DescImpuesto = {
@@ -51,16 +77,6 @@ type DescActividad = {
     periodo: number //yyyymm
 };
 
-export type Comprobante = {
-    nro: string,
-    qr: string,
-	CbteTipo: string,
-	PtoVta: string,
-	CodAutorizacion: string,
-	FchVto: string,
-	CbteFch: string,
-};
-
 export type FacturaPayload = {
     CantReg 	: number, //Cantidad de comprobantes a registrar
     PtoVta 	    : number  //Punto de venta
@@ -68,6 +84,10 @@ export type FacturaPayload = {
     Concepto 	: number, //Concepto del Comprobante: (1)Productos, (2)Servicios, (3)Productos y Servicios
     DocTipo 	: 80 | 99,//Tipo de documento del comprador (99 consumidor fina,l 80 cuit)
     DocNro 	    : string, //Número de documento del comprador (0 consumidor final)
+    // RG 5616/2024: condición frente al IVA del receptor. AFIP la exige
+    // desde 2025; los códigos principales son 1=RI, 4=Exento,
+    // 5=Consumidor Final y 6=Monotributo.
+    CondicionIVAReceptorId: number,
     CbteFch 	: number, //(Opcional) Fecha del comprobante (yyyymmdd) o fecha actual si es nulo
     ImpTotal 	: number, //Importe total del comprobante
     ImpTotConc  : number, //Importe neto no gravado2
@@ -79,89 +99,337 @@ export type FacturaPayload = {
     MonCotiz 	: 1,      //Cotización de la moneda usada (1 para pesos argentinos)
 };
 
+export type FacturaRequest = FacturaPayload & {
+    CbteDesde: number;
+    CbteHasta: number;
+};
+
+// Importes fiscales tal como los envía hoy el backend a AFIP. Se persisten
+// aparte de `datos_afip` para renderizar sin la respuesta cruda.
+export type ImportesFiscales = {
+    neto: number;
+    iva: number;
+    exento: number;
+    noGravado: number;
+    tributos: number;
+    total: number;
+};
+
+export type FacturaFiscal = {
+    codigoAfip: number;
+    puntoVenta: number;
+    numero: number;
+    fecha: string;
+    cae: string;
+    caeVencimiento: string;
+    resultado: "A" | "R";
+    observaciones: unknown[];
+    moneda: string;
+    importe: number;
+    qrUrl: string;
+    datosAfip: {
+        request: FacturaRequest | null;
+        response: Record<string, unknown>;
+    };
+};
+
 const idImpuestos = {
     iva: 32,
     iibb: 5900 //Ingresos brutos
 } as const;
 
-function createQRUrl(payload: FacturaPayload, voucher: Comprobante){
-	const url = 'https://www.afip.gob.ar/fe/qr/?p=';
+const URL_QR_AFIP = 'https://www.afip.gob.ar/fe/qr/?p=';
 
-	const datosComprobante = {
-		ver: 1,
-		fecha: 	voucher.CbteFch,
-		cuit: 	payload.DocNro,
-		ptoVta: voucher.PtoVta,
-		tipoCmp: voucher.CbteTipo,
-		nroCmp: voucher.nro,
-		importe: payload.ImpTotal,
-		moneda: payload.MonId,
-		tipoDocRec: payload.DocTipo,
-		nroDocRec: parseInt(payload.DocNro),
-		tipoCodAut: "E", //“E” para comprobante autorizado por CAE
-		codAut: parseInt(voucher.CodAutorizacion)
-	}
+// El QR lleva el CUIT del emisor (no el documento del receptor) y el
+// documento del receptor en `nroDocRec`, según el especificación de AFIP.
+function createQRUrl(
+    datos: { tipoDocRec: number; nroDocRec: number; fecha: string; ptoVenta: number; tipoCmp: number; nroCmp: number; importe: number; moneda: string; codAut: number },
+    emisorCuit: string
+): string {
+    const datosComprobante = {
+        ver: 1,
+        fecha: datos.fecha,
+        cuit: Number(emisorCuit.replace(/\D/g, '')),
+        ptoVta: datos.ptoVenta,
+        tipoCmp: datos.tipoCmp,
+        nroCmp: datos.nroCmp,
+        importe: datos.importe,
+        moneda: datos.moneda,
+        tipoDocRec: datos.tipoDocRec,
+        nroDocRec: datos.nroDocRec,
+        tipoCodAut: "E", //“E” para comprobante autorizado por CAE
+        codAut: datos.codAut
+    };
 
-	const buff = Buffer.from(JSON.stringify(datosComprobante)).toString("base64");
-	return url+buff;
+    return URL_QR_AFIP + Buffer.from(JSON.stringify(datosComprobante)).toString("base64");
 }
 
-export async function facturar(pto_venta: number, venta: VentaRow, cliente: Cliente, afip: IAfip): Promise<Comprobante>{
+export function importesFiscales(venta: VentaFiscal): ImportesFiscales {
+    return {
+        neto: venta.total,
+        iva: venta.tipo_cbte === 1 ? venta.total : 0,
+        exento: venta.tipo_cbte === 1 ? venta.total : 0,
+        noGravado: 0,
+        tributos: 0,
+        total: venta.total
+    };
+}
+
+// Códigos de `FEParamGetCondicionIvaReceptor` usados por Epublit.
+export function condicionIvaReceptorId(condFiscal: string | null | undefined): number {
+    const condicion = (condFiscal ?? "").toUpperCase();
+
+    if (condicion.includes("MONOTRIBUTO")) return 6;
+    if (condicion.includes("EXENTO")) return 4;
+    if (condicion.includes("RESPONSABLE INSCRIPTO") || condicion.includes("INSCRIPTO")) return 1;
+    if (condicion.includes("CONSUMIDOR FINAL")) return 5;
+
+    return 5;
+}
+
+export function crearFacturaPayload(
+    venta: VentaFiscal,
+    cliente: Pick<Cliente, "cuit"> & { cond_fiscal?: string | null },
+    ptoVenta: number
+): FacturaPayload {
     const date = new Date(Date.now() - ((new Date()).getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const importes = importesFiscales(venta);
 
-	const data: FacturaPayload = {
-		'CantReg' 	: 1,  									
-		'PtoVta' 	: pto_venta,  					
-		'CbteTipo' 	: venta.tipo_cbte,  					
-		'Concepto' 	: 1,  									
-		'DocTipo' 	: cliente.cuit ? 80 : 99, 		
-		'DocNro' 	: cliente.cuit || '0',  			
-		'CbteFch' 	: parseInt(date.replace(/-/g, '')), 	
-		'ImpTotal' 	: venta.total, 							
-		'ImpTotConc': 0, // 0 para comprobantes tipo C								
-		'ImpNeto' 	: venta.total, 							
-		'ImpOpEx' 	: venta.tipo_cbte != 1 ? 0 : venta.total,  // importe exento
-		'ImpIVA' 	: venta.tipo_cbte == 1 ? venta.total : 0,  // 0 para comprobantes tipo C
-		'ImpTrib' 	: 0,   									
-		'MonId' 	: 'PES', 								
-		'MonCotiz' 	: 1,     								
-	};
+    return {
+        'CantReg': 1,
+        'PtoVta': ptoVenta,
+        'CbteTipo': venta.tipo_cbte,
+        'Concepto': 1,
+        'DocTipo': cliente.cuit ? 80 : 99,
+        'DocNro': cliente.cuit || '0',
+        'CondicionIVAReceptorId': condicionIvaReceptorId(cliente.cond_fiscal),
+        'CbteFch': parseInt(date.replace(/-/g, '')),
+        'ImpTotal': importes.total,
+        'ImpTotConc': importes.noGravado,
+        'ImpNeto': importes.neto,
+        'ImpOpEx': importes.exento,
+        'ImpIVA': importes.iva,
+        'ImpTrib': importes.tributos,
+        'MonId': 'PES',
+        'MonCotiz': 1
+    };
+}
 
-    try{
-        const { voucherNumber } = await afip.createNextVoucher(data);
+function observacionesDe(info: ComprobanteAfip | null): unknown[] {
+    return info?.Observaciones?.Obs ?? [];
+}
 
-        const comprobante = await afip.getVoucherInfo(voucherNumber, pto_venta, venta.tipo_cbte);
-        comprobante.nro 	= voucherNumber;
-        comprobante.CbteFch = formatAfipDate(comprobante.CbteFch);
-        comprobante.FchVto	= formatAfipDate(comprobante.FchVto);
+function armarFactura(args: {
+    emisorCuit: string;
+    numero: number;
+    puntoVenta: number;
+    codigoAfip: number;
+    cae: string;
+    caeVencimiento: string;
+    fechaFallback: string;
+    importeFallback: number;
+    monedaFallback: string;
+    tipoDocRecFallback: number;
+    nroDocRecFallback: number;
+    request: FacturaRequest | null;
+    info: ComprobanteAfip | null;
+    response: Record<string, unknown>;
+}): FacturaFiscal {
+    const { info, emisorCuit } = args;
+    const numero = Number(info?.CbteNro ?? args.numero);
+    const puntoVenta = Number(info?.PtoVta ?? args.puntoVenta);
+    const codigoAfip = Number(info?.CbteTipo ?? args.codigoAfip);
+    const fecha = formatAfipDate(String(info?.CbteFch || args.fechaFallback));
+    const cae = String(info?.CAE || args.cae);
+    const caeVencimiento = formatAfipDate(String(info?.CAEFchVto || info?.FchVto || args.caeVencimiento));
+    const resultado = info?.Resultado === "R" ? "R" : "A";
+    const importe = Number(info?.ImpTotal ?? args.importeFallback);
+    const moneda = String(info?.MonId || args.monedaFallback);
+    const tipoDocRec = Number(info?.DocTipo ?? args.tipoDocRecFallback);
+    const nroDocRec = Number(info?.DocNro ?? args.nroDocRecFallback);
 
-        return new Promise<Comprobante>((resolve, reject) => {
-            QRcode.toDataURL(createQRUrl(data, comprobante), function (err, base64_qr) {
-                if (err) reject(err);
+    return {
+        codigoAfip,
+        puntoVenta,
+        numero,
+        fecha,
+        cae,
+        caeVencimiento,
+        resultado,
+        observaciones: observacionesDe(info),
+        moneda,
+        importe,
+        qrUrl: createQRUrl(
+            {
+                tipoDocRec,
+                nroDocRec,
+                fecha,
+                ptoVenta: puntoVenta,
+                tipoCmp: codigoAfip,
+                nroCmp: numero,
+                importe,
+                moneda,
+                codAut: Number(cae)
+            },
+            emisorCuit
+        ),
+        datosAfip: { request: args.request, response: args.response }
+    };
+}
 
-                resolve({
-                    ...comprobante,
-                    qr: base64_qr
-                });
-            });
-        })
-    } catch(e){
-        // Verificar si 'e' es un objeto Error y si tiene 'message'
-        //console.log(e instanceof Error);
-        if (e instanceof Error) {
-            // Intentar extraer código y mensaje con regex
-            const match = e.message.match(/\((\d+)\) (.+)$/);
-            
-            if (match) {
-                // Si coincide el formato, lanzar error personalizado
-                const [_, code, msg] = match;
-                console.log(code, msg);
-                throw new AfipError(msg, Number(code));
-            }
+function asAfipError(error: unknown): Error {
+    if (!(error instanceof Error)) return new Error(String(error));
+
+    // Los errores de AFIP llegan como "(código) mensaje" dentro del message.
+    const match = error.message.match(/\((\d+)\) (.+)$/);
+    if (!match) return error;
+
+    const [, code, message] = match;
+    return new AfipError(message, Number(code));
+}
+
+async function consultarVoucher(
+    afip: IAfip,
+    numero: number,
+    puntoVenta: number,
+    codigoAfip: number
+): Promise<ComprobanteAfip | null> {
+    try {
+        return await afip.getVoucherInfo(numero, puntoVenta, codigoAfip);
+    } catch (error) {
+        const afipError = asAfipError(error);
+
+        // La librería de AFIP intenta tratar el 602 como "sin datos", pero el
+        // error real no trae `err.code`; se normaliza acá.
+        if (afipError instanceof AfipError && afipError.code === 602) {
+            return null;
         }
-        
-        // Si no coincide, relanzar error original
-        throw e;
+
+        throw afipError;
+    }
+}
+
+export type ConsultarComprobanteInput = {
+    numero: number;
+    puntoVenta: number;
+    codigoAfip: number;
+    emisorCuit: string;
+    afip: IAfip;
+};
+
+// Reconciliación: adopta un comprobante que AFIP ya autorizó (timeout o error
+// 600) en vez de emitir otro número.
+export async function consultarComprobante({
+    numero,
+    puntoVenta,
+    codigoAfip,
+    emisorCuit,
+    afip
+}: ConsultarComprobanteInput): Promise<FacturaFiscal | null> {
+    const info = await consultarVoucher(afip, numero, puntoVenta, codigoAfip);
+    if (!info || !info.CAE) return null;
+
+    return armarFactura({
+        emisorCuit,
+        numero,
+        puntoVenta,
+        codigoAfip,
+        cae: String(info.CAE),
+        caeVencimiento: String(info.CAEFchVto ?? info.FchVto ?? ""),
+        fechaFallback: "",
+        importeFallback: 0,
+        monedaFallback: "PES",
+        tipoDocRecFallback: 99,
+        nroDocRecFallback: 0,
+        request: null,
+        info,
+        response: info
+    });
+}
+
+export async function proximoNumero(afip: IAfip, puntoVenta: number, codigoAfip: number): Promise<number> {
+    try {
+        return Number(await afip.getLastVoucher(puntoVenta, codigoAfip)) + 1;
+    } catch (error) {
+        const afipError = asAfipError(error);
+
+        // AFIP devuelve 602 cuando todavía no hay ningún comprobante
+        // autorizado para ese punto de venta y tipo. Para el primer
+        // comprobante, el próximo número es 1.
+        if (afipError instanceof AfipError && afipError.code === 602) {
+            return 1;
+        }
+
+        throw afipError;
+    }
+}
+
+export type FacturarInput = {
+    puntoVenta: number;
+    venta: VentaFiscal;
+    cliente: Pick<Cliente, "cuit"> & { cond_fiscal?: string | null };
+    emisorCuit: string;
+    // Se registra antes de llamar a AFIP: `createVoucher` lo usa como
+    // CbteDesde para que la numeración no dependa de un segundo
+    // `getLastVoucher` dentro de la llamada.
+    numeroEsperado: number;
+    afip: IAfip;
+};
+
+export async function facturar({
+    puntoVenta,
+    venta,
+    cliente,
+    emisorCuit,
+    numeroEsperado,
+    afip
+}: FacturarInput): Promise<FacturaFiscal> {
+    const payload = crearFacturaPayload(venta, cliente, puntoVenta);
+    const request: FacturaRequest = {
+        ...payload,
+        CbteDesde: numeroEsperado,
+        CbteHasta: numeroEsperado
+    };
+
+    try {
+        // `afip.js` muta el objeto (borra CantReg/PtoVta/CbteTipo): se le
+        // pasa una copia para conservar el request crudo en `datos_afip`.
+        const creado = await afip.createVoucher({ ...request });
+        const info = await consultarVoucher(afip, numeroEsperado, puntoVenta, venta.tipo_cbte);
+
+        return armarFactura({
+            emisorCuit,
+            numero: numeroEsperado,
+            puntoVenta,
+            codigoAfip: venta.tipo_cbte,
+            cae: creado.CAE,
+            caeVencimiento: creado.CAEFchVto,
+            fechaFallback: String(payload.CbteFch),
+            importeFallback: payload.ImpTotal,
+            monedaFallback: payload.MonId,
+            tipoDocRecFallback: payload.DocTipo,
+            nroDocRecFallback: Number(payload.DocNro),
+            request,
+            info,
+            response: { create: creado, info }
+        });
+    } catch (error) {
+        const afipError = asAfipError(error);
+
+        // 600 = el comprobante ya existe: se consulta el número que se intentó
+        // emitir y, si AFIP lo autorizó, se adopta.
+        if (afipError instanceof AfipError && afipError.code === 600) {
+            const existente = await consultarComprobante({
+                numero: numeroEsperado,
+                puntoVenta,
+                codigoAfip: venta.tipo_cbte,
+                emisorCuit,
+                afip
+            });
+            if (existente) return existente;
+        }
+
+        throw afipError;
     }
 }
 
@@ -169,7 +437,9 @@ export type AfipService = {
     getAfipData(cuit: string): Promise<AfipData>;
     getClient(user: User): IAfip;
     getServerStatus(user: User): Promise<unknown>;
-    facturar(pto_venta: number, venta: VentaRow, cliente: Cliente, afip: IAfip): Promise<Comprobante>;
+    facturar(input: FacturarInput): Promise<FacturaFiscal>;
+    proximoNumero(afip: IAfip, puntoVenta: number, codigoAfip: number): Promise<number>;
+    consultarComprobante(input: ConsultarComprobanteInput): Promise<FacturaFiscal | null>;
 };
 
 export type CreateAfipServiceDeps = {
@@ -222,6 +492,7 @@ export function createAfipService({ cuitProd }: CreateAfipServiceDeps): AfipServ
     };
 
     const getAfipData = async (cuit: string): Promise<AfipData> => {
+        // eslint-disable-next-line sonarjs/todo-tag -- deuda histórica de tipado de afip.js
         // TODO: make this type unknown
         const afipData = await afipProd.RegisterInscriptionProof?.getTaxpayerDetails(cuit);
         if (afipData === undefined || afipData === null){
@@ -281,7 +552,7 @@ export function createAfipService({ cuitProd }: CreateAfipServiceDeps): AfipServ
         return data;
     };
 
-    return { getAfipData, getClient, getServerStatus, facturar };
+    return { getAfipData, getClient, getServerStatus, facturar, proximoNumero, consultarComprobante };
 }
 
 export function getCertPath(cuit: string) {
@@ -362,14 +633,12 @@ export function createCSR(user: Pick<User, 'cuit' | 'razon_social'>): Promise<nu
 // @throws new Error
 function openssl(parameters: string[]): Promise<number> {
     return new Promise((res, rej) => {
-        const stdout: string[] = [];
         const stderr: string[] = [];
 
+        // openssl es un prerrequisito del runtime (igual que en la imagen): la
+        // ruta la resuelve el PATH del contenedor.
+        // eslint-disable-next-line sonarjs/no-os-command-from-path
         const openSSLProcess = spawn('openssl', parameters);
-
-        openSSLProcess.stdout.on('data', (data) => {
-            stdout.push(data);
-        });
 
         openSSLProcess.stderr.on('data', (data) => {
             stderr.push(data)

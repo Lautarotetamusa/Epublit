@@ -1,4 +1,4 @@
-import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
+import {describe, expect, test, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
 import { eq } from 'drizzle-orm';
 
@@ -11,18 +11,12 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
 import {expectBadRequest, expectConflict, expectDataResponse, expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
-// Emitir el comprobante en sí (PDF vía puppeteer) es un detalle de formato
-// ajeno a lo que este archivo prueba, se mockea vía DI en vez de `vi.mock`
-// (mismo criterio que `createMockAfipService`, ver
-// `lib/comprobantes/comprobante.mock.ts`).
-const comprobanteService = createMockComprobanteService({ emitirComprobante: vi.fn().mockResolvedValue(undefined) });
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 let token: string;
@@ -140,10 +134,12 @@ describe('VENTA', () => {
                     });
 
                 expectDataResponse(res, 201);
-                expect(res.body.data).toHaveProperty('file_path');
+                expect(res.body.data.comprobante).toMatchObject({
+                    clase: "factura",
+                    estado: "emitida"
+                });
                 venta.id = res.body.data.id;
-
-                expect(comprobanteService.emitirComprobante).toHaveBeenCalled();
+                venta.comprobanteId = res.body.data.comprobante.id;
             });
 
             test('GET venta creada', async () => {
@@ -154,6 +150,11 @@ describe('VENTA', () => {
                 expect(res.status).toBe(200);
                 expect(res.body.data.type).toEqual('venta');
                 expect(res.body.data.libros).toHaveLength(1);
+                expect(res.body.data.comprobante).toMatchObject({
+                    id: venta.comprobanteId,
+                    clase: 'factura',
+                    estado: 'emitida'
+                });
                 // El detalle informa el stock derivado del libro (lo que quedó
                 // en el depósito principal tras la venta), no la columna legada.
                 expect(res.body.data.libros[0]).toMatchObject({ isbn: isbnsVenta[0], stock: 1 });
@@ -179,8 +180,6 @@ describe('VENTA', () => {
 
         describe('Venta a un cliente "negro": no factura', () => {
             test('vender', async () => {
-                (comprobanteService.emitirComprobante as any).mockClear();
-
                 const res = await request(app)
                     .post('/venta/')
                     .set('Authorization', `Bearer ${token}`)
@@ -192,7 +191,7 @@ describe('VENTA', () => {
                     });
 
                 expectDataResponse(res, 201);
-                expect(comprobanteService.emitirComprobante).not.toHaveBeenCalled();
+                expect(res.body.data.comprobante).toBeNull();
             });
         });
     });
@@ -211,7 +210,7 @@ describe('VENTA', () => {
             expect(res.body.total).toBeGreaterThanOrEqual(res.body.data.length);
 
             const fields = ["id", "type", "descuento", "total", "medio_pago", "tipo_cbte", "id_transaccion",
-                "fecha", "file_path", "cuit", "nombre_cliente", "email", "cond_fiscal"];
+                "fecha", "cuit", "nombre_cliente", "email", "cond_fiscal", "comprobante"];
             for (const v of res.body.data) {
                 for (const fieldName of fields) {
                     expect(v).toHaveProperty(fieldName);

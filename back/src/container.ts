@@ -1,7 +1,6 @@
 import { db } from "./db/client";
 import { env } from "./env";
 import { createAfipService, AfipService } from "./lib/afip/Afip";
-import { createComprobanteService, ComprobanteService } from "./lib/comprobantes/comprobante";
 import { createLocalStorage } from "./lib/storage";
 import { Storage } from "./lib/storage/storage";
 import { createPersonaModule } from "./modules/persona";
@@ -14,6 +13,7 @@ import { createClienteModule } from "./modules/cliente";
 import { createRolModule } from "./modules/rol";
 import { createMedioPagoModule } from "./modules/medioPago";
 import { createAnticipoModule } from "./modules/anticipo";
+import { createComprobanteModule } from "./modules/comprobante";
 import { createTransaccionModule } from "./modules/transaccion";
 import { createLiquidacionesModule } from "./modules/liquidaciones";
 import { createLiquidacionModule } from "./modules/liquidacion";
@@ -42,14 +42,12 @@ export type TiendaOverrides = {
 export type CreateContainerDeps = {
     afipService?: AfipService;
     storage?: Storage;
-    comprobanteService?: ComprobanteService;
     tienda?: TiendaOverrides;
 };
 
 export function createContainer({
     afipService = createAfipService({ cuitProd: env.AFIP_CUIT_PROD }),
     storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST }),
-    comprobanteService = createComprobanteService({ storage }),
     tienda: tiendaOverrides = {}
 }: CreateContainerDeps = {}) {
     const cipher = tiendaOverrides.cipher ?? createCredentialsCipher(env.CREDENTIALS_ENCRYPTION_KEY);
@@ -90,7 +88,15 @@ export function createContainer({
     const coleccion = createColeccionModule({ db, storage });
     const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
-    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, storage });
+    // Comprobantes antes de movimiento/transacción/tienda: esos módulos
+    // persisten la fila y consultan el resumen para los detalles.
+    const comprobante = createComprobanteModule({
+        db,
+        userRepository: user.repository,
+        afipService,
+        storage
+    });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, comprobanteService: comprobante.service });
     // Una sola instancia de disponibilidad (stock físico - reservas + límite
     // negativo) para la tienda y las ventas internas. Se arma acá para que
     // transacción pueda inyectar el registro de ventas en tienda sin ciclos.
@@ -104,10 +110,8 @@ export function createContainer({
         depositoRepository: deposito.repository,
         userRepository: user.repository,
         medioPagoService: medioPago.service,
-        afipService,
-        comprobanteService,
-        availabilityService,
-        storage
+        comprobanteService: comprobante.service,
+        availabilityService
     });
     const tienda = createTiendaModule({
         db,
@@ -122,11 +126,9 @@ export function createContainer({
         userRepository: user.repository,
         clienteRepository: cliente.repository,
         medioPagoService: medioPago.service,
-        movimientoRepository: movimiento.repository,
         ventaRepository: transaccion.ventaRepository,
         saleService: transaccion.saleService,
-        afipService,
-        comprobanteService,
+        comprobanteService: comprobante.service,
         storage,
         rateLimits: tiendaOverrides.rateLimits ?? DEFAULT_PUBLIC_RATE_LIMITS
     });
@@ -135,7 +137,7 @@ export function createContainer({
     const liquidacion = createLiquidacionModule({ liquidacionesService: liquidaciones.service });
     const metricas = createMetricasModule({ db });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, metricas, tienda };
+    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, metricas, tienda, comprobante };
 }
 
 export type Container = ReturnType<typeof createContainer>;

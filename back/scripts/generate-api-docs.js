@@ -71,6 +71,15 @@ function main() {
 
     const lines = ["# API", "", "Generado por `scripts/generate-api-docs.js`. No editar a mano.", ""];
 
+    // Archivos servidos directo por `app.ts`, fuera de un módulo de dominio.
+    lines.push(
+        "## archivos (/)",
+        "",
+        "- `GET    /files/...` (portadas, fotos y logos): público.",
+        "- `GET    /files/facturas/...`, `/files/remitos/...`, `/files/etiquetas/...`: **404** (bloqueados; los comprobantes ya no se generan como PDF y las etiquetas se bajan por su ruta autenticada).",
+        ""
+    );
+
     for (const moduleName of moduleDirs.sort()) {
         const moduleDir = path.join(MODULES_DIR, moduleName);
         const routesFiles = findRoutesFiles(moduleDir);

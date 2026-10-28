@@ -1,4 +1,4 @@
-import { describe, expect, test, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, test, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import * as dotenv from 'dotenv';
 import { join } from 'path';
@@ -9,7 +9,6 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { isbn } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import {
@@ -21,8 +20,7 @@ import {
     getMedioPagoId
 } from './util';
 
-const comprobanteService = createMockComprobanteService({ emitirComprobante: vi.fn().mockResolvedValue(undefined) });
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 let token: string;
@@ -59,7 +57,7 @@ beforeAll(async () => {
     clienteId = cliente.body.items[0].id;
 
     await crearLibroConStock(isbn(9700));
-    await crearLibroConStock(isbn(9701));
+    await crearLibroConStock(isbn(9671));
 });
 
 afterAll(() => {
@@ -264,12 +262,12 @@ describe('Venta con el medio de la cuenta', () => {
         const res = await auth(
             request(app)
                 .post('/venta/')
-                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9701), cantidad: 1 }] })
+                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9671), cantidad: 1 }] })
         );
 
         expectCreated(res);
         expect(res.body.data).toMatchObject({ medio_pago: { id: efectivoId, nombre: 'efectivo', comision: 0 }, neto: 1000 });
-        expect(res.body.data).toHaveProperty('file_path');
+        expect(res.body.data.comprobante).toMatchObject({ clase: 'factura' });
     });
 });
 
@@ -298,7 +296,7 @@ describe('El neto se deriva de la comisión guardada', () => {
         const venta = await auth(
             request(app)
                 .post('/venta/')
-                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9701), cantidad: 1 }] })
+                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9671), cantidad: 1 }] })
         );
         expectCreated(venta);
 
@@ -354,7 +352,7 @@ describe('Listado, ficha y detalle de movimiento', () => {
         const venta = await auth(
             request(app)
                 .post('/venta/')
-                .send({ cliente: clienteId, medio_pago: medio.body.data.id, tipo_cbte: 11, libros: [{ isbn: isbn(9701), cantidad: 1 }] })
+                .send({ cliente: clienteId, medio_pago: medio.body.data.id, tipo_cbte: 11, libros: [{ isbn: isbn(9671), cantidad: 1 }] })
         );
         expectCreated(venta);
 
@@ -389,20 +387,18 @@ describe('Listado, ficha y detalle de movimiento', () => {
 });
 
 describe('Comprobante', () => {
-    test('el comprobante emitido recibe el nombre del medio de pago', async () => {
-        (comprobanteService.emitirComprobante as ReturnType<typeof vi.fn>).mockClear();
-
+    test('el comprobante emitido guarda el nombre del medio como condición de venta', async () => {
         const res = await auth(
             request(app)
                 .post('/venta/')
-                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9701), cantidad: 1 }] })
+                .send({ cliente: clienteId, medio_pago: efectivoId, tipo_cbte: 11, libros: [{ isbn: isbn(9671), cantidad: 1 }] })
         );
         expectCreated(res);
 
-        expect(comprobanteService.emitirComprobante).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ medioPago: expect.objectContaining({ nombre: 'efectivo' }) })
-            })
+        const comprobante = await auth(
+            request(app).get(`/comprobantes/${res.body.data.comprobante.id}`)
         );
+        expect(comprobante.status).toBe(200);
+        expect(comprobante.body.data.receptor.condicionVenta).toBe('efectivo');
     });
 });

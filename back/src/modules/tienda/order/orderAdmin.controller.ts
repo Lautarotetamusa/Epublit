@@ -31,11 +31,6 @@ export function createOrderAdminController({ service }: OrderAdminControllerDeps
         res.status(200).json(await service.detail(res.locals.user.id, codigo));
     };
 
-    const comprobante: RequestHandler = async (req, res) => {
-        const codigo = orderCodeSchema.parse(req.params.codigo);
-        sendPdf(res, await service.getComprobante(res.locals.user.id, codigo));
-    };
-
     const labelPdf: RequestHandler = async (req, res) => {
         const codigo = orderCodeSchema.parse(req.params.codigo);
         sendPdf(res, await service.getLabel(res.locals.user.id, codigo));
@@ -88,7 +83,6 @@ export function createOrderAdminController({ service }: OrderAdminControllerDeps
     return {
         list,
         detail,
-        comprobante,
         labelPdf,
         accept,
         retryInvoice,

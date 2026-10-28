@@ -8,10 +8,7 @@ import { join } from "path";
 dotenv.config({ path: join(__dirname, "../.env") });
 
 import { db } from "../src/db/client";
-import { env } from "../src/env";
 import { createMockAfipService } from "../src/lib/afip/Afip.mock";
-import { createMockComprobanteService } from "../src/lib/comprobantes/comprobante.mock";
-import { createLocalStorage } from "../src/lib/storage";
 import { isbn } from "../seeders/data";
 import { clientesTable } from "../src/modules/cliente/cliente.schema";
 import { depositoLibrosTable } from "../src/modules/deposito/depositoLibros.schema";
@@ -38,16 +35,7 @@ import {
     userIdDe
 } from "./tiendaFase2.util";
 
-const storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST });
-const comprobanteService = createMockComprobanteService({
-    emitirComprobante: async ({ data }) => {
-        if ("venta" in data) {
-            await storage.write(data.transaction.file_path, Buffer.from("%PDF-1.4 factura de prueba"));
-        }
-    }
-});
-
-const entorno = crearEntorno(undefined, { storage, comprobanteService });
+const entorno = crearEntorno();
 const { app, mocks } = entorno;
 
 const ISBN_ENVIO = isbn(9750);
@@ -373,10 +361,13 @@ describe("Detalle y archivos", () => {
                 tipoCbte: 6
             },
             comprobante: {
-                estado: "emitido",
-                tipo: "6",
-                numero: expect.any(String),
-                archivoUrl: `/pedidos/${codigo}/comprobante`
+                id: expect.any(Number),
+                clase: "factura",
+                estado: "emitida",
+                tipo: { codigo: 6, letra: "B", nombre: "Factura B" },
+                numero: expect.any(Number),
+                numeroCompleto: expect.stringMatching(/^00001-\d{8}$/),
+                fecha: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
             }
         });
         expect(res.body.items).toEqual([
@@ -392,19 +383,43 @@ describe("Detalle y archivos", () => {
             expect.arrayContaining(["pedido_creado", "pedido_aceptado", "comprobante_emitido"])
         );
 
-        const pdf = await authRequest(request(app).get(`/pedidos/${codigo}/comprobante`));
-        expect(pdf.status).toBe(200);
-        expect(pdf.headers["content-type"]).toContain("application/pdf");
+        const comprobante = await authRequest(
+            request(app).get(`/comprobantes/${res.body.comprobante.id}`)
+        );
+        expect(comprobante.status).toBe(200);
+        expect(comprobante.body.data).toMatchObject({
+            clase: "factura",
+            estado: "emitida",
+            cae: expect.any(String),
+            qr: { url: expect.stringContaining("afip.gob.ar"), dataUrl: expect.stringContaining("data:image/png;base64,") },
+            importes: { total: 23200 }
+        });
+        expect(comprobante.body.data.items).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ isbn: ISBN_ENVIO, cantidad: 2, subtotal: 20000 }),
+                expect.objectContaining({ isbn: null, titulo: "Envío", subtotal: 3200 })
+            ])
+        );
 
-        const ajeno = await authRequest(request(app).get(`/pedidos/${codigo}/comprobante`), otroToken);
+        const pdfViejo = await authRequest(request(app).get(`/pedidos/${codigo}/comprobante`));
+        expect(pdfViejo.status).toBe(404);
+
+        const ajeno = await authRequest(
+            request(app).get(`/comprobantes/${res.body.comprobante.id}`),
+            otroToken
+        );
         expect(ajeno.status).toBe(404);
     });
 
-    it("404 de comprobante antes de facturar y en pedidos ajenos", async () => {
+    it("comprobante null antes de aceptar y en pedidos ajenos", async () => {
         const codigo = await crearPedido();
 
-        const res = await authRequest(request(app).get(`/pedidos/${codigo}/comprobante`));
-        expect(res.status).toBe(404);
+        const res = await authRequest(request(app).get(`/pedidos/${codigo}`));
+        expect(res.status).toBe(200);
+        expect(res.body.comprobante).toBeNull();
+
+        const viejo = await authRequest(request(app).get(`/pedidos/${codigo}/comprobante`));
+        expect(viejo.status).toBe(404);
 
         const ajeno = await authRequest(request(app).get(`/pedidos/${codigo}`), otroToken);
         expect(ajeno.status).toBe(404);
@@ -596,13 +611,9 @@ describe("Facturación", () => {
             throw new Error("AFIP no configurado");
         }
     });
-    const entornoRoto = crearEntorno(undefined, {
-        afipService: afipRoto,
-        comprobanteService,
-        storage
-    });
+    const entornoRoto = crearEntorno(undefined, { afipService: afipRoto });
 
-    it("un fallo de AFIP deja la venta y el comprobante pendiente, y el reintento no duplica", async () => {
+    it("un fallo de AFIP deja la venta y el comprobante en error, y el reintento no duplica", async () => {
         const { codigo } = await crearPedidoPagado({ cantidad: 1 });
         const tokenRoto = await login(entornoRoto.app, "libreria_sur");
 
@@ -614,9 +625,16 @@ describe("Facturación", () => {
         expect(aceptada.body.estado).toBe("aceptado");
         expect(aceptada.body.venta).not.toBeNull();
         expect(aceptada.body.comprobante).toMatchObject({
-            estado: "pendiente",
-            numero: null,
-            archivoUrl: null
+            estado: "error",
+            numero: null
+        });
+        const comprobanteError = await authRequest(
+            request(app).get(`/comprobantes/${aceptada.body.comprobante.id}`),
+            tokenRoto
+        );
+        expect(comprobanteError.body.data.error).toEqual({
+            codigo: null,
+            mensaje: "AFIP no configurado"
         });
 
         const pedido = await getPedido(codigo);
@@ -624,7 +642,7 @@ describe("Facturación", () => {
 
         const reintento = await authRequest(request(app).post(`/pedidos/${codigo}/facturar`));
         expect(reintento.status).toBe(200);
-        expect(reintento.body.comprobante.estado).toBe("emitido");
+        expect(reintento.body.comprobante.estado).toBe("emitida");
 
         const movimientos = await db
             .select()

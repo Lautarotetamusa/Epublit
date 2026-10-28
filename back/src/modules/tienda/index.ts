@@ -1,14 +1,11 @@
 import express from "express";
 import { Database } from "../../db/client";
-import { AfipService } from "../../lib/afip/Afip";
-import { ComprobanteService } from "../../lib/comprobantes/comprobante";
 import { CredentialsCipher } from "../../lib/crypto/credentials";
 import { Storage } from "../../lib/storage/storage";
 import { ClienteRepository } from "../cliente";
 import { DepositoRepository } from "../deposito";
 import { LibroService } from "../libro";
 import { MedioPagoService } from "../medioPago";
-import { MovimientoRepository } from "../movimiento";
 import { UserRepository } from "../user";
 import { SaleService } from "../transaccion/sale.service";
 import { VentaRepository } from "../transaccion/venta.repository";
@@ -39,12 +36,12 @@ import { createMercadoPagoRepository } from "./payment/mercadopago.repository";
 import { createMercadoPagoRoutes } from "./payment/mercadopago.routes";
 import { createMercadoPagoService } from "./payment/mercadopago.service";
 import { createPaymentRepository } from "./payment/payment.repository";
+import { ComprobanteService } from "../comprobante";
 import { createOrderRepository } from "./order/order.repository";
 import { createOrderAdminRepository } from "./order/orderAdmin.repository";
 import { createOrderAdminService } from "./order/orderAdmin.service";
 import { createOrderAdminController } from "./order/orderAdmin.controller";
 import { createOrderAdminRoutes } from "./order/orderAdmin.routes";
-import { createInvoiceService } from "./order/invoice.service";
 import { createLabelService } from "./order/label.service";
 import { createTrackingService } from "./order/tracking.service";
 import { createShipmentRepository } from "./shipping/shipment.repository";
@@ -70,11 +67,12 @@ export type TiendaModuleDeps = {
     userRepository: Pick<UserRepository, "findOne">;
     clienteRepository: Pick<ClienteRepository, "findConsumidorFinal" | "findOne">;
     medioPagoService: Pick<MedioPagoService, "findActivos" | "findActivo">;
-    movimientoRepository: MovimientoRepository;
     ventaRepository: Pick<VentaRepository, "findRowByIdMovimiento">;
     saleService: SaleService;
-    afipService: AfipService;
-    comprobanteService: ComprobanteService;
+    comprobanteService: Pick<
+        ComprobanteService,
+        "crearFactura" | "emitirSiPendiente" | "reintentar" | "resumenPorId"
+    >;
     storage: Storage;
     rateLimits: PublicRateLimitConfig;
 };
@@ -92,10 +90,8 @@ export function createTiendaModule({
     userRepository,
     clienteRepository,
     medioPagoService,
-    movimientoRepository,
     ventaRepository,
     saleService,
-    afipService,
     comprobanteService,
     storage,
     rateLimits
@@ -181,17 +177,6 @@ export function createTiendaModule({
     const webhookController = createWebhookController({ service: webhookService });
     const webhookRoutes = createWebhookRoutes(webhookController);
 
-    const invoiceService = createInvoiceService({
-        db,
-        orderRepository,
-        ventaRepository,
-        movimientoRepository,
-        clienteRepository,
-        medioPagoService,
-        userRepository,
-        afipService,
-        comprobanteService
-    });
     const labelService = createLabelService({
         db,
         orderRepository,
@@ -219,9 +204,10 @@ export function createTiendaModule({
         depositoRepository,
         medioPagoService,
         libroService,
+        userRepository,
         availabilityService,
         saleService,
-        invoiceService,
+        comprobanteService,
         labelService,
         trackingService,
         mercadoPagoService,

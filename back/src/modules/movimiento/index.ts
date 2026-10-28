@@ -3,8 +3,8 @@
 // (`movimiento.schema.ts`) es la excepción para otro módulo que necesite un
 // join.
 import { Database } from "../../db/client";
-import { Storage } from "../../lib/storage";
 import { AnticipoService } from "../anticipo";
+import { ComprobanteService } from "../comprobante";
 import { DepositoRepository } from "../deposito";
 import { LibroRepository } from "../libro";
 import { createMovimientoRepository } from "./movimiento.repository";
@@ -27,12 +27,16 @@ export type MovimientoModuleDeps = {
     depositoRepository: DepositoRepository;
     libroRepository: Pick<LibroRepository, "findOne">;
     anticipoService: Pick<AnticipoService, "generarDeLibro">;
-    storage: Storage;
+    // Resumen del comprobante para los detalles y listados del ledger.
+    comprobanteService: Pick<
+        ComprobanteService,
+        "resumenDeMovimiento" | "resumenesDeMovimientos"
+    >;
 };
 
-export function createMovimientoModule({ db, depositoRepository, libroRepository, anticipoService, storage }: MovimientoModuleDeps) {
+export function createMovimientoModule({ db, depositoRepository, libroRepository, anticipoService, comprobanteService }: MovimientoModuleDeps) {
     const repository = createMovimientoRepository({ db });
-    const service = createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, storage });
+    const service = createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, comprobanteService });
     const controller = createMovimientoController({ service });
     const router = createMovimientoRoutes(controller);
 

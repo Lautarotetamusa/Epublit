@@ -1,7 +1,7 @@
 import express, { Express } from "express";
 import cors from 'cors';
 import { Container } from "./container";
-import { auth } from "./lib/auth/auth";
+import { auth, authConSesion } from "./lib/auth/auth";
 import { handleErrors } from "./lib/http/errors";
 import { env } from "./env";
 
@@ -28,9 +28,14 @@ export function createApp(container: Container): Express {
     // env.CORS_ORIGIN); la API pública ya resolvió el suyo arriba.
     app.use(cors({ origin: env.CORS_ORIGIN.split(",").map((o) => o.trim()) }));
 
-    // Sirve los archivos estáticos (facturas/remitos/logos) directo bajo
-    // `/files`, sin un router aparte: es la única ruta de la app que no
-    // pasa por un módulo de dominio.
+    // Sirve los archivos estáticos (portadas, fotos, logos) directo bajo
+    // `/files`, sin un router aparte. Los comprobantes ya no se generan como
+    // PDF: se bloquean sus carpetas históricas (y las etiquetas, que tienen su
+    // propia ruta autenticada) antes del `express.static`.
+    app.use(['/files/facturas', '/files/remitos', '/files/etiquetas'], (_, res) => res.status(404).json({
+        success: false,
+        error: "File does not exists"
+    }));
     app.use('/files', express.static(env.FILES_PATH));
     app.use('/files/{*splat}', (_, res) => res.status(404).json({
         success: false,
@@ -57,6 +62,9 @@ export function createApp(container: Container): Express {
     // Panel de pedidos: rutas absolutas bajo `/pedidos` (ver
     // specs/016-tienda-ecommerce), separado de la configuración de `/tienda`.
     app.use('/pedidos', auth, container.tienda.orderAdminRouter);
+
+    // Comprobantes fiscales (DTO para render en el panel y reintento AFIP).
+    app.use('/comprobantes', authConSesion, container.comprobante.router);
 
     app.use('/anticipos', auth, container.anticipo.router);
 

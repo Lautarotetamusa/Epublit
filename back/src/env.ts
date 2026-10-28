@@ -100,8 +100,9 @@ const schema = z
         // src/app.ts). Nunca abierto a cualquier origen.
         CORS_ORIGIN: z.string().default("http://localhost:5173"),
 
-        // Carpeta donde se guardan/sirven los archivos generados (facturas,
-        // remitos, logos) — relativa al cwd del proceso.
+        // Carpeta donde se guardan/sirven los archivos subidos (portadas,
+        // fotos, logos) — relativa al cwd del proceso. Los comprobantes fiscales
+        // ya no se generan como PDF.
         FILES_PATH: z.string().default("files"),
 
         JWT_SECRET: z.string(),

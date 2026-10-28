@@ -14,7 +14,6 @@ import { createClienteController } from "./cliente.controller";
 import { createClienteRoutes } from "./cliente.routes";
 
 export { tipoCliente } from "./cliente.validator";
-export { generateClientPath } from "./cliente.service";
 export type { Client, ClienteInsert, ClienteUpdate, TipoCliente } from "./cliente.validator";
 export type { ClienteService } from "./cliente.service";
 export type { ClienteStockService } from "./clienteStock.service";

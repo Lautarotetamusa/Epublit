@@ -2,6 +2,11 @@
 
 Generado por `scripts/generate-api-docs.js`. No editar a mano.
 
+## archivos (/)
+
+- `GET    /files/...` (portadas, fotos y logos): público.
+- `GET    /files/facturas/...`, `/files/remitos/...`, `/files/etiquetas/...`: **404** (bloqueados; los comprobantes ya no se generan como PDF y las etiquetas se bajan por su ruta autenticada).
+
 ## anticipo (/anticipos)
 
 - `GET    /anticipos/`
@@ -28,6 +33,11 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `GET    /coleccion/:id/libros`
 - `POST   /coleccion/:id/portada`
 - `DELETE /coleccion/:id/portada`
+
+## comprobante (/comprobantes)
+
+- `GET    /comprobantes/:id`
+- `POST   /comprobantes/:id/reintentar`
 
 ## deposito (/deposito)
 
@@ -141,7 +151,6 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 
 - `GET    /pedidos/`
 - `GET    /pedidos/:codigo`
-- `GET    /pedidos/:codigo/comprobante`
 - `POST   /pedidos/:codigo/aceptar`
 - `POST   /pedidos/:codigo/facturar`
 - `POST   /pedidos/:codigo/rechazar`

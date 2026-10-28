@@ -47,6 +47,7 @@ import { DevolucionesPage } from "./features/consignaciones/DevolucionesPage";
 import { NuevaDevolucionPage } from "./features/consignaciones/NuevaDevolucionPage";
 import { FichaDevolucionPage } from "./features/consignaciones/FichaDevolucionPage";
 import { PerfilPage } from "./features/perfil/PerfilPage";
+import { ComprobantePage } from "./features/comprobantes/ComprobantePage";
 
 function RedirectToPersona() {
     const { id = "" } = useParams();
@@ -69,6 +70,9 @@ function AppRoutes() {
 
     return (
         <Routes>
+            {/* La vista del comprobante es de lectura/impresión, no una pantalla
+                de gestión: queda fuera del layout con navegación lateral. */}
+            <Route path="/comprobantes/:id" element={<ComprobantePage />} />
             <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/libros" element={<CatalogoPage />} />

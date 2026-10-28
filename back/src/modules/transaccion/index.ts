@@ -3,9 +3,6 @@
 // (`venta.schema.ts`) son la excepción para otro módulo que sólo necesite la
 // tabla — evita el ciclo contra `createOperacionService`.
 import { Database } from "../../db/client";
-import { AfipService } from "../../lib/afip/Afip";
-import { ComprobanteService } from "../../lib/comprobantes/comprobante";
-import { Storage } from "../../lib/storage/storage";
 import { AvailabilityService } from "../tienda/stock/availability.service";
 import { LibroService } from "../libro";
 import { ClienteRepository, ClienteStockService } from "../cliente";
@@ -13,6 +10,7 @@ import { DepositoRepository } from "../deposito";
 import { MedioPagoService } from "../medioPago";
 import { MovimientoRepository } from "../movimiento";
 import { UserRepository } from "../user";
+import { ComprobanteService } from "../comprobante";
 import { createVentaRepository } from "./venta.repository";
 import { createSaleService } from "./sale.service";
 import { createOperacionConfig } from "./operacion.config";
@@ -40,20 +38,22 @@ export type TransaccionModuleDeps = {
     // Medio de pago de la cuenta: resuelve el medio al vender y lista los
     // activos que consume `/venta/medios_pago`.
     medioPagoService: MedioPagoService;
-    afipService: AfipService;
-    comprobanteService: ComprobanteService;
+    // Crea las filas de comprobante en la transacción y las emite post-commit.
+    comprobanteService: Pick<
+        ComprobanteService,
+        "crearFactura" | "crearRemito" | "emitirSiPendiente" | "resumenDeMovimiento" | "resumenesDeMovimientos"
+    >;
     availabilityService: Pick<AvailabilityService, "assertCanSell">;
-    storage: Storage;
 };
 
-export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, movimientoRepository, depositoRepository, userRepository, medioPagoService, afipService, comprobanteService, availabilityService, storage }: TransaccionModuleDeps) {
+export function createTransaccionModule({ db, libroService, clienteRepository, clienteStockService, movimientoRepository, depositoRepository, userRepository, medioPagoService, comprobanteService, availabilityService }: TransaccionModuleDeps) {
     const ventaRepository = createVentaRepository({ db });
     const saleService = createSaleService({
         movimientoRepository,
         ventaRepository,
         depositoRepository
     });
-    const operacionConfig = createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService });
+    const operacionConfig = createOperacionConfig({ libroService, clienteStockService, depositoRepository, comprobanteService });
     const operacionService = createOperacionService({
         db,
         userRepository,
@@ -64,7 +64,7 @@ export function createTransaccionModule({ db, libroService, clienteRepository, c
         depositoRepository,
         availabilityService,
         saleService,
-        storage
+        comprobanteService
     });
 
     const controller = createTransaccionController({ service: operacionService });

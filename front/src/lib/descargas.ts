@@ -1,7 +1,7 @@
-// Descargas de archivos que llegan por la API autenticada (comprobantes y
-// etiquetas en PDF). Se dispara un anchor real en vez de `window.open`:
-// después de un `await` el navegador puede bloquear la ventana emergente y
-// el PDF quedaría inaccesible.
+// Descargas de archivos que llegan por la API autenticada (las etiquetas de
+// envío siguen siendo PDFs). Se dispara un anchor real en vez de
+// `window.open`: después de un `await` el navegador puede bloquear la ventana
+// emergente y el archivo quedaría inaccesible.
 
 function disparar(url: string, filename: string | null, abrir: boolean): void {
     const anchor = document.createElement("a");

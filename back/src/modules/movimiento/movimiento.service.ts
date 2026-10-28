@@ -1,7 +1,7 @@
 import { Database } from "../../db/client";
 import { StockInsuficiente } from "../../lib/http/errors";
-import { Storage } from "../../lib/storage";
 import { AnticipoService } from "../anticipo";
+import type { ComprobanteResumen, ComprobanteService } from "../comprobante";
 import { DepositoRepository } from "../deposito";
 import { LibroRepository } from "../libro";
 import { MovimientoConDetalle, MovimientoRepository, VentaDeMovimiento } from "./movimiento.repository";
@@ -22,8 +22,8 @@ export type PublicMovimiento = {
     // `precio` sólo lo exponen los movimientos comerciales.
     libros: { isbn: string; titulo: string; cantidad: number; precio?: number }[];
     cliente: { id: number; nombre: string } | null;
-    file_path: string | null;
     venta: VentaDeMovimiento | null;
+    comprobante: ComprobanteResumen | null;
 };
 
 export type MovimientoServiceDeps = {
@@ -35,16 +35,22 @@ export type MovimientoServiceDeps = {
     // su reimpresión): dispara la generación idempotente de anticipos (ver
     // specs/012-liquidaciones-pagos, tarea 10).
     anticipoService: Pick<AnticipoService, "generarDeLibro">;
-    storage: Storage;
+    comprobanteService: Pick<
+        ComprobanteService,
+        "resumenDeMovimiento" | "resumenesDeMovimientos"
+    >;
 };
 
-export function createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, storage }: MovimientoServiceDeps) {
+export function createMovimientoService({ db, repository, depositoRepository, libroRepository, anticipoService, comprobanteService }: MovimientoServiceDeps) {
     const formatearExtremo = (tipo: string, depositoId: number | null, nombre: string | null): ExtremoPublico =>
         tipo === "deposito"
             ? { tipo: "deposito", id: depositoId as number, nombre: nombre as string }
             : { tipo: "exterior" };
 
-    const formatear = (movimiento: MovimientoConDetalle): PublicMovimiento => ({
+    const formatear = (
+        movimiento: MovimientoConDetalle,
+        comprobante: ComprobanteResumen | null
+    ): PublicMovimiento => ({
         id: movimiento.id,
         fecha: movimiento.fecha,
         tipo: movimiento.tipo,
@@ -59,8 +65,8 @@ export function createMovimientoService({ db, repository, depositoRepository, li
             movimiento.id_cliente === null || movimiento.nombre_cliente === null
                 ? null
                 : { id: movimiento.id_cliente, nombre: movimiento.nombre_cliente },
-        file_path: movimiento.file_path === null ? null : storage.getUrl(movimiento.file_path),
-        venta: movimiento.venta
+        venta: movimiento.venta,
+        comprobante
     });
 
     // El `tipo` de un movimiento manual se deriva del par de extremos al
@@ -174,7 +180,6 @@ export function createMovimientoService({ db, repository, depositoRepository, li
             destino_tipo: movimiento.destino_tipo,
             destino_deposito_id: movimiento.destino_deposito_id,
             id_cliente: null,
-            file_path: null,
             user: movimiento.user,
             origen_nombre: origen?.nombre ?? null,
             destino_nombre: destino?.nombre ?? null,
@@ -185,14 +190,20 @@ export function createMovimientoService({ db, repository, depositoRepository, li
             tipo_cliente: null,
             venta: null,
             libros: libros.map((libro) => ({ ...libro, precio: null, stock: 0 }))
-        });
+        }, null);
     };
 
     const listar = async (userId: number, filter: ListMovimientosFilter) => {
         const { movimientos, total } = await repository.getAll(userId, filter);
+        const comprobantes = await comprobanteService.resumenesDeMovimientos(
+            movimientos.map((movimiento) => movimiento.id),
+            userId
+        );
 
         return {
-            movimientos: movimientos.map(formatear),
+            movimientos: movimientos.map((movimiento) =>
+                formatear(movimiento, comprobantes.get(movimiento.id) ?? null)
+            ),
             total,
             pagina: filter.pagina,
             porPagina: filter.porPagina,
@@ -201,7 +212,10 @@ export function createMovimientoService({ db, repository, depositoRepository, li
     };
 
     const obtener = async (id: number, userId: number): Promise<PublicMovimiento> =>
-        formatear(await repository.getById(id, userId));
+        formatear(
+            await repository.getById(id, userId),
+            await comprobanteService.resumenDeMovimiento(id, userId)
+        );
 
     return {
         registrar,

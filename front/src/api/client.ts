@@ -138,9 +138,9 @@ async function request<T>(
     return data as T;
 }
 
-// Descarga autenticada: el token va en el header, nunca en la URL (las rutas
-// de comprobante/etiqueta exigen `Authorization`). El caller decide si abre
-// o descarga el blob con `lib/descargas.ts`.
+// Descarga autenticada: el token va en el header, nunca en la URL (la ruta de
+// etiqueta exige `Authorization`). El caller decide si abre o descarga el blob
+// con `lib/descargas.ts`.
 async function getBlob(path: string): Promise<BlobFile> {
     const res = await fetch(`${API_URL}${path}`, {
         method: "GET",

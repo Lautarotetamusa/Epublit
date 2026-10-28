@@ -13,6 +13,7 @@ export * from "../modules/libro/libroPersona.schema";
 export * from "../modules/cliente/precioLibroCliente.schema";
 export * from "../modules/libro/libroPrecio.schema";
 export * from "../modules/transaccion/venta.schema";
+export * from "../modules/comprobante/comprobante.schema";
 export * from "../modules/liquidaciones/liquidaciones.schema";
 export * from "../modules/anticipo/anticipo.schema";
 export * from "../modules/tienda/schema";

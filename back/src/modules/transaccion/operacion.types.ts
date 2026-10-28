@@ -6,6 +6,7 @@ import { Client, TipoCliente } from "../cliente/cliente.validator";
 import { LibroCantidad } from "../libro/libro.validator";
 import { User } from "../user/user.validator";
 import { MedioPago } from "../medioPago";
+import type { ComprobanteRow } from "../comprobante";
 
 // Superficie común de los cuatro `bodyParser` (`createTransaccion`/
 // `createVenta`/`createVentaConsignado`), que el controller genérico
@@ -31,10 +32,8 @@ export type ExtremoOperacion =
     | { tipo: "exterior" };
 
 // `venta` es `null` para `consignacion`/`devolucion`, que no crean extensión de
-// venta. Se pasa `user` completo (no sólo `userId`) porque `generarComprobante`
-// de `venta`/`ventaConsignacion` necesita `getAfipClient(user)`/`facturar(...)`.
-// `medioPago` (resuelto antes de abrir la transacción) lo consume el
-// comprobante para mostrar el nombre del medio.
+// venta. `user` es el emisor fiscal y `medioPago` (resuelto antes de abrir la
+// transacción) alimenta la condición de venta del snapshot.
 export type ComprobanteCtx = {
     transaction: MovimientoComprobante;
     venta: VentaRow | null;
@@ -44,11 +43,11 @@ export type ComprobanteCtx = {
     user: User;
 };
 
-// Lo único que el emisor de comprobantes necesita del movimiento: su id (para
-// numerar el remito) y la key de storage del archivo.
+// Lo único que el emisor de comprobantes necesita del movimiento: su id y su
+// fecha (el remito conserva la fecha del movimiento).
 export type MovimientoComprobante = {
     id: number;
-    file_path: string;
+    fecha: Date;
 };
 
 // Reemplaza la jerarquía `Transaccion`/`Venta`/`VentaFirme`/`VentaConsignado`/
@@ -57,8 +56,6 @@ export type MovimientoComprobante = {
 // "Enfoque técnico" — CLAUDE.md, "Inyección de dependencias > herencia").
 export type OperacionConfig = {
     tipo: TipoTransaccion;
-    // Carpeta de storage del archivo emitido (facturas/remitos).
-    filesFolder: string;
     esVenta: boolean;
     bodyParser: ZodSchema;
     clientValidation: (tipo: TipoCliente) => boolean;
@@ -72,5 +69,8 @@ export type OperacionConfig = {
     obtenerExtremos: (cliente: Client, userId: number) => Promise<{ origen: ExtremoOperacion; destino: ExtremoOperacion }>;
     // Congela el precio por libro (sólo consignación).
     fijarPrecios?: (libros: LibroOperacion[], cliente: Client, tx: Tx) => Promise<void>;
-    generarComprobante: ((ctx: ComprobanteCtx, tx: Tx) => Promise<void>) | null;
+    // Crea la fila de comprobante dentro de la transacción de la operación
+    // (factura pendiente o remito ya emitido). La emisión AFIP ocurre después
+    // del commit, en `operacion.service.ts`.
+    generarComprobante: ((ctx: ComprobanteCtx, tx: Tx) => Promise<ComprobanteRow | null>) | null;
 };

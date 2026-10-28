@@ -1,8 +1,7 @@
-// Contrato único para guardar/leer archivos generados por la app
-// (comprobantes, y a futuro cualquier otro archivo de negocio). `key` es una
-// ruta relativa al storage (ej. "facturas/CLIENTE-20250101.pdf"), nunca una
-// ruta absoluta de filesystem: eso es responsabilidad de cada driver
-// (`localStorage.ts` hoy, un driver de S3 después).
+// Contrato único para guardar/leer archivos subidos o generados por la app
+// (portadas, fotos, logos, etiquetas). `key` es una ruta relativa al storage
+// (ej. "logos/20123456789.png"), nunca una ruta absoluta de filesystem: eso es
+// responsabilidad de cada driver (`localStorage.ts` hoy, un driver de S3 después).
 export type Storage = {
     write(key: string, data: Buffer): Promise<void>;
     read(key: string): Promise<Buffer>;

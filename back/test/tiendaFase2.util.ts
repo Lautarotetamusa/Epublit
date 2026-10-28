@@ -7,9 +7,7 @@ import { createApp } from "../src/app";
 import { createContainer } from "../src/container";
 import { db } from "../src/db/client";
 import { createMockAfipService } from "../src/lib/afip/Afip.mock";
-import { createMockComprobanteService } from "../src/lib/comprobantes/comprobante.mock";
 import type { AfipService } from "../src/lib/afip/Afip";
-import type { ComprobanteService } from "../src/lib/comprobantes/comprobante";
 import type { Storage } from "../src/lib/storage/storage";
 import { shippingConfigTable } from "../src/modules/tienda/shipping/shippingConfig.schema";
 import { mercadoPagoTable } from "../src/modules/tienda/payment/mercadopago.schema";
@@ -142,14 +140,12 @@ const SIN_LIMITES = {
 
 export type EntornoOverrides = {
     afipService?: AfipService;
-    comprobanteService?: ComprobanteService;
     storage?: Storage;
 };
 
 export function crearEntorno(mocks = crearMocks(), overrides: EntornoOverrides = {}) {
     const container = createContainer({
         afipService: overrides.afipService ?? createMockAfipService(),
-        comprobanteService: overrides.comprobanteService ?? createMockComprobanteService(),
         ...(overrides.storage ? { storage: overrides.storage } : {}),
         tienda: {
             micorreoClient: mocks.micorreo,

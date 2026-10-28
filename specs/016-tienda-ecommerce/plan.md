@@ -897,10 +897,10 @@ Estas decisiones quedan cerradas para la implementación:
 
 No quedan ambigüedades abiertas para implementar.
 
-## Deuda técnica: normalización de comprobantes (pendiente, no implementar en esta fase)
+## Deuda técnica: normalización de comprobantes (planificada en 017)
 
-Estado: **pendiente / fuera de alcance de la fase actual**. No implementar
-todavía.
+Estado: **planificada** en `specs/017-comprobantes-afip/plan.md`. Todavía no
+implementada.
 
 - Hoy `pedidos` guarda `venta_id` y un snapshot de `comprobante_tipo`,
   `comprobante_numero`, `comprobante_fecha`, `comprobante_file_path` y
@@ -925,8 +925,9 @@ todavía.
 - La propuesta completa (modelo, backend, front, migración, beneficios,
   trade-offs y pasos) está en
   **`specs/016-tienda-ecommerce/comprobantes.md`**.
-- Esta normalización **no se implementa en esta fase**: requiere su propia
-  migración, spec y tarea de reconciliación/backfill.
+- Esta normalización se planifica en **`specs/017-comprobantes-afip/plan.md`**:
+  requiere su propia migración y spec. Por ahora **no migra comprobantes
+  históricos** ni conserva sus PDFs como funcionalidad.
 
 ## Fases de implementación
 

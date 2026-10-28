@@ -49,7 +49,6 @@ export function createVentaRepository({ db }: VentaRepositoryDeps) {
                 id: movimientosTable.id,
                 fecha: movimientosTable.fecha,
                 id_cliente: ventasTable.id_cliente,
-                file_path: movimientosTable.file_path,
                 type: movimientosTable.tipo,
                 user: movimientosTable.user,
                 nombre_cliente: clientesTable.nombre,

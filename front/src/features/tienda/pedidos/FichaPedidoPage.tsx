@@ -3,13 +3,15 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Alert, Badge, Breadcrumb, Button, Card, EmptyState, Icon, Table, Timeline } from "../../../design-system";
 import { FullscreenSpinner } from "../../../components/FullscreenSpinner";
-import { formatFecha, formatFechaHora } from "../../../lib/fecha";
+import { formatFechaHora } from "../../../lib/fecha";
 import { formatMoney } from "../../../lib/money";
 import { getErrorMessage } from "../../../lib/errors";
-import { abrirBlob, descargarBlob } from "../../../lib/descargas";
+import { descargarBlob } from "../../../lib/descargas";
 import { useToast } from "../../../notifications/ToastProvider";
-import { descargarComprobante, descargarEtiqueta } from "../../../api/tienda";
+import { descargarEtiqueta } from "../../../api/tienda";
 import { provinciaLabel } from "../../../lib/provincias";
+import { ComprobantePreview } from "../../comprobantes/ComprobantePreview";
+import { ComprobanteResumen } from "../../comprobantes/ComprobanteResumen";
 import { usePedido } from "./usePedido";
 import { useAccionesPedido } from "./useAccionesPedido";
 import { PedidoAcciones } from "./PedidoAcciones";
@@ -59,7 +61,12 @@ export function FichaPedidoPage() {
     const { showToast } = useToast();
     const { procesando: facturando, facturar } = useAccionesPedido(codigo, refetch);
     const [errorFactura, setErrorFactura] = useState<string | null>(null);
-    const [abriendoComprobante, setAbriendoComprobante] = useState(false);
+    // El preview guarda el código del pedido al que pertenece: al navegar a
+    // otra ficha se cierra solo, sin un efecto de reset.
+    const [comprobantePreview, setComprobantePreview] = useState<{
+        codigo: string;
+        abierto: boolean;
+    } | null>(null);
     const navigate = useNavigate();
 
     if (loading) return <FullscreenSpinner />;
@@ -105,15 +112,24 @@ export function FichaPedidoPage() {
                 ? "Sin código informado"
                 : "Se asigna al despachar";
 
-    const facturaEmitida = pedido.comprobante.numero ? pedido.comprobante : null;
+    const comprobante = pedido.comprobante;
+    const mostrarComprobantePreview =
+        comprobantePreview?.codigo === pedido.codigo && comprobantePreview.abierto;
+    // Un pedido ya aceptado sin comprobante es una operación anterior al
+    // refactor: no se ofrece reintento porque no hay fila que reintentar.
+    const operacionSinComprobante =
+        comprobante === null &&
+        (pedido.estado === "aceptado" || pedido.estado === "enviado" || pedido.estado === "entregado");
     const puedeReintentarFactura =
-        pedido.comprobante.estado === "pendiente" &&
+        comprobante !== null &&
+        (comprobante.estado === "pendiente" || comprobante.estado === "error") &&
         (pedido.estado === "aceptado" || pedido.estado === "enviado" || pedido.estado === "entregado");
 
     const reintentarFactura = async () => {
         setErrorFactura(null);
         try {
             await facturar();
+            setComprobantePreview({ codigo: pedido.codigo, abierto: true });
             showToast("success", "Factura emitida correctamente.");
         } catch (err) {
             const mensaje = getErrorMessage(err);
@@ -122,18 +138,11 @@ export function FichaPedidoPage() {
         }
     };
 
-    const verComprobante = async () => {
-        if (!pedido.comprobante.archivoUrl) return;
-        setAbriendoComprobante(true);
-        try {
-            const archivo = await descargarComprobante(pedido.codigo);
-            abrirBlob(archivo.blob);
-        } catch (err) {
-            showToast("error", getErrorMessage(err));
-        } finally {
-            setAbriendoComprobante(false);
-        }
-    };
+    const toggleComprobante = () =>
+        setComprobantePreview({
+            codigo: pedido.codigo,
+            abierto: !mostrarComprobantePreview
+        });
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -385,85 +394,118 @@ export function FichaPedidoPage() {
 
                     <Seccion
                         title="Comprobante"
-                        extra={
-                            facturaEmitida ? (
-                                <Badge tone="success" icon="check">
-                                    Factura B emitida
-                                </Badge>
-                            ) : (
-                                <Badge tone="neutral">
-                                    {pedido.estado === "rechazado" || pedido.estado === "cancelado" ? "No emitida" : "Pendiente"}
-                                </Badge>
-                            )
-                        }
+                        extra={comprobante ? null : <Badge tone="neutral">Sin comprobante</Badge>}
                     >
-                        {facturaEmitida ? (
+                        {comprobante ? (
                             <>
-                                <dl style={listaDatos}>
-                                    <Dato label="Número" mono>
-                                        {facturaEmitida.numero}
-                                    </Dato>
-                                    <Dato label="Fecha de emisión">
-                                        {facturaEmitida.fecha ? formatFecha(facturaEmitida.fecha) : "—"}
-                                    </Dato>
-                                    {pedido.venta ? (
-                                        <Dato label="Venta" mono>
-                                            #{pedido.venta.id}
-                                        </Dato>
-                                    ) : null}
-                                </dl>
-                                <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    iconStart="external-link"
-                                    style={{ marginTop: "var(--space-4)" }}
-                                    onClick={verComprobante}
-                                    loading={abriendoComprobante}
-                                >
-                                    Ver comprobante
-                                </Button>
-                            </>
-                        ) : (
-                            <>
-                                <EmptyState
-                                    icon="file-text"
-                                    title={pedido.estado === "rechazado" || pedido.estado === "cancelado" ? "No se emitió comprobante" : "Todavía no hay comprobante"}
-                                    description={
-                                        pedido.estado === "rechazado" || pedido.estado === "cancelado"
-                                            ? "El pedido se cerró antes de la aceptación."
-                                            : puedeReintentarFactura
-                                              ? "La factura quedó pendiente. Podés reintentar la emisión con AFIP."
-                                              : "Se genera automáticamente cuando aceptás el pedido."
-                                    }
-                                    style={{
-                                        padding: "var(--space-2) 0 0",
-                                        alignItems: "flex-start",
-                                        textAlign: "left",
-                                        gap: "var(--space-2)"
-                                    }}
-                                />
-                                {puedeReintentarFactura ? (
-                                    <Button
-                                        variant="secondary"
-                                        size="sm"
-                                        iconStart="receipt-text"
+                                <ComprobanteResumen comprobante={comprobante} ventaId={pedido.venta?.id} />
+
+                                {comprobante.estado === "pendiente" ? (
+                                    <Alert
+                                        tone="warning"
+                                        title="Factura pendiente de emisión"
                                         style={{ marginTop: "var(--space-4)" }}
-                                        onClick={reintentarFactura}
-                                        loading={facturando}
                                     >
-                                        Reintentar factura
-                                    </Button>
+                                        AFIP todavía no autorizó la factura. La venta ya está registrada.
+                                    </Alert>
                                 ) : null}
+
+                                {comprobante.estado === "error" ? (
+                                    <Alert
+                                        tone="error"
+                                        title="AFIP no emitió la factura"
+                                        style={{ marginTop: "var(--space-4)" }}
+                                    >
+                                        La venta quedó registrada. Podés reintentar la emisión sin
+                                        duplicar el pedido.
+                                    </Alert>
+                                ) : null}
+
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: "var(--space-2)",
+                                        marginTop: "var(--space-4)"
+                                    }}
+                                >
+                                    {comprobante.estado === "emitida" ? (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            iconStart="file-text"
+                                            aria-expanded={mostrarComprobantePreview}
+                                            aria-controls="pedido-comprobante-preview"
+                                            onClick={toggleComprobante}
+                                        >
+                                            {mostrarComprobantePreview
+                                                ? "Ocultar comprobante"
+                                                : "Ver comprobante"}
+                                        </Button>
+                                    ) : null}
+
+                                    {puedeReintentarFactura ? (
+                                        <Button
+                                            variant="secondary"
+                                            size="sm"
+                                            iconStart="receipt-text"
+                                            onClick={reintentarFactura}
+                                            loading={facturando}
+                                        >
+                                            Reintentar factura
+                                        </Button>
+                                    ) : null}
+                                </div>
+
                                 {errorFactura ? (
-                                    <Alert tone="error" title="AFIP no emitió la factura" style={{ marginTop: "var(--space-4)" }}>
+                                    <Alert
+                                        tone="error"
+                                        title="AFIP no emitió la factura"
+                                        style={{ marginTop: "var(--space-4)" }}
+                                    >
                                         {errorFactura}
                                     </Alert>
                                 ) : null}
                             </>
+                        ) : (
+                            <EmptyState
+                                icon="file-text"
+                                title={
+                                    pedido.estado === "rechazado" || pedido.estado === "cancelado"
+                                        ? "No se emitió comprobante"
+                                        : operacionSinComprobante
+                                          ? "Comprobante no disponible"
+                                          : "Todavía no hay comprobante"
+                                }
+                                description={
+                                    pedido.estado === "rechazado" || pedido.estado === "cancelado"
+                                        ? "El pedido se cerró antes de la aceptación."
+                                        : operacionSinComprobante
+                                          ? "La operación es anterior a los comprobantes estructurados y no se puede reimprimir."
+                                          : "Se genera automáticamente cuando aceptás el pedido."
+                                }
+                                style={{
+                                    padding: "var(--space-2) 0 0",
+                                    alignItems: "flex-start",
+                                    textAlign: "left",
+                                    gap: "var(--space-2)"
+                                }}
+                            />
                         )}
                     </Seccion>
                 </div>
             </Card>
+
+            {comprobante?.estado === "emitida" && mostrarComprobantePreview ? (
+                <Card
+                    id="pedido-comprobante-preview"
+                    title="Comprobante"
+                    subtitle={`${comprobante.tipo?.nombre ?? "Comprobante"} ${comprobante.numeroCompleto ?? ""}`}
+                    padded={false}
+                >
+                    <ComprobantePreview comprobante={comprobante} />
+                </Card>
+            ) : null}
 
             <Card
                 title="Historial del pedido"
@@ -745,10 +787,20 @@ function AvisoEstado({ pedido }: { pedido: PedidoDetalle }) {
                 </Alert>
             );
         case "aceptado": {
-            const facturaEmitida = Boolean(pedido.comprobante.numero);
+            const comprobante = pedido.comprobante;
+            const emitida = comprobante?.estado === "emitida";
+            const titulo = emitida
+                ? "Venta y factura generadas"
+                : comprobante
+                  ? "Venta generada, factura pendiente"
+                  : "Venta generada";
             return (
-                <Alert tone="info" title={facturaEmitida ? "Venta y factura generadas" : "Venta generada, factura pendiente"}>
-                    {facturaEmitida ? `Factura B ${pedido.comprobante.numero}. ` : "La Factura B todavía no se emitió; podés reintentarla desde Comprobante. "}
+                <Alert tone="info" title={titulo}>
+                    {emitida
+                        ? `${comprobante.tipo?.nombre ?? "Factura"} ${comprobante.numeroCompleto ?? ""}. `
+                        : comprobante
+                          ? "La factura todavía no se emitió; podés reintentarla desde Comprobante. "
+                          : "Esta operación no tiene un comprobante estructurado. "}
                     {pedido.entrega.tipo === "envio"
                         ? "Cuando generes la etiqueta en PAQ.AR, el pedido pasa a enviado."
                         : "Cuando el comprador lo retire, marcalo como entregado."}

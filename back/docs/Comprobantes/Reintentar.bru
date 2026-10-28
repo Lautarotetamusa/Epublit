@@ -1,0 +1,19 @@
+meta {
+  name: Reintentar
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/comprobantes/1/reintentar
+  body: none
+  auth: inherit
+}
+
+docs {
+  Reintenta la emisión AFIP de una factura en `pendiente`/`error`. 200 con el
+  DTO si AFIP responde bien (o si ya estaba `emitida`, idempotente), 409 si es
+  un remito o hay una emisión en curso, 502 si AFIP sigue fallando (el
+  comprobante queda `error` y se puede volver a reintentar), 404 si no existe
+  o es de otra cuenta.
+}

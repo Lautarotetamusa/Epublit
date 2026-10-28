@@ -10,13 +10,12 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
 import { isbn, dni, cuit } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { expectConflict, expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId, getRolId } from './util';
 
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 let token: string;

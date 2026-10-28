@@ -1,15 +1,43 @@
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, Table, Badge, Breadcrumb, Button, EmptyState } from "../../design-system";
+import { useToast } from "../../notifications/ToastProvider";
 import { useFichaVenta } from "./useFichaVenta";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
+import { ComprobantePanel } from "../comprobantes/ComprobantePanel";
+import { useReintentarComprobante } from "../comprobantes/useComprobante";
 
 export function FichaVentaPage() {
     const { id = "" } = useParams();
-    const { venta, loading } = useFichaVenta(Number(id));
+    const { venta, loading, error, refetch } = useFichaVenta(Number(id));
+    const { reintentar, reintentando, error: errorReintento } = useReintentarComprobante(
+        venta?.comprobante?.id ?? null,
+        refetch
+    );
+    const { showToast } = useToast();
     const navigate = useNavigate();
 
-    if (loading || !venta) return <FullscreenSpinner />;
+    const reintentarFactura = async () => {
+        const actualizado = await reintentar();
+        if (actualizado) {
+            showToast("success", "Factura emitida correctamente.");
+        }
+    };
+
+    if (loading) return <FullscreenSpinner />;
+
+    if (!venta) {
+        return (
+            <Card>
+                <EmptyState
+                    icon="receipt-text"
+                    title="No pudimos cargar la venta"
+                    description={error ?? "Puede que el enlace esté mal o que la venta ya no exista."}
+                    action={<Button onClick={() => navigate("/ventas")}>Volver a ventas</Button>}
+                />
+            </Card>
+        );
+    }
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -41,30 +69,14 @@ export function FichaVentaPage() {
                 </div>
             </Card>
 
-            <Card
-                title="Factura"
-                actions={
-                    venta.file_path ? (
-                        <Button
-                            variant="secondary"
-                            size="sm"
-                            iconStart="external-link"
-                            onClick={() => window.open(venta.file_path, "_blank")}
-                        >
-                            Abrir en pestaña nueva
-                        </Button>
-                    ) : null
-                }
-            >
-                {venta.file_path ? (
-                    <iframe
-                        title="Factura"
-                        src={venta.file_path}
-                        style={{ width: "100%", height: 640, border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-sm)" }}
-                    />
-                ) : (
-                    <EmptyState icon="file-text" title="Todavía no se generó la factura" />
-                )}
+            <Card title="Comprobante" subtitle="La factura o el remito asociado a la venta.">
+                <ComprobantePanel
+                    comprobante={venta.comprobante}
+                    ventaId={venta.id}
+                    onReintentar={reintentarFactura}
+                    reintentando={reintentando}
+                    errorReintento={errorReintento}
+                />
             </Card>
         </div>
     );

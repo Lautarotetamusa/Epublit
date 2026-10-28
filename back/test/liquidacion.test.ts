@@ -11,13 +11,12 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
 import { expectBadRequest, expectDataResponse, delay, cargarStockPrincipal, getMedioPagoId, getRolId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn, dni, cuit } from '../seeders/data';
 
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 // Recorte propio (no seedeado) para no interferir/depender de los libros,

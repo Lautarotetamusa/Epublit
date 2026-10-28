@@ -6,14 +6,13 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { facturar } from "../src/lib/afip/Afip";
 import { cargarStockPrincipal, getMedioPagoId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
 
 const afipService = createMockAfipService();
-const container = createContainer({ afipService, comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService });
 const app = createApp(container);
 
 const isbnLibro = isbn(9995);
@@ -56,10 +55,22 @@ test("Facturar", async () => {
     expect(resVenta.status).toBe(201);
     const id = resVenta.body.data.id;
 
-    const venta = await container.transaccion.ventaRepository.getById(id, user.id);
+    const venta = await container.transaccion.ventaRepository.findRowByIdMovimiento(id, user.id);
     const transaction = await container.movimiento.repository.getById(id, user.id);
     const clienteRow = await container.cliente.service.findOne({ id: transaction.id_cliente!, user: user.id });
 
-    const comprobante = await facturar(user.punto_venta || 1, venta, clienteRow, afipService.getClient(user));
-    expect(comprobante).not.toBeNull();
+    expect(venta).not.toBeNull();
+
+    const comprobante = await facturar({
+        puntoVenta: user.punto_venta!,
+        venta: venta!,
+        cliente: clienteRow,
+        emisorCuit: user.cuit,
+        numeroEsperado: 900000,
+        afip: afipService.getClient(user)
+    });
+
+    expect(comprobante.cae).toBeTruthy();
+    expect(comprobante.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(comprobante.qrUrl).toContain("afip.gob.ar/fe/qr/?p=");
 });

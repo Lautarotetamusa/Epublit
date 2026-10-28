@@ -358,8 +358,6 @@ async function crearVentaDelPedido(
     itemRows: { id_libro: number; isbn: string; titulo: string; precio_unitario: number; cantidad: number; subtotal: number }[],
     pedido: typeof ordersTable.$inferSelect
 ): Promise<void> {
-    const filePath = `facturas/tienda-${pedido.codigo}-seed.pdf`;
-
     await db.transaction(async (tx) => {
         await contexto.availabilityService.reserve(
             pedido.id,
@@ -384,7 +382,6 @@ async function crearVentaDelPedido(
                 tipoCbte: FACTURA_B,
                 descuento: 0,
                 total: pedido.total,
-                filePath,
                 lines: itemRows.map((item) => ({
                     id_libro: item.id_libro,
                     isbn: item.isbn,
@@ -404,7 +401,6 @@ async function crearVentaDelPedido(
             .update(ordersTable)
             .set({
                 venta_id: movimiento.id,
-                comprobante_file_path: pedido.comprobante_estado === "emitido" ? filePath : null,
                 // Conserva el último hito del seed: la venta no debe mover la
                 // fecha de actualización al momento en que corre el seeder.
                 actualizado_en: pedido.actualizado_en
@@ -490,32 +486,6 @@ function crearItemRows(contexto: ContextoPedidos, spec: PedidoSpec) {
     }));
 }
 
-async function escribirComprobante(
-    contexto: ContextoPedidos,
-    spec: PedidoSpec,
-    subtotal: number,
-    costoEnvio: number
-): Promise<string | null> {
-    if (!spec.comprobanteEmitido) return null;
-
-    const key = `facturas/tienda-${spec.codigo}-seed.pdf`;
-    await contexto.storage.write(
-        key,
-        crearPdf("Factura B", [
-            "Libreria Sur SRL",
-            `CUIT: ${contexto.user.cuit}`,
-            "Factura B",
-            `Pedido: ${spec.codigo}`,
-            `Fecha: ${spec.creadoEn.toLocaleDateString("es-AR")}`,
-            "Cliente: CONSUMIDOR FINAL",
-            `Subtotal: $ ${subtotal.toFixed(2)}`,
-            `Envio: $ ${costoEnvio.toFixed(2)}`,
-            `Total: $ ${(subtotal + costoEnvio).toFixed(2)}`
-        ])
-    );
-    return key;
-}
-
 // El snapshot del pedido entra completo en un solo insert; la complejidad
 // viene de mapear columnas, no de ramas de negocio.
 async function insertarPedido(
@@ -523,7 +493,6 @@ async function insertarPedido(
     spec: PedidoSpec,
     subtotal: number,
     costoEnvio: number,
-    comprobantePath: string | null,
     actualizadoEn: Date
 ): Promise<typeof ordersTable.$inferSelect> {
     const [pedido] = await db
@@ -567,7 +536,6 @@ async function insertarPedido(
                 ? String(1000 + Number(spec.codigo.slice(-6)))
                 : null,
             comprobante_fecha: spec.comprobanteEmitido ? minutos(spec.creadoEn, 35) : null,
-            comprobante_file_path: comprobantePath,
             comprobante_estado: spec.comprobanteEmitido ? "emitido" : "pendiente",
             creado_en: spec.creadoEn,
             actualizado_en: actualizadoEn
@@ -606,14 +574,12 @@ async function crearPedido(contexto: ContextoPedidos, spec: PedidoSpec): Promise
     const costoEnvio = spec.entrega === "envio" ? COSTO_ENVIO : 0;
     const historial = hitosDelPedido(spec);
     const actualizadoEn = historial.at(-1)?.fecha ?? spec.creadoEn;
-    const comprobantePath = await escribirComprobante(contexto, spec, subtotal, costoEnvio);
 
     const pedido = await insertarPedido(
         contexto,
         spec,
         subtotal,
         costoEnvio,
-        comprobantePath,
         actualizadoEn
     );
 

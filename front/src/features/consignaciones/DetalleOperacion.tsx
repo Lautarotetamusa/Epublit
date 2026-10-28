@@ -1,10 +1,14 @@
-import { Button, Table } from "../../design-system";
+import { Alert, Button, Table } from "../../design-system";
 import type { OperacionDetalle } from "../../api/operaciones";
+import { ComprobanteResumen } from "../comprobantes/ComprobanteResumen";
+import { abrirComprobanteEnPestana, etiquetaVerComprobante } from "../comprobantes/formato";
 
 // Detalle de una operación (consignación o devolución): los libros que movió y
-// el remito emitido. Las dos páginas lo comparten; la devolución usa la misma
-// plantilla de remito, así que el rótulo del archivo es el mismo.
+// el remito emitido. Las operaciones viejas no tienen comprobante
+// estructurado: se avisa sin ofrecer un reintento que no existe.
 export function DetalleOperacion({ operacion }: { operacion: OperacionDetalle }) {
+    const comprobante = operacion.comprobante;
+
     return (
         <>
             <Table
@@ -15,13 +19,33 @@ export function DetalleOperacion({ operacion }: { operacion: OperacionDetalle })
                 ]}
                 rows={operacion.libros}
             />
-            {operacion.file_path ? (
-                <div style={{ marginTop: "var(--space-4)" }}>
-                    <Button variant="secondary" iconStart="file-text" onClick={() => window.open(operacion.file_path, "_blank")}>
-                        Ver remito
-                    </Button>
+
+            {comprobante ? (
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--space-3)",
+                        marginTop: "var(--space-4)"
+                    }}
+                >
+                    <ComprobanteResumen comprobante={comprobante} />
+                    <div>
+                        <Button
+                            variant="secondary"
+                            iconStart="file-text"
+                            onClick={() => abrirComprobanteEnPestana(comprobante.id)}
+                        >
+                            {etiquetaVerComprobante(comprobante)}
+                        </Button>
+                    </div>
                 </div>
-            ) : null}
+            ) : (
+                <Alert tone="warning" title="Comprobante no disponible" style={{ marginTop: "var(--space-4)" }}>
+                    Esta operación no tiene un remito estructurado. Las operaciones anteriores al
+                    refactor no se pueden reimprimir.
+                </Alert>
+            )}
         </>
     );
 }

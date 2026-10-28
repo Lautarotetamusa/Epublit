@@ -9,12 +9,11 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { isbn, dni } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { expectBadRequest, expectConflict, expectCreated, expectNotFound, cargarStockPrincipal, getRolId } from './util';
 
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 let token: string;

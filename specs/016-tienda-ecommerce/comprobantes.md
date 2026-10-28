@@ -1,6 +1,9 @@
 # Comprobantes: datos fiscales + render en el navegador
 
-Estado: **propuesta / deuda técnica**. No implementar en la fase actual.
+Estado: **planificado** en `specs/017-comprobantes-afip/plan.md`. Todavía no
+implementado. El plan vigente **no migra comprobantes históricos** y usa una
+tabla base `comprobantes` + una extensión 1:1 `facturas`; esta propuesta queda
+como contexto de la deuda original.
 
 Este documento describe cómo debería evolucionar la emisión de comprobantes
 (facturas y remitos) para dejar de depender de Chromium/Puppeteer y de los PDFs
@@ -170,4 +173,5 @@ Cambios en `movimientos` / storage:
    impresión (snapshot/DOM) y regresión de ventas/remitos.
 6. Limpieza de PDFs históricos según la decisión de backfill.
 
-No se implementa en esta fase.
+La implementación se planifica en `specs/017-comprobantes-afip/plan.md` y
+queda pendiente de aprobación antes de ejecutarse.

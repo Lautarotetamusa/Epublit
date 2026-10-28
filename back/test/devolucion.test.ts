@@ -5,16 +5,14 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { expectBadRequest, expectConflict } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { cuit, isbn } from '../seeders/data';
-import { env } from '../src/env';
 
 // `devolucion` nunca llama a AFIP ni genera comprobante (`generarComprobante:
 // null` en operacion.config.ts): los mocks acá son sólo para poder armar el
 // container, no se ejercitan en ningún test de este archivo.
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 // Recipe fija de `seeders/libroCliente.seeder.ts`: el primer inscripto de
@@ -76,8 +74,7 @@ describe('POST /devolucion', () => {
 
         expect(res.status).toBe(201);
         expect(res.body.data.type).toEqual('devolucion');
-        // La devolución emite un comprobante (remito) y lo adjunta al movimiento.
-        expect(res.body.data.file_path).toContain(env.HOST);
+        expect(res.body.data.comprobante).toMatchObject({ clase: 'remito', estado: 'emitida' });
 
         const resStock = await request(app)
             .get(`/cliente/${clienteInscripto.id}/stock`)

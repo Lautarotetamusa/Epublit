@@ -1,10 +1,12 @@
-import { randomUUID } from "crypto";
 import type { Database, Tx } from "../../../db/client";
+import { Conflict } from "../../../lib/http/errors";
 import type { Storage } from "../../../lib/storage/storage";
 import type { ClienteRepository } from "../../cliente";
+import type { ComprobanteService } from "../../comprobante";
 import type { DepositoRepository } from "../../deposito";
 import type { LibroService } from "../../libro";
 import type { MedioPagoService } from "../../medioPago";
+import type { UserRepository } from "../../user";
 import type { MercadoPagoClient } from "../payment/mercadopago.client";
 import type { MercadoPagoService } from "../payment/mercadopago.service";
 import type { PaymentRepository } from "../payment/payment.repository";
@@ -13,7 +15,6 @@ import { toLabelResponse } from "../shipping/shipment.serializer";
 import type { VentaRepository } from "../../transaccion/venta.repository";
 import type { SaleService } from "../../transaccion/sale.service";
 import type { AvailabilityService } from "../stock/availability.service";
-import type { InvoiceService } from "./invoice.service";
 import type { LabelService } from "./label.service";
 import type { TrackingService } from "./tracking.service";
 import type { OrderAdminRepository, ListOrdersFilter } from "./orderAdmin.repository";
@@ -38,9 +39,13 @@ export type OrderAdminServiceDeps = {
     depositoRepository: Pick<DepositoRepository, "findPrincipal">;
     medioPagoService: Pick<MedioPagoService, "findActivos" | "findActivo">;
     libroService: Pick<LibroService, "findOne">;
+    userRepository: Pick<UserRepository, "findOne">;
     availabilityService: Pick<AvailabilityService, "convert" | "release">;
     saleService: Pick<SaleService, "record">;
-    invoiceService: Pick<InvoiceService, "emit">;
+    comprobanteService: Pick<
+        ComprobanteService,
+        "crearFactura" | "emitirSiPendiente" | "reintentar" | "resumenPorId"
+    >;
     labelService: Pick<LabelService, "ensure">;
     trackingService: Pick<TrackingService, "getBlock" | "refresh">;
     mercadoPagoService: Pick<MercadoPagoService, "getAccessToken">;
@@ -62,9 +67,10 @@ export function createOrderAdminService({
     depositoRepository,
     medioPagoService,
     libroService,
+    userRepository,
     availabilityService,
     saleService,
-    invoiceService,
+    comprobanteService,
     labelService,
     trackingService,
     mercadoPagoService,
@@ -74,21 +80,24 @@ export function createOrderAdminService({
     const loadDetail = async (userId: number, codigo: string) => {
         const { pedido, items, historial } = await orderRepository.getFull(userId, codigo);
 
-        const [pago, envio, venta] = await Promise.all([
+        const [pago, envio, venta, comprobante] = await Promise.all([
             paymentRepository.findLatestForOrder(pedido.id, userId),
             pedido.entrega_tipo === "envio"
                 ? shipmentRepository.findByOrder(pedido.id, userId)
                 : Promise.resolve(null),
             pedido.venta_id === null
                 ? Promise.resolve(null)
-                : ventaRepository.findRowByIdMovimiento(pedido.venta_id, userId)
+                : ventaRepository.findRowByIdMovimiento(pedido.venta_id, userId),
+            pedido.comprobante_id === null
+                ? Promise.resolve(null)
+                : comprobanteService.resumenPorId(pedido.comprobante_id, userId)
         ]);
 
         const envioEventos = envio
             ? await shipmentRepository.getEvents(envio.id, userId)
             : [];
 
-        const data: OrderDetailData = { pedido, items, historial, pago, envio, envioEventos, venta };
+        const data: OrderDetailData = { pedido, items, historial, pago, envio, envioEventos, venta, comprobante };
         return toOrderDetail(data);
     };
 
@@ -114,22 +123,6 @@ export function createOrderAdminService({
         };
     };
 
-    const getComprobante = async (userId: number, codigo: string) => {
-        const pedido = await orderRepository.findByCode(userId, codigo);
-
-        if (!pedido.comprobante_file_path) {
-            throw new OrderAdminError(404, "no_encontrado", "El pedido todavía no tiene comprobante");
-        }
-        if (!(await storage.exists(pedido.comprobante_file_path))) {
-            throw new OrderAdminError(404, "no_encontrado", "El archivo del comprobante no existe");
-        }
-
-        return {
-            data: await storage.read(pedido.comprobante_file_path),
-            filename: `factura-${pedido.codigo}.pdf`
-        };
-    };
-
     const getLabel = async (userId: number, codigo: string) => {
         const pedido = await orderRepository.findByCode(userId, codigo);
 
@@ -152,10 +145,11 @@ export function createOrderAdminService({
     };
 
     const acceptanceDependencies = async (userId: number) => {
-        const [cliente, medios, deposito] = await Promise.all([
+        const [cliente, medios, deposito, user] = await Promise.all([
             clienteRepository.findConsumidorFinal(userId),
             medioPagoService.findActivos(userId),
-            depositoRepository.findPrincipal(userId)
+            depositoRepository.findPrincipal(userId),
+            userRepository.findOne({ id: userId })
         ]);
 
         if (!cliente) {
@@ -163,6 +157,14 @@ export function createOrderAdminService({
                 409,
                 "transicion_invalida",
                 "Falta el cliente CONSUMIDOR FINAL de la cuenta; sin él no se puede facturar el pedido"
+            );
+        }
+
+        if (user.punto_venta === null || user.punto_venta === undefined) {
+            throw new OrderAdminError(
+                409,
+                "transicion_invalida",
+                "La cuenta no tiene punto de venta configurado; cargalo en el perfil antes de aceptar pedidos"
             );
         }
 
@@ -175,11 +177,28 @@ export function createOrderAdminService({
             );
         }
 
-        return { cliente, medioPago, deposito };
+        return { cliente, medioPago, deposito, user };
+    };
+
+    const registrarFacturaEmitida = async (
+        userId: number,
+        pedidoId: number,
+        comprobanteId: number
+    ): Promise<void> => {
+        const comprobante = await comprobanteService.resumenPorId(comprobanteId, userId);
+        if (!comprobante || comprobante.estado !== "emitida") return;
+        if (await orderRepository.hasHistory(pedidoId, userId, "comprobante_emitido")) return;
+
+        await orderRepository.insertHistory(
+            pedidoId,
+            userId,
+            "comprobante_emitido",
+            `${comprobante.tipo?.nombre ?? "Comprobante"} ${comprobante.numeroCompleto ?? ""} emitida`
+        );
     };
 
     const accept = async (userId: number, codigo: string) => {
-        await db.transaction(async (tx) => {
+        const { pedidoId, comprobanteId } = await db.transaction(async (tx) => {
             const pedido = await orderRepository.findByCode(userId, codigo, tx, true);
 
             if (pedido.estado !== "pagado") {
@@ -197,7 +216,7 @@ export function createOrderAdminService({
                 );
             }
 
-            const { cliente, medioPago, deposito } = await acceptanceDependencies(userId);
+            const { cliente, medioPago, deposito, user } = await acceptanceDependencies(userId);
             const items = await orderRepository.getItems(pedido.id, userId, tx);
 
             // La línea congela el id interno del libro al crear el pedido. Si
@@ -214,7 +233,7 @@ export function createOrderAdminService({
                 }))
             );
 
-            const { movimiento } = await saleService.record(
+            const { movimiento, venta } = await saleService.record(
                 {
                     userId,
                     tipo: "venta",
@@ -224,10 +243,23 @@ export function createOrderAdminService({
                     tipoCbte: FACTURA_B,
                     descuento: 0,
                     total: pedido.total,
-                    filePath: `facturas/tienda-${pedido.codigo}-${randomUUID()}.pdf`,
                     lines,
                     origen: { tipo: "deposito", id: deposito.id },
                     destino: { tipo: "exterior" }
+                },
+                tx
+            );
+
+            const comprobante = await comprobanteService.crearFactura(
+                {
+                    userId,
+                    movimientoId: movimiento.id,
+                    venta,
+                    cliente,
+                    emisor: user,
+                    medioPago,
+                    lineas: lines,
+                    importeEnvio: pedido.costo_envio
                 },
                 tx
             );
@@ -242,7 +274,7 @@ export function createOrderAdminService({
                 {
                     estado: "aceptado",
                     venta_id: movimiento.id,
-                    comprobante_estado: "pendiente"
+                    comprobante_id: comprobante.id
                 },
                 tx
             );
@@ -254,16 +286,14 @@ export function createOrderAdminService({
                 "Pedido aceptado y venta generada",
                 tx
             );
+
+            return { pedidoId: pedido.id, comprobanteId: comprobante.id };
         });
 
         // La factura se intenta después del commit: un fallo de AFIP no
         // revierte la venta ni la aceptación.
-        try {
-            await invoiceService.emit(userId, codigo);
-        } catch {
-            // El comprobante queda pendiente y se reintenta por
-            // `POST /pedidos/:codigo/facturar`.
-        }
+        await comprobanteService.emitirSiPendiente(comprobanteId, userId);
+        await registrarFacturaEmitida(userId, pedidoId, comprobanteId);
 
         return loadDetail(userId, codigo);
     };
@@ -278,15 +308,29 @@ export function createOrderAdminService({
                 "Sólo se factura un pedido aceptado, enviado o entregado"
             );
         }
+        if (pedido.comprobante_id === null) {
+            throw new OrderAdminError(
+                409,
+                "transicion_invalida",
+                "El pedido todavía no tiene un comprobante para facturar"
+            );
+        }
 
-        const result = await invoiceService.emit(userId, codigo);
-        if (!result.ok) {
+        try {
+            await comprobanteService.reintentar(pedido.comprobante_id, userId);
+        } catch (error) {
+            if (error instanceof Conflict) {
+                throw new OrderAdminError(409, "transicion_invalida", error.message);
+            }
+
             throw new OrderAdminError(
                 502,
                 "facturacion_fallida",
-                result.error ?? "No se pudo emitir la Factura B"
+                error instanceof Error ? error.message : "No se pudo emitir la Factura B"
             );
         }
+
+        await registrarFacturaEmitida(userId, pedido.id, pedido.comprobante_id);
 
         return loadDetail(userId, codigo);
     };
@@ -481,7 +525,6 @@ export function createOrderAdminService({
     return {
         list,
         detail: loadDetail,
-        getComprobante,
         getLabel,
         getShipping: trackingService.getBlock,
         refreshTracking: trackingService.refresh,

@@ -7,7 +7,6 @@ export function createOrderAdminRoutes(controller: OrderAdminController) {
 
     router.get("/", controller.list);
     router.get("/:codigo", controller.detail);
-    router.get("/:codigo/comprobante", controller.comprobante);
 
     router.post("/:codigo/aceptar", controller.accept);
     router.post("/:codigo/facturar", controller.retryInvoice);

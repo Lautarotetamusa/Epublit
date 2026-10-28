@@ -141,6 +141,13 @@
       "when": 1793041798395,
       "tag": "0019_tienda_fase3",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793124295475,
+      "tag": "0020_thankful_tyrannus",
+      "breakpoints": true
     }
   ]
 }

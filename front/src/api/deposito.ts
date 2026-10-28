@@ -1,5 +1,6 @@
 import { api, toQueryString, ApiError } from "./client";
 import type { ApiErrorItem } from "./client";
+import type { ComprobanteResumen } from "./comprobantes";
 import type { MedioPago } from "./operaciones";
 
 // Cliente real de depósitos, stock por depósito y movimientos (ver
@@ -102,8 +103,9 @@ export type Movimiento = {
     destino: Extremo;
     libros: LibroEnMovimiento[];
     cliente: ClienteDeMovimiento | null;
-    // URL del comprobante/remito emitido, o `null` en los movimientos manuales.
-    file_path: string | null;
+    // Resumen del comprobante/remito emitido, o `null` en los movimientos
+    // manuales y en operaciones anteriores al refactor.
+    comprobante: ComprobanteResumen | null;
     venta: VentaDeMovimiento | null;
 };
 

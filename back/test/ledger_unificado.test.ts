@@ -10,17 +10,14 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { isbn, cuit } from '../seeders/data';
-import { env } from '../src/env';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId } from './util';
 import { depositosTable } from '../src/modules/deposito/deposito.schema';
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
 
 const container = createContainer({
-    afipService: createMockAfipService(),
-    comprobanteService: createMockComprobanteService()
+    afipService: createMockAfipService()
 });
 const app = createApp(container);
 
@@ -118,7 +115,7 @@ describe('movimientos manuales con el contrato unificado', () => {
         const ingreso = await cargarStockPrincipal(app, token, isbnLibro, 1);
         expect(ingreso.status).toBe(201);
         const detalleIngreso = await auth(request(app).get(`/movimiento/${ingreso.body.data.id}`));
-        expect(detalleIngreso.body.data).toMatchObject({ tipo: 'ingreso', cliente: null, file_path: null, venta: null });
+        expect(detalleIngreso.body.data).toMatchObject({ tipo: 'ingreso', cliente: null, comprobante: null, venta: null });
         expect(detalleIngreso.body.data.libros[0]).not.toHaveProperty('precio');
 
         const baja = await auth(
@@ -161,15 +158,11 @@ describe('movimientos manuales con el contrato unificado', () => {
 describe('las operaciones comerciales son movimientos unificados', () => {
     const isbnLibro = isbn(9861);
     let cliente: { id: number; nombre: string };
-    let clienteMostrador: { id: number };
     let principal: { id: number };
     const movimientosCreados: number[] = [];
 
     beforeAll(async () => {
         cliente = await crearCliente('Cliente ledger comercial', cuit(9905));
-
-        const mostrador = await auth(request(app).get('/cliente?tipo=negro'));
-        clienteMostrador = mostrador.body.items[0];
 
         const listado = await auth(request(app).get('/deposito/'));
         principal = listado.body.data.find((d: { principal: boolean }) => d.principal);
@@ -178,10 +171,10 @@ describe('las operaciones comerciales son movimientos unificados', () => {
         await cargarStockPrincipal(app, token, isbnLibro, 20);
     });
 
-    it('una venta deja un movimiento tipo venta con cliente, archivo y datos de venta', async () => {
+    it('una venta deja un movimiento tipo venta con cliente, comprobante y datos de venta', async () => {
         const res = await auth(
             request(app).post('/venta/').send({
-                cliente: clienteMostrador.id,
+                cliente: cliente.id,
                 medio_pago: efectivoId,
                 tipo_cbte: 11,
                 libros: [{ isbn: isbnLibro, cantidad: 2 }]
@@ -192,8 +185,8 @@ describe('las operaciones comerciales son movimientos unificados', () => {
 
         const detalle = await auth(request(app).get(`/movimiento/${res.body.data.id}`));
         expect(detalle.body.data.tipo).toBe('venta');
-        expect(detalle.body.data.cliente).toEqual({ id: clienteMostrador.id, nombre: expect.any(String) });
-        expect(detalle.body.data.file_path).toContain(env.HOST);
+        expect(detalle.body.data.cliente).toEqual({ id: cliente.id, nombre: cliente.nombre });
+        expect(detalle.body.data.comprobante).toMatchObject({ clase: 'factura', estado: 'emitida' });
         expect(detalle.body.data.venta).toMatchObject({
             tipo_cbte: 11,
             medio_pago: { nombre: 'efectivo', comision: 0 },
@@ -212,7 +205,7 @@ describe('las operaciones comerciales son movimientos unificados', () => {
         const detalle = await auth(request(app).get(`/movimiento/${res.body.data.id}`));
         expect(detalle.body.data.tipo).toBe('consignacion');
         expect(detalle.body.data.cliente).toEqual({ id: cliente.id, nombre: cliente.nombre });
-        expect(detalle.body.data.file_path).toContain('http');
+        expect(detalle.body.data.comprobante).toMatchObject({ clase: 'remito', estado: 'emitida' });
         expect(detalle.body.data.venta).toBeNull();
 
         const deposito = await depositoDeCliente(cliente.id);
@@ -262,7 +255,7 @@ describe('las operaciones comerciales son movimientos unificados', () => {
         const detalle = await auth(request(app).get(`/movimiento/${res.body.data.id}`));
         expect(detalle.body.data.tipo).toBe('devolucion');
         expect(detalle.body.data.cliente).toEqual({ id: cliente.id, nombre: cliente.nombre });
-        expect(detalle.body.data.file_path).toContain('http');
+        expect(detalle.body.data.comprobante).toMatchObject({ clase: 'remito', estado: 'emitida' });
         expect(detalle.body.data.venta).toBeNull();
     });
 

@@ -46,7 +46,6 @@ export type MovimientoRow = {
     destino_tipo: string;
     destino_deposito_id: number | null;
     id_cliente: number | null;
-    file_path: string | null;
     user: number;
     origen_nombre: string | null;
     destino_nombre: string | null;
@@ -92,7 +91,6 @@ export function createMovimientoRepository({ db }: MovimientoRepositoryDeps) {
                 destino_tipo: movimientosTable.destino_tipo,
                 destino_deposito_id: movimientosTable.destino_deposito_id,
                 id_cliente: idClienteExpr,
-                file_path: movimientosTable.file_path,
                 user: movimientosTable.user,
                 origen_nombre: origenDep.nombre,
                 destino_nombre: destinoDep.nombre,

@@ -33,8 +33,9 @@ export const movimientosTable = pgTable(
         origen_deposito_id: integer("origen_deposito_id"),
         destino_tipo: extremoTipoEnum("destino_tipo").notNull(),
         destino_deposito_id: integer("destino_deposito_id"),
-        // Key de storage del archivo emitido (factura/remito/comprobante) o
-        // `null` en los movimientos manuales.
+        // Dato histórico de la generación de PDFs (facturas/remitos viejos).
+        // Los comprobantes nuevos se renderizan desde datos y no escriben acá:
+        // las filas nuevas quedan en `null` y la columna no se expone en la API.
         // 255 y no 80: nombres reales con prefijo (`facturas/…`, `remitos/…`)
         // llegan a 103 caracteres y la migración de producción los preserva.
         file_path: varchar("file_path", { length: 255 }),

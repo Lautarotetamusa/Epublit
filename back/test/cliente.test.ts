@@ -1,4 +1,4 @@
-import { describe, expect, test, vi, beforeAll, afterAll } from 'vitest';
+import { describe, expect, test, beforeAll, afterAll } from 'vitest';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -12,12 +12,10 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { NotFound } from 'bradb';
 import { expectBadRequest, expectConflict, expectCreated, expectUpdated, expectNotFound, expectErrorResponse, expectList } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { cuit, isbn } from '../seeders/data';
-import { generateClientPath } from '../src/modules/cliente';
 
 // `getAfipData` propio de este archivo: tira `NotFound` para el cuit de
 // prueba que simula "no está cargado en AFIP", igual que el resto responde
@@ -35,7 +33,7 @@ const afipService = createMockAfipService({
         };
     }
 });
-const container = createContainer({ afipService, comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService });
 const app = createApp(container);
 
 // Recipe fija de `seeders/clientes.seeder.ts`: 3 clientes "inscripto" por
@@ -70,19 +68,6 @@ beforeAll(async () => {
 
 afterAll(() => {
     db.$client.end();
-});
-
-describe('generateClientPath', () => {
-    test('arma el nombre del archivo a partir de la razón social y la fecha', () => {
-        const mockDate = new Date('2025-03-08T17:58:19.090Z');
-        vi.useFakeTimers();
-        vi.setSystemTime(mockDate);
-
-        const path = generateClientPath("LAUTARO TETA MUSA");
-
-        vi.useRealTimers();
-        expect(path).toEqual("LAUTAROTETAMUSA-20250308-175819.pdf");
-    });
 });
 
 describe('auth middleware', () => {

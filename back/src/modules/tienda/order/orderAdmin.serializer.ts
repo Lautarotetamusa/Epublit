@@ -4,6 +4,7 @@ import type { OrderHistoryRow, OrderItemRow, OrderRow } from "./order.repository
 import type { ShipmentEventRow, ShipmentRow } from "../shipping/shipment.repository";
 import { toShippingBlock } from "../shipping/shipment.serializer";
 import type { VentaRow } from "../../transaccion/venta.validator";
+import type { ComprobanteResumen } from "../../comprobante";
 
 export function toOrderSummary(row: OrderSummaryRow) {
     return {
@@ -103,6 +104,7 @@ export type OrderDetailData = {
     envio: ShipmentRow | null;
     envioEventos: ShipmentEventRow[];
     venta: VentaRow | null;
+    comprobante: ComprobanteResumen | null;
 };
 
 export function toOrderDetail({
@@ -112,7 +114,8 @@ export function toOrderDetail({
     pago,
     envio,
     envioEventos,
-    venta
+    venta,
+    comprobante
 }: OrderDetailData) {
     return {
         codigo: pedido.codigo,
@@ -145,15 +148,7 @@ export function toOrderDetail({
                 ? null
                 : toShippingBlock(pedido.codigo, envio, envioEventos),
         venta: saleBlock(venta),
-        comprobante: {
-            estado: pedido.comprobante_estado,
-            tipo: pedido.comprobante_tipo,
-            numero: pedido.comprobante_numero,
-            fecha: pedido.comprobante_fecha,
-            archivoUrl: pedido.comprobante_file_path
-                ? `/pedidos/${pedido.codigo}/comprobante`
-                : null
-        },
+        comprobante,
         motivoRechazo: pedido.motivo_rechazo,
         detalleRechazo: pedido.detalle_rechazo,
         historial: historial.map((hito) => ({

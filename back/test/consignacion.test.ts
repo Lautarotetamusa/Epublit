@@ -1,4 +1,4 @@
-import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
+import {describe, expect, test, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
 
 import * as dotenv from 'dotenv';
@@ -11,8 +11,6 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
-import { env } from '../src/env';
 import {expectBadRequest, expectConflict, expectCreated, expectNotFound, cargarStockPrincipal} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 
@@ -25,8 +23,7 @@ const afipService = createMockAfipService({
         domicilio: "DORREGO 1150, ROSARIO, SANTA FE"
     })
 });
-const comprobanteService = createMockComprobanteService({ emitirComprobante: vi.fn().mockResolvedValue(undefined) });
-const container = createContainer({ afipService, comprobanteService });
+const container = createContainer({ afipService });
 const app = createApp(container);
 
 let token: string;
@@ -130,7 +127,11 @@ describe('CONSIGNACION', () => {
                 expect(res.status).toBe(201);
                 expect(res.body.success).toBe(true);
                 idConsignacion = res.body.data.id;
-                expect(comprobanteService.emitirComprobante).toHaveBeenCalled();
+                expect(res.body.data.comprobante).toMatchObject({
+                    clase: 'remito',
+                    estado: 'emitida',
+                    tipo: null
+                });
             });
 
             test('El stock total no cambia: pasa del principal al depósito del cliente', async () => {
@@ -165,7 +166,11 @@ describe('CONSIGNACION', () => {
 
                 expect(res.status).toBe(200);
                 expect(res.body.data.id_cliente).toEqual(cliente.id);
-                expect(res.body.data.file_path).toContain(env.HOST);
+                expect(res.body.data.comprobante).toMatchObject({
+                    clase: 'remito',
+                    estado: 'emitida',
+                    numero: idConsignacion
+                });
                 expect(res.body.data.libros).toHaveLength(consignacion.libros.length);
             });
 

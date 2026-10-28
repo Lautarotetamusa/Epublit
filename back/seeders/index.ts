@@ -1,6 +1,5 @@
 import { db } from "../src/db/client";
 import { createMockAfipService } from "../src/lib/afip/Afip.mock";
-import { createMockComprobanteService } from "../src/lib/comprobantes/comprobante.mock";
 import { createLocalStorage } from "../src/lib/storage";
 import { createCredentialsCipher } from "../src/lib/crypto/credentials";
 import { env } from "../src/env";
@@ -14,6 +13,7 @@ import { createClienteModule } from "../src/modules/cliente";
 import { createMedioPagoModule } from "../src/modules/medioPago";
 import { createRolModule } from "../src/modules/rol";
 import { createAnticipoModule } from "../src/modules/anticipo";
+import { createComprobanteModule } from "../src/modules/comprobante";
 import { createTransaccionModule } from "../src/modules/transaccion";
 import { createAvailabilityService } from "../src/modules/tienda/stock/availability.service";
 import { createLiquidacionesModule } from "../src/modules/liquidaciones";
@@ -37,12 +37,10 @@ async function main(): Promise<void> {
     await resetSeedData();
 
     // Mock, no el real: un seeder de desarrollo no puede depender de una
-    // llamada de red real a AFIP (ver seeders/clientes.seeder.ts). Idem
-    // `comprobanteService`: `seedOperaciones` inserta directo por
-    // repository, nunca dispara `generarComprobante`, pero el módulo
-    // transaccion igual lo necesita para armarse.
+    // llamada de red real a AFIP (ver seeders/clientes.seeder.ts).
+    // `seedOperaciones` inserta directo por repository y nunca dispara la
+    // emisión de comprobantes, pero los módulos igual necesitan la instancia.
     const afipService = createMockAfipService();
-    const comprobanteService = createMockComprobanteService();
     const storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST });
     const cipher = createCredentialsCipher(env.CREDENTIALS_ENCRYPTION_KEY);
 
@@ -55,7 +53,13 @@ async function main(): Promise<void> {
     const coleccion = createColeccionModule({ db, storage });
     const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
-    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, storage });
+    const comprobante = createComprobanteModule({
+        db,
+        userRepository: user.repository,
+        afipService,
+        storage
+    });
+    const movimiento = createMovimientoModule({ db, depositoRepository: deposito.repository, libroRepository: libro.repository, anticipoService: anticipo.service, comprobanteService: comprobante.service });
     const availabilityService = createAvailabilityService({ db, depositoRepository: deposito.repository });
     const transaccion = createTransaccionModule({
         db,
@@ -66,10 +70,8 @@ async function main(): Promise<void> {
         depositoRepository: deposito.repository,
         userRepository: user.repository,
         medioPagoService: medioPago.service,
-        afipService,
-        comprobanteService,
-        availabilityService,
-        storage
+        comprobanteService: comprobante.service,
+        availabilityService
     });
     const liquidaciones = createLiquidacionesModule({ db });
 

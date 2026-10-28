@@ -107,16 +107,3 @@ export function createClienteService({ db, repository, afipService, depositoRepo
 }
 
 export type ClienteService = ReturnType<typeof createClienteService>;
-
-export function generateClientPath(razonSocial: string): string {
-    const dateStr = new Date()
-        .toISOString()
-        .replace(/\..+/, '')     // delete the . and everything after;
-        .replaceAll('-', '')
-        .replaceAll(':', '')
-        .replace('T', '-')       // replace T with a '-'
-
-    return razonSocial
-        .replaceAll('-', '')
-        .replaceAll(' ', '')+'-'+dateStr+'.pdf';
-}

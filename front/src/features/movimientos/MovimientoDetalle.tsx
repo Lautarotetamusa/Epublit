@@ -1,6 +1,8 @@
 import { Button, Icon, Table } from "../../design-system";
 import type { LibroEnMovimiento, Movimiento } from "../../api/deposito";
 import { tiposComprobante } from "../../api/operaciones";
+import { ComprobanteResumen } from "../comprobantes/ComprobanteResumen";
+import { abrirComprobanteEnPestana, etiquetaVerComprobante } from "../comprobantes/formato";
 import { ExtremoDisplay } from "./ExtremoDisplay";
 import { resumirLibros } from "./movimientoFormato";
 
@@ -8,10 +10,6 @@ import { resumirLibros } from "./movimientoFormato";
 // uno que el front todavía no conoce, se cae al número crudo.
 const etiquetaComprobante = (tipoCbte: number): string =>
     tiposComprobante.find((tipo) => tipo.value === tipoCbte)?.label ?? `Comprobante ${tipoCbte}`;
-
-// La consignación y la devolución dejan un remito; las ventas, un comprobante.
-const etiquetaArchivo = (movimiento: Movimiento): string =>
-    movimiento.tipo === "consignacion" || movimiento.tipo === "devolucion" ? "Ver remito" : "Ver comprobante";
 
 function Dato({ label, value }: { label: string; value: string }) {
     return (
@@ -32,13 +30,12 @@ function Dato({ label, value }: { label: string; value: string }) {
 }
 
 // Cuerpo del detalle de un movimiento: la ruta, cada libro con su cantidad y,
-// cuando es comercial, el cliente, los datos de la venta y el archivo emitido.
-// Es presentación pura para que la ficha (con fetch propio) no cargue también
-// el armado del detalle.
+// cuando es comercial, el cliente, los datos de la venta y el comprobante
+// emitido. Es presentación pura para que la ficha (con fetch propio) no cargue
+// también el armado del detalle.
 export function MovimientoDetalle({ movimiento }: { movimiento: Movimiento }) {
     const tienePrecio = movimiento.libros.some((libro) => libro.precio != null);
-    const { cliente, venta } = movimiento;
-    const filePath = movimiento.file_path;
+    const { cliente, venta, comprobante } = movimiento;
 
     return (
         <>
@@ -65,7 +62,9 @@ export function MovimientoDetalle({ movimiento }: { movimiento: Movimiento }) {
                     }}
                 >
                     {cliente ? <Dato label="Cliente" value={cliente.nombre} /> : null}
-                    {venta ? <Dato label="Comprobante" value={etiquetaComprobante(venta.tipo_cbte)} /> : null}
+                    {venta && !comprobante ? (
+                        <Dato label="Comprobante" value={etiquetaComprobante(venta.tipo_cbte)} />
+                    ) : null}
                     {venta?.medio_pago ? <Dato label="Medio de pago" value={venta.medio_pago.nombre} /> : null}
                     {venta ? <Dato label="Total" value={venta.total.toLocaleString("es-AR")} /> : null}
                 </dl>
@@ -96,11 +95,25 @@ export function MovimientoDetalle({ movimiento }: { movimiento: Movimiento }) {
                 {resumirLibros(movimiento.libros)}
             </p>
 
-            {filePath ? (
-                <div style={{ marginTop: "var(--space-4)" }}>
-                    <Button variant="secondary" iconStart="file-text" onClick={() => window.open(filePath, "_blank")}>
-                        {etiquetaArchivo(movimiento)}
-                    </Button>
+            {comprobante ? (
+                <div
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--space-3)",
+                        marginTop: "var(--space-4)"
+                    }}
+                >
+                    <ComprobanteResumen comprobante={comprobante} />
+                    <div>
+                        <Button
+                            variant="secondary"
+                            iconStart="file-text"
+                            onClick={() => abrirComprobanteEnPestana(comprobante.id)}
+                        >
+                            {etiquetaVerComprobante(comprobante)}
+                        </Button>
+                    </div>
                 </div>
             ) : null}
         </>

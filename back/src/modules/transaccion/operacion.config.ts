@@ -7,8 +7,7 @@ import { TipoTransaccion, createTransaccion, tipoTransaccion } from "./transacci
 import { createVenta, createVentaConsignado } from "./venta.validator";
 import { LibroCantidad } from "../libro/libro.validator";
 import { disponibleParaVenta } from "../libro/libro.stock";
-import { AfipService } from "../../lib/afip/Afip";
-import { ComprobanteService } from "../../lib/comprobantes/comprobante";
+import { ComprobanteService } from "../comprobante";
 import { ValidationError } from "../../lib/http/errors";
 import { Tx } from "../../db/client";
 import { Client } from "../cliente/cliente.validator";
@@ -19,15 +18,16 @@ export type OperacionConfigDeps = {
     // Depósito principal y depósito propio del cliente: los extremos y el
     // efecto de stock de las cuatro operaciones (ver specs/009-ledger-unificado).
     depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito">;
-    afipService: AfipService;
-    comprobanteService: ComprobanteService;
+    // Persiste el comprobante dentro de la misma transacción de la operación;
+    // la emisión contra AFIP ocurre post-commit (ver operacion.service.ts).
+    comprobanteService: Pick<ComprobanteService, "crearFactura" | "crearRemito">;
 };
 
 // Factory en vez de objeto ya armado: recibe `libroService`/`clienteStockService`
 // ya construidos (los arma `createTransaccionModule`, ver index.ts) en vez de
 // importar el composition root (`container.ts`) — así el módulo transaccion no
 // depende del container.
-export function createOperacionConfig({ libroService, clienteStockService, depositoRepository, afipService, comprobanteService }: OperacionConfigDeps): Record<TipoTransaccion, OperacionConfig> {
+export function createOperacionConfig({ libroService, clienteStockService, depositoRepository, comprobanteService }: OperacionConfigDeps): Record<TipoTransaccion, OperacionConfig> {
     const principal = async (userId: number): Promise<ExtremoOperacion> => ({
         tipo: "deposito",
         id: (await depositoRepository.findPrincipal(userId)).id
@@ -98,43 +98,44 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
 
     // Compartido por `venta`/`ventaConsignacion` (mismo `if` que hoy): factura
     // sólo si el cliente no es "negro".
-    async function facturarSiCorresponde(ctx: ComprobanteCtx): Promise<void> {
+    async function facturarSiCorresponde(ctx: ComprobanteCtx, tx: Tx) {
         const { cliente, user, transaction, venta: ventaRow, medioPago, libros } = ctx;
 
-        if (cliente.tipo === tipoCliente.negro) return;
+        if (cliente.tipo === tipoCliente.negro) return null;
         if (ventaRow === null) throw new ValidationError("Falta la venta para facturar");
 
-        const afip = afipService.getClient(user);
-        const comprobanteData = await afipService.facturar(user.punto_venta!, ventaRow, cliente, afip);
-
-        await comprobanteService.emitirComprobante({
-            data: {
+        return comprobanteService.crearFactura(
+            {
+                userId: user.id,
+                movimientoId: transaction.id,
                 venta: ventaRow,
-                medioPago,
-                transaction,
-                libros,
                 cliente,
-                comprobante: comprobanteData
+                emisor: user,
+                medioPago,
+                lineas: libros,
+                importeEnvio: 0
             },
-            user
-        });
+            tx
+        );
     }
 
     // Compartido por `consignacion`/`devolucion`: ambas adjuntan un remito al
-    // movimiento (la devolución no tiene plantilla propia).
-    const emitirRemito = async (ctx: ComprobanteCtx): Promise<void> => {
-        await comprobanteService.emitirComprobante({
-            data: {
-                consignacion: ctx.transaction,
+    // movimiento (no hay un comprobante propio de devolución).
+    const emitirRemito = async (ctx: ComprobanteCtx, tx: Tx) =>
+        comprobanteService.crearRemito(
+            {
+                userId: ctx.user.id,
+                movimientoId: ctx.transaction.id,
                 cliente: ctx.cliente,
-                libros: ctx.libros
+                emisor: ctx.user,
+                lineas: ctx.libros,
+                fecha: ctx.transaction.fecha
             },
-            user: ctx.user
-        });
-    };
+            tx
+        );
 
-    const venta: OperacionConfig = {        tipo: tipoTransaccion.venta,
-        filesFolder: "facturas",
+    const venta: OperacionConfig = {
+        tipo: tipoTransaccion.venta,
         esVenta: true,
         bodyParser: createVenta,
         // `VentaFirme.clientValidation` (MySQL) no la sobreescribía: siempre true.
@@ -149,7 +150,6 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
 
     const consignacion: OperacionConfig = {
         tipo: tipoTransaccion.consignacion,
-        filesFolder: "remitos",
         esVenta: false,
         bodyParser: createTransaccion,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,
@@ -168,7 +168,6 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
 
     const ventaConsignacion: OperacionConfig = {
         tipo: tipoTransaccion.ventaConsignacion,
-        filesFolder: "facturas",
         esVenta: true,
         bodyParser: createVentaConsignado,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,
@@ -198,9 +197,8 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
 
     const devolucion: OperacionConfig = {
         tipo: tipoTransaccion.devolucion,
-        // El comprobante de la devolución se emite con la plantilla de remito:
-        // no hay un archivo propio de devolución (ver plan, "Archivo opcional").
-        filesFolder: "remitos",
+        // La devolución usa el mismo remito que la consignación: no hay un
+        // comprobante propio de devolución.
         esVenta: false,
         bodyParser: createTransaccion,
         clientValidation: (tipo) => tipo === tipoCliente.inscripto,

@@ -1,0 +1,17 @@
+meta {
+  name: Get factura (bloqueada)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/files/facturas/ejemplo.pdf
+  body: none
+  auth: none
+}
+
+docs {
+  Responde 404. Los PDFs históricos de facturas/remitos ya no se sirven y los
+  comprobantes nuevos se renderizan en el panel desde `GET /comprobantes/:id`.
+  También están bloqueadas `/files/remitos/...` y `/files/etiquetas/...`.
+}

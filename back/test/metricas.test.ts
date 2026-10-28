@@ -11,7 +11,6 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { movimientosTable, movimientosLibrosTable } from '../src/modules/movimiento/movimiento.schema';
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
 import { librosTable } from '../src/modules/libro/libro.schema';
@@ -19,7 +18,7 @@ import { diaDeFecha, inicioDelMes, mesAnterior, mesDeFecha, resolverPeriodo, ult
 import { expectBadRequest, expectDataResponse, getMedioPagoId } from './util';
 import { cuit, isbn } from '../seeders/data';
 
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService: createMockComprobanteService() });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 // Meses cerrados y fijos: el test no depende de la fecha de hoy para estas

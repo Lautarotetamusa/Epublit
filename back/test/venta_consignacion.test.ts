@@ -1,4 +1,4 @@
-import {describe, expect, test, vi, beforeAll, afterAll} from 'vitest';
+import {describe, expect, test, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
 import { eq, inArray } from 'drizzle-orm';
 
@@ -11,7 +11,6 @@ import { db } from '../src/db/client';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
-import { createMockComprobanteService } from '../src/lib/comprobantes/comprobante.mock';
 import { libroClienteTable } from '../src/modules/cliente/libroCliente.schema';
 import { precioLibroClienteTable } from '../src/modules/cliente/precioLibroCliente.schema';
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
@@ -20,8 +19,7 @@ import { librosTable } from '../src/modules/libro/libro.schema';
 import {expectBadRequest, expectConflict, delay, getMedioPagoId} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 
-const comprobanteService = createMockComprobanteService({ emitirComprobante: vi.fn().mockResolvedValue(undefined) });
-const container = createContainer({ afipService: createMockAfipService(), comprobanteService });
+const container = createContainer({ afipService: createMockAfipService() });
 const app = createApp(container);
 
 let token: string;
@@ -184,7 +182,10 @@ describe('VENTA EN CONSIGNACION', () => {
                 expect(res.status).toBe(201);
                 // Precio histórico (1000), no el actual (2000).
                 expect(res.body.data.total).toEqual(precioHistorico * cantidad);
-                expect(comprobanteService.emitirComprobante).toHaveBeenCalled();
+                expect(res.body.data.comprobante).toMatchObject({
+                    clase: 'factura',
+                    estado: 'emitida'
+                });
             });
 
             test('Se redujo el stock del cliente y el total (el consignado cuenta en el total)', async () => {

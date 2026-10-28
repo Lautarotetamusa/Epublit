@@ -1,5 +1,6 @@
 import { api } from "./client";
 import type { TipoCliente } from "./cliente";
+import type { ComprobanteResumen } from "./comprobantes";
 
 export type TipoOperacion = "venta" | "consignacion" | "devolucion" | "ventaConsignacion";
 
@@ -32,20 +33,20 @@ export type LibroOperacion = {
     stock: number;
 };
 
-// Campos comunes a las 4 operaciones (ver back operacion.service.ts). Un
-// `file_path` vacío significa "no generó archivo" (siempre el caso en
-// devolucion).
+// Campos comunes a las 4 operaciones (ver back operacion.service.ts). El
+// comprobante viaja como resumen: el documento completo se pide a
+// `/comprobantes/:id` sólo cuando hay que mostrarlo o imprimirlo.
 export type Operacion = {
     id: number;
     fecha: string;
     id_cliente: number;
-    file_path: string;
     type: TipoOperacion;
     nombre_cliente: string;
     cuit: string | null;
     email: string | null;
     cond_fiscal: string | null;
     tipo_cliente: TipoCliente | null;
+    comprobante: ComprobanteResumen | null;
 };
 
 export type Venta = Operacion & {

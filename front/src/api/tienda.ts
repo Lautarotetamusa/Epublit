@@ -1,5 +1,6 @@
 import { api, toQueryString } from "./client";
 import type { BlobFile } from "./client";
+import type { ComprobanteResumen } from "./comprobantes";
 
 // Contratos reales del panel de la tienda (ver back/src/modules/tienda).
 // Las rutas de pedidos NO usan el sobre `{success,data}`: devuelven el
@@ -118,14 +119,6 @@ export type VentaPedido = {
     medioPagoId: number | null;
 };
 
-export type ComprobantePedido = {
-    estado: string;
-    tipo: string | null;
-    numero: string | null;
-    fecha: string | null;
-    archivoUrl: string | null;
-};
-
 export type EventoSeguimiento = {
     estado: string | null;
     statusId: string | null;
@@ -185,7 +178,7 @@ export type PedidoDetalle = {
     pago: PagoPedido;
     envio: EnvioPedido | null;
     venta: VentaPedido | null;
-    comprobante: ComprobantePedido;
+    comprobante: ComprobanteResumen | null;
     motivoRechazo: string | null;
     detalleRechazo: string | null;
     historial: HistorialPedido[];
@@ -234,11 +227,9 @@ export const getEnvioPedido = (codigo: string): Promise<EnvioPedido> =>
 export const refrescarEnvioPedido = (codigo: string): Promise<EnvioPedido> =>
     api.post(`/pedidos/${codigo}/envio/refrescar`);
 
-// Comprobante y etiqueta son PDFs protegidos: bajan con el token en el
-// header. La UI los abre/descarga con `lib/descargas.ts`.
-export const descargarComprobante = (codigo: string): Promise<BlobFile> =>
-    api.getBlob(`/pedidos/${codigo}/comprobante`);
-
+// La etiqueta sigue siendo un PDF protegido: baja con el token en el header y
+// la UI la descarga con `lib/descargas.ts`. El comprobante ya no se pide como
+// archivo: se renderiza desde `GET /comprobantes/:id`.
 export const descargarEtiqueta = (codigo: string): Promise<BlobFile> =>
     api.getBlob(`/pedidos/${codigo}/etiqueta`);
 
