@@ -8,7 +8,7 @@ abierto para q nginx lo apunte desde ahi.
 # infra/ — Producción
 
 Infraestructura de producción del refactor: **Postgres + back + nginx con
-TLS**, más los jobs de migración y los scripts de operación.
+TLS**, más el job de migraciones de esquema y los scripts de operación.
 
 Todo vive **autocontenido en `/home/Epublit`** (no se reusan directorios de la
 app vieja; sus datos se mueven acá en el corte).
@@ -20,7 +20,7 @@ Internet
  nginx (borde, TLS, Let's Encrypt)
    ├── /        → estáticos del SPA (./www/front)
    ├── /api/    → back (Express :3000, prefijo recortado)
-   └── /files/  → back (./files: facturas, remitos, logos, portadas, fotos)
+   └── /files/  → back (./files: logos, portadas, fotos y etiquetas)
                       │
                       └── db (Postgres 16, sólo red interna)
 ```
@@ -40,7 +40,7 @@ vive en el mismo origen y no hay CORS en el navegador.
 ├── docker-compose.yml                # lo copia el workflow
 ├── nginx/templates/default.conf.template
 ├── www/front/                        # dist del SPA (lo copia el workflow)
-├── files/                            # facturas/, remitos/, logos/, uploads
+├── files/                            # logos/, etiquetas/ y uploads
 └── afipkeys/                         # <cuit>/cert.*, private_key.key, Tokens/
 ```
 
@@ -51,7 +51,6 @@ vive en el mismo origen y no hay CORS en el navegador.
 | `docker-compose.yml` | stack de producción (db, back, nginx, certbot) + jobs |
 | `.env.example` | variables; copiar a `.env` en el servidor |
 | `nginx/templates/default.conf.template` | vhost (HTTP→HTTPS, `/api`, `/files`, SPA) |
-| `Dockerfile.migracion` | imagen efímera para la migración de datos (spec 015) |
 | `scripts/init-letsencrypt.sh` | emite el certificado inicial |
 | `scripts/backup-db.sh` / `restore-db.sh` | backup y restore de Postgres |
 | `scripts/push-env.sh` | sube el `.env` local al servidor y recrea el back |
@@ -61,7 +60,7 @@ vive en el mismo origen y no hay CORS en el navegador.
 - Docker + Docker Compose v2 en el servidor.
 - DNS `DOMAIN` apuntando al servidor.
 - Puertos **80** y **443** libres.
-- Los datos de la app vieja (`files/`, `afipkeys/`) accesibles para moverlos.
+- Los archivos existentes (`files/` y `afipkeys/`) accesibles para moverlos.
 
 ## Primer despliegue
 
@@ -73,7 +72,7 @@ El **código** (compose, nginx, dist del front) lo copia
 sudo mkdir -p /home/Epublit/{files,afipkeys,www}
 sudo chown -R ubuntu:ubuntu /home/Epublit
 
-# 2. Mover los datos de la app vieja (facturas, remitos, logos, certs AFIP)
+# 2. Mover los archivos existentes (logos, portadas, fotos y certs AFIP)
 mv <carpeta-vieja>/files/*    /home/Epublit/files/
 mv <carpeta-vieja>/afipkeys/* /home/Epublit/afipkeys/
 
@@ -187,85 +186,24 @@ cada corrida. Tiene que incluir `DB_NAME`, `DB_USER`, `DB_PASS`, `JWT_SECRET`,
 `AFIP_CUIT_PROD`, `DOMAIN`, `PUBLIC_URL` y `CORS_ORIGIN` (de `PUBLIC_URL` se
 deriva `VITE_API_URL` para el build del front).
 
-## Migración de datos (corte)
+## Migración de datos
 
-La migración está documentada en `specs/015-migracion-produccion/plan.md`.
-Resumen operativo (se corre desde un checkout del repo, porque el servicio
-`migracion` construye una imagen con el script):
+La migración MariaDB → Postgres ya fue ejecutada. El script one-off, la imagen
+`Dockerfile.migracion`, la dependencia `mysql2` y las variables `LEGACY_DB_*`
+se retiraron del repo. El registro histórico queda en
+`specs/015-migracion-produccion/plan.md`.
 
-```bash
-# 0. Backup de la MariaDB vieja (rollback), desde la carpeta de la app vieja
-cd <carpeta-vieja>
-read -rsp "DB password: " DBPASS; echo
-docker compose exec -T -e MYSQL_PWD="$DBPASS" mariadb \
-  mariadb-dump -u teti --single-transaction --routines --triggers \
-  --no-tablespaces --default-character-set=utf8mb4 epublit \
-  | gzip > /tmp/epublit_pre_corte.sql.gz
-unset DBPASS
+## Volúmenes y archivos
 
-# 1. Parar SÓLO la API vieja (la MariaDB sigue arriba para leerla)
-docker compose stop api
-
-# 2. Ensayo en seco
-cd <repo>
-docker compose -f infra/docker-compose.yml --profile tools \
-  run --rm migracion --dry-run
-
-# 3. Carga real (base recién migrada, vacía de datos de dominio)
-docker compose -f infra/docker-compose.yml --profile tools \
-  run --rm migracion --reset
-```
-
-> `--reset` **borra las tablas de dominio** del destino antes de cargar. Sólo
-> es seguro en el corte (base nueva). Después de ir a producción, una recarga
-> requiere un backup y una ventana explícita.
-
-### Verificación post-corte
-
-- Login con un usuario real (mismo password que la app vieja).
-- Cantidades por cuenta (libros, personas, clientes, ventas).
-- Stock por libro contra el reporte del `--dry-run`.
-- Que cada `file_path` exista: ver el chequeo en "Volúmenes" abajo.
-- Verificar AFIP en **homologación** antes de emitir una factura real.
-
-## Rollback
-
-La MariaDB vieja no se toca. Si algo falla:
-
-```bash
-# Bajar el stack nuevo
-docker compose -f /home/Epublit/docker-compose.yml down
-
-# Volver a levantar la app vieja (mismos volúmenes)
-cd <carpeta-vieja>
-docker compose up -d api
-```
-
-## Volúmenes y comprobantes
-
-- `files/`: `facturas/` y `remitos/` (ya referenciados por
-  `movimientos.file_path`), `logos/<cuit>.png` (el logo que va en la factura) y
-  las carpetas de uploads del refactor (`libros/portadas`, `personas/fotos`,
-  `colecciones/portadas`, que se crean solas).
+- `files/`: `logos/<cuit>.png` (el logo que va en la factura), `etiquetas/`
+  (PDFs de envío que se bajan por el endpoint autenticado) y las carpetas de
+  uploads del refactor (`libros/portadas`, `personas/fotos`,
+  `colecciones/portadas`, que se crean solas). Las carpetas históricas
+  `facturas/` y `remitos/` ya no se sirven ni se generan; pueden conservarse
+  en el volumen como respaldo.
 - `afipkeys/<cuit>/`: `cert.crt` (producción) o `cert.pem` (homologación),
   `private_key.key` y `Tokens/`. **No hay que re-registrar certificados**, pero
   el uid 1000 necesita escritura en `Tokens/`.
-
-Chequeo de que no falte ningún comprobante referenciado:
-
-```bash
-cd /home/Epublit
-set -a; . ./.env; set +a
-
-docker compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" -Atc \
-  "select file_path from movimientos where file_path is not null" > /tmp/paths.txt
-
-faltan=0
-while read -r p; do
-  [ -f "/home/Epublit/files/$p" ] || { echo "FALTA: $p"; faltan=$((faltan+1)); }
-done < /tmp/paths.txt
-echo "Referenciados: $(wc -l < /tmp/paths.txt) · Faltan: $faltan"
-```
 
 ## Cambiar el `.env`
 

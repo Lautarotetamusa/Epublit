@@ -68,7 +68,7 @@ para que `docker compose` pueda leerlo).
 DB_HOST=localhost
 DB_USER=user  
 DB_PASS=password
-DB_PORT=3306  
+DB_PORT=5432
 DB_NAME=db_name  
 
 PROTOCOL=http

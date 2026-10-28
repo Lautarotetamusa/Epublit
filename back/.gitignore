@@ -5,8 +5,8 @@
 node_modules/
 package-lock.json
 
-# Todo lo que se sube/genera en runtime (facturas, remitos, logos, portadas
-# de libro, fotos de persona, etc.) — una sola regla en vez de listar cada
+# Todo lo que se sube/genera en runtime (logos, portadas de libro, fotos de
+# persona, etiquetas de envío, etc.) — una sola regla en vez de listar cada
 # subcarpeta, para que un storage nuevo (ver src/lib/storage/) no se filtre
 # a git por olvido.
 files/*
@@ -31,6 +31,3 @@ lista_libros.csv
 # `out: "./db/migrations"`); cualquier /migrations en la raíz de back/ es
 # de una corrida con un --out distinto al configurado, no la fuente real.
 /migrations
-
-# JSON intermedio de la migración de producción (auditable, no se versiona).
-scripts/migracion-produccion/datos*.json

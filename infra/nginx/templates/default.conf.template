@@ -4,7 +4,7 @@
 #
 #	/        -> SPA estático (dist copiado por el workflow de deploy)
 #	/api/    -> back  (Express, con el prefijo recortado)
-#	/files/  -> back  (facturas, remitos, portadas, fotos)
+#	/files/  -> back  (logos, portadas, fotos y etiquetas)
 #
 # El front se buildea con VITE_API_URL=https://${DOMAIN}/api, así que todo
 # vive en el mismo origen y no hay CORS en el navegador.

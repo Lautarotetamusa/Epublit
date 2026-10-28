@@ -9,13 +9,13 @@ name: epublit-prod
 #
 #   /        -> estáticos del SPA (bind mount de ./www)
 #   /api/    -> back (Express :3000, prefijo recortado)
-#   /files/  -> back (facturas, remitos, portadas, fotos)
+#   /files/  -> back (logos, portadas, fotos y etiquetas)
 #
 # Este archivo lo copia .github/workflows/deploy.yml al servidor junto con
 # nginx/ y el dist del front. El .env se crea una vez a mano.
 #
 # Perfiles:
-#   tools -> migrate (Drizzle) y migracion (datos desde MariaDB, corte único)
+#   tools -> migrate (Drizzle)
 # ---------------------------------------------------------------------------
 
 services:
@@ -52,38 +52,6 @@ services:
       DB_HOST: db
       DB_PORT: "5432"
     command: ["node", "dist/src/db/migrate.js"]
-    restart: "no"
-    networks:
-      - interna
-
-  # Migración de datos (MariaDB vieja -> Postgres nuevo). Corre una sola vez
-  # en el corte, desde un checkout del repo (necesita el contexto de build).
-  migracion:
-    profiles: ["tools"]
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile.migracion
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file: .env
-    environment:
-      MIGRACION_DB_HOST: db
-      MIGRACION_DB_PORT: "5432"
-      MIGRACION_DB_USER: ${DB_USER:?definí DB_USER en .env}
-      MIGRACION_DB_PASSWORD: ${DB_PASS:?definí DB_PASS en .env}
-      MIGRACION_DB_NAME: ${DB_NAME:?definí DB_NAME en .env}
-      # El destino de producción no termina en "_migracion"; habilitarlo acá
-      # es explícito y queda auditado en este archivo.
-      MIGRACION_ALLOW_TARGET: "1"
-      MYSQL_HOST: ${LEGACY_DB_HOST:-host.docker.internal}
-      MYSQL_PORT: ${LEGACY_DB_PORT:-3306}
-      MYSQL_USER: ${LEGACY_DB_USER:?definí LEGACY_DB_USER en .env}
-      MYSQL_PASSWORD: ${LEGACY_DB_PASSWORD:-}
-      MYSQL_DATABASE: ${LEGACY_DB_NAME:-epublit}
-    extra_hosts:
-      # Para llegar al MariaDB viejo publicado en el host.
-      - "host.docker.internal:host-gateway"
     restart: "no"
     networks:
       - interna

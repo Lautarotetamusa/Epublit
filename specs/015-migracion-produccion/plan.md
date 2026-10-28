@@ -1,5 +1,9 @@
 # Plan: Migración de datos de producción (MariaDB → Postgres)
 
+> **Estado: completada y ejecutada en producción.** El script one-off, la
+> dependencia `mysql2` y la infraestructura de migración se retiraron del
+> repo. Este documento queda como registro histórico del procedimiento.
+
 ## Objetivo
 
 Llevar los datos reales de producción (app vieja, `main`, MariaDB 10.9) al
