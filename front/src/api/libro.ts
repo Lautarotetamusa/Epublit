@@ -16,11 +16,15 @@ export type Libro = {
     // stock no se edita en el libro, se crea y se corrige con movimientos (ver
     // specs/008-movimientos-deposito/design.md).
     stock: number | null;
-    // Cantidad del libro en el depósito principal: es contra lo que operan
-    // venta en firme, consignación y devolución (a diferencia del total). Lo
-    // informan `GET /libro`, `GET /libro/:isbn` y `GET /libro/lista_libros`
-    // (ver specs/008-movimientos-deposito, tarea 7).
+    // Cantidad del libro en el depósito principal: consignación y devolución
+    // operan contra ese depósito; venta en firme lo usa por defecto o cuando
+    // no se elige otro (ver specs/008-movimientos-deposito y specs/018). Lo
+    // informan `GET /libro`, `GET /libro/:isbn` y `GET /libro/lista_libros`.
     disponible_principal: number;
+    // Cantidad del libro en el depósito elegido. Sólo viene cuando el listado
+    // se pide con `deposito_id`; sin ese parámetro el campo está ausente (ver
+    // specs/018-venta-deposito-origen).
+    disponible_en_deposito?: number;
     // Dimensiones en cm. Campos nuevos, todavía no soportados por el
     // backend (ver specs/003-libro-campos-extendidos/design.md).
     alto: number | null;
@@ -101,6 +105,9 @@ export type ListLibrosParams = {
     // cuenta sólo esos: lo usa el diálogo "Agregar libros" (ver
     // specs/007-colecciones).
     sin_coleccion?: boolean;
+    // Con `deposito_id`, cada libro incluye `disponible_en_deposito` (ver
+    // specs/018-venta-deposito-origen).
+    deposito_id?: number;
 };
 
 export const listLibros = (params: ListLibrosParams = {}): Promise<ListEnvelope<Libro>> => api.get(`/libro${toQueryString(params)}`);

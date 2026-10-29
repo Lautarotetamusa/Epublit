@@ -28,6 +28,12 @@ export type PublicLibro = Omit<LibroConColeccion, "portada_key"> & {
     portada_url: string | null;
 };
 
+// Variant de `PublicLibro` con `disponible_en_deposito` adicional
+// (ver specs/018): sólo aparece cuando el query param `deposito_id` está presente.
+export type PublicLibroConDeposito = PublicLibro & {
+    disponible_en_deposito: number;
+};
+
 export type LibroServiceDeps = {
     db: Database;
     repository: LibroRepository;
@@ -37,7 +43,8 @@ export type LibroServiceDeps = {
     coleccionRepository: Pick<ColeccionRepository, "findOne">;
     // Sólo lectura: desglose del stock de un libro entre sus depósitos (ver
     // specs/008-movimientos-deposito). El stock del libro ya no es propio.
-    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro">;
+    // `findPropio` se usa para validar `deposito_id` en los listados (ver specs/018).
+    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro" | "findPropio">;
     storage: Storage;
 };
 
@@ -178,6 +185,41 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         pagination: Parameters<LibroRepository["findAllPaginated"]>[1]
     ) => toPublicList(await repository.findAllPaginated(filters, pagination));
 
+    // Variantes con `disponible_en_deposito` (ver specs/018): valida que el
+    // depósito exista y pertenezca al usuario antes de leer, y convierte las
+    // filas incluyendo el campo extra.
+    const toPublicConDeposito = (
+        libro: Omit<LibroConColeccion, "portada_key"> & { portada_key?: string | null; disponible_en_deposito: number }
+    ): PublicLibroConDeposito => {
+        const { portada_key, disponible_en_deposito, ...rest } = libro as LibroConColeccion & { portada_key?: string | null; disponible_en_deposito: number };
+        return {
+            ...rest,
+            portada_url: portada_key ? storage.getUrl(portada_key) : null,
+            disponible_en_deposito
+        };
+    };
+
+    const findAllOrderedWithDeposito = async (
+        depositoId: number,
+        userId: number,
+        filters: Parameters<typeof repository.findAllOrdered>[0]
+    ) => {
+        await depositoRepository.findPropio(depositoId, userId);
+        const rows = await repository.findAllOrderedWithDeposito(depositoId, filters);
+        return rows.map(toPublicConDeposito);
+    };
+
+    const findAllPaginatedWithDeposito = async (
+        depositoId: number,
+        userId: number,
+        filters: Parameters<typeof repository.findAllPaginated>[0],
+        pagination: Parameters<typeof repository.findAllPaginated>[1]
+    ) => {
+        await depositoRepository.findPropio(depositoId, userId);
+        const rows = await repository.findAllPaginatedWithDeposito(depositoId, filters, pagination);
+        return rows.map(toPublicConDeposito);
+    };
+
     // Subida/reemplazo de portada (ver plan specs/003-libro-campos-extendidos):
     // valida tipo/tamaño, escribe el archivo nuevo y recién después borra el
     // anterior, para no dejar el libro sin portada si `storage.write` fallara.
@@ -223,6 +265,8 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         exists: repository.exists,
         findAllOrdered: findAllOrderedPublic,
         findAllPaginated: findAllPaginatedPublic,
+        findAllOrderedWithDeposito,
+        findAllPaginatedWithDeposito,
         findCatalogoPaginated,
         create,
         update,

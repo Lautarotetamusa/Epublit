@@ -8,6 +8,7 @@ import type { StockCliente } from "../../api/cliente";
 import { getMediosPago, createVenta, createVentaConsignacion } from "../../api/operaciones";
 import type { MedioPago, TipoCbte, VentaDetalle } from "../../api/operaciones";
 import { listDepositos } from "../../api/deposito";
+import type { Deposito } from "../../api/deposito";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
 import type { LibroDisponible } from "../operaciones/useSeleccionLibros";
 
@@ -29,17 +30,26 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [libros, setLibros] = useState<Libro[]>([]);
     const [mediosPago, setMediosPago] = useState<MedioPago[]>([]);
+    const [depositos, setDepositos] = useState<Deposito[]>([]);
+    const [depositoPrincipal, setDepositoPrincipal] = useState("");
+    // El catálogo se pide recién cuando ya se conocen los depósitos: así no
+    // se carga primero sin `deposito_id` y otra vez con el principal.
+    const [depositosListos, setDepositosListos] = useState(false);
+    // Depósito elegido para venta en firme. Default: el principal.
+    const [depositoId, setDepositoId] = useState<number | "">("");
 
     useEffect(() => {
         listClientes().then((r) => setClientes(r.items));
-        // pageSize alto: acá hace falta el catálogo completo para el
-        // selector, no una página — a diferencia de CatalogoPage, que sí
-        // pagina de verdad.
-        listLibros({ pageSize: 1000 }).then((r) => setLibros(r.items));
         getMediosPago().then(setMediosPago);
-        // El nombre del depósito principal es el que muestra la ayuda del
-        // picker (la entrada `principal` del listado, ver specs/008).
-        listDepositos().then((r) => setDepositoPrincipal(r.data.find((d) => d.principal)?.nombre ?? ""));
+        // Guardamos el array completo de depósitos (no solo el nombre del principal).
+        listDepositos().then((r) => {
+            setDepositos(r.data);
+            const principal = r.data.find((d) => d.principal);
+            setDepositoPrincipal(principal?.nombre ?? "");
+            // Default: depósito principal.
+            setDepositoId(principal?.id ?? "");
+            setDepositosListos(true);
+        });
     }, []);
 
     const [tipoVenta, setTipoVenta] = useState<TipoVenta | "">("");
@@ -49,23 +59,42 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
     const [tipoCbte] = useState<TipoCbte>(11);
     const [fechaVenta, setFechaVenta] = useState("");
     const [stockConsignado, setStockConsignado] = useState<StockCliente[]>([]);
-    const [depositoPrincipal, setDepositoPrincipal] = useState("");
     const [submitting, setSubmitting] = useState(false);
+
+    // Catálogo de venta en firme: el stock del picker es el del depósito
+    // elegido, que el backend expone como `disponible_en_deposito` (ver
+    // specs/018). En consignación no se pide porque el stock sale del cliente.
+    // `pageSize` alto: hace falta el catálogo completo, no una página.
+    useEffect(() => {
+        if (tipoVenta !== "firme" || !depositosListos) return;
+
+        let vigente = true;
+        // Se vacía al empezar para no mostrar el stock del depósito anterior
+        // mientras llega la respuesta (la selección ya se reseteó al cambiar).
+        setLibros([]);
+        listLibros({ pageSize: 1000, deposito_id: depositoId === "" ? undefined : depositoId }).then((r) => {
+            if (vigente) setLibros(r.items);
+        });
+        return () => {
+            vigente = false;
+        };
+    }, [tipoVenta, depositoId, depositosListos]);
 
     const librosDisponibles: LibroDisponible[] = useMemo(() => {
         if (tipoVenta === "consignacion") {
             return stockConsignado.map((s) => ({ isbn: s.isbn, titulo: s.titulo, precio: s.precio, stock: s.stock }));
         }
-        // Una venta en firme descuenta del depósito principal (ver
-        // specs/008-movimientos-deposito/plan.md): el disponible del picker es
-        // el del principal, no el total de todos los depósitos.
+        // Venta en firme: stock del depósito elegido. Si no hay depósito
+        // elegido todavía, se usa el del principal. Con depósito elegido no
+        // se cae al principal: un libro sin dato o sin stock en ese depósito
+        // vale 0, para no ofrecer stock que después el backend rechaza.
         return libros.map((l) => ({
             isbn: l.isbn,
             titulo: l.titulo,
             precio: l.precio,
-            stock: l.disponible_principal
+            stock: depositoId === "" ? l.disponible_principal : (l.disponible_en_deposito ?? 0)
         }));
-    }, [tipoVenta, stockConsignado, libros]);
+    }, [tipoVenta, stockConsignado, libros, depositoId]);
 
     const { seleccionados, agregar, actualizar, quitar, reset: resetSeleccion, total } = useSeleccionLibros(librosDisponibles);
 
@@ -77,6 +106,8 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         setFechaVenta("");
         setStockConsignado([]);
         resetSeleccion();
+        // El depósito elegido se mantiene entre ventas: sólo se resetea la
+        // selección de libros.
     };
 
     const handleTipoVentaChange = (value: TipoVenta | "") => {
@@ -84,6 +115,13 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         setClienteId("");
         resetSeleccion();
         setStockConsignado([]);
+    };
+
+    // Cambiar de depósito en una venta en firme: resetear la selección de
+    // libros porque el stock disponible cambia.
+    const handleDepositoChange = (id: number | "") => {
+        setDepositoId(id);
+        resetSeleccion();
     };
 
     const handleClienteChange = async (id: number | "") => {
@@ -156,7 +194,8 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
                           libros,
                           descuento: Number(descuento) || 0,
                           medio_pago: medioPago,
-                          tipo_cbte: tipoCbte
+                          tipo_cbte: tipoCbte,
+                          deposito_id: depositoId === "" ? undefined : depositoId
                       })
                     : await createVentaConsignacion({
                           cliente: clienteId,
@@ -177,6 +216,8 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
     return {
         clientes,
         mediosPago,
+        depositos,
+        depositoId,
         tipoVenta,
         clienteId,
         descuento,
@@ -186,11 +227,12 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
         seleccionados,
         total,
         submitting,
-        // Nombre del depósito del que descuenta la venta en firme, para que el
-        // picker pueda decir de dónde sale el stock que muestra.
+        // Nombre del depósito principal: fallback de la ayuda mientras
+        // todavía no hay un depósito elegido.
         depositoPrincipal,
         setTipoVenta: handleTipoVentaChange,
         setClienteId: handleClienteChange,
+        setDepositoId: handleDepositoChange,
         setDescuento,
         setMedioPago,
         setFechaVenta,

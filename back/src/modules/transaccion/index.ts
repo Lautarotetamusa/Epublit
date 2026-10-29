@@ -32,8 +32,8 @@ export type TransaccionModuleDeps = {
     clienteStockService: ClienteStockService;
     // Movimientos unificados: las operaciones comerciales crean un movimiento.
     movimientoRepository: MovimientoRepository;
-    // Extremos (principal/depósito del cliente) y efecto de stock.
-    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito" | "moveStock">;
+    // Extremos (principal/depósito del cliente/elegido) y efecto de stock.
+    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito" | "findPropio" | "moveStock" | "getCantidades">;
     userRepository: UserRepository;
     // Medio de pago de la cuenta: resuelve el medio al vender y lista los
     // activos que consume `/venta/medios_pago`.

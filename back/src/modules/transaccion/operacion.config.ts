@@ -17,7 +17,9 @@ export type OperacionConfigDeps = {
     clienteStockService: ClienteStockService;
     // Depósito principal y depósito propio del cliente: los extremos y el
     // efecto de stock de las cuatro operaciones (ver specs/009-ledger-unificado).
-    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito">;
+    // `getCantidades` se usa en `venta` para leer el stock del depósito elegido
+    // cuando `depositoId` viene del body (ver specs/018).
+    depositoRepository: Pick<DepositoRepository, "findPrincipal" | "findClienteDeposito" | "getCantidades">;
     // Persiste el comprobante dentro de la misma transacción de la operación;
     // la emisión contra AFIP ocurre post-commit (ver operacion.service.ts).
     comprobanteService: Pick<ComprobanteService, "crearFactura" | "crearRemito">;
@@ -63,6 +65,46 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
                 };
             })
         );
+    };
+
+    // Venta en firme con depósito de origen elegido (ver specs/018): lee el
+    // stock desde `depositoLibros` para el depósito indicado, igual que el
+    // resolver habitual pero sin depender de `disponible_principal`. El precio
+    // sigue viniendo del catálogo.
+    const resolverLibrosDeDeposito = async (
+        libros: LibroCantidad[],
+        depositoId: number,
+        userId: number,
+        aplicarLimiteNegativo = true
+    ): Promise<LibroOperacion[]> => {
+        const infoPorLibro = await Promise.all(
+            libros.map(async (item) => {
+                const libro = await libroService.findOne(item.isbn, userId);
+                return { isbn: item.isbn, id_libro: libro.id_libro, titulo: libro.titulo, precio: libro.precio, limiteNegativo: libro.stock_negativo_permitido };
+            })
+        );
+        const cantidades = await depositoRepository.getCantidades(
+            depositoId,
+            userId,
+            infoPorLibro.map((l) => l.id_libro)
+        );
+        const cantidadPorId = new Map(cantidades.map((c) => [c.id_libro, c.cantidad]));
+
+        return libros.map((item, i) => {
+            const info = infoPorLibro[i]!;
+            const fisica = cantidadPorId.get(info.id_libro) ?? 0;
+
+            return {
+                id_libro: info.id_libro,
+                isbn: item.isbn,
+                titulo: info.titulo,
+                cantidad: item.cantidad,
+                precio: info.precio,
+                stock: aplicarLimiteNegativo
+                    ? Math.max(0, fisica + info.limiteNegativo)
+                    : Math.max(0, fisica)
+            };
+        });
     };
 
     // Caso borde: si el cliente nunca tuvo ese libro en consignación, no hay
@@ -140,9 +182,19 @@ export function createOperacionConfig({ libroService, clienteStockService, depos
         bodyParser: createVenta,
         // `VentaFirme.clientValidation` (MySQL) no la sobreescribía: siempre true.
         clientValidation: () => true,
-        resolverLibros: (libros, _cliente, userId) => resolverLibrosDeLibro(libros, userId, true),
-        obtenerExtremos: async (_cliente, userId) => ({
-            origen: await principal(userId),
+        resolverLibros: async (libros, _cliente, userId, args) => {
+            // Si se eligió un depósito de origen (ver specs/018), lee el stock
+            // de ese depósito; de lo contrario, usa el principal (comportamiento
+            // habitual, backward compatible).
+            if (args?.depositoId) {
+                return resolverLibrosDeDeposito(libros, args.depositoId, userId, true);
+            }
+            return resolverLibrosDeLibro(libros, userId, true);
+        },
+        obtenerExtremos: async (_cliente, userId, args) => ({
+            origen: args?.depositoId
+                ? { tipo: "deposito" as const, id: args.depositoId }
+                : await principal(userId),
             destino: { tipo: "exterior" }
         }),
         generarComprobante: facturarSiCorresponde
