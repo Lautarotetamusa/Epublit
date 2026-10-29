@@ -39,7 +39,13 @@ export const createVenta = ventaSchema.pick({
     descuento: true,
     medio_pago: true,
     tipo_cbte: true,
-}).and(createTransaccion);
+}).and(z.object({
+    // Depósito de origen para la venta en firme (ver specs/018). Opcional:
+    // si falta, se usa el principal (backward compatible). No se incluye en
+    // el pick de `ventaSchema` porque no existe columna `deposito_id` en
+    // `ventas` — es un parámetro operativo, no una columna persistente.
+    deposito_id: z.number().int().positive().optional()
+}).strict()).and(createTransaccion);
 
 export const createVentaConsignado = createVenta.and(z.object({
     fecha_venta: z.coerce.date()

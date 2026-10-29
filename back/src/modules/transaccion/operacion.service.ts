@@ -23,7 +23,7 @@ export type OperacionServiceDeps = {
     // Resuelve/valida el medio de pago de la cuenta al vender (404 si es
     // inexistente, ajeno o está dado de baja) y lista los activos.
     medioPagoService: MedioPagoService;
-    depositoRepository: Pick<DepositoRepository, "moveStock">;
+    depositoRepository: Pick<DepositoRepository, "moveStock" | "findPropio" | "findClienteDeposito">;
     // Misma disponibilidad y bloqueo que las reservas del ecommerce (ver
     // specs/016-tienda-ecommerce, tarea 5).
     availabilityService: Pick<AvailabilityService, "assertCanSell">;
@@ -86,13 +86,18 @@ export function createOperacionService({
 }: OperacionServiceDeps) {
     // Forma pública de una venta: el medio se expone como objeto (nombre leído
     // en vivo) y la comisión guardada se usa para derivar el neto.
+    // `origen_deposito_id`/`nombre` vienen del join al depósito de origen del
+    // movimiento (ver specs/018).
     const toVentaPublica = (
-        { id_medio_pago, medio_pago_nombre, comision, ...resto }: VentaConMovimiento,
+        { id_medio_pago, medio_pago_nombre, comision, origen_deposito_id, origen_deposito_nombre, ...resto }: VentaConMovimiento,
         comprobante: ComprobanteResumen | null
     ) => ({
         ...resto,
         comprobante,
         medio_pago: { id: id_medio_pago, nombre: medio_pago_nombre, comision },
+        origen_deposito: origen_deposito_id
+            ? { id: origen_deposito_id, nombre: origen_deposito_nombre ?? `Depósito ${origen_deposito_id}` }
+            : null,
         neto: calcularNeto(resto.total, comision)
     });
 
@@ -160,7 +165,21 @@ export function createOperacionService({
             throw new ValidationError(`No se le puede hacer una ${config.tipo} a un cliente de tipo ${cliente.tipo}`);
         }
 
-        const libros = await config.resolverLibros(body.libros, cliente, user.id, { fecha: body.fecha_venta });
+        // Depósito de origen elegido en el body (ver specs/018): sólo `venta`
+        // lo acepta. Se valida antes de resolver libros — 404 si no existe,
+        // no es del usuario o es depósito de un cliente. Para los demás tipos de
+        // operación el campo se ignora.
+        const depositoId = (body as { deposito_id?: number }).deposito_id;
+        if (config.tipo === "venta" && depositoId) {
+            await depositoRepository.findPropio(depositoId, user.id);
+        }
+
+        const libros = await config.resolverLibros(
+            body.libros,
+            cliente,
+            user.id,
+            { fecha: body.fecha_venta, depositoId: config.tipo === "venta" ? depositoId : undefined }
+        );
         validarStock(libros);
 
         if (config.esVenta && (user.punto_venta === null || user.punto_venta === undefined)) {
@@ -172,7 +191,11 @@ export function createOperacionService({
         // (sólo `venta`/`ventaConsignacion` tienen `esVenta`).
         const medioPago = config.esVenta ? await medioPagoService.findActivo(body.medio_pago!, user.id) : null;
 
-        const { origen, destino } = await config.obtenerExtremos(cliente, user.id);
+        const { origen, destino } = await config.obtenerExtremos(
+            cliente,
+            user.id,
+            { depositoId: config.tipo === "venta" ? depositoId : undefined }
+        );
 
         const data = await db.transaction(async (tx) => {
             // Revalida dentro de la transacción y con las filas de libro
@@ -288,12 +311,24 @@ export function createOperacionService({
 
         if (data.venta === null) return operacionPublica;
 
+        // `origen` ya tiene el depósito de origen (elegido o principal)
+        // resuelto por `obtenerExtremos` (ver specs/018). Se relee para
+        // devolver también el nombre, igual que el detalle de la venta: en
+        // venta en firme el origen es un depósito propio; en venta sobre
+        // consignación, el depósito del cliente.
+        const origenDeposito = origen.tipo === "deposito"
+            ? config.tipo === "venta"
+                ? await depositoRepository.findPropio(origen.id, user.id)
+                : await depositoRepository.findClienteDeposito(cliente.id, user.id)
+            : null;
+
         return {
             ...operacionPublica,
             id_transaccion: data.venta.id_movimiento,
             descuento: data.venta.descuento,
             total: data.venta.total,
             medio_pago: medioPago,
+            origen_deposito: origenDeposito ? { id: origenDeposito.id, nombre: origenDeposito.nombre } : null,
             neto: calcularNeto(data.venta.total, data.venta.comision),
             tipo_cbte: data.venta.tipo_cbte
         };

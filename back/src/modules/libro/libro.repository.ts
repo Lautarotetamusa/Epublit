@@ -7,7 +7,7 @@ import { personasTable } from "../persona/persona.schema";
 import { rolesTable } from "../rol/rol.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
 import { libroFilterMap } from "./libro.filter";
-import { disponibleEnPrincipal, stockDeLibro } from "./libro.stock";
+import { disponibleEnPrincipal, stockDeLibro, cantidadEnDeposito } from "./libro.stock";
 import { Libro } from "./libro.validator";
 import { NotFound } from "bradb";
 
@@ -54,6 +54,30 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
             )
             .$dynamic();
 
+    // Variant del select que incluye `disponible_en_deposito` (ver specs/018):
+    // cantidad física del libro en un depósito específico. Se usa sólo cuando
+    // el query param `deposito_id` está presente; la lectura habitual no trae
+    // esta columna para no pagar el costo de la subquery innecesaria.
+    const selectConColeccionYDeposito = (depositoId: number) =>
+        db
+            .select({
+                ...getTableColumns(librosTable),
+                stock: stockDeLibro(),
+                disponible_principal: disponibleEnPrincipal(),
+                coleccion_titulo: coleccionesTable.titulo,
+                disponible_en_deposito: cantidadEnDeposito(depositoId)
+            })
+            .from(librosTable)
+            .leftJoin(
+                coleccionesTable,
+                and(
+                    eq(coleccionesTable.id, librosTable.coleccion_id),
+                    eq(coleccionesTable.user, librosTable.user),
+                    isNull(coleccionesTable.deletedAt)
+                )
+            )
+            .$dynamic();
+
     // Ordenado por título: mismo `ORDER BY titulo ASC` que el `Libro.getAll`
     // actual. `ServiceBuilder.findAll` no expone `orderBy` en su firma, así que
     // se resuelve con un `select` custom, igual que `selectWithoutPassword` en
@@ -69,6 +93,29 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
     // separados que tenía antes `GET /libro` (uno paginado sin filtros, uno
     // filtrado sin paginar) por uno solo, siempre paginado y filtrable.
     const findAllPaginated = builder.findAll(selectOrderedByTitulo, true);
+
+    // Variantes con `disponible_en_deposito` para `GET /libro?deposito_id=N`
+    // (ver specs/018): el depósito ya fue validado por el service (404 si no
+    // existe o no es del usuario).
+    // `builder.findAll` recibe una factory function que ejecuta `$dynamic()`
+    // interno. La factory cierra sobre `depositoId` para incluir la columna
+    // extra. `.orderBy()` se aplica igual que en `selectOrderedByTitulo`.
+    const findAllOrderedWithDeposito = (
+        depositoId: number,
+        filters: Parameters<typeof findAllOrdered>[0]
+    ) => {
+        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(librosTable.titulo);
+        return builder.findAll(selectFn, false)(filters);
+    };
+
+    const findAllPaginatedWithDeposito = async (
+        depositoId: number,
+        filters: Parameters<typeof findAllPaginated>[0],
+        pagination: Parameters<typeof findAllPaginated>[1]
+    ) => {
+        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(librosTable.titulo);
+        return builder.findAll(selectFn, true)(filters, pagination);
+    };
 
     const update = builder.update();
     const insert = builder.create();
@@ -180,6 +227,8 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         exists,
         findAllOrdered,
         findAllPaginated,
+        findAllOrderedWithDeposito,
+        findAllPaginatedWithDeposito,
         insert,
         update,
         remove,
