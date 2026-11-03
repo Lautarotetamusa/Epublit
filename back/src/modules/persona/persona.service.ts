@@ -79,8 +79,9 @@ export function createPersonaService({ repository, storage, userRepository, rolR
 
     const findAll = async (
         userId: Parameters<PersonaRepository["findAll"]>[0],
-        pagination: Parameters<PersonaRepository["findAll"]>[1]
-    ) => toPublicList(await repository.findAll(userId, pagination));
+        pagination: Parameters<PersonaRepository["findAll"]>[1],
+        nombre?: string
+    ) => toPublicList(await repository.findAll(userId, pagination, nombre));
 
     // Filtro del listado por rol de la cuenta (ver specs/011-roles, tarea 10):
     // un id que no es un rol de la cuenta es 400; un rol dado de baja sigue
@@ -88,13 +89,14 @@ export function createPersonaService({ repository, storage, userRepository, rolR
     const getAllByRol = async (
         rolId: number,
         userId: number,
-        pagination: Parameters<PersonaRepository["getAllByRol"]>[2]
+        pagination: Parameters<PersonaRepository["getAllByRol"]>[2],
+        nombre?: string
     ) => {
         if (!(await rolRepository.existsEnCuenta(rolId, userId))) {
             throw new ValidationError(`No existe un rol con id ${rolId}`);
         }
 
-        return repository.getAllByRol(rolId, userId, pagination);
+        return repository.getAllByRol(rolId, userId, pagination, nombre);
     };
 
     // Valida contra las restricciones configuradas por el usuario dueño de

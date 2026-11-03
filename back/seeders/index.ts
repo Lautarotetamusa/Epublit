@@ -73,7 +73,7 @@ async function main(): Promise<void> {
         comprobanteService: comprobante.service,
         availabilityService
     });
-    const liquidaciones = createLiquidacionesModule({ db });
+    const liquidaciones = createLiquidacionesModule({ db, anticipoRepository: anticipo.repository });
 
     const users = await seedUsers(user.service);
     await seedColecciones(users, coleccion.service);

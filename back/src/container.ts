@@ -116,6 +116,7 @@ export function createContainer({
     const tienda = createTiendaModule({
         db,
         libroService: libro.service,
+        coleccionService: coleccion.service,
         depositoRepository: deposito.repository,
         availabilityService,
         cipher,
@@ -133,7 +134,7 @@ export function createContainer({
         rateLimits: tiendaOverrides.rateLimits ?? DEFAULT_PUBLIC_RATE_LIMITS
     });
 
-    const liquidaciones = createLiquidacionesModule({ db });
+    const liquidaciones = createLiquidacionesModule({ db, anticipoRepository: anticipo.repository });
     const liquidacion = createLiquidacionModule({ liquidacionesService: liquidaciones.service });
     const metricas = createMetricasModule({ db });
 

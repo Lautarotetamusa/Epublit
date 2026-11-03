@@ -21,12 +21,16 @@ export type PersonaLiquidacionDetalle = {
     rol: Rol;
     porcentaje: number;
     importe: number;
+    // Parte del importe descontada de un anticipo del libro.
+    anticipo: number;
 };
 
 export type PersonaLiquidada = {
     id_persona: number;
     nombre: string;
     detalle: PersonaLiquidacionDetalle[];
+    total_bruto: number;
+    anticipo: number;
     total_a_pagar: number;
 };
 
@@ -47,6 +51,7 @@ export type Liquidacion = {
     libros: LibroLiquidado[];
     personas: PersonaLiquidada[];
     total_facturado: number;
+    total_anticipos: number;
     ejemplares_vendidos: number;
     excluidas: Excluida[];
 };

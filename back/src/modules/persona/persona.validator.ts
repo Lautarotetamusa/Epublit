@@ -16,7 +16,10 @@ const insert = createInsertSchema(personasTable).omit({
 const update = insert.partial();
 const filter = z
     .object({
-        user: z.number()
+        user: z.number(),
+        // Búsqueda parcial por nombre, sin distinguir mayúsculas (ver
+        // persona.filter.ts). El largo máximo es el de la columna.
+        nombre: z.string().trim().min(1).max(60)
     })
     .partial();
 const pk = createPkSchema(personasTable).pick({

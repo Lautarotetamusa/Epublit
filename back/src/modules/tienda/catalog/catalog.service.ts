@@ -1,10 +1,12 @@
 import type { LibroService } from "../../libro";
+import type { ColeccionService } from "../../coleccion";
 import type { Pagination } from "../../../lib/http/responses";
 import { CatalogRepository } from "./catalog.repository";
 import { toBookDetail, toBookSummary } from "./catalog.serializer";
 
 export type CatalogServiceDeps = {
     libroService: LibroService;
+    colecciones: Pick<ColeccionService, "findAll">;
     repository: CatalogRepository;
 };
 
@@ -19,7 +21,7 @@ const paginacion = (query: CatalogQuery): Pagination => ({
     pageSize: query.porPagina
 });
 
-export function createCatalogService({ libroService, repository }: CatalogServiceDeps) {
+export function createCatalogService({ libroService, colecciones, repository }: CatalogServiceDeps) {
     const getConfig = async (userId: number) => {
         const { envio, mercadoPagoConnected } = await repository.getConfiguration(userId);
 
@@ -57,10 +59,16 @@ export function createCatalogService({ libroService, repository }: CatalogServic
             ...(query.buscar ? { buscar: query.buscar } : {})
         };
 
-        const { libros } = await libroService.findCatalogoPaginated(filtros, pagination);
+        const [{ libros }, ultimos] = await Promise.all([
+            libroService.findCatalogoPaginated(filtros, pagination),
+            repository.findUltimosIds(userId, 3)
+        ]);
+        const idsNovedad = new Set(ultimos);
 
         return {
-            libros: libros.map(({ libro, personas }) => toBookSummary(libro, personas)),
+            libros: libros.map(({ libro, personas }) =>
+                toBookSummary(libro, personas, idsNovedad.has(libro.id_libro))
+            ),
             total: pagination.total ?? libros.length,
             pagina: query.pagina,
             porPagina: query.porPagina
@@ -68,14 +76,35 @@ export function createCatalogService({ libroService, repository }: CatalogServic
     };
 
     const getBook = async (isbn: string, userId: number) => {
-        const libro = await libroService.findOneWithPersonas(isbn, userId);
-        return toBookDetail(libro);
+        const [libro, ultimos] = await Promise.all([
+            libroService.findOneWithPersonas(isbn, userId),
+            repository.findUltimosIds(userId, 3)
+        ]);
+
+        return toBookDetail(libro, ultimos.includes(libro.id_libro));
+    };
+
+    // Las colecciones de la cuenta, con su portada y cantidad de libros. El
+    // storefront arma con esto la sección de colecciones y los filtros.
+    const getCollections = async (userId: number) => {
+        const delUsuario = await colecciones.findAll(userId);
+
+        return {
+            colecciones: delUsuario.map((coleccion) => ({
+                id: coleccion.id,
+                titulo: coleccion.titulo,
+                descripcion: coleccion.descripcion,
+                portadaUrl: coleccion.portada_url,
+                cantidadLibros: coleccion.cantidad_libros
+            }))
+        };
     };
 
     return {
         getConfig,
         getBooks,
-        getBook
+        getBook,
+        getCollections
     };
 }
 

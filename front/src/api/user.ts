@@ -26,6 +26,13 @@ export type User = {
 export type UpdateUserInput = Partial<{
     email: string;
     punto_venta: number;
+    // Datos fiscales del emisor: se pueden corregir desde el perfil sin
+    // depender del padrón de AFIP (ver specs/019-ajustes-liquidaciones-fiscales-edad).
+    cond_fiscal: string;
+    razon_social: string;
+    domicilio: string;
+    ingresos_brutos: boolean;
+    fecha_inicio: string;
     // `null` limpia la restricción ("sin límite"), a diferencia del resto
     // de los campos donde no mandar la clave ya significa "no tocar".
     fotoPersonaMaxSizeMb: number | null;

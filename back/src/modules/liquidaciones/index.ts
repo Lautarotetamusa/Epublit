@@ -8,6 +8,7 @@ import { createLiquidacionesRepository } from "./liquidaciones.repository";
 import { createLiquidacionesService } from "./liquidaciones.service";
 import { createLiquidacionesController } from "./liquidaciones.controller";
 import { createLiquidacionesRoutes } from "./liquidaciones.routes";
+import type { AnticipoRepository } from "../anticipo";
 
 export { liquidacionesValidator } from "./liquidaciones.validator";
 export type {
@@ -30,11 +31,13 @@ export type { LiquidacionesRepository } from "./liquidaciones.repository";
 
 export type LiquidacionesModuleDeps = {
     db: Database;
+    // Recuperación de anticipos pagados en el cálculo de la liquidación.
+    anticipoRepository: Pick<AnticipoRepository, "getDisponiblesPorLibros" | "acumularRecuperado">;
 };
 
-export function createLiquidacionesModule({ db }: LiquidacionesModuleDeps) {
+export function createLiquidacionesModule({ db, anticipoRepository }: LiquidacionesModuleDeps) {
     const repository = createLiquidacionesRepository({ db });
-    const service = createLiquidacionesService({ db, repository });
+    const service = createLiquidacionesService({ db, repository, anticipoRepository });
     const controller = createLiquidacionesController({ service });
     const router = createLiquidacionesRoutes(controller);
 

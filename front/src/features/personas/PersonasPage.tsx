@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Table, Pagination, Button, IconButton, EmptyState, Avatar, Field, Select } from "../../design-system";
+import { Card, Table, Pagination, Button, IconButton, EmptyState, Avatar, Field, Input, Select } from "../../design-system";
 import type { Persona } from "../../api/persona";
 import { usePersonas } from "./usePersonas";
 import { useRoles } from "../roles/useRoles";
@@ -15,7 +15,7 @@ export function PersonasPage() {
     // manda el filtro.
     const [idRol, setIdRol] = useState<number | "">("");
     const rolFiltrado = roles.find((rol) => rol.id === idRol) ?? null;
-    const { personas, pagination, page, setPage, loading, remove } = usePersonas(rolFiltrado);
+    const { personas, pagination, page, setPage, loading, nombre, setNombre, remove } = usePersonas(rolFiltrado);
     const { showToast } = useToast();
     const confirm = useConfirm();
     const navigate = useNavigate();
@@ -49,8 +49,25 @@ export function PersonasPage() {
             }
             padded={false}
         >
-            <div style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border-subtle)" }}>
-                <Field label="Rol" style={{ maxWidth: 420 }}>
+            <div
+                style={{
+                    padding: "var(--space-4)",
+                    borderBottom: "1px solid var(--border-subtle)",
+                    display: "flex",
+                    flexWrap: "wrap",
+                    alignItems: "flex-end",
+                    gap: "var(--space-3)"
+                }}
+            >
+                <Field label="Nombre" style={{ flex: "1 1 260px", maxWidth: 420 }}>
+                    <Input
+                        iconStart="search"
+                        placeholder="Buscar por nombre..."
+                        value={nombre}
+                        onChange={(e) => setNombre(e.target.value)}
+                    />
+                </Field>
+                <Field label="Rol" style={{ flex: "0 1 260px", maxWidth: 420 }}>
                     <Select
                         value={idRol === "" ? "" : String(idRol)}
                         onChange={(e) => setIdRol(e.target.value === "" ? "" : Number(e.target.value))}
@@ -105,6 +122,12 @@ export function PersonasPage() {
                 empty={
                     loading ? (
                         "Cargando..."
+                    ) : nombre.trim() ? (
+                        <EmptyState
+                            icon="search"
+                            title={`No hay personas que coincidan con «${nombre.trim()}»`}
+                            description="Probá con otro nombre o quitá el filtro."
+                        />
                     ) : rolFiltrado ? (
                         <EmptyState
                             icon="users"

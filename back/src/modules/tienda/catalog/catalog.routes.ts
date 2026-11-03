@@ -6,6 +6,7 @@ export function createCatalogRoutes(controller: CatalogController) {
     const router = express.Router();
 
     router.get("/config", controller.getConfig);
+    router.get("/colecciones", controller.getCollections);
     router.get("/libros", controller.getBooks);
     router.get("/libros/:isbn", controller.getBook);
 

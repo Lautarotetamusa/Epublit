@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMe, updateMe } from "../../api/user";
+import { getMe, updateMe, refreshAfipData } from "../../api/user";
 import type { User, UpdateUserInput } from "../../api/user";
 
 export function usePerfil() {
@@ -21,5 +21,12 @@ export function usePerfil() {
         setUser(response.data);
     };
 
-    return { user, loading, update };
+    // Vuelve a resolver los datos fiscales del padrón de AFIP (mismo caso de
+    // uso que usa el alta de la cuenta, ver back user.service.ts#refreshAfipData).
+    const refreshFromAfip = async () => {
+        const response = await refreshAfipData();
+        setUser(response.data);
+    };
+
+    return { user, loading, update, refreshFromAfip };
 }

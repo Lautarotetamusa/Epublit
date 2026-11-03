@@ -23,7 +23,12 @@ export const librosTable = pgTable(
         largo: real("largo"),
         paginas: integer("paginas"),
         brief: text("brief"),
-        edad_recomendada: integer("edad_recomendada"),
+        // Rango de edad recomendada (ver specs/019-ajustes-liquidaciones-fiscales-edad): ambos
+        // extremos son opcionales e independientes. `edad_min = 0` con
+        // `edad_max = 3` se muestra "0 a 3 años"; sólo `edad_min = 8` se
+        // muestra "+8 años". El viejo `edad_recomendada` era un único mínimo.
+        edad_min: integer("edad_min"),
+        edad_max: integer("edad_max"),
         book_trailer_url: varchar("book_trailer_url", { length: 500 }),
         // Key de storage (ver src/lib/storage), no la URL pública: la URL se
         // arma en el service con `storage.getUrl(portada_key)`, igual que
@@ -60,6 +65,9 @@ export const librosTable = pgTable(
             .on(table.isbn, table.user)
             .where(sql`deleted_at IS NULL`),
         check("libros_stock_negativo_permitido_no_negativo", sql`${table.stock_negativo_permitido} >= 0`),
-        check("libros_peso_kg_positivo", sql`${table.peso_kg} is null or ${table.peso_kg} > 0`)
+        check("libros_peso_kg_positivo", sql`${table.peso_kg} is null or ${table.peso_kg} > 0`),
+        check("libros_edad_min_no_negativa", sql`${table.edad_min} is null or ${table.edad_min} >= 0`),
+        check("libros_edad_max_no_negativa", sql`${table.edad_max} is null or ${table.edad_max} >= 0`),
+        check("libros_edad_rango_valido", sql`${table.edad_min} is null or ${table.edad_max} is null or ${table.edad_max} >= ${table.edad_min}`)
     ]
 );

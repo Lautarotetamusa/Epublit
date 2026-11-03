@@ -19,6 +19,7 @@ import type { LabelService } from "./label.service";
 import type { TrackingService } from "./tracking.service";
 import type { OrderAdminRepository, ListOrdersFilter } from "./orderAdmin.repository";
 import type { OrderRepository, OrderRow } from "./order.repository";
+import { tipoComprobanteFiscal } from "../../../lib/afip/fiscal";
 import { toOrderDetail, toOrderSummary, type OrderDetailData } from "./orderAdmin.serializer";
 import { OrderAdminError } from "./orderAdmin.errors";
 import {
@@ -54,7 +55,6 @@ export type OrderAdminServiceDeps = {
 };
 
 const MERCADOPAGO = "mercadopago";
-const FACTURA_B = 6;
 
 export function createOrderAdminService({
     db,
@@ -240,7 +240,7 @@ export function createOrderAdminService({
                     idCliente: cliente.id,
                     idMedioPago: medioPago.id,
                     comision: medioPago.comision,
-                    tipoCbte: FACTURA_B,
+                    tipoCbte: tipoComprobanteFiscal(user.cond_fiscal, cliente.cond_fiscal),
                     descuento: 0,
                     total: pedido.total,
                     lines,

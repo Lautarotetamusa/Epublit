@@ -35,6 +35,8 @@ export type PersonaAPagar = {
     id_persona: number;
     nombre: string;
     roles: Rol[];
+    total_bruto: number;
+    anticipo: number;
     total: number;
     pagado: number;
     saldo: number;
@@ -76,6 +78,7 @@ export type Previsualizacion = {
     desde: string;
     hasta: string;
     total: number;
+    anticipos: number;
     ejemplares: number;
     libros: LibroLiquidado[];
     personas: PersonaLiquidada[];
@@ -108,6 +111,7 @@ export async function previsualizarLiquidacion(desde: string, hasta: string): Pr
         desde,
         hasta,
         total: data.personas.reduce((suma, persona) => suma + persona.total_a_pagar, 0),
+        anticipos: data.total_anticipos,
         ejemplares: data.ejemplares_vendidos,
         libros: data.libros,
         personas: data.personas,

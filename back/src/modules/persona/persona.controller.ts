@@ -51,10 +51,16 @@ export function createPersonaController({ service }: PersonaControllerDeps) {
     const getAll: RequestHandler = async (req, res) => {
         const userId = res.locals.user.id;
         const pagination = newPagination(req.query);
+        const nombre = personaValidator.filter.shape.nombre.parse(req.query.nombre);
 
         const personas = 'rol' in req.query
-            ? await service.getAllByRol(z.coerce.number().int().positive().parse(req.query.rol), userId, pagination)
-            : await service.findAll(userId, pagination);
+            ? await service.getAllByRol(
+                  z.coerce.number().int().positive().parse(req.query.rol),
+                  userId,
+                  pagination,
+                  nombre
+              )
+            : await service.findAll(userId, pagination, nombre);
 
         list(res, personas, pagination);
     }

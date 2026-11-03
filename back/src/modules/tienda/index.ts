@@ -5,6 +5,7 @@ import { Storage } from "../../lib/storage/storage";
 import { ClienteRepository } from "../cliente";
 import { DepositoRepository } from "../deposito";
 import { LibroService } from "../libro";
+import { ColeccionService } from "../coleccion";
 import { MedioPagoService } from "../medioPago";
 import { UserRepository } from "../user";
 import { SaleService } from "../transaccion/sale.service";
@@ -56,6 +57,7 @@ import { createWebhookService } from "./payment/webhook.service";
 export type TiendaModuleDeps = {
     db: Database;
     libroService: LibroService;
+    coleccionService: Pick<ColeccionService, "findAll">;
     depositoRepository: Pick<DepositoRepository, "findPrincipal">;
     // El contenedor arma una sola instancia y la comparte con transacción.
     availabilityService: AvailabilityService;
@@ -80,6 +82,7 @@ export type TiendaModuleDeps = {
 export function createTiendaModule({
     db,
     libroService,
+    coleccionService,
     depositoRepository,
     availabilityService,
     cipher,
@@ -102,7 +105,7 @@ export function createTiendaModule({
     const router = createIntegrationRoutes(integrationController);
 
     const catalogRepository = createCatalogRepository({ db });
-    const catalogService = createCatalogService({ libroService, repository: catalogRepository });
+    const catalogService = createCatalogService({ libroService, colecciones: coleccionService, repository: catalogRepository });
     const catalogController = createCatalogController({ service: catalogService });
     const catalogRouter = createCatalogRoutes(catalogController);
 

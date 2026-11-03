@@ -257,6 +257,19 @@ describe("Listado de pedidos", () => {
         expect(primera.body.pedidos[0].codigo).not.toBe(segunda.body.pedidos[0].codigo);
     });
 
+    it("busca por comprador ignorando acentos", async () => {
+        const codigo = await crearPedido({ email: "acento@test.com" });
+
+        await db
+            .update(ordersTable)
+            .set({ comprador_nombre: "Juan Pérez" })
+            .where(and(eq(ordersTable.codigo, codigo), eq(ordersTable.user, userId)));
+
+        const res = await authRequest(request(app).get("/pedidos?buscar=perez&porPagina=100"));
+        expect(res.status).toBe(200);
+        expect(res.body.pedidos.map((pedido: { codigo: string }) => pedido.codigo)).toContain(codigo);
+    });
+
     it("interpreta fechas inclusivas en hora argentina", async () => {
         const dentro = await crearPedido({ email: "rango.dentro@test.com" });
         const fuera = await crearPedido({ email: "rango.fuera@test.com" });

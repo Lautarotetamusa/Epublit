@@ -69,7 +69,8 @@ export type CreateVentaInput = {
     descuento?: number;
     // Id del medio de pago de la cuenta (ya no el valor fijo de antes).
     medio_pago: number;
-    tipo_cbte: TipoCbte;
+    // `tipo_cbte` ya no lo manda el cliente: el backend decide A/B/C según la
+    // condición frente al IVA de la cuenta y del cliente.
 };
 
 export type CreateVentaConsignacionInput = CreateVentaInput & {

@@ -26,10 +26,17 @@ export function createCatalogController({ service }: CatalogControllerDeps) {
         res.status(200).json(libro);
     };
 
+    const getCollections: RequestHandler = async (_req, res) => {
+        const colecciones = await service.getCollections(res.locals.integracion.userId);
+
+        res.status(200).json(colecciones);
+    };
+
     return {
         getConfig,
         getBooks,
-        getBook
+        getBook,
+        getCollections
     };
 }
 

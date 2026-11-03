@@ -41,6 +41,13 @@ export function StockLibroCard({ libro }: { libro: Libro }) {
             title="Stock"
             subtitle="La suma de los depósitos donde está el libro, incluido lo consignado en clientes. Sólo se modifica con movimientos."
             padded={false}
+            footer={
+                libro.stock_negativo_permitido > 0
+                    ? `La tienda online puede vender hasta ${libro.stock_negativo_permitido} ${
+                          libro.stock_negativo_permitido === 1 ? "ejemplar" : "ejemplares"
+                      } sin stock en el depósito principal.`
+                    : "La tienda online no puede vender si no hay stock en el depósito principal."
+            }
             actions={
                 <Button variant="secondary" size="sm" iconStart="arrow-right" onClick={irAIngreso}>
                     Registrar movimiento

@@ -6,6 +6,7 @@ import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { librosTable } from "../libro/libro.schema";
 import { rolesTable } from "../rol/rol.schema";
 import { stockDeLibro } from "../libro/libro.stock";
+import { ilikeSinAcentos } from "../../lib/sql/search";
 import { personaFilterMap } from "./persona.filter";
 
 export type PersonaRepositoryDeps = {
@@ -37,14 +38,14 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
     };
 
     const findAllPaginated = builder.findAll(true);
-    const findAll = async (userId: number, pagination: Pagination) => {
-        return findAllPaginated({ user: userId }, pagination);
+    const findAll = async (userId: number, pagination: Pagination, nombre?: string) => {
+        return findAllPaginated({ user: userId, nombre }, pagination);
     };
 
     // Personas que participan de al menos un libro con ese rol de la cuenta
     // (ver specs/011-roles, tarea 10). El ownership del rol lo valida el
     // service antes de llegar acá.
-    const buildQueryByRol = (rolId: number, userId: number) =>
+    const buildQueryByRol = (rolId: number, userId: number, nombre?: string) =>
         db
             .selectDistinctOn([personasTable.id], {
                 id: personasTable.id,
@@ -59,17 +60,25 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
                 and(
                     isNull(personasTable.deletedAt),
                     eq(librosPersonasTable.id_rol, rolId),
-                    eq(personasTable.user, userId)
+                    eq(personasTable.user, userId),
+                    nombre ? ilikeSinAcentos(personasTable.nombre, nombre) : undefined
                 )
             )
             .$dynamic();
 
-    const getAllByRol = async (rolId: number, userId: number, pagination: Pagination) => {
-        const sub = buildQueryByRol(rolId, userId).as("sub");
+    const getAllByRol = async (
+        rolId: number,
+        userId: number,
+        pagination: Pagination,
+        nombre?: string
+    ) => {
+        const sub = buildQueryByRol(rolId, userId, nombre).as("sub");
         const [{ count: total }] = await db.select({ count: count() }).from(sub);
 
         const offset = (pagination.page - 1) * pagination.pageSize;
-        const items = await buildQueryByRol(rolId, userId).limit(pagination.pageSize).offset(offset);
+        const items = await buildQueryByRol(rolId, userId, nombre)
+            .limit(pagination.pageSize)
+            .offset(offset);
 
         pagination.total = total;
         pagination.count = items.length;

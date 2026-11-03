@@ -37,8 +37,7 @@ export type VentaSchema = z.infer<typeof ventaSchema>;
 
 export const createVenta = ventaSchema.pick({
     descuento: true,
-    medio_pago: true,
-    tipo_cbte: true,
+    medio_pago: true
 }).and(createTransaccion);
 
 export const createVentaConsignado = createVenta.and(z.object({

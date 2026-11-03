@@ -40,7 +40,10 @@ export const liquidacionPersonasTable = pgTable(
             .notNull()
             .references(() => personasTable.id),
         nombre: varchar("nombre", { length: 60 }).notNull(),
+        // `total` es el neto a pagar: importe de las regalías menos el
+        // anticipo recuperado en esta liquidación (`anticipo`).
         total: real("total").notNull(),
+        anticipo: real("anticipo").notNull().default(0),
         user: integer("user").notNull()
     },
     (table) => [
@@ -68,6 +71,8 @@ export const liquidacionLineasTable = pgTable(
         rol_nombre: varchar("rol_nombre", { length: 60 }).notNull(),
         porcentaje: real("porcentaje").notNull(),
         importe: real("importe").notNull(),
+        // Parte del importe de esta línea que se descontó de un anticipo.
+        anticipo: real("anticipo").notNull().default(0),
         user: integer("user").notNull()
     },
     (table) => [

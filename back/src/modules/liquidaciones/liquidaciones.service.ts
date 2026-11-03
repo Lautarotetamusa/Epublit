@@ -4,10 +4,13 @@ import { Conflict } from "../../lib/http/errors";
 import { aFechaISO } from "../../lib/fecha";
 import { LiquidacionesRepository } from "./liquidaciones.repository";
 import { LiquidacionPagoBody } from "./liquidaciones.validator";
+import type { AnticipoRepository } from "../anticipo";
 
 export type LiquidacionesServiceDeps = {
     db: Database;
     repository: LiquidacionesRepository;
+    // Anticipos ya pagados que se recuperan de las regalías del período.
+    anticipoRepository: Pick<AnticipoRepository, "getDisponiblesPorLibros" | "acumularRecuperado">;
 };
 
 export type EstadoLiquidacion = "pendiente" | "parcial" | "pagada";
@@ -27,12 +30,19 @@ export type DetalleLiquidacion = {
     rol: { id: number; nombre: string };
     porcentaje: number;
     importe: number;
+    // Parte del importe que se descontó de un anticipo del libro.
+    anticipo: number;
 };
 
 export type PersonaLiquidacion = {
     id_persona: number;
     nombre: string;
     detalle: DetalleLiquidacion[];
+    // Regalías del período antes de recuperar anticipos.
+    total_bruto: number;
+    // Anticipo recuperado en esta liquidación (0 si no había).
+    anticipo: number;
+    // Neto a pagar: `total_bruto - anticipo`.
     total_a_pagar: number;
 };
 
@@ -44,6 +54,7 @@ export type Excluida = {
 
 export type ReporteLiquidacion = {
     total_facturado: number;
+    total_anticipos: number;
     ejemplares_vendidos: number;
     libros: LibroLiquidacion[];
     personas: PersonaLiquidacion[];
@@ -67,6 +78,8 @@ export type PersonaFicha = {
     id_persona: number;
     nombre: string;
     roles: { id: number; nombre: string }[];
+    total_bruto: number;
+    anticipo: number;
     total: number;
     pagado: number;
     saldo: number;
@@ -141,6 +154,8 @@ const agruparPersonas = (
             id_persona: fila.id_persona,
             nombre: fila.nombre,
             detalle: [],
+            total_bruto: 0,
+            anticipo: 0,
             total_a_pagar: 0
         };
 
@@ -152,9 +167,10 @@ const agruparPersonas = (
             titulo: libro.titulo,
             rol: { id: fila.rol_id, nombre: fila.rol_nombre },
             porcentaje,
-            importe
+            importe,
+            anticipo: 0
         });
-        persona.total_a_pagar = round2(persona.total_a_pagar + importe);
+        persona.total_bruto = round2(persona.total_bruto + importe);
 
         personas.set(fila.id_persona, persona);
     }
@@ -162,10 +178,53 @@ const agruparPersonas = (
     return Array.from(personas.values());
 };
 
-export function createLiquidacionesService({ db, repository }: LiquidacionesServiceDeps) {
+type AnticipoDisponible = Awaited<ReturnType<AnticipoRepository["getDisponiblesPorLibros"]>>[number];
+type RecuperacionAnticipo = { id: number; monto: number };
+
+const claveAnticipo = (idPersona: number, idLibro: number, idRol: number): string => `${idPersona}:${idLibro}:${idRol}`;
+
+// Cada anticipo se descuenta contra la regalía de la misma persona, libro y
+// rol: un anticipo de un libro no se recupera con las regalías de otro. Si el
+// anticipo supera la regalía del período, se descuenta sólo lo que entra y el
+// saldo queda para la próxima liquidación (ver
+// specs/019-ajustes-liquidaciones-fiscales-edad).
+const aplicarAnticipos = (personas: PersonaLiquidacion[], anticipos: AnticipoDisponible[]): RecuperacionAnticipo[] => {
+    const disponibles = new Map<string, { id: number; saldo: number }>();
+    for (const anticipo of anticipos) {
+        disponibles.set(claveAnticipo(anticipo.id_persona, anticipo.id_libro, anticipo.id_rol), {
+            id: anticipo.id,
+            saldo: round2(anticipo.monto - anticipo.recuperado)
+        });
+    }
+
+    const recuperaciones: RecuperacionAnticipo[] = [];
+
+    for (const persona of personas) {
+        let totalAnticipo = 0;
+
+        for (const linea of persona.detalle) {
+            const anticipo = disponibles.get(claveAnticipo(persona.id_persona, linea.id_libro, linea.rol.id));
+            if (!anticipo || anticipo.saldo <= 0 || linea.importe <= 0) continue;
+
+            const descuento = round2(Math.min(linea.importe, anticipo.saldo));
+            linea.anticipo = descuento;
+            anticipo.saldo = round2(anticipo.saldo - descuento);
+            totalAnticipo = round2(totalAnticipo + descuento);
+            recuperaciones.push({ id: anticipo.id, monto: descuento });
+        }
+
+        persona.anticipo = totalAnticipo;
+        persona.total_a_pagar = round2(persona.total_bruto - totalAnticipo);
+    }
+
+    return recuperaciones;
+};
+
+export function createLiquidacionesService({ db, repository, anticipoRepository }: LiquidacionesServiceDeps) {
     // Cálculo base compartido por el reporte y por la generación: ventas del
     // período todavía no cubiertas, agrupadas por libro y por persona, más lo
-    // que quedó excluido por liquidaciones anteriores.
+    // que quedó excluido por liquidaciones anteriores y los anticipos que se
+    // recuperan con esas regalías.
     const calcular = async (userId: number, desde: string, hasta: string) => {
         const lineas = await repository.getLineasVenta(userId, inicioDelDia(desde), finDelDia(hasta));
 
@@ -175,10 +234,13 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
         const personasPorLibro = await repository.getPersonasPorLibro(libros.map((libro) => libro.id_libro), userId);
         const personas = agruparPersonas(personasPorLibro, librosMap);
 
+        const anticipos = await anticipoRepository.getDisponiblesPorLibros(libros.map((libro) => libro.id_libro), userId);
+        const recuperaciones = aplicarAnticipos(personas, anticipos);
+
         const excluidas = await repository.getExcluidas(userId, inicioDelDia(desde), finDelDia(hasta));
         const movimientoIds = Array.from(new Set(lineas.map((linea) => linea.movimiento_id)));
 
-        return { libros, personas, excluidas, movimientoIds };
+        return { libros, personas, excluidas, movimientoIds, recuperaciones };
     };
 
     const reporte = async (userId: number, desde: string, hasta: string): Promise<ReporteLiquidacion> => {
@@ -186,6 +248,7 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
 
         return {
             total_facturado: round2(libros.reduce((acc, libro) => acc + libro.importe_total, 0)),
+            total_anticipos: round2(personas.reduce((acc, persona) => acc + persona.anticipo, 0)),
             ejemplares_vendidos: libros.reduce((acc, libro) => acc + libro.cantidad_vendida, 0),
             libros,
             personas,
@@ -202,7 +265,7 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
     };
 
     const generar = async (userId: number, desde: string, hasta: string): Promise<FichaLiquidacion> => {
-        const { personas, movimientoIds } = await calcular(userId, desde, hasta);
+        const { personas, movimientoIds, recuperaciones } = await calcular(userId, desde, hasta);
 
         // Sin líneas no hay liquidación: un período sin ventas pendientes (sin
         // ventas, o todas ya cubiertas) no crea nada (ver
@@ -224,6 +287,7 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
                             id_persona: persona.id_persona,
                             nombre: persona.nombre,
                             total: persona.total_a_pagar,
+                            anticipo: persona.anticipo,
                             user: userId
                         }
                     ],
@@ -239,6 +303,7 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
                         rol_nombre: detalle.rol.nombre,
                         porcentaje: detalle.porcentaje,
                         importe: detalle.importe,
+                        anticipo: detalle.anticipo,
                         user: userId
                     })),
                     tx
@@ -249,6 +314,12 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
                 movimientoIds.map((movimientoId) => ({ movimiento_id: movimientoId, liquidacion_id: liquidacion.id, user: userId })),
                 tx
             );
+
+            // Se acumula dentro de la misma transacción: si la generación
+            // falla, el anticipo no queda como recuperado.
+            for (const recuperacion of recuperaciones) {
+                await anticipoRepository.acumularRecuperado(recuperacion.id, recuperacion.monto, userId, tx);
+            }
 
             return liquidacion.id;
         });
@@ -313,7 +384,8 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
                 titulo: linea.titulo,
                 rol: { id: linea.id_rol, nombre: linea.rol_nombre },
                 porcentaje: linea.porcentaje,
-                importe: linea.importe
+                importe: linea.importe,
+                anticipo: linea.anticipo
             });
             lineasPorPersona.set(linea.liquidacion_persona_id, detalle);
         }
@@ -336,6 +408,8 @@ export function createLiquidacionesService({ db, repository }: LiquidacionesServ
                 id_persona: persona.id_persona,
                 nombre: persona.nombre,
                 roles,
+                total_bruto: round2(persona.total + persona.anticipo),
+                anticipo: persona.anticipo,
                 total: persona.total,
                 pagado,
                 saldo: round2(persona.total - pagado),
