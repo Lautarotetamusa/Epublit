@@ -3,7 +3,6 @@ import { listPersonas, deletePersona } from "../../api/persona";
 import type { Persona } from "../../api/persona";
 import type { Rol } from "../../api/rol";
 import type { Pagination } from "../../api/client";
-import { getFotoMock } from "./personaFotoMock";
 
 const PAGE_SIZE = 10;
 
@@ -19,9 +18,7 @@ export function usePersonas(rol: Rol | null) {
     const fetchPersonas = useCallback(async () => {
         setLoading(true);
         const response = await listPersonas({ rol: rol ?? undefined, page, pageSize: PAGE_SIZE });
-        // Merge con el mock local de foto (ver personaFotoMock.ts): el
-        // listado real todavía no trae `fotoUrl` desde el backend.
-        setPersonas(response.items.map((p) => ({ ...p, fotoUrl: p.fotoUrl ?? getFotoMock(p.id) })));
+        setPersonas(response.items);
         setPagination(response.pagination);
         setLoading(false);
     }, [rol, page]);

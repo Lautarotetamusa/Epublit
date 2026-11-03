@@ -11,12 +11,14 @@ export type Persona = {
     dni: string;
     nombre: string;
     email: string | null;
-    // Campos nuevos (ver specs/004-persona-foto-bio/design.md — sección
-    // "Datos necesarios"): todavía no existen en el backend, así que el
-    // cliente los trata como opcionales.
+    // La API devuelve `foto_url` (snake_case); la UI usa `fotoUrl`.
     fotoUrl: string | null;
     bio: string | null;
 };
+
+// El backend sigue la convención snake_case del resto de la API. El mapeo se
+// hace acá, en el borde, para que los componentes no conozcan el detalle.
+type PersonaApi = Omit<Persona, "fotoUrl"> & { foto_url: string | null };
 
 // Un libro en el que participa la persona, con el rol de la cuenta con el que
 // participa (plan 011, tarea 12). Renombrar el rol cambia lo que devuelve esta
@@ -28,6 +30,13 @@ export type LibroDePersona = {
 };
 
 export type PersonaConLibros = Persona & { libros: LibroDePersona[] };
+
+type PersonaConLibrosApi = PersonaApi & { libros: LibroDePersona[] };
+
+const toPersona = (persona: PersonaApi): Persona => {
+    const { foto_url, ...rest } = persona;
+    return { ...rest, fotoUrl: foto_url };
+};
 
 export type CreatePersonaInput = {
     dni: string;
@@ -47,17 +56,49 @@ export type ListPersonasParams = {
     pageSize?: number;
 };
 
-export const listPersonas = (params: ListPersonasParams = {}): Promise<ListEnvelope<Persona>> => {
+export const listPersonas = async (params: ListPersonasParams = {}): Promise<ListEnvelope<Persona>> => {
     const { rol, page = 1, pageSize = 10 } = params;
+    const response = await api.get<ListEnvelope<PersonaApi>>(
+        `/persona${toQueryString({ rol: rol?.id, page, pageSize })}`
+    );
 
-    return api.get(`/persona${toQueryString({ rol: rol?.id, page, pageSize })}`);
+    return { ...response, items: response.items.map(toPersona) };
 };
 
-export const getPersona = (id: number): Promise<{ success: true; data: PersonaConLibros }> => api.get(`/persona/${id}`);
+export const getPersona = async (id: number): Promise<{ success: true; data: PersonaConLibros }> => {
+    const response = await api.get<{ success: true; data: PersonaConLibrosApi }>(`/persona/${id}`);
+    const { foto_url, ...rest } = response.data;
 
-export const createPersona = (input: CreatePersonaInput): Promise<{ success: true; data: Persona }> => api.post("/persona", input);
+    return { ...response, data: { ...rest, fotoUrl: foto_url } };
+};
 
-export const updatePersona = (id: number, input: UpdatePersonaInput): Promise<{ success: true; data: Persona }> =>
-    api.put(`/persona/${id}`, input);
+export const createPersona = async (input: CreatePersonaInput): Promise<{ success: true; data: Persona }> => {
+    const response = await api.post<{ success: true; data: PersonaApi }>("/persona", input);
+
+    return { ...response, data: toPersona(response.data) };
+};
+
+export const updatePersona = async (id: number, input: UpdatePersonaInput): Promise<{ success: true; data: Persona }> => {
+    const response = await api.put<{ success: true; data: PersonaApi }>(`/persona/${id}`, input);
+
+    return { ...response, data: toPersona(response.data) };
+};
 
 export const deletePersona = (id: number): Promise<{ success: true }> => api.del(`/persona/${id}`);
+
+// La foto se sube/reemplaza en un endpoint aparte, igual que la portada de un
+// libro: la persona tiene que existir antes. El backend valida tipo, tamaño y
+// resolución según la configuración de la cuenta.
+export const uploadPersonaFoto = async (id: number, file: File): Promise<{ success: true; data: Persona }> => {
+    const response = await api.postFile<{ success: true; data: PersonaApi }>(`/persona/${id}/foto`, "foto", file);
+
+    return { ...response, data: toPersona(response.data) };
+};
+
+// Idempotente del lado del backend: si la persona no tenía foto, igual responde
+// 200 con `foto_url` en null.
+export const removePersonaFoto = async (id: number): Promise<{ success: true; data: Persona }> => {
+    const response = await api.del<{ success: true; data: PersonaApi }>(`/persona/${id}/foto`);
+
+    return { ...response, data: toPersona(response.data) };
+};

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { getPersona, updatePersona } from "../../api/persona";
+import { getPersona, updatePersona, uploadPersonaFoto, removePersonaFoto } from "../../api/persona";
 import type { UpdatePersonaInput } from "../../api/persona";
-import { getFotoMock, setFotoMock, removeFotoMock } from "./personaFotoMock";
 
 export function useFichaPersona(id: number) {
     const [persona, setPersona] = useState<Awaited<ReturnType<typeof getPersona>>["data"] | null>(null);
@@ -10,7 +9,7 @@ export function useFichaPersona(id: number) {
 
     const fetchPersona = useCallback(async () => {
         const response = await getPersona(id);
-        setPersona({ ...response.data, fotoUrl: response.data.fotoUrl ?? getFotoMock(id) });
+        setPersona(response.data);
     }, [id]);
 
     useEffect(() => {
@@ -24,14 +23,12 @@ export function useFichaPersona(id: number) {
     };
 
     // La persona ya tiene que existir para poder tener foto (mismo criterio
-    // que la portada de libro: se sube en un segundo paso, nunca en el
-    // mismo request que la crea). Ver personaFotoMock.ts para por qué esto
-    // no llama a ningún endpoint todavía.
+    // que la portada de libro: se sube en un segundo paso, nunca en el mismo
+    // request que la crea).
     const uploadFoto = async (file: File) => {
         setUploadingFoto(true);
         try {
-            const url = URL.createObjectURL(file);
-            setFotoMock(id, url);
+            await uploadPersonaFoto(id, file);
             await fetchPersona();
         } finally {
             setUploadingFoto(false);
@@ -39,7 +36,7 @@ export function useFichaPersona(id: number) {
     };
 
     const removeFoto = async () => {
-        removeFotoMock(id);
+        await removePersonaFoto(id);
         await fetchPersona();
     };
 
