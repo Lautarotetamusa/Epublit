@@ -219,6 +219,28 @@ describe('PUT /user', () => {
         });
     });
 
+    it('permite corregir los datos fiscales del emisor (condición frente al IVA incluida)', async () => {
+        const fiscales = {
+            cond_fiscal: "Monotributo",
+            razon_social: "Editorial Fiscal SRL",
+            domicilio: "Calle Fiscal 123",
+            ingresos_brutos: true,
+            fecha_inicio: "01/03/2020"
+        };
+
+        await request(app)
+            .put('/user')
+            .set('Authorization', `Bearer ${token}`)
+            .send(fiscales)
+            .expect(200);
+
+        const res = await request(app)
+            .get('/user')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.body.data).toMatchObject(fiscales);
+    });
+
     it('No debería actualizar otros campos', async () => {
         const originalUsername = initialUserData.username;
         

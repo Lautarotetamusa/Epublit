@@ -19,6 +19,16 @@ const insert = createInsertSchema(usersTable);
 const update = z.object({
     email: z.string().min(1),
     punto_venta: z.number().gte(0),
+    // Datos fiscales del emisor (ver specs/019-ajustes-liquidaciones-fiscales-edad): antes sólo
+    // se podían cambiar por el padrón de AFIP (`PUT /user/afip`), así que una
+    // condición desactualizada en producción no se podía corregir a mano.
+    cond_fiscal: z.string().trim().min(1).max(50),
+    razon_social: z.string().trim().min(1).max(255),
+    domicilio: z.string().trim().min(1).max(100),
+    ingresos_brutos: z.boolean(),
+    // Formato dd/mm/aaaa del padrón; se acepta cualquier string corto para no
+    // bloquear cuentas que hoy tienen " - ".
+    fecha_inicio: z.string().trim().max(10),
     foto_persona_max_size_mb: z.number().positive().nullable(),
     foto_persona_min_ancho_px: z.number().int().positive().nullable(),
     foto_persona_min_alto_px: z.number().int().positive().nullable()

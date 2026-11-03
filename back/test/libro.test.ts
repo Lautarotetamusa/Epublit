@@ -54,6 +54,18 @@ describe('GET /libro', () => {
         }
     });
 
+    it('filtra por título ignorando acentos', async () => {
+        const res = await request(app)
+            .get('/libro?titulo=jardin')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
+        for (const l of res.body.items) {
+            expect(l.titulo.toLowerCase()).toContain('jardín');
+        }
+    });
+
     it('filtra por isbn exacto', async () => {
         const res = await request(app)
             .get(`/libro?isbn=${ISBN_LIBRO_1}`)

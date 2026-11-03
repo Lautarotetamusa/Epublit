@@ -77,6 +77,52 @@ describe('GET /persona', () => {
         expectBadRequest(await request(app).get(`/persona?rol=${rolAjeno}`).set('Authorization', `Bearer ${token}`));
         expectBadRequest(await request(app).get('/persona?rol=999999999').set('Authorization', `Bearer ${token}`));
     });
+
+    it('busca por nombre, sin distinguir mayúsculas', async () => {
+        const res = await request(app)
+            .get('/persona?nombre=ana')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
+        for (const persona of res.body.items) {
+            expect(persona.nombre.toLowerCase()).toContain('ana');
+        }
+    });
+
+    it('busca por nombre ignorando acentos', async () => {
+        const res = await request(app)
+            .get('/persona?nombre=gomez')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
+        for (const persona of res.body.items) {
+            expect(persona.nombre.toLowerCase()).toContain('gómez');
+        }
+    });
+
+    it('combina la búsqueda por nombre con el filtro por rol', async () => {
+        const res = await request(app)
+            .get(`/persona?rol=${rolAutor}&nombre=ana`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items.length).toBeGreaterThan(0);
+        for (const persona of res.body.items) {
+            expect(persona.nombre.toLowerCase()).toContain('ana');
+        }
+    });
+
+    it('sin coincidencias por nombre devuelve una lista vacía', async () => {
+        const res = await request(app)
+            .get('/persona?nombre=nombre-que-no-existe')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expect(res.body.items).toHaveLength(0);
+        expect(res.body.pagination.total).toEqual(0);
+    });
 });
 
 describe('GET /persona/:id', () => {

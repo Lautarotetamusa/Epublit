@@ -139,7 +139,7 @@ describe("GET /comprobantes/:id", () => {
             clase: "factura",
             estado: "emitida",
             plantillaVersion: 1,
-            tipo: { codigo: 11, letra: "C", nombre: "Factura C" },
+            tipo: { codigo: 6, letra: "B", nombre: "Factura B" },
             numero: expect.any(Number),
             numeroCompleto: expect.stringMatching(/^00001-\d{8}$/),
             fecha: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
@@ -151,7 +151,8 @@ describe("GET /comprobantes/:id", () => {
                 subtotal: 2000,
                 envio: 0,
                 descuento: 0,
-                neto: 2000,
+                neto: 1652.89,
+                iva: 347.11,
                 total: 2000
             },
             emisor: {

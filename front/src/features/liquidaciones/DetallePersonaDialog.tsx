@@ -11,6 +11,8 @@ type Props = {
     nombre: string;
     roles: Rol[];
     detalle: PersonaLiquidacionDetalle[];
+    totalBruto: number;
+    anticipo: number;
     total: number;
     /** Los pagos ya registrados: sólo los tiene una persona de una liquidación generada. */
     pagos?: Pago[];
@@ -20,7 +22,7 @@ type Props = {
 // Sirve para una persona de la previsualización (reporte, sin pagos) y para una
 // de la ficha generada (con pagos): por eso recibe los campos explícitos en vez
 // de un tipo de persona, que difiere entre las dos formas.
-export function DetallePersonaDialog({ nombre, roles, detalle, total, pagos, onClose }: Props) {
+export function DetallePersonaDialog({ nombre, roles, detalle, totalBruto, anticipo, total, pagos, onClose }: Props) {
     const pagado = pagos?.reduce((suma, pago) => suma + pago.monto, 0) ?? 0;
     const saldo = Math.max(0, total - pagado);
 
@@ -52,14 +54,35 @@ export function DetallePersonaDialog({ nombre, roles, detalle, total, pagos, onC
                         cell: (d: PersonaLiquidacionDetalle) => <Badge tone={tonoDeRol(d.rol)}>{nombreVisible(d.rol.nombre)}</Badge>
                     },
                     { header: "Porcentaje", align: "right", mono: true, cell: (d) => `${d.porcentaje}%` },
-                    { header: "Importe", align: "right", mono: true, cell: (d) => formatMoney(d.importe) }
+                    { header: "Importe", align: "right", mono: true, cell: (d) => formatMoney(d.importe) },
+                    {
+                        header: "Anticipo",
+                        align: "right",
+                        mono: true,
+                        cell: (d) =>
+                            d.anticipo > 0 ? `− ${formatMoney(d.anticipo)}` : <span style={{ color: "var(--text-subtle)" }}>—</span>
+                    }
                 ]}
                 rows={detalle}
             />
 
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: "var(--space-2)", marginTop: "var(--space-4)" }}>
-                <span style={{ color: "var(--papel-600)" }}>Total a pagar</span>
-                <b style={{ fontFamily: "var(--font-mono)" }}>{formatMoney(total)}</b>
+            <div style={{ display: "grid", gap: "var(--space-2)", marginTop: "var(--space-4)" }}>
+                {anticipo > 0 ? (
+                    <>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+                            <span style={{ color: "var(--papel-600)" }}>Regalías</span>
+                            <b style={{ fontFamily: "var(--font-mono)" }}>{formatMoney(totalBruto)}</b>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "var(--space-2)" }}>
+                            <span style={{ color: "var(--papel-600)" }}>Anticipo recuperado</span>
+                            <b style={{ fontFamily: "var(--font-mono)" }}>− {formatMoney(anticipo)}</b>
+                        </div>
+                    </>
+                ) : null}
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "baseline", gap: "var(--space-2)" }}>
+                    <span style={{ color: "var(--papel-600)" }}>Total a pagar</span>
+                    <b style={{ fontFamily: "var(--font-mono)" }}>{formatMoney(total)}</b>
+                </div>
             </div>
 
             {pagos ? (

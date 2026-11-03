@@ -1,19 +1,44 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { Card, Avatar, Button, Badge, Dialog, Field, Input } from "../../design-system";
+import { Card, Avatar, Button, Badge, Checkbox, Dialog, Field, Input, Select } from "../../design-system";
 import { usePerfil } from "./usePerfil";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../notifications/ToastProvider";
+import { useConfirm } from "../../notifications/ConfirmProvider";
 import { getErrorMessage } from "../../lib/errors";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { sanitizeInteger, sanitizeDecimal } from "../../lib/numericInput";
 import { isValidEmail } from "../../lib/validation";
 
 export function PerfilPage() {
-    const { user, loading, update } = usePerfil();
+    const { user, loading, update, refreshFromAfip } = usePerfil();
     const { logout } = useAuth();
     const { showToast } = useToast();
+    const confirm = useConfirm();
     const [showEdit, setShowEdit] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Traer el padrón pisa los datos fiscales cargados a mano, así que se
+    // confirma antes (incluida la condición frente al IVA).
+    const handleRefreshAfip = async () => {
+        const ok = await confirm({
+            title: "¿Actualizar los datos desde AFIP?",
+            description:
+                "Se reemplazan la condición frente al IVA, la razón social, el domicilio, Ingresos Brutos y la fecha de inicio por los datos del padrón de AFIP para tu CUIT.",
+            confirmLabel: "Actualizar"
+        });
+        if (!ok) return;
+
+        setRefreshing(true);
+        try {
+            await refreshFromAfip();
+            showToast("success", "Datos actualizados desde AFIP");
+        } catch (err) {
+            showToast("error", getErrorMessage(err));
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     if (loading || !user) return <FullscreenSpinner />;
 
@@ -22,6 +47,9 @@ export function PerfilPage() {
             <Card
                 actions={
                     <>
+                        <Button variant="secondary" iconStart="download" onClick={handleRefreshAfip} loading={refreshing}>
+                            Traer de AFIP
+                        </Button>
                         <Button variant="secondary" iconStart="pencil" onClick={() => setShowEdit(true)}>
                             Editar perfil
                         </Button>
@@ -45,6 +73,8 @@ export function PerfilPage() {
                     <Detalle label="Domicilio" value={user.domicilio} />
                     <Detalle label="Email" value={user.email || "-"} />
                     <Detalle label="Punto de venta" value={user.punto_venta ? <Badge tone="brand">{user.punto_venta}</Badge> : "-"} />
+                    <Detalle label="Ingresos brutos" value={user.ingresos_brutos ? "Sí" : "No"} />
+                    <Detalle label="Inicio de actividades" value={user.fecha_inicio || "-"} />
                 </dl>
 
                 {showEdit ? (
@@ -90,24 +120,79 @@ function Detalle({ label, value }: { label: string; value: ReactNode }) {
     );
 }
 
+// Condiciones frente al IVA que ofrece el panel. Tienen que coincidir con
+// `back/src/lib/afip/fiscal.ts#CONDICIONES_IVA`; los valores viejos del padrón
+// ("RESPONSABLE INSCRIPTO") se normalizan a la opción canónica.
+const CONDICIONES_IVA = [
+    "IVA Responsable Inscripto",
+    "IVA Responsable no Inscripto",
+    "IVA Exento",
+    "Monotributo",
+    "Consumidor Final",
+    "Sujeto No Categorizado"
+] as const;
+
+const normalizarCondicion = (valor: string): string =>
+    valor
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+
+const condicionCanonica = (actual: string): string =>
+    CONDICIONES_IVA.find((condicion) => normalizarCondicion(condicion) === normalizarCondicion(actual)) ?? actual;
+
+type DatosEmisor = {
+    email: string | null;
+    punto_venta: number | null;
+    cond_fiscal: string;
+    razon_social: string;
+    domicilio: string;
+    ingresos_brutos: boolean;
+    fecha_inicio: string;
+};
+
 function EditarPerfilDialog({
     user,
     onClose,
     onSave
 }: {
-    user: { email: string | null; punto_venta: number | null };
+    user: DatosEmisor;
     onClose: () => void;
-    onSave: (input: { email: string; punto_venta: number }) => Promise<void>;
+    onSave: (input: {
+        email: string;
+        punto_venta: number;
+        cond_fiscal: string;
+        razon_social: string;
+        domicilio: string;
+        ingresos_brutos: boolean;
+        fecha_inicio: string;
+    }) => Promise<void>;
 }) {
     const [email, setEmail] = useState(user.email ?? "");
     const [puntoVenta, setPuntoVenta] = useState(String(user.punto_venta ?? ""));
+    const [condFiscal, setCondFiscal] = useState(condicionCanonica(user.cond_fiscal));
+    const [razonSocial, setRazonSocial] = useState(user.razon_social);
+    const [domicilio, setDomicilio] = useState(user.domicilio);
+    const [ingresosBrutos, setIngresosBrutos] = useState(user.ingresos_brutos);
+    const [fechaInicio, setFechaInicio] = useState(user.fecha_inicio);
     const [saving, setSaving] = useState(false);
     const [emailTouched, setEmailTouched] = useState(false);
     const emailInvalid = emailTouched && email !== "" && !isValidEmail(email);
+    const opcionesCondicion = CONDICIONES_IVA.includes(condFiscal as (typeof CONDICIONES_IVA)[number])
+        ? CONDICIONES_IVA
+        : [condFiscal, ...CONDICIONES_IVA];
 
     const handleSave = async () => {
         setSaving(true);
-        await onSave({ email, punto_venta: Number(puntoVenta) });
+        await onSave({
+            email,
+            punto_venta: Number(puntoVenta),
+            cond_fiscal: condFiscal,
+            razon_social: razonSocial,
+            domicilio,
+            ingresos_brutos: ingresosBrutos,
+            fecha_inicio: fechaInicio
+        });
         setSaving(false);
     };
 
@@ -115,6 +200,7 @@ function EditarPerfilDialog({
         <Dialog
             open
             title="Editar perfil"
+            width={560}
             onClose={onClose}
             footer={
                 <>
@@ -139,6 +225,31 @@ function EditarPerfilDialog({
             <Field label="Punto de venta" style={{ marginTop: "var(--space-4)" }}>
                 <Input type="text" inputMode="numeric" value={puntoVenta} onChange={(e) => setPuntoVenta(sanitizeInteger(e.target.value))} />
             </Field>
+
+            <hr style={{ margin: "var(--space-5) 0", border: 0, borderTop: "1px solid var(--border-subtle)" }} />
+
+            <p style={{ margin: "0 0 var(--space-4)", fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                Datos fiscales del emisor. La condición frente al IVA define qué comprobantes se emiten: Monotributo y IVA Exento
+                emiten Factura C; Responsable Inscripto emite A a otro inscripto y B al resto.
+            </p>
+
+            <Field label="Condición frente al IVA" required>
+                <Select value={condFiscal} onChange={(e) => setCondFiscal(e.target.value)} options={[...opcionesCondicion]} />
+            </Field>
+            <Field label="Razón social" style={{ marginTop: "var(--space-4)" }} required>
+                <Input value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} />
+            </Field>
+            <Field label="Domicilio" style={{ marginTop: "var(--space-4)" }} required>
+                <Input value={domicilio} onChange={(e) => setDomicilio(e.target.value)} />
+            </Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)", marginTop: "var(--space-4)", alignItems: "end" }}>
+                <Field label="Inicio de actividades" hint="dd/mm/aaaa">
+                    <Input value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} maxLength={10} />
+                </Field>
+                <div style={{ paddingBottom: "10px" }}>
+                    <Checkbox label="Inscripto en Ingresos Brutos" checked={ingresosBrutos} onChange={(e) => setIngresosBrutos(e.target.checked)} />
+                </div>
+            </div>
         </Dialog>
     );
 }

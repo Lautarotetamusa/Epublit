@@ -13,6 +13,7 @@ import { TipoTransaccion } from "./transaccion.validator";
 import { OperacionConfig, LibroOperacion, OperacionBody } from "./operacion.types";
 import { AvailabilityService } from "../tienda/stock/availability.service";
 import { SaleService, SaleType, applyStockEffect } from "./sale.service";
+import { tipoComprobanteFiscal } from "../../lib/afip/fiscal";
 
 export type OperacionServiceDeps = {
     db: Database;
@@ -216,11 +217,11 @@ export function createOperacionService({
                 );
             }
 
-            // `tipo_cbte`/`medio_pago`/`descuento` son opcionales en
+            // `tipo_cbte` no se recibe del cliente: la letra la decide la
+            // condición frente al IVA de la cuenta y la del cliente (ver
+            // lib/afip/fiscal.ts). `medio_pago`/`descuento` son opcionales en
             // `OperacionBody` (sólo `createVenta`/`createVentaConsignado` los
-            // exigen), pero acá siempre están: `config.esVenta` sólo es `true`
-            // para esos dos tipos, cuyo `bodyParser` ya los validó. El cliente
-            // vive en la venta (no en el movimiento). La comisión del medio se
+            // exigen), pero acá siempre están. La comisión del medio se
             // congela en la venta al momento de vender.
             let movimiento;
             let venta: Awaited<ReturnType<VentaRepository["insert"]>> | null = null;
@@ -233,7 +234,7 @@ export function createOperacionService({
                         idCliente: cliente.id,
                         idMedioPago: medioPago.id,
                         comision: medioPago.comision,
-                        tipoCbte: body.tipo_cbte!,
+                        tipoCbte: tipoComprobanteFiscal(user.cond_fiscal, cliente.cond_fiscal),
                         descuento: body.descuento ?? 0,
                         total: ventaRepository.calcTotal(libros, body.descuento ?? 0),
                         lines: libros,

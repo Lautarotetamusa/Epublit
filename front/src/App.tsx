@@ -10,6 +10,7 @@ import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { CatalogoPage } from "./features/libros/CatalogoPage";
 import { NuevoLibroPage } from "./features/libros/NuevoLibroPage";
 import { FichaLibroPage } from "./features/libros/FichaLibroPage";
+import { EditarLibroPage } from "./features/libros/EditarLibroPage";
 import { DepositosPage } from "./features/depositos/DepositosPage";
 import { NuevoDepositoPage } from "./features/depositos/NuevoDepositoPage";
 import { FichaDepositoPage } from "./features/depositos/FichaDepositoPage";
@@ -78,6 +79,7 @@ function AppRoutes() {
                 <Route path="/libros" element={<CatalogoPage />} />
                 <Route path="/libros/nuevo" element={<NuevoLibroPage />} />
                 <Route path="/libros/:isbn" element={<FichaLibroPage />} />
+                <Route path="/libros/:isbn/editar" element={<EditarLibroPage />} />
                 <Route path="/depositos" element={<DepositosPage />} />
                 <Route path="/depositos/nuevo" element={<NuevoDepositoPage />} />
                 <Route path="/depositos/:id" element={<FichaDepositoPage />} />

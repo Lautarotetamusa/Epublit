@@ -35,6 +35,9 @@ const availableForSale = (libro: PublicLibro) =>
 
 // Campos públicos comunes a listado y detalle. Nada de porcentajes, montos,
 // email, dni, costo, stock por depósito ni datos fiscales.
+const toColeccion = (libro: PublicLibro) =>
+    libro.coleccion_id ? { id: libro.coleccion_id, titulo: libro.coleccion_titulo } : null;
+
 const toBookBase = (libro: PublicLibro) => {
     const disponible = availableForSale(libro);
 
@@ -44,16 +47,33 @@ const toBookBase = (libro: PublicLibro) => {
         precio: libro.precio,
         portadaUrl: libro.portada_url,
         disponibleParaVenta: disponible,
-        enStock: disponible > 0
+        enStock: disponible > 0,
+        coleccion: toColeccion(libro),
+        // Rango de edad recomendada: cualquiera de los dos extremos puede ser
+        // null ("0 a 3", "+8", sin dato).
+        edadMin: libro.edad_min,
+        edadMax: libro.edad_max,
+        fechaEdicion: libro.fecha_edicion
     };
 };
 
-export const toBookSummary = (libro: PublicLibro, personas: BookPerson[]) => ({
+export const toBookSummary = (libro: PublicLibro, personas: BookPerson[], novedad: boolean) => ({
     ...toBookBase(libro),
+    // Los últimos 3 libros creados (ver catalog.repository#findUltimosIds).
+    novedad,
     personas: sortPeople(personas).map(toPersonSummary)
 });
 
-export const toBookDetail = (libro: BookWithPeople) => ({
+export const toBookDetail = (libro: BookWithPeople, novedad: boolean) => ({
     ...toBookBase(libro),
+    novedad,
+    // Ficha completa: el storefront la usa en la página de detalle. Son datos
+    // editoriales, no internos (no hay costos ni porcentajes acá).
+    brief: libro.brief,
+    paginas: libro.paginas,
+    alto: libro.alto,
+    ancho: libro.ancho,
+    largo: libro.largo,
+    bookTrailerUrl: libro.book_trailer_url,
     personas: sortPeople(libro.personas).map(toPersonDetail)
 });

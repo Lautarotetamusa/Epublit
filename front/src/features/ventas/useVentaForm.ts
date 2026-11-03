@@ -6,7 +6,7 @@ import type { Libro } from "../../api/libro";
 import { getStockCliente } from "../../api/cliente";
 import type { StockCliente } from "../../api/cliente";
 import { getMediosPago, createVenta, createVentaConsignacion } from "../../api/operaciones";
-import type { MedioPago, TipoCbte, VentaDetalle } from "../../api/operaciones";
+import type { MedioPago, VentaDetalle } from "../../api/operaciones";
 import { listDepositos } from "../../api/deposito";
 import type { Deposito } from "../../api/deposito";
 import { useSeleccionLibros } from "../operaciones/useSeleccionLibros";
@@ -56,7 +56,6 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
     const [clienteId, setClienteId] = useState<number | "">("");
     const [descuento, setDescuento] = useState("0");
     const [medioPago, setMedioPago] = useState<number | "">("");
-    const [tipoCbte] = useState<TipoCbte>(11);
     const [fechaVenta, setFechaVenta] = useState("");
     const [stockConsignado, setStockConsignado] = useState<StockCliente[]>([]);
     const [submitting, setSubmitting] = useState(false);
@@ -194,7 +193,6 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
                           libros,
                           descuento: Number(descuento) || 0,
                           medio_pago: medioPago,
-                          tipo_cbte: tipoCbte,
                           deposito_id: depositoId === "" ? undefined : depositoId
                       })
                     : await createVentaConsignacion({
@@ -202,7 +200,6 @@ export function useVentaForm(onCreated: (venta: VentaDetalle) => void, initial?:
                           libros,
                           descuento: Number(descuento) || 0,
                           medio_pago: medioPago,
-                          tipo_cbte: tipoCbte,
                           fecha_venta: fechaVenta
                       });
             resetForm();

@@ -31,12 +31,13 @@ const pesoKg = z.number().positive().max(1_000_000).nullable().optional();
 
 // Validators nuevos (Postgres/Drizzle), usados por libro.controller.ts/libro.service.ts.
 const select = createSelectSchema(librosTable);
-const insert = createInsertSchema(librosTable, {
+const insertBase = createInsertSchema(librosTable, {
     alto: positiveNumber,
     ancho: positiveNumber,
     largo: positiveNumber,
     paginas: positiveInt,
-    edad_recomendada: nonNegativeInt,
+    edad_min: nonNegativeInt,
+    edad_max: nonNegativeInt,
     book_trailer_url: bookTrailerUrl,
     stock_negativo_permitido: stockNegativoPermitido.optional(),
     peso_kg: pesoKg
@@ -52,7 +53,19 @@ const insert = createInsertSchema(librosTable, {
     // `.strict()` para que mandar `stock` (u otro campo desconocido) sea 400,
     // no un campo ignorado en silencio.
 }).strict();
-const update = insert.partial();
+
+// El rango es coherente sólo si ambos extremos están presentes: un update
+// parcial puede mandar uno solo y el servicio valida el valor final contra el
+// libro guardado (ver libro.service.ts#update).
+const rangoEdadValido = (data: { edad_min?: number | null; edad_max?: number | null }) =>
+    data.edad_min == null || data.edad_max == null || data.edad_max >= data.edad_min;
+const mensajeRangoEdad = {
+    message: "edad_max no puede ser menor que edad_min",
+    path: ["edad_max"]
+};
+
+const insert = insertBase.refine(rangoEdadValido, mensajeRangoEdad);
+const update = insertBase.partial().refine(rangoEdadValido, mensajeRangoEdad);
 const filter = z
     .object({
         user: z.number(),

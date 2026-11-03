@@ -1,5 +1,6 @@
-import { SQL, and, count, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
+import { SQL, and, count, desc, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { Database } from "../../../db/client";
+import { ilikeSinAcentos } from "../../../lib/sql/search";
 import { ordersTable, orderStatusEnum } from "./order.schema";
 import { orderItemsTable } from "./orderItem.schema";
 
@@ -47,13 +48,12 @@ export function createOrderAdminRepository({ db }: OrderAdminRepositoryDeps) {
         if (filter.entrega) conditions.push(eq(ordersTable.entrega_tipo, filter.entrega));
 
         if (filter.buscar) {
-            const pattern = `%${filter.buscar}%`;
             conditions.push(
                 or(
-                    ilike(ordersTable.codigo, pattern),
-                    ilike(ordersTable.comprador_nombre, pattern),
-                    ilike(ordersTable.comprador_email, pattern),
-                    ilike(ordersTable.comprador_telefono, pattern)
+                    ilikeSinAcentos(ordersTable.codigo, filter.buscar),
+                    ilikeSinAcentos(ordersTable.comprador_nombre, filter.buscar),
+                    ilikeSinAcentos(ordersTable.comprador_email, filter.buscar),
+                    ilikeSinAcentos(ordersTable.comprador_telefono, filter.buscar)
                 )!
             );
         }

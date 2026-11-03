@@ -166,6 +166,7 @@ describe('GET /liquidacion: rango sin ventas computables', () => {
         expect(res.status).toBe(200);
         expect(res.body.data).toEqual({
             total_facturado: 0,
+            total_anticipos: 0,
             ejemplares_vendidos: 0,
             libros: [],
             personas: [],

@@ -1,54 +1,29 @@
-import { useCallback, useEffect, useState } from "react";
-import { getLibro, updateLibro, uploadLibroPortada } from "../../api/libro";
-import type { LibroConPersonas, UpdateLibroInput } from "../../api/libro";
+import { useTodasLasPersonas } from "./useTodasLasPersonas";
+import { useColecciones } from "../colecciones/useColecciones";
+import { useRoles } from "../roles/useRoles";
+import { useLibro } from "./useLibro";
+import { updateLibro, uploadLibroPortada } from "../../api/libro";
+import type { UpdateLibroInput } from "../../api/libro";
 import type { Rol } from "../../api/rol";
 import { createPersona } from "../../api/persona";
 import type { CreatePersonaInput } from "../../api/persona";
 import { addLibroPersonas, updateLibroPersonas, removeLibroPersonas } from "../../api/libroPersona";
-import { getErrorMessage } from "../../lib/errors";
-import { useTodasLasPersonas } from "./useTodasLasPersonas";
-import { useColecciones } from "../colecciones/useColecciones";
-import { useRoles } from "../roles/useRoles";
 
+// Todo lo que necesita la pantalla de edición: el libro, las personas y roles
+// de la cuenta y las operaciones que modifican la ficha. El detalle usa sólo
+// `useLibro`, sin arrastrar esta maquinaria de escritura.
 export function useFichaLibro(isbn: string) {
-    const [libro, setLibro] = useState<LibroConPersonas | null>(null);
+    const { libro, loading: loadingLibro, error, refetch: fetchLibro } = useLibro(isbn);
     const { personas, setPersonas, loading: loadingPersonas } = useTodasLasPersonas();
     const { colecciones, loading: loadingColecciones } = useColecciones();
     // Los roles con los que se puede asignar una persona al libro salen de la
     // cuenta (plan 011), no de un enum fijo.
     const { roles, loading: loadingRoles } = useRoles();
-    // A qué colección pertenece el libro: lo devuelve el propio libro
-    // (`coleccion_id`, ver specs/007-colecciones). `null` = sin colección.
-    const [idColeccion, setIdColeccion] = useState<number | null>(null);
-    const [loadingLibro, setLoadingLibro] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchLibro = useCallback(async () => {
-        setLoadingLibro(true);
-        setError(null);
-        try {
-            const response = await getLibro(isbn);
-            // El `stock` del libro es el total de sus depósitos y
-            // `disponible_principal` el del principal: ambos los calcula el backend
-            // (ver specs/008-movimientos-deposito).
-            setLibro(response.data);
-            setIdColeccion(response.data.coleccion_id);
-        } catch (err) {
-            // Una request fallida (libro inexistente, red caída) no puede
-            // dejar la pantalla en loading para siempre: se libera el spinner
-            // y la ficha muestra el error.
-            setLibro(null);
-            setError(getErrorMessage(err));
-        } finally {
-            setLoadingLibro(false);
-        }
-    }, [isbn]);
-
-    useEffect(() => {
-        fetchLibro();
-    }, [fetchLibro]);
 
     const loading = loadingLibro || loadingPersonas || loadingColecciones || loadingRoles;
+    // A qué colección pertenece el libro: lo resuelve el propio libro
+    // (`coleccion_id`, ver specs/007-colecciones). `null` = sin colección.
+    const idColeccion = libro?.coleccion_id ?? null;
 
     // La colección viaja en el payload del libro: el formulario siempre manda
     // el select (una colección o `null`), así que el PUT nunca la deja sin

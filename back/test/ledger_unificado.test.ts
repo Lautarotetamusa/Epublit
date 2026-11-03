@@ -188,7 +188,7 @@ describe('las operaciones comerciales son movimientos unificados', () => {
         expect(detalle.body.data.cliente).toEqual({ id: cliente.id, nombre: cliente.nombre });
         expect(detalle.body.data.comprobante).toMatchObject({ clase: 'factura', estado: 'emitida' });
         expect(detalle.body.data.venta).toMatchObject({
-            tipo_cbte: 11,
+            tipo_cbte: 6,
             medio_pago: { nombre: 'efectivo', comision: 0 },
             neto: expect.any(Number)
         });
@@ -241,7 +241,7 @@ describe('las operaciones comerciales son movimientos unificados', () => {
         const detalle = await auth(request(app).get(`/movimiento/${res.body.data.id}`));
         expect(detalle.body.data.tipo).toBe('ventaConsignacion');
         expect(detalle.body.data.cliente).toEqual({ id: cliente.id, nombre: cliente.nombre });
-        expect(detalle.body.data.venta).toMatchObject({ tipo_cbte: 11 });
+        expect(detalle.body.data.venta).toMatchObject({ tipo_cbte: 6 });
         expect((await stockDeCliente(cliente.id)).find((l) => l.isbn === isbnLibro)?.stock).toBe(4);
     });
 

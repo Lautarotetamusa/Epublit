@@ -61,7 +61,8 @@ describe('campos extendidos de libro', () => {
         expect(res.body.data.largo).toBeNull();
         expect(res.body.data.paginas).toBeNull();
         expect(res.body.data.brief).toBeNull();
-        expect(res.body.data.edad_recomendada).toBeNull();
+        expect(res.body.data.edad_min).toBeNull();
+        expect(res.body.data.edad_max).toBeNull();
         expect(res.body.data.book_trailer_url).toBeNull();
         expect(res.body.data.portada_url).toBeNull();
     });
@@ -81,7 +82,7 @@ describe('campos extendidos de libro', () => {
                     largo: 2.1,
                     paginas: 320,
                     brief: 'Una novela de prueba',
-                    edad_recomendada: 12,
+                    edad_min: 7, edad_max: 12,
                     book_trailer_url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
                 });
 
@@ -91,7 +92,8 @@ describe('campos extendidos de libro', () => {
             expect(res.body.data.largo).toEqual(2.1);
             expect(res.body.data.paginas).toEqual(320);
             expect(res.body.data.brief).toEqual('Una novela de prueba');
-            expect(res.body.data.edad_recomendada).toEqual(12);
+            expect(res.body.data.edad_min).toEqual(7);
+            expect(res.body.data.edad_max).toEqual(12);
             expect(res.body.data.book_trailer_url).toEqual('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
             expect(res.body.data.portada_url).toBeNull();
         });
@@ -166,12 +168,12 @@ describe('campos extendidos de libro', () => {
             const res = await request(app)
                 .put(`/libro/${isbn(9102)}`)
                 .set('Authorization', `Bearer ${token}`)
-                .send({ alto: 10, ancho: 8, largo: 1, paginas: 100, edad_recomendada: 6 });
+                .send({ alto: 10, ancho: 8, largo: 1, paginas: 100, edad_min: 6 });
 
             expectUpdated(res);
             expect(res.body.data.alto).toEqual(10);
             expect(res.body.data.paginas).toEqual(100);
-            expect(res.body.data.edad_recomendada).toEqual(6);
+            expect(res.body.data.edad_min).toEqual(6);
         });
 
         it('reemplaza valores ya cargados por otros nuevos', async () => {

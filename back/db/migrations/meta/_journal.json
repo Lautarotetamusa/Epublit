@@ -148,6 +148,20 @@
       "when": 1793124295475,
       "tag": "0020_thankful_tyrannus",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793644135848,
+      "tag": "0021_edad_anticipos_fiscal",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793716473437,
+      "tag": "0022_unaccent_search",
+      "breakpoints": true
     }
   ]
 }

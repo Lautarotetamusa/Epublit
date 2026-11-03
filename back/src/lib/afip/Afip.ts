@@ -4,6 +4,7 @@ import { BadRequest, NotFound } from 'bradb';
 import { AfipData } from './afip.validator';
 import { User } from '../../modules/user/user.validator';
 import { Client as Cliente } from '../../modules/cliente/cliente.validator';
+import { discriminaIva, esExento, esMonotributo, esResponsableInscripto, normalizarCondicionFiscal } from './fiscal';
 
 import fs from "fs";
 import { join } from 'path';
@@ -138,6 +139,11 @@ const idImpuestos = {
     iibb: 5900 //Ingresos brutos
 } as const;
 
+// El precio de venta de la editorial incluye IVA: para A/B se discrimina
+// hacia atrás (neto = total / 1,21).
+const ALICUOTA_IVA = 0.21;
+const redondear = (valor: number): number => Math.round(valor * 100) / 100;
+
 const URL_QR_AFIP = 'https://www.afip.gob.ar/fe/qr/?p=';
 
 // El QR lleva el CUIT del emisor (no el documento del receptor) y el
@@ -165,10 +171,26 @@ function createQRUrl(
 }
 
 export function importesFiscales(venta: VentaFiscal): ImportesFiscales {
+    // A y B discriminan IVA (el precio de venta ya lo incluye): neto + IVA
+    // tiene que dar el total. La C (monotributo o exento) no liquida IVA: el
+    // total va como neto.
+    if (!discriminaIva(venta.tipo_cbte)) {
+        return {
+            neto: venta.total,
+            iva: 0,
+            exento: 0,
+            noGravado: 0,
+            tributos: 0,
+            total: venta.total
+        };
+    }
+
+    const neto = redondear(venta.total / (1 + ALICUOTA_IVA));
+
     return {
-        neto: venta.total,
-        iva: venta.tipo_cbte === 1 ? venta.total : 0,
-        exento: venta.tipo_cbte === 1 ? venta.total : 0,
+        neto,
+        iva: redondear(venta.total - neto),
+        exento: 0,
         noGravado: 0,
         tributos: 0,
         total: venta.total
@@ -177,12 +199,10 @@ export function importesFiscales(venta: VentaFiscal): ImportesFiscales {
 
 // Códigos de `FEParamGetCondicionIvaReceptor` usados por Epublit.
 export function condicionIvaReceptorId(condFiscal: string | null | undefined): number {
-    const condicion = (condFiscal ?? "").toUpperCase();
-
-    if (condicion.includes("MONOTRIBUTO")) return 6;
-    if (condicion.includes("EXENTO")) return 4;
-    if (condicion.includes("RESPONSABLE INSCRIPTO") || condicion.includes("INSCRIPTO")) return 1;
-    if (condicion.includes("CONSUMIDOR FINAL")) return 5;
+    if (esMonotributo(condFiscal)) return 6;
+    if (esExento(condFiscal)) return 4;
+    if (normalizarCondicionFiscal(condFiscal).includes("NO INSCRIPTO")) return 2;
+    if (esResponsableInscripto(condFiscal)) return 1;
 
     return 5;
 }

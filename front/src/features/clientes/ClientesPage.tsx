@@ -7,6 +7,7 @@ import { useClientPagination } from "../../lib/useClientPagination";
 import { useToast } from "../../notifications/ToastProvider";
 import { useConfirm } from "../../notifications/ConfirmProvider";
 import { getErrorMessage } from "../../lib/errors";
+import { normalizarBusqueda } from "../../lib/busqueda";
 import { TIPO_CLIENTE_LABEL, tipoClienteBadgeTone } from "./tipoCliente";
 
 export function ClientesPage() {
@@ -16,7 +17,9 @@ export function ClientesPage() {
     const navigate = useNavigate();
 
     const [filterText, setFilterText] = useState("");
-    const filtered = clientes.filter((c) => c.nombre.toLowerCase().includes(filterText.toLowerCase()));
+    const filtered = clientes.filter((c) =>
+        normalizarBusqueda(c.nombre).includes(normalizarBusqueda(filterText))
+    );
     const { page, setPage, pageCount, pageItems, total } = useClientPagination(filtered);
 
     const handleDelete = async (cliente: Cliente) => {

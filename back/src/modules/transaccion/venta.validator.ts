@@ -37,8 +37,7 @@ export type VentaSchema = z.infer<typeof ventaSchema>;
 
 export const createVenta = ventaSchema.pick({
     descuento: true,
-    medio_pago: true,
-    tipo_cbte: true,
+    medio_pago: true
 }).and(z.object({
     // Depósito de origen para la venta en firme (ver specs/018). Opcional:
     // si falta, se usa el principal (backward compatible). No se incluye en

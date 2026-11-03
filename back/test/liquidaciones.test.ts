@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeAll, afterAll } from 'vitest';
 import request from "supertest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import * as dotenv from 'dotenv';
 import { join } from "path";
 
@@ -11,6 +11,7 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
+import { anticiposTable } from '../src/modules/anticipo/anticipo.schema';
 import { isbn, dni, cuit } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { expectConflict, expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId, getRolId } from './util';
@@ -382,5 +383,93 @@ describe('Validación e aislamiento', () => {
         expect(reporte.body.data.personas).toEqual([]);
 
         expectConflict(await auth(request(app).post('/liquidaciones/').send(periodo)));
+    });
+});
+
+describe('Anticipos en la liquidación', () => {
+    const ISBN_ANTICIPO = isbn(9966);
+    const PERIODO_ANTICIPO_1 = { desde: '2099-08-01', hasta: '2099-08-31' };
+    const PERIODO_ANTICIPO_2 = { desde: '2099-09-01', hasta: '2099-09-30' };
+    let personaAnticipo: number | undefined;
+    let personaImpago: number | undefined;
+
+    // Los anticipos creados acá no son del seed: se limpian para no cambiar el
+    // conteo que verifica `anticipo.test.ts` cuando comparte la base.
+    afterAll(async () => {
+        const personas = [personaAnticipo, personaImpago].filter((id): id is number => id !== undefined);
+        if (personas.length === 0) return;
+
+        await db.delete(anticiposTable).where(and(eq(anticiposTable.user, userId), inArray(anticiposTable.id_persona, personas)));
+    });
+
+    test('un anticipo pagado se descuenta de las regalías del mismo libro', async () => {
+        await crearLibro(ISBN_ANTICIPO, 1000);
+        personaAnticipo = (await crearPersona('Persona anticipo liquidación', dni(9966))).id;
+
+        // Se asigna después de lanzado el libro: el monto acordado genera el
+        // anticipo en ese momento (ver specs/012-liquidaciones-pagos).
+        expectCreated(
+            await auth(
+                request(app)
+                    .post(`/libro/${ISBN_ANTICIPO}/personas`)
+                    .send({ id_persona: personaAnticipo, rol: rolAutor, porcentaje: 10, monto_acordado: 150 })
+            )
+        );
+
+        const anticipos = (await auth(request(app).get('/anticipos/'))).body as { id: number; isbn: string }[];
+        const anticipo = anticipos.find((a) => a.isbn === ISBN_ANTICIPO)!;
+        expect(anticipo).toBeDefined();
+        expect((await auth(request(app).post(`/anticipos/${anticipo.id}/pagar`))).status).toBe(200);
+
+        // 1 ejemplar a 1000 con 10%: 100 de regalías. El anticipo es 150, así
+        // que esta liquidación recupera 100 y le quedan 50 para la siguiente.
+        await moverFecha(await vender(ISBN_ANTICIPO, 1), '2099-08-10');
+
+        const preview = await auth(
+            request(app).get(`/liquidacion?desde=${PERIODO_ANTICIPO_1.desde}&hasta=${PERIODO_ANTICIPO_1.hasta}`)
+        );
+        expect(preview.status).toBe(200);
+        expect(preview.body.data.total_anticipos).toBe(100);
+
+        const persona = preview.body.data.personas.find((p: { id_persona: number }) => p.id_persona === personaAnticipo);
+        expect(persona).toMatchObject({ total_bruto: 100, anticipo: 100, total_a_pagar: 0 });
+    });
+
+    test('el saldo del anticipo no recuperado se descuenta en la liquidación siguiente', async () => {
+        const primera = await auth(request(app).post('/liquidaciones/').send(PERIODO_ANTICIPO_1));
+        expectCreated(primera);
+        expect(primera.body.data.personas[0]).toMatchObject({ total_bruto: 100, anticipo: 100, total: 0 });
+        expect(primera.body.data.personas[0].detalle[0].anticipo).toBe(100);
+
+        await moverFecha(await vender(ISBN_ANTICIPO, 1), '2099-09-10');
+
+        const preview = await auth(
+            request(app).get(`/liquidacion?desde=${PERIODO_ANTICIPO_2.desde}&hasta=${PERIODO_ANTICIPO_2.hasta}`)
+        );
+        const persona = preview.body.data.personas.find((p: { id_persona: number }) => p.id_persona === personaAnticipo);
+        expect(persona).toMatchObject({ total_bruto: 100, anticipo: 50, total_a_pagar: 50 });
+
+        const segunda = await auth(request(app).post('/liquidaciones/').send(PERIODO_ANTICIPO_2));
+        expectCreated(segunda);
+        expect(segunda.body.data.personas[0]).toMatchObject({ total_bruto: 100, anticipo: 50, total: 50 });
+    });
+
+    test('un anticipo sin pagar no se descuenta', async () => {
+        const isbnSinPagar = isbn(9967);
+        await crearLibro(isbnSinPagar, 1000);
+        const persona = await crearPersona('Persona anticipo impago', dni(9967));
+        personaImpago = persona.id;
+        expectCreated(
+            await auth(
+                request(app)
+                    .post(`/libro/${isbnSinPagar}/personas`)
+                    .send({ id_persona: persona.id, rol: rolAutor, porcentaje: 10, monto_acordado: 500 })
+            )
+        );
+        await moverFecha(await vender(isbnSinPagar, 1), '2099-10-10');
+
+        const preview = await auth(request(app).get('/liquidacion?desde=2099-10-01&hasta=2099-10-31'));
+        const fila = preview.body.data.personas.find((p: { id_persona: number }) => p.id_persona === persona.id);
+        expect(fila).toMatchObject({ total_bruto: 100, anticipo: 0, total_a_pagar: 100 });
     });
 });

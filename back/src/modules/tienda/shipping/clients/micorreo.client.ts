@@ -61,6 +61,17 @@ const expiryFrom = (expires: number | string | null | undefined): Date => {
     return new Date(Date.now() + 60 * 60 * 1000);
 };
 
+// MiCorreo devuelve los plazos como string ("2", "5"), aunque el contrato
+// histórico también admitía números. Normalizamos ambos antes de comparar.
+const toNumber = (value: unknown): number | null => {
+    if (typeof value === "number") return Number.isFinite(value) ? value : null;
+    if (typeof value === "string" && value.trim() !== "") {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+    return null;
+};
+
 const normalizeRate = (rate: Record<string, unknown>): MicorreoRate => {
     const price = rate.price ?? rate.cost ?? rate.rate ?? rate.importe ?? rate.valor;
     const costo = Number(price);
@@ -68,15 +79,16 @@ const normalizeRate = (rate: Record<string, unknown>): MicorreoRate => {
         throw new ExternalServiceError("MiCorreo", "MiCorreo no devolvió un precio de envío válido");
     }
 
-    const min = rate.deliveryTimeMin ?? rate.delivery_min ?? rate.minDays;
-    const max = rate.deliveryTimeMax ?? rate.delivery_max ?? rate.maxDays;
+    const min = toNumber(rate.deliveryTimeMin ?? rate.delivery_min ?? rate.minDays);
+    const max = toNumber(rate.deliveryTimeMax ?? rate.delivery_max ?? rate.maxDays);
 
-    if (typeof min === "number" && typeof max === "number") {
+    if (min !== null && max !== null) {
         return { costo, plazo: `${min} a ${max} días` };
     }
     if (typeof rate.deliveryTime === "string") return { costo, plazo: rate.deliveryTime };
     if (typeof rate.plazo === "string") return { costo, plazo: rate.plazo };
-    if (typeof max === "number") return { costo, plazo: `${max} días` };
+    if (max !== null) return { costo, plazo: `${max} días` };
+    if (min !== null) return { costo, plazo: `${min} días` };
 
     return { costo, plazo: "Plazo a confirmar" };
 };

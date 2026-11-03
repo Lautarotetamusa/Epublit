@@ -38,8 +38,10 @@ export type Libro = {
     stock_negativo_permitido: number;
     brief: string | null;
     paginas: number | null;
-    // Años (edad mínima recomendada). Se muestra como "+<edad_recomendada> años".
-    edad_recomendada: number | null;
+    // Rango de edad recomendada, en años. Ambos extremos son opcionales:
+    // `0..3` se muestra "0 a 3 años", sólo `edad_min = 8` se muestra "+8 años".
+    edad_min: number | null;
+    edad_max: number | null;
     portada_url: string | null;
     book_trailer_url: string | null;
     // Colección a la que pertenece el libro (a lo sumo una). `coleccion_titulo`
@@ -87,7 +89,8 @@ export type CreateLibroInput = {
     stock_negativo_permitido?: number;
     brief?: string;
     paginas?: number;
-    edad_recomendada?: number;
+    edad_min?: number | null;
+    edad_max?: number | null;
     book_trailer_url?: string;
     // `null` = sin colección; un id asigna/reemplaza la colección del libro
     // (ver specs/007-colecciones, "Pertenencia libro → colección").

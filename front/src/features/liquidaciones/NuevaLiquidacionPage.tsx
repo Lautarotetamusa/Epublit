@@ -4,6 +4,7 @@ import { Alert, Badge, Breadcrumb, Button, Card, EmptyState, Field, Input, Pagin
 import type { PersonaLiquidada } from "../../api/liquidacion";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
+import { normalizarBusqueda } from "../../lib/busqueda";
 import { useClientPagination } from "../../lib/useClientPagination";
 import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 import { formatMoney } from "../../lib/money";
@@ -23,12 +24,16 @@ export function NuevaLiquidacionPage() {
     const [desde, setDesde] = useState(primerDiaDelMes());
     const [hasta, setHasta] = useState(hoyISO());
     const [personaSeleccionada, setPersonaSeleccionada] = useState<PersonaLiquidada | null>(null);
+    const [busquedaPersona, setBusquedaPersona] = useState("");
 
     const { previsualizacion, loading } = usePrevisualizacionLiquidacion(desde, hasta);
     const { saving, crear } = useNuevaLiquidacion();
 
     const librosPag = useClientPagination(previsualizacion?.libros ?? []);
-    const personasPag = useClientPagination(previsualizacion?.personas ?? []);
+    const personasFiltradas = (previsualizacion?.personas ?? []).filter((p) =>
+        normalizarBusqueda(p.nombre).includes(normalizarBusqueda(busquedaPersona))
+    );
+    const personasPag = useClientPagination(personasFiltradas);
 
     const rangoInvalido = desde > hasta;
     const hayPendientes = (previsualizacion?.personas.length ?? 0) > 0;
@@ -98,8 +103,11 @@ export function NuevaLiquidacionPage() {
                         ) : null}
 
                         <Card title="Lo que se va a liquidar" subtitle="Revisá el período antes de generar la liquidación.">
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-4)" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--space-4)" }}>
                                 <StatCard label="Total a liquidar" value={formatMoney(previsualizacion.total)} icon="banknote" />
+                                {previsualizacion.anticipos > 0 ? (
+                                    <StatCard label="Anticipos recuperados" value={formatMoney(previsualizacion.anticipos)} icon="receipt-text" />
+                                ) : null}
                                 <StatCard label="Personas a liquidar" value={previsualizacion.personas.length} icon="users" />
                                 <StatCard label="Ejemplares vendidos" value={previsualizacion.ejemplares} unit="ej." icon="package" />
                             </div>
@@ -130,6 +138,14 @@ export function NuevaLiquidacionPage() {
                         </Card>
 
                         <Card title="Total a pagar por persona" padded={false}>
+                            <div style={{ padding: "var(--space-4)" }}>
+                                <Input
+                                    iconStart="search"
+                                    placeholder="Buscar por nombre..."
+                                    value={busquedaPersona}
+                                    onChange={(e) => setBusquedaPersona(e.target.value)}
+                                />
+                            </div>
                             <Table
                                 columns={[
                                     { header: "Persona", key: "nombre", wrap: true },
@@ -150,11 +166,19 @@ export function NuevaLiquidacionPage() {
                                         cell: (p: PersonaLiquidada) => `${p.detalle.length} ${p.detalle.length === 1 ? "libro" : "libros"}`,
                                         muted: true
                                     },
+                                    {
+                                        header: "Anticipo",
+                                        align: "right",
+                                        mono: true,
+                                        cell: (p: PersonaLiquidada) =>
+                                            p.anticipo > 0 ? `− ${formatMoney(p.anticipo)}` : <span style={{ color: "var(--text-subtle)" }}>—</span>
+                                    },
                                     { header: "Total a pagar", align: "right", mono: true, cell: (p: PersonaLiquidada) => <b>{formatMoney(p.total_a_pagar)}</b> }
                                 ]}
                                 rows={personasPag.pageItems}
                                 rowKey={(p) => p.id_persona}
                                 onRowClick={(p: PersonaLiquidada) => setPersonaSeleccionada(p)}
+                                empty="Ninguna persona coincide con la búsqueda."
                             />
                             {personasPag.total > 0 ? (
                                 <div style={{ padding: "var(--space-4)" }}>
@@ -171,6 +195,8 @@ export function NuevaLiquidacionPage() {
                     nombre={personaSeleccionada.nombre}
                     roles={rolesDePersona(personaSeleccionada)}
                     detalle={personaSeleccionada.detalle}
+                    totalBruto={personaSeleccionada.total_bruto}
+                    anticipo={personaSeleccionada.anticipo}
                     total={personaSeleccionada.total_a_pagar}
                     onClose={() => setPersonaSeleccionada(null)}
                 />

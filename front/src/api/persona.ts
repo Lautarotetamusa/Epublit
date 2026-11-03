@@ -52,14 +52,16 @@ export type ListPersonasParams = {
     // libro (plan 011, tarea 10). Sin filtro, devuelve todas las personas,
     // incluidas las que no trabajan en ningún libro.
     rol?: Rol;
+    // Búsqueda parcial por nombre, sin distinguir mayúsculas.
+    nombre?: string;
     page?: number;
     pageSize?: number;
 };
 
 export const listPersonas = async (params: ListPersonasParams = {}): Promise<ListEnvelope<Persona>> => {
-    const { rol, page = 1, pageSize = 10 } = params;
+    const { rol, nombre, page = 1, pageSize = 10 } = params;
     const response = await api.get<ListEnvelope<PersonaApi>>(
-        `/persona${toQueryString({ rol: rol?.id, page, pageSize })}`
+        `/persona${toQueryString({ rol: rol?.id, nombre: nombre || undefined, page, pageSize })}`
     );
 
     return { ...response, items: response.items.map(toPersona) };

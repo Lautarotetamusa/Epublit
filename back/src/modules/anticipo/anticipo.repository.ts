@@ -1,4 +1,4 @@
-import { and, asc, count, eq, isNotNull } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNotNull, sql } from "drizzle-orm";
 import { Database, Tx } from "../../db/client";
 import { anticiposTable } from "./anticipo.schema";
 import { movimientosTable, movimientosLibrosTable } from "../movimiento/movimiento.schema";
@@ -172,6 +172,45 @@ export function createAnticipoRepository({ db }: AnticipoRepositoryDeps) {
             .where(and(eq(anticiposTable.id, id), eq(anticiposTable.user, userId)));
     };
 
+    // Anticipos ya pagados con saldo por recuperar, de un conjunto de libros.
+    // Sólo esos se descuentan de las regalías (ver
+    // specs/019-ajustes-liquidaciones-fiscales-edad): un anticipo impago no es plata
+    // entregada todavía.
+    const getDisponiblesPorLibros = async (
+        idLibros: number[],
+        userId: number,
+        tx?: Tx
+    ): Promise<{ id: number; id_libro: number; id_persona: number; id_rol: number; monto: number; recuperado: number }[]> => {
+        if (idLibros.length === 0) return [];
+
+        return (tx ?? db)
+            .select({
+                id: anticiposTable.id,
+                id_libro: anticiposTable.id_libro,
+                id_persona: anticiposTable.id_persona,
+                id_rol: anticiposTable.id_rol,
+                monto: anticiposTable.monto,
+                recuperado: anticiposTable.recuperado
+            })
+            .from(anticiposTable)
+            .where(
+                and(
+                    eq(anticiposTable.user, userId),
+                    eq(anticiposTable.pagado, true),
+                    inArray(anticiposTable.id_libro, idLibros),
+                    gt(anticiposTable.monto, anticiposTable.recuperado)
+                )
+            )
+            .orderBy(asc(anticiposTable.id));
+    };
+
+    const acumularRecuperado = async (id: number, monto: number, userId: number, tx?: Tx): Promise<void> => {
+        await (tx ?? db)
+            .update(anticiposTable)
+            .set({ recuperado: sql`${anticiposTable.recuperado} + ${monto}` })
+            .where(and(eq(anticiposTable.id, id), eq(anticiposTable.user, userId)));
+    };
+
     return {
         getFechaLanzamiento,
         getAcuerdosConMonto,
@@ -179,7 +218,9 @@ export function createAnticipoRepository({ db }: AnticipoRepositoryDeps) {
         findActivos,
         getIncorporacionesPorLibro,
         findOne,
-        marcarPagado
+        marcarPagado,
+        getDisponiblesPorLibros,
+        acumularRecuperado
     };
 }
 

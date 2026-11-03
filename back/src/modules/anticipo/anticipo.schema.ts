@@ -26,6 +26,11 @@ export const anticiposTable = pgTable(
         fecha_lanzamiento: date("fecha_lanzamiento").notNull(),
         pagado: boolean("pagado").notNull().default(false),
         fecha_pago: date("fecha_pago"),
+        // Parte del anticipo ya descontada de regalías en liquidaciones
+        // generadas. Se acumula de a una liquidación: el saldo resta del
+        // total de la persona sin poder recuperarse dos veces (ver
+        // specs/019-ajustes-liquidaciones-fiscales-edad).
+        recuperado: real("recuperado").notNull().default(0),
         user: integer("user")
             .notNull()
             .references(() => usersTable.id)

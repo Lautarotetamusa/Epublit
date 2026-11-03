@@ -222,7 +222,9 @@ export function createComprobanteService({
                 codigo_afip: CODIGO_AFIP_POR_TIPO[tipo],
                 importe_envio: importeEnvio,
                 importe_descuento: descuento,
-                importe_neto: redondear(subtotal - descuento),
+                // El neto sale de la discriminación de IVA (A/B) o del total
+                // (C), no del subtotal bruto: neto + IVA tiene que dar el total.
+                importe_neto: fiscales.neto,
                 importe_iva: fiscales.iva,
                 importe_exento: fiscales.exento,
                 importe_no_gravado: fiscales.noGravado,

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Badge, Breadcrumb, Button, Card, EmptyState, IconButton, ProgressBar, StatCard, Table } from "../../design-system";
+import { Badge, Breadcrumb, Button, Card, EmptyState, IconButton, Input, ProgressBar, StatCard, Table } from "../../design-system";
 import type { Pago, PersonaAPagar, RegistrarPagoInput } from "../../api/liquidaciones";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { useConfirm } from "../../notifications/ConfirmProvider";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
+import { normalizarBusqueda } from "../../lib/busqueda";
 import { formatFecha, formatRango } from "../../lib/fecha";
 import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 import { useFichaLiquidacion } from "./useFichaLiquidacion";
@@ -27,6 +28,7 @@ export function FichaLiquidacionPage() {
     const [personaDetalle, setPersonaDetalle] = useState<PersonaAPagar | null>(null);
     // `undefined` = diálogo cerrado; `null` = abierto sin persona elegida; un id = abierto en esa persona.
     const [pagarA, setPagarA] = useState<number | null | undefined>(undefined);
+    const [busquedaPersona, setBusquedaPersona] = useState("");
 
     if (loading) return <FullscreenSpinner />;
 
@@ -44,6 +46,9 @@ export function FichaLiquidacionPage() {
     }
 
     const conSaldo = liquidacion.personas.filter((p) => p.saldo > 0);
+    const personasFiltradas = liquidacion.personas.filter((p) =>
+        normalizarBusqueda(p.nombre).includes(normalizarBusqueda(busquedaPersona))
+    );
     // La persona fresca: si se registra un pago con el detalle abierto, el
     // desglose y el progreso siguen reflejando el estado real y no el del
     // momento del clic.
@@ -107,7 +112,7 @@ export function FichaLiquidacionPage() {
                         tone={liquidacion.estado === "pagada" ? "success" : "brand"}
                     />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "var(--space-4)", marginTop: "var(--space-5)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-4)", marginTop: "var(--space-5)" }}>
                     <StatCard label="Total" value={formatMoney(liquidacion.total)} icon="receipt-text" />
                     <StatCard label="Pagado" value={formatMoney(liquidacion.pagado)} icon="circle-check" />
                     <StatCard label="Saldo" value={formatMoney(liquidacion.saldo)} icon="banknote" />
@@ -125,6 +130,14 @@ export function FichaLiquidacionPage() {
                     ) : undefined
                 }
             >
+                <div style={{ padding: "var(--space-4)" }}>
+                    <Input
+                        iconStart="search"
+                        placeholder="Buscar por nombre..."
+                        value={busquedaPersona}
+                        onChange={(e) => setBusquedaPersona(e.target.value)}
+                    />
+                </div>
                 <Table
                     columns={[
                         { header: "Persona", key: "nombre", wrap: true },
@@ -139,6 +152,13 @@ export function FichaLiquidacionPage() {
                                     ))}
                                 </div>
                             )
+                        },
+                        {
+                            header: "Anticipo",
+                            align: "right",
+                            mono: true,
+                            cell: (p: PersonaAPagar) =>
+                                p.anticipo > 0 ? `− ${formatMoney(p.anticipo)}` : <span style={{ color: "var(--text-subtle)" }}>—</span>
                         },
                         { header: "Total", align: "right", mono: true, cell: (p: PersonaAPagar) => formatMoney(p.total) },
                         { header: "Pagado", align: "right", mono: true, cell: (p: PersonaAPagar) => formatMoney(p.pagado) },
@@ -188,7 +208,7 @@ export function FichaLiquidacionPage() {
                             )
                         }
                     ]}
-                    rows={liquidacion.personas}
+                    rows={personasFiltradas}
                     rowKey={(p) => p.id_persona}
                     onRowClick={(p: PersonaAPagar) => setPersonaDetalle(p)}
                 />
@@ -241,6 +261,8 @@ export function FichaLiquidacionPage() {
                     nombre={personaDetalleActual.nombre}
                     roles={personaDetalleActual.roles}
                     detalle={personaDetalleActual.detalle}
+                    totalBruto={personaDetalleActual.total_bruto}
+                    anticipo={personaDetalleActual.anticipo}
                     total={personaDetalleActual.total}
                     pagos={personaDetalleActual.pagos}
                     onClose={() => setPersonaDetalle(null)}

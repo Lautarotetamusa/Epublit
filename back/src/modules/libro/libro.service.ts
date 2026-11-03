@@ -3,7 +3,7 @@ import { LibroInsert, LibroUpdate } from "./libro.validator";
 import { LibroPrecioRepository } from "./libroPrecio.repository";
 import { LibroConColeccion, LibroRepository } from "./libro.repository";
 import { Storage } from "../../lib/storage";
-import { UnsupportedMediaType, PayloadTooLarge } from "../../lib/http/errors";
+import { UnsupportedMediaType, PayloadTooLarge, ValidationError } from "../../lib/http/errors";
 import { Duplicated } from "bradb";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
@@ -112,6 +112,14 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
     const update = async (isbn: string, userId: number, body: LibroUpdate) => {
         const datos = redondearPeso(body);
         const libro = await repository.findOne(isbn, userId);
+
+        // Un update parcial puede tocar sólo uno de los dos extremos: el rango
+        // final (contra lo guardado) es el que tiene que ser válido.
+        const edadMin = body.edad_min === undefined ? libro.edad_min : body.edad_min;
+        const edadMax = body.edad_max === undefined ? libro.edad_max : body.edad_max;
+        if (edadMin !== null && edadMax !== null && edadMax < edadMin) {
+            throw new ValidationError("edad_max no puede ser menor que edad_min");
+        }
 
         await assertColeccionDelUsuario(body.coleccion_id, userId);
 
