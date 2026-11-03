@@ -1,6 +1,6 @@
 import {describe, expect, test, beforeAll, afterAll} from 'vitest';
 import request from "supertest";
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 
 import * as dotenv from 'dotenv';
 import { join } from "path";
@@ -12,6 +12,7 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
+import { depositosTable } from '../src/modules/deposito/deposito.schema';
 import {expectBadRequest, expectConflict, expectDataResponse, expectCreated, expectNotFound, cargarStockPrincipal, getMedioPagoId} from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
@@ -532,5 +533,121 @@ describe('VENTA', () => {
                 expect(res.body.data).toHaveLength(1);
             });
         });
+    });
+});
+
+describe('POST /venta con deposito_id (specs/018)', () => {
+    const isbnLibro = isbn(9991);
+    let depositoId: number;
+    let principalId: number;
+    let depositoAjenoId: number;
+    let clienteId: number;
+
+    const auth = (req: request.Test, t = token) => req.set('Authorization', `Bearer ${t}`);
+
+    async function cantidadEnDeposito(deposito: number, isbnLibro: string): Promise<number> {
+        const res = await auth(request(app).get(`/deposito/${deposito}/libros`));
+        return res.body.data.libros.find((l: { isbn: string }) => l.isbn === isbnLibro)?.cantidad ?? 0;
+    }
+
+    async function disponiblePrincipal(isbnLibro: string): Promise<number> {
+        const res = await auth(request(app).get(`/libro/${isbnLibro}`));
+        return res.body.data.disponible_principal;
+    }
+
+    const ventaBody = (extra: Record<string, unknown> = {}) => ({
+        cliente: clienteId,
+        libros: [{ isbn: isbnLibro, cantidad: 1 }],
+        medio_pago: efectivoId,
+        tipo_cbte: 11,
+        ...extra
+    });
+
+    beforeAll(async () => {
+        const clientes = await auth(request(app).get('/cliente?tipo=particular'));
+        clienteId = clientes.body.items[0].id;
+
+        const depositos = await auth(request(app).get('/deposito/'));
+        principalId = depositos.body.data.find((d: { principal: boolean }) => d.principal).id;
+
+        const creado = await auth(request(app).post('/deposito/').send({ nombre: 'Depósito 018 venta' }));
+        depositoId = creado.body.data.id;
+
+        await auth(request(app).post('/libro/').send({ isbn: isbnLibro, titulo: 'Test venta depósito', fecha_edicion: '2020-01-01', precio: 1000 }));
+
+        const ingresoDeposito = await auth(
+            request(app).post('/movimiento/').send({
+                origen: { tipo: 'exterior' },
+                destino: { tipo: 'deposito', id: depositoId },
+                libros: [{ isbn: isbnLibro, cantidad: 5 }]
+            })
+        );
+        expect(ingresoDeposito.status).toBe(201);
+        const ingresoPrincipal = await cargarStockPrincipal(app, token, isbnLibro, 3);
+        expect(ingresoPrincipal.status).toBe(201);
+
+        const loginOtro = await request(app).post('/user/login').send({ username: 'editorial_norte', password: PASSWORD_SEED });
+        const ajeno = await auth(request(app).post('/deposito/').send({ nombre: 'Depósito 018 ajeno' }), loginOtro.body.token);
+        depositoAjenoId = ajeno.body.data.id;
+    });
+
+    test('descuenta del depósito elegido y lo informa como origen', async () => {
+        const principalAntes = await disponiblePrincipal(isbnLibro);
+        const depositoAntes = await cantidadEnDeposito(depositoId, isbnLibro);
+
+        const res = await auth(request(app).post('/venta/').send(ventaBody({ deposito_id: depositoId })));
+
+        expectCreated(res);
+        expect(res.body.data.origen_deposito).toEqual({ id: depositoId, nombre: 'Depósito 018 venta' });
+        expect(await cantidadEnDeposito(depositoId, isbnLibro)).toBe(depositoAntes - 1);
+        expect(await disponiblePrincipal(isbnLibro)).toBe(principalAntes);
+    });
+
+    test('sin deposito_id usa el principal y lo informa como origen', async () => {
+        const principalAntes = await disponiblePrincipal(isbnLibro);
+        const depositoAntes = await cantidadEnDeposito(depositoId, isbnLibro);
+
+        const res = await auth(request(app).post('/venta/').send(ventaBody()));
+
+        expectCreated(res);
+        expect(res.body.data.origen_deposito).toEqual({ id: principalId, nombre: 'Depósito principal' });
+        expect(await disponiblePrincipal(isbnLibro)).toBe(principalAntes - 1);
+        expect(await cantidadEnDeposito(depositoId, isbnLibro)).toBe(depositoAntes);
+    });
+
+    test('stock insuficiente en el depósito elegido: 409 y no modifica ningún depósito', async () => {
+        const principalAntes = await disponiblePrincipal(isbnLibro);
+        const depositoAntes = await cantidadEnDeposito(depositoId, isbnLibro);
+
+        const res = await auth(
+            request(app).post('/venta/').send(ventaBody({ deposito_id: depositoId, libros: [{ isbn: isbnLibro, cantidad: 99 }] }))
+        );
+
+        expectConflict(res);
+        expect(res.body.errors[0].code).toBe('StockInsuficiente');
+        expect(await cantidadEnDeposito(depositoId, isbnLibro)).toBe(depositoAntes);
+        expect(await disponiblePrincipal(isbnLibro)).toBe(principalAntes);
+    });
+
+    test('depósito inexistente devuelve 404', async () => {
+        const res = await auth(request(app).post('/venta/').send(ventaBody({ deposito_id: 999999 })));
+        expectNotFound(res);
+    });
+
+    test('depósito de otro usuario devuelve 404', async () => {
+        const res = await auth(request(app).post('/venta/').send(ventaBody({ deposito_id: depositoAjenoId })));
+        expectNotFound(res);
+    });
+
+    test('depósito propio de un cliente devuelve 404', async () => {
+        const [depositoDeCliente] = await db
+            .select({ id: depositosTable.id })
+            .from(depositosTable)
+            .where(and(eq(depositosTable.user, 1), isNotNull(depositosTable.id_cliente)))
+            .limit(1);
+        expect(depositoDeCliente).toBeDefined();
+
+        const res = await auth(request(app).post('/venta/').send(ventaBody({ deposito_id: depositoDeCliente.id })));
+        expectNotFound(res);
     });
 });

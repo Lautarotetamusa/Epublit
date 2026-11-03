@@ -69,7 +69,14 @@ export function createLibroController({ service }: LibroControllerDeps) {
     // sigue siendo un detalle de formato HTTP (armar el archivo y mandarlo por
     // `res.download`), no una regla de negocio, así que se queda acá.
     const listaLibros: RequestHandler = async (req, res) => {
-        const libros = await service.findAllOrdered({ user: res.locals.user.id });
+        const userId = res.locals.user.id;
+        const depositoId = req.query.deposito_id
+            ? Number(req.query.deposito_id)
+            : undefined;
+
+        const libros = depositoId
+            ? await service.findAllOrderedWithDeposito(depositoId, userId, { user: userId })
+            : await service.findAllOrdered({ user: userId });
 
         const len = Object.keys(libros[0]).length;
         const header = "LISTA DE LIBROS" + ",".repeat(len) + "\r\n";
@@ -98,9 +105,18 @@ export function createLibroController({ service }: LibroControllerDeps) {
     const getAll: RequestHandler = async (req, res) => {
         const userId = res.locals.user.id;
         const pagination = newPagination(req.query);
+        // `deposito_id` opcional (ver specs/018): si presente, incluir
+        // `disponible_en_deposito` en cada libro. El service valida que el
+        // depósito exista y pertenezca al usuario (404 si no).
+        const depositoId = req.query.deposito_id
+            ? Number(req.query.deposito_id)
+            : undefined;
+
         const filters = libroValidator.filter.parse({ ...req.query, user: userId });
 
-        const libros = await service.findAllPaginated(filters, pagination);
+        const libros = depositoId
+            ? await service.findAllPaginatedWithDeposito(depositoId, userId, filters, pagination)
+            : await service.findAllPaginated(filters, pagination);
 
         list(res, libros, pagination);
     };

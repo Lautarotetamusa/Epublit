@@ -3,7 +3,6 @@ import { listPersonas, deletePersona } from "../../api/persona";
 import type { Persona } from "../../api/persona";
 import type { Rol } from "../../api/rol";
 import type { Pagination } from "../../api/client";
-import { getFotoMock } from "./personaFotoMock";
 
 const PAGE_SIZE = 10;
 const DEBOUNCE_MS = 300;
@@ -47,9 +46,7 @@ export function usePersonas(rol: Rol | null) {
             // Descarta respuestas viejas que lleguen fuera de orden.
             if (id !== requestId.current) return;
 
-            // Merge con el mock local de foto (ver personaFotoMock.ts): el
-            // listado real todavía no trae `fotoUrl` desde el backend.
-            setPersonas(response.items.map((p) => ({ ...p, fotoUrl: p.fotoUrl ?? getFotoMock(p.id) })));
+            setPersonas(response.items);
             setPagination(response.pagination);
         } catch {
             if (id === requestId.current) {

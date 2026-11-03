@@ -22,7 +22,7 @@ import { createLibroRoutes } from "./libro.routes";
 
 export type { Libro, LibroInsert, LibroUpdate, LibroFilter, LibroCantidad } from "./libro.validator";
 export type { LibroPersonaBody, LibroPersonaBodyBatch, LibroPersonaRemoveBody, LibroPersonaRemoveBatch } from "./libroPersona.validator";
-export type { LibroService, PublicLibro, PortadaFile } from "./libro.service";
+export type { LibroService, PublicLibro, PublicLibroConDeposito, PortadaFile } from "./libro.service";
 export type { LibroPersonaService } from "./libroPersona.service";
 export type { LibroRepository, LibroConColeccion } from "./libro.repository";
 
@@ -34,8 +34,9 @@ export type LibroModuleDeps = {
     // (ver specs/007-colecciones, tareas 10 y 11).
     coleccionRepository: Pick<ColeccionRepository, "findOne">;
     // Sólo lectura del stock por depósito (desglose de un libro), ver
-    // specs/008-movimientos-deposito.
-    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro">;
+    // specs/008-movimientos-deposito. `findPropio` valida `deposito_id` en
+    // listados (ver specs/018).
+    depositoRepository: Pick<DepositoRepository, "getDesgloseLibro" | "findPropio">;
     // Sólo lectura de roles (ownership + vigencia) para validar la asignación
     // de personas a un libro (ver specs/011-roles).
     rolRepository: Pick<RolRepository, "findOne">;

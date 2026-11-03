@@ -44,6 +44,21 @@ export function disponibleEnPrincipal() {
     return sql<number>`(${stockDeLibro(true)} - ${reservasActivasDeLibro()})`.mapWith(Number);
 }
 
+// Cantidad de un libro en un depósito específico como subquery correlacionada
+// contra `librosTable`: usado por `GET /libro?deposito_id=N` para exponer
+// `disponible_en_deposito` junto a `disponible_principal` (ver specs/018).
+// `depositoId` se resuelve en el scope de la query externa; si el libro no
+// tiene presencia en ese depósito, la subquery devuelve 0.
+export function cantidadEnDeposito(depositoId: number | bigint) {
+    return sql<number>`(
+        select coalesce(sum(${depositoLibrosTable.cantidad}), 0)
+        from ${depositoLibrosTable}
+        where ${depositoLibrosTable.id_libro} = ${librosTable.id_libro}
+            and ${depositoLibrosTable.deposito_id} = ${depositoId}
+            and ${depositoLibrosTable.user} = ${librosTable.user}
+    )`.mapWith(Number);
+}
+
 // Cantidad que una operación puede vender desde el depósito principal: el
 // disponible más el límite negativo permitido, nunca menor que cero. Es la
 // única definición de la regla, compartida por catálogo, checkout y ventas

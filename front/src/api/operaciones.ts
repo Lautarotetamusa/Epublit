@@ -56,6 +56,9 @@ export type Venta = Operacion & {
     total: number;
     // Derivado de la comisión congelada en la venta: `total − (comision/100)·total`.
     neto: number;
+    // Depósito desde el que se descontó el stock, resuelto por el backend
+    // (ver specs/018-venta-deposito-origen).
+    origen_deposito?: { id: number; nombre: string };
 };
 
 export type OperacionDetalle = Operacion & { libros: LibroOperacion[] };
@@ -71,6 +74,9 @@ export type CreateVentaInput = {
     medio_pago: number;
     // `tipo_cbte` ya no lo manda el cliente: el backend decide A/B/C según la
     // condición frente al IVA de la cuenta y del cliente.
+    // Depósito de origen para la venta en firme (ver specs/018). Si falta, el
+    // backend usa el principal. En consignación no aplica: no mandarlo.
+    deposito_id?: number;
 };
 
 export type CreateVentaConsignacionInput = CreateVentaInput & {

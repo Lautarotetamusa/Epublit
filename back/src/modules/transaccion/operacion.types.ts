@@ -63,10 +63,15 @@ export type OperacionConfig = {
         libros: LibroCantidad[],
         cliente: Client,
         userId: number,
-        args?: { fecha?: Date }
+        args?: { fecha?: Date; depositoId?: number }
     ) => Promise<LibroOperacion[]>;
     // Extremos del movimiento según el tipo (principal/depósito del cliente).
-    obtenerExtremos: (cliente: Client, userId: number) => Promise<{ origen: ExtremoOperacion; destino: ExtremoOperacion }>;
+    // `depositoId` llega por args en `venta` para elegir el depósito de origen.
+    obtenerExtremos: (
+        cliente: Client,
+        userId: number,
+        args?: { depositoId?: number }
+    ) => Promise<{ origen: ExtremoOperacion; destino: ExtremoOperacion }>;
     // Congela el precio por libro (sólo consignación).
     fijarPrecios?: (libros: LibroOperacion[], cliente: Client, tx: Tx) => Promise<void>;
     // Crea la fila de comprobante dentro de la transacción de la operación

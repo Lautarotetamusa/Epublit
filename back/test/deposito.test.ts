@@ -357,3 +357,68 @@ describe('migración 0005: el backfill de datos es idempotente', () => {
         expect(new Set(pares).size).toBe(pares.length);
     });
 });
+
+describe('GET /libro con deposito_id (specs/018)', () => {
+    const isbnLibro = '9780000000181';
+    const isbnSinStock = '9780000000182';
+    let depositoConStock: number;
+    let depositoVacio: number;
+    let depositoAjeno: number;
+
+    beforeAll(async () => {
+        await crearLibro(isbnLibro, 'Libro 018 con stock');
+        await crearLibro(isbnSinStock, 'Libro 018 sin stock');
+
+        const [conStock, vacio, ajeno, propios] = await Promise.all([
+            crearDeposito('Depósito 018 con stock'),
+            crearDeposito('Depósito 018 vacío'),
+            crearDeposito('Depósito 018 ajeno', undefined, otroToken),
+            auth(request(app).get('/deposito/'))
+        ]);
+        depositoConStock = conStock.body.data.id;
+        depositoVacio = vacio.body.data.id;
+        depositoAjeno = ajeno.body.data.id;
+
+        const principal = propios.body.data.find((d: { principal: boolean }) => d.principal);
+        await ingreso(depositoConStock, [{ isbn: isbnLibro, cantidad: 7 }]);
+        await ingreso(principal.id, [{ isbn: isbnLibro, cantidad: 2 }]);
+    });
+
+    it('devuelve la cantidad del libro en el depósito pedido', async () => {
+        const res = await auth(request(app).get(`/libro/?deposito_id=${depositoConStock}&pageSize=1000`));
+        expect(res.status).toBe(200);
+
+        const libro = res.body.items.find((l: { isbn: string }) => l.isbn === isbnLibro);
+        expect(libro.disponible_en_deposito).toBe(7);
+        expect(libro.disponible_principal).toBe(2);
+    });
+
+    it('un libro sin stock en el depósito devuelve 0, no null', async () => {
+        const res = await auth(request(app).get(`/libro/?deposito_id=${depositoVacio}&pageSize=1000`));
+        expect(res.status).toBe(200);
+
+        const sinStock = res.body.items.find((l: { isbn: string }) => l.isbn === isbnSinStock);
+        expect(sinStock.disponible_en_deposito).toBe(0);
+
+        const conStockEnOtro = res.body.items.find((l: { isbn: string }) => l.isbn === isbnLibro);
+        expect(conStockEnOtro.disponible_en_deposito).toBe(0);
+    });
+
+    it('sin deposito_id no incluye el campo', async () => {
+        const res = await auth(request(app).get('/libro/?pageSize=1000'));
+        expect(res.status).toBe(200);
+
+        const libro = res.body.items.find((l: { isbn: string }) => l.isbn === isbnLibro);
+        expect(libro).not.toHaveProperty('disponible_en_deposito');
+    });
+
+    it('depósito inexistente devuelve 404', async () => {
+        const res = await auth(request(app).get('/libro/?deposito_id=999999'));
+        expectNotFound(res);
+    });
+
+    it('depósito de otro usuario devuelve 404', async () => {
+        const res = await auth(request(app).get(`/libro/?deposito_id=${depositoAjeno}`));
+        expectNotFound(res);
+    });
+});

@@ -1,9 +1,11 @@
 import { and, count, desc, eq, gte, inArray, lte, SQL } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { Database, Tx } from "../../db/client";
 import { ventasTable } from "./venta.schema";
 import { movimientosTable } from "../movimiento/movimiento.schema";
 import { clientesTable } from "../cliente/cliente.schema";
 import { mediosPagoTable } from "../medioPago/medioPago.schema";
+import { depositosTable } from "../deposito/deposito.schema";
 import { VentaInsert, ListVentasFilter, tipoVentaValues } from "./venta.validator";
 import { LibroOperacion } from "./operacion.types";
 import { NotFound } from "bradb";
@@ -14,6 +16,12 @@ export type VentaRepositoryDeps = {
 };
 
 export function createVentaRepository({ db }: VentaRepositoryDeps) {
+    // Alias para join a `depositos` con el depósito de origen del movimiento.
+    // Se define acá (no al módulo) para que el alias sea local a la factory
+    // y no cree colisiones entre instancias de ventaRepository (mismo patrón
+    // que `movimiento.repository.ts`).
+    const origenDep = alias(depositosTable, "origen_deposito");
+
     const insert = async (idMovimiento: number, body: Omit<VentaInsert, "id_movimiento">, tx: Tx) => {
         const [row] = await tx
             .insert(ventasTable)
@@ -36,6 +44,8 @@ export function createVentaRepository({ db }: VentaRepositoryDeps) {
     // aparte), pero se sigue exponiendo `id_transaccion` para no romper el
     // contrato del front. El medio se joinea por id y dueño: su nombre se lee
     // en vivo, así sigue siendo legible aunque esté dado de baja.
+    // `origen_deposito_id`/`origen_deposito_nombre` se joinean contra `depositos`
+    // (ver specs/018): el nombre persiste aunque el depósito se dé de baja.
     const selectVentaConMovimiento = () =>
         db
             .select({
@@ -55,7 +65,9 @@ export function createVentaRepository({ db }: VentaRepositoryDeps) {
                 cuit: clientesTable.cuit,
                 email: clientesTable.email,
                 cond_fiscal: clientesTable.cond_fiscal,
-                tipo_cliente: clientesTable.tipo
+                tipo_cliente: clientesTable.tipo,
+                origen_deposito_id: movimientosTable.origen_deposito_id,
+                origen_deposito_nombre: origenDep.nombre
             })
             .from(ventasTable)
             .innerJoin(movimientosTable, eq(movimientosTable.id, ventasTable.id_movimiento))
@@ -66,6 +78,10 @@ export function createVentaRepository({ db }: VentaRepositoryDeps) {
             .innerJoin(
                 mediosPagoTable,
                 and(eq(mediosPagoTable.id, ventasTable.id_medio_pago), eq(mediosPagoTable.user, movimientosTable.user))
+            )
+            .leftJoin(
+                origenDep,
+                and(eq(origenDep.id, movimientosTable.origen_deposito_id), eq(origenDep.user, movimientosTable.user))
             );
 
     // Filtros combinables por AND: sin `tipo` trae los dos tipos de venta (en

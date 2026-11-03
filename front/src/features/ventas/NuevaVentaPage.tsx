@@ -46,6 +46,13 @@ export function NuevaVentaPage() {
             ? `Comisión ${medioSeleccionado.comision}% · Neto ${(totalConDescuento * (1 - medioSeleccionado.comision * 0.01)).toLocaleString("es-AR")}`
             : undefined;
 
+    // Nombre del depósito de origen para la ayuda: el elegido en venta en
+    // firme o el principal mientras todavía no cargó el listado.
+    const depositoNombre =
+        form.tipoVenta === "firme" && form.depositoId !== ""
+            ? form.depositos.find((d) => d.id === form.depositoId)?.nombre
+            : form.depositoPrincipal;
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <Breadcrumb items={["Ventas", "Nueva venta"]} onNavigate={(_item, index) => index === 0 && navigate("/ventas")} />
@@ -73,6 +80,27 @@ export function NuevaVentaPage() {
                                     emptyMessage="No se encontraron clientes"
                                 />
                             </Field>
+
+                            {/* Selector de depósito: solo en venta firme. En consignación,
+                                el stock sale del depósito del cliente, no hay elección. */}
+                            {form.tipoVenta === "firme" ? (
+                                <Field label="Depósito de origen">
+                                    <Select
+                                        value={form.depositoId === "" ? "" : String(form.depositoId)}
+                                        onChange={(e) => form.setDepositoId(e.target.value === "" ? "" : Number(e.target.value))}
+                                        options={form.depositos.map((d) => ({
+                                            value: String(d.id),
+                                            label: d.principal ? `${d.nombre} (principal)` : d.nombre
+                                        }))}
+                                        placeholder="Seleccioná un depósito"
+                                    />
+                                </Field>
+                            ) : (
+                                /* Espacio vacío para no romper la grilla en consignación.
+                                    En consignación, el depósito de origen fijo es el del cliente. */
+                                <div />
+                            )}
+
                             <Field label="Descuento (%)">
                                 <Input
                                     type="text"
@@ -81,6 +109,9 @@ export function NuevaVentaPage() {
                                     onChange={(e) => form.setDescuento(sanitizeDecimal(e.target.value))}
                                 />
                             </Field>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-4)", marginTop: "var(--space-4)" }}>
                             <Field label="Medio de pago" required>
                                 <Select
                                     value={form.medioPago === "" ? "" : String(form.medioPago)}
@@ -107,8 +138,8 @@ export function NuevaVentaPage() {
                                 disabled={form.tipoVenta === "consignacion" && form.clienteId === ""}
                                 placeholder={form.tipoVenta === "consignacion" && form.clienteId === "" ? "Seleccioná un cliente" : "Seleccioná un libro"}
                                 hint={
-                                    form.tipoVenta === "firme" ? (
-                                        <>El stock sale del depósito principal («{form.depositoPrincipal}»).</>
+                                    form.tipoVenta === "firme" && depositoNombre ? (
+                                        <>El stock sale de «{depositoNombre}».</>
                                     ) : undefined
                                 }
                                 descuento={descuentoPct}
