@@ -249,6 +249,52 @@ describe('GET /public/tienda/v1/libros/:isbn', () => {
     });
 });
 
+describe('GET /public/tienda/v1/personas', () => {
+    it('devuelve personas con bio, roles y libros, sin datos internos', async () => {
+        const res = await publica('/personas');
+
+        expect(res.status).toBe(200);
+
+        const ana = res.body.personas.find((persona: { nombre: string }) => persona.nombre === 'Ana Pérez');
+        expect(ana).toMatchObject({
+            slug: 'ana-perez',
+            nombre: 'Ana Pérez',
+            bio: 'Bio pública de Ana',
+            fotoUrl: null,
+            roles: ['autor', 'traductor']
+        });
+        expect(ana.libros).toEqual([
+            {
+                isbn: ISBN,
+                titulo: 'Senderos de prueba',
+                portadaUrl: null,
+                fechaEdicion: '2020-02-17'
+            }
+        ]);
+
+        const luis = res.body.personas.find((persona: { nombre: string }) => persona.nombre === 'Luis Gómez');
+        expect(luis).toMatchObject({
+            slug: 'luis-gomez',
+            bio: null,
+            roles: ['ilustrador']
+        });
+
+        expect(res.body.personas.some((persona: { nombre: string }) => persona.nombre === 'Persona temporal')).toBe(false);
+
+        for (const persona of res.body.personas) {
+            expect(persona.dni).toBeUndefined();
+            expect(persona.email).toBeUndefined();
+            expect(persona.porcentaje).toBeUndefined();
+        }
+    });
+
+    it('sin API key devuelve 401', async () => {
+        const res = await request(app).get('/public/tienda/v1/personas');
+
+        expect(res.status).toBe(401);
+    });
+});
+
 describe('GET /public/tienda/v1/config', () => {
     it('devuelve la configuración pública sin credenciales', async () => {
         const res = await publica('/config');

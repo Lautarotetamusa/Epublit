@@ -9,6 +9,7 @@ export function createCatalogRoutes(controller: CatalogController) {
     router.get("/colecciones", controller.getCollections);
     router.get("/libros", controller.getBooks);
     router.get("/libros/:isbn", controller.getBook);
+    router.get("/personas", controller.getPersonas);
 
     return router;
 }

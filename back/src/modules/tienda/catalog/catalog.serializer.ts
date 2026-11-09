@@ -33,6 +33,33 @@ const toPersonDetail = (persona: BookPerson) => ({
 const availableForSale = (libro: PublicLibro) =>
     disponibleParaVenta(libro.disponible_principal, libro.stock_negativo_permitido);
 
+export type PublicPersonaLibro = {
+    isbn: string;
+    titulo: string;
+    portadaUrl: string | null;
+    fechaEdicion: string;
+};
+
+export type PublicPersona = {
+    id: number;
+    slug: string;
+    nombre: string;
+    bio: string | null;
+    fotoUrl: string | null;
+    roles: string[];
+    libros: PublicPersonaLibro[];
+};
+
+// Slug estable para la URL pública de la persona. Si dos personas de la
+// cuenta comparten nombre, el service agrega el id para desambiguar.
+export const slugifyPersona = (nombre: string) =>
+    nombre
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "persona";
+
 // Campos públicos comunes a listado y detalle. Nada de porcentajes, montos,
 // email, dni, costo, stock por depósito ni datos fiscales.
 const toColeccion = (libro: PublicLibro) =>
