@@ -26,6 +26,12 @@ export function createCatalogController({ service }: CatalogControllerDeps) {
         res.status(200).json(libro);
     };
 
+    const getPersonas: RequestHandler = async (_req, res) => {
+        const personas = await service.getPersonas(res.locals.integracion.userId);
+
+        res.status(200).json(personas);
+    };
+
     const getCollections: RequestHandler = async (_req, res) => {
         const colecciones = await service.getCollections(res.locals.integracion.userId);
 
@@ -36,6 +42,7 @@ export function createCatalogController({ service }: CatalogControllerDeps) {
         getConfig,
         getBooks,
         getBook,
+        getPersonas,
         getCollections
     };
 }

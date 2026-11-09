@@ -105,7 +105,12 @@ export function createTiendaModule({
     const router = createIntegrationRoutes(integrationController);
 
     const catalogRepository = createCatalogRepository({ db });
-    const catalogService = createCatalogService({ libroService, colecciones: coleccionService, repository: catalogRepository });
+    const catalogService = createCatalogService({
+        libroService,
+        colecciones: coleccionService,
+        repository: catalogRepository,
+        storage
+    });
     const catalogController = createCatalogController({ service: catalogService });
     const catalogRouter = createCatalogRoutes(catalogController);
 
