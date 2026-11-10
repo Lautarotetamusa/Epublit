@@ -18,14 +18,35 @@ export type ApiErrorItem = {
     message: string;
 };
 
+// Detalle de validación del sobre `{error:{codigo,mensaje,detalles}}` (hoy lo
+// usan las rutas de contenido y la API pública de la tienda). `campo` es la
+// ruta del dato en el cuerpo, para poder ubicarlo en el formulario.
+export type ApiErrorDetalle = {
+    campo: string;
+    codigo: string;
+    mensaje: string;
+};
+
+type ParsedErrors = {
+    errors: ApiErrorItem[];
+    codigo: string | null;
+    detalles: ApiErrorDetalle[];
+};
+
 export class ApiError extends Error {
     status: number;
     errors: ApiErrorItem[];
+    // Código estable del sobre (`slug_duplicado`, `publicacion_incompleta`,
+    // `archivo_demasiado_grande`…). `null` en las rutas viejas que no lo mandan.
+    codigo: string | null;
+    detalles: ApiErrorDetalle[];
 
-    constructor(status: number, errors: ApiErrorItem[]) {
+    constructor(status: number, errors: ApiErrorItem[], codigo: string | null = null, detalles: ApiErrorDetalle[] = []) {
         super(errors.map((e) => e.message).join("\n") || "Error desconocido");
         this.status = status;
         this.errors = errors;
+        this.codigo = codigo;
+        this.detalles = detalles;
     }
 }
 
@@ -79,31 +100,53 @@ function parseJson(text: string): unknown {
 
 // Los errores del backend no tienen una sola forma: las rutas de la app usan
 // `{errors:[{code,message}]}`; la prueba de conexión de envíos devuelve
-// `{api,ok,mensaje}` incluso en 422; las rutas públicas usan
-// `{error:{codigo,...}}`. Acá se normalizan para que la UI tenga un mensaje
-// mostrable en todos los casos.
-function parseErrors(data: unknown): ApiErrorItem[] {
+// `{api,ok,mensaje}` incluso en 422; las rutas de contenido y la API pública
+// usan `{error:{codigo,mensaje,detalles}}`. Acá se normalizan para que la UI
+// tenga un mensaje mostrable en todos los casos.
+function parseErrors(data: unknown): ParsedErrors {
     if (!isRecord(data)) {
-        return [{ code: "Error", message: "Error desconocido" }];
+        return { errors: [{ code: "Error", message: "Error desconocido" }], codigo: null, detalles: [] };
+    }
+
+    if (isRecord(data.error)) {
+        const codigo = typeof data.error.codigo === "string" ? data.error.codigo : "Error";
+        const mensaje =
+            typeof data.error.mensaje === "string" && data.error.mensaje.trim() !== ""
+                ? data.error.mensaje
+                : "Error desconocido";
+        const detalles = Array.isArray(data.error.detalles)
+            ? data.error.detalles.flatMap((detalle): ApiErrorDetalle[] => {
+                  if (!isRecord(detalle)) return [];
+                  return [
+                      {
+                          campo: typeof detalle.campo === "string" ? detalle.campo : "",
+                          codigo: typeof detalle.codigo === "string" ? detalle.codigo : codigo,
+                          mensaje: typeof detalle.mensaje === "string" ? detalle.mensaje : mensaje
+                      }
+                  ];
+              })
+            : [];
+
+        return { errors: [{ code: codigo, message: mensaje }], codigo, detalles };
     }
 
     if (Array.isArray(data.errors) && data.errors.length > 0) {
-        return data.errors as ApiErrorItem[];
+        return { errors: data.errors as ApiErrorItem[], codigo: null, detalles: [] };
     }
 
     if (typeof data.mensaje === "string" && data.mensaje.trim() !== "") {
-        return [{ code: "Error", message: data.mensaje }];
+        return { errors: [{ code: "Error", message: data.mensaje }], codigo: null, detalles: [] };
     }
 
     if (typeof data.error === "string" && data.error.trim() !== "") {
-        return [{ code: "Error", message: data.error }];
+        return { errors: [{ code: "Error", message: data.error }], codigo: null, detalles: [] };
     }
 
     if (typeof data.message === "string" && data.message.trim() !== "") {
-        return [{ code: "Error", message: data.message }];
+        return { errors: [{ code: "Error", message: data.message }], codigo: null, detalles: [] };
     }
 
-    return [{ code: "Error", message: "Error desconocido" }];
+    return { errors: [{ code: "Error", message: "Error desconocido" }], codigo: null, detalles: [] };
 }
 
 function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
@@ -132,7 +175,8 @@ async function request<T>(
     const data = parseJson(text);
 
     if (!res.ok && !options?.allowedStatuses?.includes(res.status)) {
-        throw new ApiError(res.status, parseErrors(data));
+        const parsed = parseErrors(data);
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
     }
 
     return data as T;
@@ -149,7 +193,8 @@ async function getBlob(path: string): Promise<BlobFile> {
 
     if (!res.ok) {
         const text = await res.text();
-        throw new ApiError(res.status, parseErrors(parseJson(text)));
+        const parsed = parseErrors(parseJson(text));
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
     }
 
     const disposition = res.headers.get("Content-Disposition");
@@ -164,10 +209,18 @@ async function getBlob(path: string): Promise<BlobFile> {
 // Subida de archivo (multipart/form-data): separado de `request` porque un
 // FormData no se debe serializar a JSON ni llevar Content-Type manual (el
 // browser arma el boundary). Mismo esquema de auth/errores que el resto.
+// `fields` permite mandar datos adicionales junto al archivo (ej. `uso` de una
+// imagen de contenido), que el backend espera en el mismo multipart.
 // Sigue el patrón ya usado por `POST /user/uploadCert` en el backend
 // (ver back/src/modules/user/user.routes.ts, multer.single).
-async function postFile<T>(path: string, fieldName: string, file: File): Promise<T> {
+async function postFile<T>(
+    path: string,
+    fieldName: string,
+    file: File,
+    fields: Record<string, string> = {}
+): Promise<T> {
     const body = new FormData();
+    for (const [key, value] of Object.entries(fields)) body.append(key, value);
     body.append(fieldName, file);
 
     const res = await fetch(`${API_URL}${path}`, {
@@ -179,7 +232,8 @@ async function postFile<T>(path: string, fieldName: string, file: File): Promise
     const data = parseJson(text);
 
     if (!res.ok) {
-        throw new ApiError(res.status, parseErrors(data));
+        const parsed = parseErrors(data);
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
     }
 
     return data as T;
@@ -198,5 +252,6 @@ export const api = {
     del: <T>(path: string, body?: unknown, options?: RequestOptions): Promise<T> =>
         request<T>(path, "DELETE", body, options),
     getBlob: (path: string): Promise<BlobFile> => getBlob(path),
-    postFile: <T>(path: string, fieldName: string, file: File): Promise<T> => postFile<T>(path, fieldName, file)
+    postFile: <T>(path: string, fieldName: string, file: File, fields?: Record<string, string>): Promise<T> =>
+        postFile<T>(path, fieldName, file, fields)
 };

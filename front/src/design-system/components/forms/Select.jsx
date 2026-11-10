@@ -1,12 +1,14 @@
 import React from 'react';
 import { Icon } from '../core/Icon.jsx';
+import { FieldContext } from './fieldContext.js';
 
-export function Select({ options=[], placeholder, invalid, size='md', style, ...rest }) {
+export function Select({ options=[], placeholder, invalid, size='md', style, id, ...rest }) {
   const [f,setF] = React.useState(false);
+  const field = React.useContext(FieldContext);
   const h = size === 'sm' ? 'var(--height-control-sm)' : 'var(--height-control)';
   return (
     <div style={{position:'relative',display:'flex',alignItems:'center',...style}}>
-      <select {...rest} onFocus={()=>setF(true)} onBlur={()=>setF(false)}
+      <select id={id ?? field?.id} aria-required={field?.required || undefined} {...rest} onFocus={()=>setF(true)} onBlur={()=>setF(false)}
         style={{
           appearance:'none', width:'100%', height:h, padding:'0 32px 0 10px',
           fontFamily:'var(--font-body)', fontSize: size==='sm' ? 'var(--text-xs)' : 'var(--text-sm)',

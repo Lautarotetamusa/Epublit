@@ -26,6 +26,7 @@ export { Combobox } from "./components/forms/Combobox.jsx";
 export { CoverUpload } from "./components/forms/CoverUpload.jsx";
 export { Field } from "./components/forms/Field.jsx";
 export { Input } from "./components/forms/Input.jsx";
+export { MediaUpload } from "./components/forms/MediaUpload.jsx";
 export { PhotoUpload } from "./components/forms/PhotoUpload.jsx";
 export { QuantityStepper } from "./components/forms/QuantityStepper.jsx";
 export { Radio } from "./components/forms/Radio.jsx";

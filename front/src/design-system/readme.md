@@ -128,10 +128,11 @@ No se usan ilustraciones, texturas ni patrones repetidos.
 
 ## Iconografía
 
-- Set único: **Lucide**, trazo 1.5 px, esquinas redondeadas, sin relleno. 48 glifos copiados
+- Set único: **Lucide**, trazo 1.5 px, esquinas redondeadas, sin relleno. Glifos copiados
   a `assets/icons/` (desde `lucide-icons/lucide@main`), elegidos por el dominio: `book-open`,
   `library`, `boxes`, `package`, `receipt-text`, `truck`, `store`, `barcode`, `banknote`,
-  `percent`, `printer`, `building-2`, más los utilitarios de interfaz.
+  `percent`, `printer`, `building-2`, más los utilitarios de interfaz y los que agregó el
+  CMS de contenido (flechas, imagen, cita, enlace y formato de texto).
 - **Sustitución declarada**: el proyecto no traía set de iconos propio ni icon font. Lucide es
   la elección más cercana al tono formal y liviano del sistema. Si Epublit ya usa otro set
   (Feather, Material Symbols, iconos propios), hay que reemplazar `assets/icons/`.

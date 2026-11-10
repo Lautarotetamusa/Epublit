@@ -11,3 +11,13 @@ code,kbd{font-family:var(--font-mono);font-size:.92em}
 :focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 .eyebrow{font-family:var(--font-body);font-size:var(--text-2xs);font-weight:var(--weight-semibold);letter-spacing:var(--tracking-caps);text-transform:uppercase;color:var(--text-muted)}
 @keyframes epublit-spin{to{transform:rotate(360deg)}}
+
+
+/* Scrollbar del documento: la barra es una superficie más del sistema. Sólo
+   el scroll principal (body); los paneles internos conservan su barra nativa
+   para no pelearse con fondos oscuros como la navegación. */
+body{scrollbar-width:thin;scrollbar-color:var(--papel-300) var(--papel-50)}
+body::-webkit-scrollbar{width:12px;height:12px}
+body::-webkit-scrollbar-track{background:var(--papel-50)}
+body::-webkit-scrollbar-thumb{background:var(--papel-300);border-radius:var(--radius-pill);border:3px solid var(--papel-50)}
+body::-webkit-scrollbar-thumb:hover{background:var(--papel-400)}

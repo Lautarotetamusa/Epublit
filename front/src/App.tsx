@@ -38,6 +38,8 @@ import { FichaVentaPage } from "./features/ventas/FichaVentaPage";
 import { PedidosPage } from "./features/tienda/pedidos/PedidosPage";
 import { FichaPedidoPage } from "./features/tienda/pedidos/FichaPedidoPage";
 import { ConfiguracionTiendaPage } from "./features/tienda/configuracion/ConfiguracionTiendaPage";
+import { ContenidoPage } from "./features/contenido/ContenidoPage";
+import { PaginaContenidoPage } from "./features/contenido/PaginaContenidoPage";
 import { LiquidacionesPage } from "./features/liquidaciones/LiquidacionesPage";
 import { NuevaLiquidacionPage } from "./features/liquidaciones/NuevaLiquidacionPage";
 import { FichaLiquidacionPage } from "./features/liquidaciones/FichaLiquidacionPage";
@@ -116,6 +118,8 @@ function AppRoutes() {
                 <Route path="/pedidos" element={<PedidosPage />} />
                 <Route path="/pedidos/:codigo" element={<FichaPedidoPage />} />
                 <Route path="/tienda" element={<ConfiguracionTiendaPage />} />
+                <Route path="/contenido" element={<ContenidoPage />} />
+                <Route path="/contenido/:id" element={<PaginaContenidoPage />} />
                 <Route path="/liquidaciones" element={<LiquidacionesPage />} />
                 <Route path="/liquidaciones/nueva" element={<NuevaLiquidacionPage />} />
                 {/* `anticipos` es una pestaña de la sección: va antes de `:id`

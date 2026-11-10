@@ -17,9 +17,11 @@ const S = {
 export function Button({ variant='primary', size='md', iconStart, iconEnd, fullWidth, disabled, loading, children, style, ...rest }) {
   const v = V[variant] || V.primary, s = S[size] || S.md;
   const [h,setH] = React.useState(false), [a,setA] = React.useState(false);
-  const off = disabled || loading;
+  const deshabilitado = Boolean(disabled);
+  const cargando = Boolean(loading);
+  const off = deshabilitado || cargando;
   return (
-    <button type="button" disabled={off}
+    <button type="button" disabled={off} aria-busy={cargando || undefined}
       onMouseEnter={()=>setH(true)} onMouseLeave={()=>{setH(false);setA(false);}}
       onMouseDown={()=>setA(true)} onMouseUp={()=>setA(false)}
       {...rest}
@@ -28,12 +30,16 @@ export function Button({ variant='primary', size='md', iconStart, iconEnd, fullW
         height:s.h, padding:'0 '+s.px+'px', width: fullWidth ? '100%' : undefined,
         fontFamily:'var(--font-body)', fontSize:s.fs, fontWeight:'var(--weight-semibold)',
         letterSpacing:'0.01em', lineHeight:1, whiteSpace:'nowrap',
-        color:v.fg, background: off ? 'var(--papel-100)' : (a ? v.ab : h ? v.hb : v.bg),
-        border:'1px solid '+(off ? 'var(--border-subtle)' : v.bd),
+        color: deshabilitado ? 'var(--text-muted)' : v.fg,
+        // Loading conserva el color y la superficie de la acción: el spinner
+        // tiene que verse sobre el botón que está trabajando. Sólo el estado
+        // disabled usa la superficie apagada.
+        background: deshabilitado ? 'var(--papel-100)' : (a ? v.ab : h ? v.hb : v.bg),
+        border:'1px solid '+(deshabilitado ? 'var(--border-subtle)' : v.bd),
         borderRadius:'var(--radius-sm)',
-        boxShadow: variant==='secondary' && !off ? 'var(--shadow-xs)' : 'none',
-        cursor: off ? 'not-allowed' : 'pointer',
-        opacity: off ? 0.65 : 1,
+        boxShadow: variant==='secondary' && !deshabilitado ? 'var(--shadow-xs)' : 'none',
+        cursor: cargando ? 'progress' : deshabilitado ? 'not-allowed' : 'pointer',
+        opacity: deshabilitado ? 0.65 : 1,
         transition:'var(--transition-control)', ...style,
       }}>
       {loading ? <Icon name="loader-circle" size={s.ic} style={{animation:'epublit-spin 900ms linear infinite'}} />
