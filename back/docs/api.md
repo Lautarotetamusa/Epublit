@@ -39,6 +39,27 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `GET    /comprobantes/:id`
 - `POST   /comprobantes/:id/reintentar`
 
+## contenido
+
+### publicRouter (/public/tienda/v1/contenido)
+
+- `GET    /public/tienda/v1/contenido/paginas`
+- `GET    /public/tienda/v1/contenido/paginas/:slug`
+- `GET    /public/tienda/v1/contenido/menu`
+
+### adminRouter (/contenido)
+
+- `POST   /contenido/imagenes`
+- `DELETE /contenido/imagenes/:id`
+- `GET    /contenido/paginas`
+- `GET    /contenido/paginas/slug-disponible`
+- `POST   /contenido/paginas`
+- `GET    /contenido/paginas/:id`
+- `PUT    /contenido/paginas/:id`
+- `DELETE /contenido/paginas/:id`
+- `POST   /contenido/paginas/:id/publicar`
+- `POST   /contenido/paginas/:id/despublicar`
+
 ## deposito (/deposito)
 
 - `POST   /deposito/`
@@ -118,8 +139,10 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 ### publicRouter (/public/tienda/v1)
 
 - `GET    /public/tienda/v1/config`
+- `GET    /public/tienda/v1/colecciones`
 - `GET    /public/tienda/v1/libros`
 - `GET    /public/tienda/v1/libros/:isbn`
+- `GET    /public/tienda/v1/personas`
 - `POST   /public/tienda/v1/cotizar`
 - `POST   /public/tienda/v1/pedidos`
 - `GET    /public/tienda/v1/pedidos/:codigo`

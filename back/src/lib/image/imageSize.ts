@@ -1,11 +1,39 @@
-// Lector mínimo de dimensiones PNG/JPEG (los dos únicos formatos que
-// `persona.foto` acepta, ver specs/004-persona-foto-bio): evita traer una
+// Lector mínimo de dimensiones PNG/JPEG/WebP (los formatos que acepta el CMS
+// de contenido; persona sigue aceptando sólo PNG/JPEG): evita traer una
 // dependencia nueva sólo para leer un header de imagen.
 export type ImageSize = { width: number; height: number };
+export type ImageFormat = "image/jpeg" | "image/png" | "image/webp";
+
+const esPng = (buffer: Buffer): boolean =>
+    buffer.length >= 8 &&
+    buffer[0] === 0x89 &&
+    buffer.toString("ascii", 1, 4) === "PNG" &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a;
+
+const esJpeg = (buffer: Buffer): boolean =>
+    buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+
+const esWebp = (buffer: Buffer): boolean =>
+    buffer.length >= 12 &&
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP";
+
+// El formato se detecta por los bytes reales: la extensión o el Content-Type
+// declarado no alcanzan para aceptar un archivo.
+export function detectImageFormat(buffer: Buffer): ImageFormat | null {
+    if (esPng(buffer)) return "image/png";
+    if (esJpeg(buffer)) return "image/jpeg";
+    if (esWebp(buffer)) return "image/webp";
+    return null;
+}
 
 export function getImageSize(buffer: Buffer, mimetype: string): ImageSize | null {
     if (mimetype === "image/png") return getPngSize(buffer);
     if (mimetype === "image/jpeg") return getJpegSize(buffer);
+    if (mimetype === "image/webp") return getWebpSize(buffer);
     return null;
 }
 
@@ -41,6 +69,38 @@ function getJpegSize(buffer: Buffer): ImageSize | null {
 
         const segmentLength = buffer.readUInt16BE(offset + 2);
         offset += 2 + segmentLength;
+    }
+
+    return null;
+}
+
+// WebP tiene tres variantes de header. VP8X (extendido) guarda el canvas en
+// 24 bits little-endian; VP8 (lossy) y VP8L (lossless) usan 14 bits.
+function getWebpSize(buffer: Buffer): ImageSize | null {
+    if (buffer.length < 30) return null;
+
+    const formato = buffer.toString("ascii", 12, 16);
+
+    if (formato === "VP8X") {
+        return {
+            width: 1 + buffer.readUIntLE(24, 3),
+            height: 1 + buffer.readUIntLE(27, 3)
+        };
+    }
+
+    if (formato === "VP8 ") {
+        return {
+            width: buffer.readUInt16LE(26) & 0x3fff,
+            height: buffer.readUInt16LE(28) & 0x3fff
+        };
+    }
+
+    if (formato === "VP8L") {
+        const bits = buffer.readUInt32LE(21);
+        return {
+            width: (bits & 0x3fff) + 1,
+            height: ((bits >> 14) & 0x3fff) + 1
+        };
     }
 
     return null;

@@ -20,6 +20,11 @@ export function createApp(container: Container): Express {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Contenido de la landing: va antes del router público de la tienda porque
+    // ese router termina con un 404 para cualquier ruta no reconocida bajo
+    // `/public/tienda/v1` (ver specs/020-cms-landing).
+    app.use('/public/tienda/v1/contenido', container.contenido.publicRouter);
+
     // API pública de la tienda: maneja su propio CORS por integración y no usa
     // la sesión del panel (ver specs/016-tienda-ecommerce).
     app.use('/public/tienda/v1', container.tienda.publicRouter);
@@ -51,6 +56,10 @@ export function createApp(container: Container): Express {
     app.use('/liquidacion', auth, container.liquidacion.router);
     app.use('/liquidaciones', auth, container.liquidaciones.router);
     app.use('/metricas', auth, container.metricas.router);
+
+    // CMS de contenido de la landing: el router valida la sesión y devuelve
+    // sus propios errores con el sobre `{ error: { codigo, mensaje } }`.
+    app.use('/contenido', container.contenido.adminRouter);
 
     app.use('/integraciones', auth, container.tienda.router);
 

@@ -162,6 +162,13 @@
       "when": 1793716473437,
       "tag": "0022_unaccent_search",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794312424598,
+      "tag": "0023_odd_the_captain",
+      "breakpoints": true
     }
   ]
 }

@@ -2,8 +2,13 @@ import { NextFunction, Request, RequestHandler, Response } from "express";
 import { IntegrationService } from "../integration/integration.service";
 import { sendPublicError } from "./public.errors";
 
+export type PublicAuthService = Pick<
+    IntegrationService,
+    "authenticate" | "assertOrigin" | "originHasActiveIntegration" | "registerUsage"
+>;
+
 export type PublicAuthDeps = {
-    service: IntegrationService;
+    service: PublicAuthService;
 };
 
 const CORS_HEADERS = {

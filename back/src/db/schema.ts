@@ -17,3 +17,4 @@ export * from "../modules/comprobante/comprobante.schema";
 export * from "../modules/liquidaciones/liquidaciones.schema";
 export * from "../modules/anticipo/anticipo.schema";
 export * from "../modules/tienda/schema";
+export * from "../modules/contenido/contenido.schema";

@@ -267,3 +267,11 @@ export function createTiendaModule({
 }
 
 export type TiendaModule = ReturnType<typeof createTiendaModule>;
+
+// Piezas compartidas por otros módulos que consumen la misma API pública
+// (ej. contenido de la landing): la autenticación por API key y el sobre de
+// errores son parte del contrato, no un detalle interno de la tienda.
+export { createPublicAuth } from "./shared/public.auth";
+export { handlePublicErrors, sendPublicError, PublicApiError } from "./shared/public.errors";
+export type { PublicErrorCode } from "./shared/public.errors";
+export type { IntegrationService, AuthenticatedIntegration } from "./integration/integration.service";
