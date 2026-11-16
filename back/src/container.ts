@@ -117,6 +117,7 @@ export function createContainer({
     const tienda = createTiendaModule({
         db,
         libroService: libro.service,
+        libroResenaService: libro.resenaService,
         coleccionService: coleccion.service,
         depositoRepository: deposito.repository,
         availabilityService,

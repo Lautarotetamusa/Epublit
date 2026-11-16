@@ -91,7 +91,7 @@ export const toBookSummary = (libro: PublicLibro, personas: BookPerson[], noveda
     personas: sortPeople(personas).map(toPersonSummary)
 });
 
-export const toBookDetail = (libro: BookWithPeople, novedad: boolean) => ({
+export const toBookDetail = (libro: BookWithPeople, novedad: boolean, resenas: { url: string }[]) => ({
     ...toBookBase(libro),
     novedad,
     // Ficha completa: el storefront la usa en la página de detalle. Son datos
@@ -102,5 +102,7 @@ export const toBookDetail = (libro: BookWithPeople, novedad: boolean) => ({
     ancho: libro.ancho,
     largo: libro.largo,
     bookTrailerUrl: libro.book_trailer_url,
+    tipoEdicion: libro.tipo_edicion,
+    resenas: resenas.map((resena) => ({ url: resena.url })),
     personas: sortPeople(libro.personas).map(toPersonDetail)
 });

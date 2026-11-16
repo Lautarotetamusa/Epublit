@@ -1,7 +1,10 @@
-import { pgTable, integer, varchar, date, real, text, timestamp, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, integer, varchar, date, real, text, timestamp, boolean, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
+
+export const TIPOS_EDICION = ["normal", "pop_up", "cartone"] as const;
+export const libroTipoEdicionEnum = pgEnum("libro_tipo_edicion", TIPOS_EDICION);
 
 export const librosTable = pgTable(
     "libros",
@@ -47,6 +50,12 @@ export const librosTable = pgTable(
         // Peso opcional del libro en kg (resolución de gramos), usado para
         // cotizar envíos. Si falta, se usa el promedio de la cuenta.
         peso_kg: real("peso_kg"),
+        // Default `normal`/`true`: los libros cargados antes de
+        // specs/022-libro-edicion-visibilidad-resenas quedan así sin backfill.
+        tipo_edicion: libroTipoEdicionEnum("tipo_edicion").notNull().default("normal"),
+        // Sólo afecta al sitio (API pública de la tienda): el panel sigue
+        // viendo y vendiendo el libro.
+        visible: boolean("visible").notNull().default(true),
         // bradb (ServiceBuilder) detecta soft-delete por la columna `deleted_at`.
         deletedAt: timestamp("deleted_at"),
         user: integer("user")

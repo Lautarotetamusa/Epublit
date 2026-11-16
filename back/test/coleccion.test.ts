@@ -14,7 +14,8 @@ import {
     expectCreated,
     expectUpdated,
     expectNotFound,
-    expectList
+    expectList,
+    expectOrdenAlfabetico
 } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { isbn } from '../seeders/data';
@@ -141,6 +142,12 @@ describe('POST /coleccion', () => {
 });
 
 describe('GET /coleccion', () => {
+    it('ordena por título', async () => {
+        const res = await auth(request(app).get('/coleccion/'));
+
+        expectOrdenAlfabetico(res.body.data.map((c: { titulo: string }) => c.titulo));
+    });
+
     it('devuelve las colecciones del usuario con todos los campos', async () => {
         const res = await auth(request(app).get('/coleccion/'));
 

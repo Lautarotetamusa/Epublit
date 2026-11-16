@@ -25,7 +25,7 @@ export function FichaMedioPagoPage() {
             <Card>
                 <EmptyState
                     icon="banknote"
-                    title="El medio de pago no existe"
+                    title="No encontramos este medio de pago"
                     description="Puede que lo hayas dado de baja, o que el enlace esté mal."
                     action={<Button onClick={() => navigate("/medios-pago")}>Volver a medios de pago</Button>}
                 />
@@ -44,7 +44,7 @@ export function FichaMedioPagoPage() {
 
         try {
             await deleteMedioPago(medio.id);
-            showToast("success", "Medio de pago dado de baja correctamente");
+            showToast("success", "Medio de pago dado de baja");
             navigate("/medios-pago");
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -61,7 +61,7 @@ export function FichaMedioPagoPage() {
                 onSave={async (input) => {
                     try {
                         await update(input);
-                        showToast("success", "Medio de pago actualizado correctamente");
+                        showToast("success", "Medio de pago actualizado");
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
                     }
@@ -100,7 +100,7 @@ function EdicionMedioPagoForm({
     };
 
     return (
-        <Card title={initial.nombre} subtitle="Nombre y comisión del medio de pago.">
+        <Card title={initial.nombre}>
             <form onSubmit={handleSubmit}>
                 <MedioPagoFormFields values={values} onChange={(patch) => setValues((actual) => ({ ...actual, ...patch }))} />
                 <Button type="submit" style={{ marginTop: "var(--space-4)" }} loading={saving} disabled={!isMedioPagoFormValid(values)}>

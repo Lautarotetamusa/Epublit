@@ -6,7 +6,7 @@ import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { librosTable } from "../libro/libro.schema";
 import { rolesTable } from "../rol/rol.schema";
 import { stockDeLibro } from "../libro/libro.stock";
-import { ilikeSinAcentos } from "../../lib/sql/search";
+import { ilikeSinAcentos, ordenAlfabetico } from "../../lib/sql/search";
 import { personaFilterMap } from "./persona.filter";
 
 export type PersonaRepositoryDeps = {
@@ -37,7 +37,9 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
         return rows.length > 0;
     };
 
-    const findAllPaginated = builder.findAll(true);
+    const selectOrderedByNombre = () =>
+        db.select().from(personasTable).orderBy(ordenAlfabetico(personasTable.nombre)).$dynamic();
+    const findAllPaginated = builder.findAll(selectOrderedByNombre, true);
     const findAll = async (userId: number, pagination: Pagination, nombre?: string) => {
         return findAllPaginated({ user: userId, nombre }, pagination);
     };
@@ -75,8 +77,13 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
         const sub = buildQueryByRol(rolId, userId, nombre).as("sub");
         const [{ count: total }] = await db.select({ count: count() }).from(sub);
 
+        // `DISTINCT ON (id)` obliga a que el ORDER BY de la misma query empiece
+        // por `id`: el orden alfabético se aplica afuera, sobre la subquery.
         const offset = (pagination.page - 1) * pagination.pageSize;
-        const items = await buildQueryByRol(rolId, userId, nombre)
+        const items = await db
+            .select()
+            .from(sub)
+            .orderBy(ordenAlfabetico(sub.nombre))
             .limit(pagination.pageSize)
             .offset(offset);
 

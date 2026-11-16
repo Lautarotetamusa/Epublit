@@ -7,7 +7,7 @@ import { ComprobanteDocumento } from "./ComprobanteDocumento";
 import { EstadoComprobanteBadge } from "./ComprobanteResumen";
 import { nombreComprobante } from "./formato";
 import { useComprobante, useReintentarComprobante } from "./useComprobante";
-import { useImprimirComprobante } from "./useImprimirComprobante";
+import { useImprimirDocumento } from "../../lib/useImprimirDocumento";
 import "./comprobante.css";
 
 // Ruta canónica del comprobante. Vive fuera de `AppLayout` porque es una
@@ -35,7 +35,8 @@ export function ComprobantePage() {
         !comprobante.qr?.dataUrl;
     const listoParaImprimir = comprobante?.estado === "emitida" && !qrFaltante;
 
-    const { imprimir } = useImprimirComprobante({
+    const { imprimir } = useImprimirDocumento({
+        claseDocumento: "comprobante-documento",
         auto: autoImprimir,
         listoParaImprimir
     });
@@ -71,7 +72,7 @@ export function ComprobantePage() {
     const reintentarEmision = async () => {
         const actualizado = await reintentar();
         if (actualizado) {
-            showToast("success", "Factura emitida correctamente.");
+            showToast("success", "Factura emitida");
         }
     };
 

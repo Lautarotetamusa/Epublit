@@ -14,16 +14,20 @@ import { RolRepository } from "../rol";
 import { createLibroPrecioRepository } from "./libroPrecio.repository";
 import { createLibroRepository } from "./libro.repository";
 import { createLibroPersonaRepository } from "./libroPersona.repository";
+import { createLibroResenaRepository } from "./libroResena.repository";
 import { createLibroService } from "./libro.service";
 import { createLibroPersonaService } from "./libroPersona.service";
+import { createLibroResenaService } from "./libroResena.service";
 import { createLibroController } from "./libro.controller";
 import { createLibroPersonaController } from "./libroPersona.controller";
+import { createLibroResenaController } from "./libroResena.controller";
 import { createLibroRoutes } from "./libro.routes";
 
 export type { Libro, LibroInsert, LibroUpdate, LibroFilter, LibroCantidad } from "./libro.validator";
 export type { LibroPersonaBody, LibroPersonaBodyBatch, LibroPersonaRemoveBody, LibroPersonaRemoveBatch } from "./libroPersona.validator";
 export type { LibroService, PublicLibro, PublicLibroConDeposito, PortadaFile } from "./libro.service";
 export type { LibroPersonaService } from "./libroPersona.service";
+export type { LibroResenaService } from "./libroResena.service";
 export type { LibroRepository, LibroConColeccion } from "./libro.repository";
 
 export type LibroModuleDeps = {
@@ -50,6 +54,7 @@ export function createLibroModule({ db, personaRepository, coleccionRepository, 
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
+    const libroResenaRepository = createLibroResenaRepository({ db });
 
     const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, storage });
     const personaService = createLibroPersonaService({
@@ -60,12 +65,14 @@ export function createLibroModule({ db, personaRepository, coleccionRepository, 
         rolRepository,
         anticipoService
     });
+    const resenaService = createLibroResenaService({ repository: libroResenaRepository, libroRepository: repository });
 
     const libroController = createLibroController({ service });
     const libroPersonaController = createLibroPersonaController({ service: personaService });
-    const router = createLibroRoutes(libroController, libroPersonaController);
+    const libroResenaController = createLibroResenaController({ service: resenaService });
+    const router = createLibroRoutes(libroController, libroPersonaController, libroResenaController);
 
-    return { service, personaService, repository, router };
+    return { service, personaService, resenaService, repository, router };
 }
 
 export type LibroModule = ReturnType<typeof createLibroModule>;

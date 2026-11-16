@@ -19,7 +19,7 @@ export function NuevoClientePage() {
         event.preventDefault();
         try {
             const cliente = await create(inputs);
-            showToast("success", "Cliente creado correctamente");
+            showToast("success", "Cliente creado");
             navigate(`/clientes/${cliente.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));

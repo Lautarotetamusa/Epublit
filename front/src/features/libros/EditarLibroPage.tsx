@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Breadcrumb, Button, Card, EmptyState } from "../../design-system";
 import type { Coleccion } from "../../api/coleccion";
+import type { TipoEdicion } from "../../api/libro";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
@@ -39,7 +40,7 @@ export function EditarLibroPage() {
             <Card>
                 <EmptyState
                     icon="library"
-                    title="No se pudo cargar el libro"
+                    title="No pudimos cargar el libro"
                     description={error ?? "Puede que lo hayas eliminado, o que el enlace esté mal."}
                     action={<Button onClick={() => navigate("/libros")}>Volver a libros</Button>}
                 />
@@ -68,7 +69,7 @@ export function EditarLibroPage() {
                 onSave={async (input, portadaFile, idColeccionElegida) => {
                     try {
                         await update(input, portadaFile, idColeccionElegida);
-                        showToast("success", "Libro actualizado correctamente");
+                        showToast("success", "Libro actualizado");
                         volverAlDetalle();
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
@@ -112,6 +113,8 @@ function EdicionLibroForm({
         edad_max: number | null;
         portada_url: string | null;
         book_trailer_url: string | null;
+        tipo_edicion: TipoEdicion;
+        visible: boolean;
     };
     colecciones: Coleccion[];
     idColeccion: number | null;
@@ -130,6 +133,8 @@ function EdicionLibroForm({
             edad_min?: number | null;
             edad_max?: number | null;
             book_trailer_url?: string;
+            tipo_edicion: TipoEdicion;
+            visible: boolean;
         },
         portadaFile: File | null,
         idColeccion: number | null
@@ -153,7 +158,9 @@ function EdicionLibroForm({
         portadaFile: null,
         bookTrailerUrl: libro.book_trailer_url ?? "",
         idColeccion: idColeccion !== null ? String(idColeccion) : "",
-        stockNegativoPermitido: String(libro.stock_negativo_permitido)
+        stockNegativoPermitido: String(libro.stock_negativo_permitido),
+        tipoEdicion: libro.tipo_edicion,
+        visible: libro.visible
     });
     const [saving, setSaving] = useState(false);
 
@@ -180,7 +187,9 @@ function EdicionLibroForm({
                 paginas: inputs.paginas ? Number(inputs.paginas) : undefined,
                 edad_min: inputs.edadMin ? Number(inputs.edadMin) : null,
                 edad_max: inputs.edadMax ? Number(inputs.edadMax) : null,
-                book_trailer_url: inputs.bookTrailerUrl || undefined
+                book_trailer_url: inputs.bookTrailerUrl || undefined,
+                tipo_edicion: inputs.tipoEdicion,
+                visible: inputs.visible
             },
             inputs.portadaFile,
             inputs.idColeccion ? Number(inputs.idColeccion) : null
@@ -212,7 +221,7 @@ function EdicionLibroForm({
                 </div>
             </Card>
 
-            <Card title="Ficha del libro" subtitle="Lo que se muestra en el catálogo y en la tienda.">
+            <Card title="Ficha del libro">
                 <FichaLibroFields values={inputs} onChange={actualizar} />
             </Card>
 

@@ -169,6 +169,20 @@
       "when": 1794312424598,
       "tag": "0023_odd_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794851605386,
+      "tag": "0024_libro_edicion_visibilidad_resenas",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794851969810,
+      "tag": "0025_liquidacion_lineas_cantidad",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,7 @@ import { seedLibrosPersonas } from "./librosPersonas.seeder";
 import { seedLibroCliente } from "./libroCliente.seeder";
 import { seedOperaciones } from "./operaciones.seeder";
 import { seedAnticipos } from "./anticipos.seeder";
-import { seedLiquidaciones } from "./liquidaciones.seeder";
+import { seedLiquidacionHistorica, seedLiquidaciones } from "./liquidaciones.seeder";
 import { seedMetricas } from "./metricas.seeder";
 import { seedTienda } from "./tienda.seeder";
 
@@ -104,6 +104,14 @@ async function main(): Promise<void> {
         clienteStockService: cliente.stockService,
         movimientoRepository: movimiento.repository,
         ventaRepository: transaccion.ventaRepository
+    });
+    await seedLiquidacionHistorica(users, {
+        libros,
+        personas,
+        libroService: libro.service,
+        libroPersonaService: libro.personaService,
+        rolService: rol.service,
+        liquidacionesService: liquidaciones.service
     });
 
     await seedTienda({

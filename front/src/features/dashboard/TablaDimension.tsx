@@ -97,7 +97,7 @@ export function TablaDimension({ filas, dimension, loading, onAbrirFicha }: Prop
             onRowClick={onAbrirFicha}
             empty={
                 loading ? (
-                    "Cargando..."
+                    "Cargando…"
                 ) : (
                     <EmptyState
                         icon="chart-column"

@@ -56,7 +56,7 @@ export function VentasPage() {
                 onRowClick={(row: Venta) => navigate(`/ventas/${row.id}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : filtros.hayFiltrosActivos ? (
                         <EmptyState icon="search" title="Ninguna venta coincide con los filtros" description="Probá ajustar o limpiar los filtros." />
                     ) : (

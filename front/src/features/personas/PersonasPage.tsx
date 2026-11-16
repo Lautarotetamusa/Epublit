@@ -26,14 +26,14 @@ export function PersonasPage() {
         const ok = await confirm({
             title: `¿Eliminar a ${nombre}?`,
             description: "Esta acción no se puede deshacer.",
-            confirmLabel: "Eliminar",
+            confirmLabel: "Eliminar persona",
             tone: "danger"
         });
         if (!ok) return;
 
         try {
             await remove(id);
-            showToast("success", "Persona eliminada correctamente");
+            showToast("success", "Persona eliminada");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -62,7 +62,7 @@ export function PersonasPage() {
                 <Field label="Nombre" style={{ flex: "1 1 260px", maxWidth: 420 }}>
                     <Input
                         iconStart="search"
-                        placeholder="Buscar por nombre..."
+                        placeholder="Buscar por nombre…"
                         value={nombre}
                         onChange={(e) => setNombre(e.target.value)}
                     />
@@ -121,7 +121,7 @@ export function PersonasPage() {
                 onRowClick={(row: Persona) => navigate(`/personas/${row.id}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : nombre.trim() ? (
                         <EmptyState
                             icon="search"

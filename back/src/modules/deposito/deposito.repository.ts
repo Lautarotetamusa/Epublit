@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gt, inArray, isNull, sql } from "drizzle-orm";
 import { ServiceBuilder, NotFound } from "bradb";
 import { Database, Tx } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { depositosTable } from "./deposito.schema";
 import { depositoLibrosTable } from "./depositoLibros.schema";
 import { librosTable } from "../libro/libro.schema";
@@ -73,7 +74,7 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
                     isNull(depositosTable.deletedAt)
                 )
             )
-            .orderBy(asc(depositosTable.id));
+            .orderBy(desc(depositosTable.principal), ordenAlfabetico(depositosTable.nombre));
     };
 
     // Depósito real propio del cliente, donde vive su stock consignado.
@@ -174,7 +175,7 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
                     isNull(depositosTable.deletedAt)
                 )
             )
-            .orderBy(desc(depositosTable.principal), asc(depositosTable.nombre));
+            .orderBy(desc(depositosTable.principal), ordenAlfabetico(depositosTable.nombre));
     };
 
     const getCantidades = async (depositoId: number, userId: number, idLibros: number[]) => {

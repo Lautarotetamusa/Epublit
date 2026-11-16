@@ -1,6 +1,7 @@
 import { and, asc, eq, getTableColumns, inArray, isNull } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { librosTable } from "./libro.schema";
 import { librosPersonasTable } from "./libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
@@ -82,7 +83,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
     // actual. `ServiceBuilder.findAll` no expone `orderBy` en su firma, así que
     // se resuelve con un `select` custom, igual que `selectWithoutPassword` en
     // `user.repository.ts`.
-    const selectOrderedByTitulo = () => selectConColeccion().orderBy(librosTable.titulo);
+    const selectOrderedByTitulo = () => selectConColeccion().orderBy(ordenAlfabetico(librosTable.titulo));
 
     // Sin paginar: usada por el export a CSV (`listaLibros`), que necesita
     // todas las filas, no una página.
@@ -104,7 +105,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         depositoId: number,
         filters: Parameters<typeof findAllOrdered>[0]
     ) => {
-        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(librosTable.titulo);
+        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(ordenAlfabetico(librosTable.titulo));
         return builder.findAll(selectFn, false)(filters);
     };
 
@@ -113,7 +114,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
         filters: Parameters<typeof findAllPaginated>[0],
         pagination: Parameters<typeof findAllPaginated>[1]
     ) => {
-        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(librosTable.titulo);
+        const selectFn = () => selectConColeccionYDeposito(depositoId).orderBy(ordenAlfabetico(librosTable.titulo));
         return builder.findAll(selectFn, true)(filters, pagination);
     };
 

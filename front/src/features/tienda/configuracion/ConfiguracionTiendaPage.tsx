@@ -16,7 +16,6 @@ export function ConfiguracionTiendaPage() {
     return (
         <Card
             title="Tienda online"
-            subtitle="Las integraciones, el cobro y los envíos de tu tienda."
             padded={false}
         >
             <div style={{ padding: "var(--space-4) var(--space-5) 0" }}>

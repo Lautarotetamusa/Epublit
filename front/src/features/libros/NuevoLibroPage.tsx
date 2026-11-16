@@ -42,7 +42,9 @@ export function NuevoLibroPage() {
         portadaFile: null,
         bookTrailerUrl: "",
         idColeccion: "",
-        stockNegativoPermitido: "0"
+        stockNegativoPermitido: "0",
+        tipoEdicion: "normal",
+        visible: true
     });
 
     const handleSubmit = async (event: FormEvent) => {
@@ -63,7 +65,9 @@ export function NuevoLibroPage() {
                     paginas: inputs.paginas ? Number(inputs.paginas) : undefined,
                     edad_min: inputs.edadMin ? Number(inputs.edadMin) : null,
                     edad_max: inputs.edadMax ? Number(inputs.edadMax) : null,
-                    book_trailer_url: inputs.bookTrailerUrl || undefined
+                    book_trailer_url: inputs.bookTrailerUrl || undefined,
+                    tipo_edicion: inputs.tipoEdicion,
+                    visible: inputs.visible
                 },
                 inputs.portadaFile,
                 inputs.idColeccion ? Number(inputs.idColeccion) : null
@@ -79,7 +83,7 @@ export function NuevoLibroPage() {
                     }))
                 );
             }
-            showToast("success", "Libro creado correctamente");
+            showToast("success", "Libro creado");
             navigate(`/libros/${libro.isbn}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));

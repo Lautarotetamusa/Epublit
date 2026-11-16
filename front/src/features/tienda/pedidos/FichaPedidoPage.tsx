@@ -130,7 +130,7 @@ export function FichaPedidoPage() {
         try {
             await facturar();
             setComprobantePreview({ codigo: pedido.codigo, abierto: true });
-            showToast("success", "Factura emitida correctamente.");
+            showToast("success", "Factura emitida");
         } catch (err) {
             const mensaje = getErrorMessage(err);
             setErrorFactura(mensaje);
@@ -181,7 +181,7 @@ export function FichaPedidoPage() {
                 </div>
             </Card>
 
-            <Card title="Comprador y entrega" subtitle="Los datos que viajaron en el checkout.">
+            <Card title="Comprador y entrega">
                 <div style={dosColumnas}>
                     <Seccion title="Comprador">
                         <dl style={listaDatos}>
@@ -509,7 +509,6 @@ export function FichaPedidoPage() {
 
             <Card
                 title="Historial del pedido"
-                subtitle="Los hitos del pedido, en orden."
                 actions={
                     <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
                         Última actualización {formatFechaHora(pedido.actualizadoEn)}
@@ -631,7 +630,7 @@ function SeguimientoEnvio({
             if (resultado.error) {
                 showToast("warning", resultado.error);
             } else {
-                showToast("success", "Seguimiento actualizado.");
+                showToast("success", "Seguimiento actualizado");
             }
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -783,7 +782,7 @@ function AvisoEstado({ pedido }: { pedido: PedidoDetalle }) {
         case "pagado":
             return (
                 <Alert tone="info" title="Pago aprobado">
-                    Al aceptar el pedido se genera la venta y la Factura B por {formatMoney(pedido.total)}.
+                    Al aceptar el pedido se genera la venta y su factura por {formatMoney(pedido.total)}.
                 </Alert>
             );
         case "aceptado": {

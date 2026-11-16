@@ -1,0 +1,169 @@
+/* Reporte por autor: se imprime desde la ficha de la liquidación, sin
+   pestaña nueva. En pantalla no se ve; al imprimir es lo único que se ve. */
+
+.reporte-autor-impresion {
+    display: none;
+}
+
+.reporte-autor-documento {
+    width: 210mm;
+    max-width: 100%;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 16mm 14mm 12mm;
+    margin: 0 auto;
+    background: #fff;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-md);
+    color: #111;
+    font-family: var(--font-body);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.reporte-autor-encabezado {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6mm;
+    padding-bottom: 5mm;
+    border-bottom: 1px solid #333;
+}
+
+.reporte-autor-emisor {
+    margin: 0;
+    font-size: 12px;
+    font-weight: var(--weight-semibold);
+}
+
+.reporte-autor-titulo {
+    margin: 1.5mm 0 0;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+
+.reporte-autor-datos,
+.reporte-autor-totales {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 5mm;
+    row-gap: 1mm;
+    margin: 0;
+}
+
+.reporte-autor-datos dt,
+.reporte-autor-totales dt {
+    color: #555;
+}
+
+.reporte-autor-datos dd,
+.reporte-autor-totales dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    text-align: right;
+}
+
+.reporte-autor-bloque {
+    margin-top: 6mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.reporte-autor-etiqueta {
+    margin: 0 0 1mm;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+}
+
+.reporte-autor-persona {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: var(--weight-semibold);
+}
+
+.reporte-autor-roles {
+    margin: 0.5mm 0 0;
+    color: #555;
+}
+
+.reporte-autor-tabla {
+    width: 100%;
+    margin-top: 5mm;
+    border-collapse: collapse;
+}
+
+.reporte-autor-tabla th,
+.reporte-autor-tabla td {
+    padding: 1.8mm 2mm;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    vertical-align: top;
+}
+
+.reporte-autor-tabla th {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #555;
+    border-bottom-color: #333;
+}
+
+.reporte-autor-tabla .numero {
+    text-align: right;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+}
+
+.reporte-autor-totales {
+    width: max-content;
+    margin: 5mm 0 0 auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.reporte-autor-total {
+    padding-top: 1.5mm;
+    border-top: 1px solid #333;
+    font-weight: var(--weight-semibold);
+    color: #111 !important;
+}
+
+@media print {
+    @page {
+        size: A4;
+        margin: 0;
+    }
+
+    body > :not(.reporte-autor-impresion) {
+        display: none !important;
+    }
+
+    .reporte-autor-impresion {
+        display: block;
+    }
+
+    .reporte-autor-documento {
+        width: 100%;
+        min-height: auto;
+        margin: 0;
+        border: 0;
+        box-shadow: none;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .reporte-autor-tabla thead {
+        display: table-header-group;
+    }
+
+    .reporte-autor-tabla tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

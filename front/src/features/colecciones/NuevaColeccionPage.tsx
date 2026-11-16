@@ -25,7 +25,7 @@ export function NuevaColeccionPage() {
                 { titulo: inputs.titulo, descripcion: inputs.descripcion || undefined },
                 portadaFile
             );
-            showToast("success", "Colección creada correctamente");
+            showToast("success", "Colección creada");
             navigate(`/colecciones/${coleccion.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -40,7 +40,7 @@ export function NuevaColeccionPage() {
             />
             <Card title="Nueva colección" subtitle="Después de crearla vas a poder agregarle libros.">
                 <form onSubmit={handleSubmit}>
-                    <Field label="Portada" hint="Opcional. Se puede agregar o cambiar después.">
+                    <Field label="Portada">
                         <CoverUpload
                             value={portadaPreview || undefined}
                             onSelect={setPortadaFile}

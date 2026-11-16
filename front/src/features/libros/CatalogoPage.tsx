@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, Table, Pagination, Input, Button, EmptyState } from "../../design-system";
+import { Card, Table, Pagination, Input, Button, EmptyState, Badge } from "../../design-system";
 import type { Libro } from "../../api/libro";
 import { useLibros } from "./useLibros";
 
@@ -42,7 +42,7 @@ export function CatalogoPage() {
             padded={false}
         >
             <div style={{ padding: "var(--space-4)" }}>
-                <Input iconStart="search" placeholder="Buscar por título..." value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+                <Input iconStart="search" placeholder="Buscar por título…" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
             </div>
             <Table
                 selectable
@@ -73,7 +73,15 @@ export function CatalogoPage() {
                             </div>
                         )
                     },
-                    { header: "Título", key: "titulo" },
+                    {
+                        header: "Título",
+                        cell: (row: Libro) => (
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)" }}>
+                                {row.titulo}
+                                {row.visible ? null : <Badge tone="warning">Oculto en la tienda</Badge>}
+                            </span>
+                        )
+                    },
                     { header: "ISBN", key: "isbn", mono: true },
                     { header: "Precio", align: "right", cell: (row: Libro) => row.precio.toLocaleString("es-AR") },
                     {
@@ -90,13 +98,13 @@ export function CatalogoPage() {
                                 row.stock.toLocaleString("es-AR")
                             )
                     },
-                    { header: "Edición", cell: (row: Libro) => new Date(row.fecha_edicion).toLocaleDateString("es-AR") }
+                    { header: "Fecha de edición", cell: (row: Libro) => new Date(row.fecha_edicion).toLocaleDateString("es-AR") }
                 ]}
                 rows={libros}
                 onRowClick={(row: Libro) => navigate(`/libros/${row.isbn}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : (
                         <EmptyState icon="library" title="Todavía no hay libros" description="Cargá el primer título con el botón de arriba." />
                     )

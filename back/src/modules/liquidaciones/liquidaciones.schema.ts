@@ -70,6 +70,9 @@ export const liquidacionLineasTable = pgTable(
         id_rol: integer("id_rol").notNull(),
         rol_nombre: varchar("rol_nombre", { length: 60 }).notNull(),
         porcentaje: real("porcentaje").notNull(),
+        // Ejemplares del libro vendidos en el período (ver
+        // specs/023-liquidacion-reporte-por-autor).
+        cantidad: integer("cantidad").notNull().default(0),
         importe: real("importe").notNull(),
         // Parte del importe de esta línea que se descontó de un anticipo.
         anticipo: real("anticipo").notNull().default(0),

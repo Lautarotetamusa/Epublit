@@ -99,3 +99,12 @@ export async function getRolId(app: Express, token: string, nombre: string): Pro
     return rol.id;
 }
  
+
+// Misma normalización que `ordenAlfabetico` (src/lib/sql/search.ts): sin
+// acentos y en minúsculas.
+const sinAcentos = (valor: string) => valor.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+
+export function expectOrdenAlfabetico(valores: string[]) {
+    const ordenados = [...valores].sort((a, b) => (sinAcentos(a) < sinAcentos(b) ? -1 : sinAcentos(a) > sinAcentos(b) ? 1 : 0));
+    expect(valores).toEqual(ordenados);
+}

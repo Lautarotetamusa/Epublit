@@ -16,5 +16,6 @@ export const libroFilterMap: FilterMap<typeof libroValidator.filter> = {
     stock: (val) => sql`${stockDeLibro()} = ${val}`,
     // `sin_coleccion=false` no filtra nada (el catálogo completo, como hoy):
     // devolver una condición siempre verdadera deja `buildFilters` intacto.
-    sin_coleccion: (val) => (val ? isNull(librosTable.coleccion_id) : sql`true`)
+    sin_coleccion: (val) => (val ? isNull(librosTable.coleccion_id) : sql`true`),
+    visible: (val) => eq(librosTable.visible, val)
 };

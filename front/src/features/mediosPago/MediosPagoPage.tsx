@@ -13,7 +13,6 @@ export function MediosPagoPage() {
     return (
         <Card
             title="Medios de pago"
-            subtitle="Con qué cobrás tus ventas y qué comisión se descuenta de cada una."
             actions={
                 <Button iconStart="plus" onClick={() => navigate("/medios-pago/nuevo")}>
                     Nuevo medio de pago

@@ -8,7 +8,7 @@ export function NuevaConsignacionPage() {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const form = useConsignacionForm((consignacion) => {
-        showToast("success", "Consignación registrada correctamente");
+        showToast("success", "Consignación registrada");
         navigate(`/consignaciones/${consignacion.id}`);
     });
 

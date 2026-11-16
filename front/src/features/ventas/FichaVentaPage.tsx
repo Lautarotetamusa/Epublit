@@ -20,7 +20,7 @@ export function FichaVentaPage() {
     const reintentarFactura = async () => {
         const actualizado = await reintentar();
         if (actualizado) {
-            showToast("success", "Factura emitida correctamente.");
+            showToast("success", "Factura emitida");
         }
     };
 
@@ -69,7 +69,7 @@ export function FichaVentaPage() {
                 </div>
             </Card>
 
-            <Card title="Comprobante" subtitle="La factura o el remito asociado a la venta.">
+            <Card title="Comprobante">
                 <ComprobantePanel
                     comprobante={venta.comprobante}
                     ventaId={venta.id}

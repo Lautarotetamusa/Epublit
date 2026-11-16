@@ -24,7 +24,7 @@ export function NuevaPersonaPage() {
         event.preventDefault();
         try {
             const persona = await create({ nombre: inputs.nombre, email: inputs.email, dni: inputs.dni, bio: inputs.bio || undefined }, fotoFile);
-            showToast("success", "Persona creada correctamente");
+            showToast("success", "Persona creada");
             navigate(`/personas/${persona.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));

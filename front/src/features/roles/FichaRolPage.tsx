@@ -27,7 +27,7 @@ export function FichaRolPage() {
             <Card>
                 <EmptyState
                     icon="tag"
-                    title="El rol no existe"
+                    title="No encontramos este rol"
                     description="Puede que lo hayas dado de baja, o que el enlace esté mal."
                     action={<Button onClick={() => navigate("/roles")}>Volver a roles</Button>}
                 />
@@ -51,7 +51,7 @@ export function FichaRolPage() {
 
         try {
             await remove();
-            showToast("success", "Rol dado de baja correctamente");
+            showToast("success", "Rol dado de baja");
             navigate("/roles");
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -71,7 +71,7 @@ export function FichaRolPage() {
                 onSave={async (input) => {
                     try {
                         await update(input);
-                        showToast("success", "Rol actualizado correctamente");
+                        showToast("success", "Rol actualizado");
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
                     }
@@ -118,7 +118,7 @@ function EdicionRolForm({
     };
 
     return (
-        <Card title={nombreVisible(initial.nombre)} subtitle="El nombre del rol, tal como se ve en las personas y en los libros.">
+        <Card title={nombreVisible(initial.nombre)}>
             <form onSubmit={handleSubmit}>
                 <RolFormFields values={values} onChange={(patch) => setValues((current) => ({ ...current, ...patch }))} />
                 <Button type="submit" style={{ marginTop: "var(--space-4)" }} loading={saving} disabled={!isRolFormValid(values)}>

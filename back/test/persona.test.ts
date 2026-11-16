@@ -10,7 +10,7 @@ dotenv.config({ path: join(__dirname, "../.env") });
 // setup (reset-test-db.sh + DB_NAME por variable de entorno del shell).
 import { app, server } from '../src/index';
 import { db } from '../src/db/client';
-import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList, getRolId } from './util';
+import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList, getRolId, expectOrdenAlfabetico } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { dni, email } from '../seeders/data';
 
@@ -61,6 +61,27 @@ describe('GET /persona', () => {
 
         expectList(res);
         expect(res.body.items.length).toBeGreaterThan(0);
+    });
+
+    it('ordena por nombre, sin distinguir mayúsculas ni acentos', async () => {
+        expectCreated(await request(app).post('/persona').set('Authorization', `Bearer ${token}`).send({ nombre: 'Álvaro Orden', dni: '90000001' }));
+        expectCreated(await request(app).post('/persona').set('Authorization', `Bearer ${token}`).send({ nombre: 'aaron orden', dni: '90000002' }));
+
+        const res = await request(app).get('/persona?pageSize=100').set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        expectOrdenAlfabetico(res.body.items.map((p: { nombre: string }) => p.nombre));
+    });
+
+    it('filtrado por rol también sale ordenado y sin repetidos', async () => {
+        const res = await request(app)
+            .get(`/persona?rol=${rolAutor}&pageSize=100`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expectList(res);
+        const ids = res.body.items.map((p: { id: number }) => p.id);
+        expect(new Set(ids).size).toEqual(ids.length);
+        expectOrdenAlfabetico(res.body.items.map((p: { nombre: string }) => p.nombre));
     });
 
     it('filtra por rol de la cuenta', async () => {

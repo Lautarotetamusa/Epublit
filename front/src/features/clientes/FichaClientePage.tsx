@@ -26,7 +26,7 @@ export function FichaClientePage() {
                 onSave={async (input) => {
                     try {
                         await update(input);
-                        showToast("success", "Cliente actualizado correctamente");
+                        showToast("success", "Cliente actualizado");
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
                     }
@@ -65,7 +65,7 @@ function LibrosConsignadosCard({
     const handleSyncPrecios = async () => {
         try {
             await onSyncPrecios();
-            showToast("success", "Precios actualizados correctamente");
+            showToast("success", "Precios actualizados");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }

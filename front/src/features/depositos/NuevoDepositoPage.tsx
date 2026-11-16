@@ -20,7 +20,7 @@ export function NuevoDepositoPage() {
                 nombre: values.nombre,
                 descripcion: values.descripcion.trim() ? values.descripcion : null
             });
-            showToast("success", "Depósito creado correctamente");
+            showToast("success", "Depósito creado");
             navigate(`/depositos/${response.data.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -37,7 +37,7 @@ export function NuevoDepositoPage() {
             />
             <Card
                 title="Nuevo depósito"
-                subtitle="Un depósito es un lugar donde tenés libros. El principal se crea con tu cuenta y no se puede eliminar."
+                subtitle="El principal se crea con tu cuenta y no se puede eliminar."
             >
                 <DepositoFormFields values={values} onChange={(patch) => setValues((actual) => ({ ...actual, ...patch }))} />
                 <Button

@@ -57,7 +57,7 @@ export function EnviosSection() {
         try {
             const actualizado = await guardar(form);
             setForm(enviosFormDesdeConfig(actualizado));
-            showToast("success", "Configuración de envíos guardada.");
+            showToast("success", "Configuración de envíos guardada");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         } finally {
@@ -236,7 +236,7 @@ export function EnviosSection() {
                             onChange={(e) => actualizar({ pesoPromedio: sanitizeDecimal(e.target.value) })}
                         />
                     </Field>
-                    <Field label="Caja: alto" error={!numeroValido(form.altoCm) ? "Mayor a 0." : undefined}>
+                    <Field label="Caja: alto" error={!numeroValido(form.altoCm) ? "Tiene que ser mayor a 0." : undefined}>
                         <Input
                             type="text"
                             inputMode="decimal"
@@ -246,7 +246,7 @@ export function EnviosSection() {
                             onChange={(e) => actualizar({ altoCm: sanitizeDecimal(e.target.value) })}
                         />
                     </Field>
-                    <Field label="Caja: ancho" error={!numeroValido(form.anchoCm) ? "Mayor a 0." : undefined}>
+                    <Field label="Caja: ancho" error={!numeroValido(form.anchoCm) ? "Tiene que ser mayor a 0." : undefined}>
                         <Input
                             type="text"
                             inputMode="decimal"
@@ -256,7 +256,7 @@ export function EnviosSection() {
                             onChange={(e) => actualizar({ anchoCm: sanitizeDecimal(e.target.value) })}
                         />
                     </Field>
-                    <Field label="Caja: largo" error={!numeroValido(form.largoCm) ? "Mayor a 0." : undefined}>
+                    <Field label="Caja: largo" error={!numeroValido(form.largoCm) ? "Tiene que ser mayor a 0." : undefined}>
                         <Input
                             type="text"
                             inputMode="decimal"

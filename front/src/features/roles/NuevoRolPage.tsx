@@ -19,7 +19,7 @@ export function NuevoRolPage() {
         event.preventDefault();
         try {
             const rol = await create({ nombre: values.nombre.trim() });
-            showToast("success", "Rol creado correctamente");
+            showToast("success", "Rol creado");
             navigate(`/roles/${rol.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -29,7 +29,7 @@ export function NuevoRolPage() {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <Breadcrumb items={["Roles", "Nuevo rol"]} onNavigate={(_item, index) => index === 0 && navigate("/roles")} />
-            <Card title="Nuevo rol" subtitle="Después vas a poder elegirlo al asignar una persona a un libro.">
+            <Card title="Nuevo rol">
                 <form onSubmit={handleSubmit}>
                     <RolFormFields values={values} onChange={(patch) => setValues((current) => ({ ...current, ...patch }))} />
                     <Button type="submit" style={{ marginTop: "var(--space-4)" }} loading={saving} disabled={!isRolFormValid(values)}>

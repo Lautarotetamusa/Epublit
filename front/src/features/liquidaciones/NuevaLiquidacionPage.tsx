@@ -25,11 +25,15 @@ export function NuevaLiquidacionPage() {
     const [hasta, setHasta] = useState(hoyISO());
     const [personaSeleccionada, setPersonaSeleccionada] = useState<PersonaLiquidada | null>(null);
     const [busquedaPersona, setBusquedaPersona] = useState("");
+    const [busquedaLibro, setBusquedaLibro] = useState("");
 
     const { previsualizacion, loading } = usePrevisualizacionLiquidacion(desde, hasta);
     const { saving, crear } = useNuevaLiquidacion();
 
-    const librosPag = useClientPagination(previsualizacion?.libros ?? []);
+    const librosFiltrados = (previsualizacion?.libros ?? []).filter((l) =>
+        normalizarBusqueda(`${l.titulo} ${l.isbn}`).includes(normalizarBusqueda(busquedaLibro))
+    );
+    const librosPag = useClientPagination(librosFiltrados);
     const personasFiltradas = (previsualizacion?.personas ?? []).filter((p) =>
         normalizarBusqueda(p.nombre).includes(normalizarBusqueda(busquedaPersona))
     );
@@ -102,7 +106,7 @@ export function NuevaLiquidacionPage() {
                             </Alert>
                         ) : null}
 
-                        <Card title="Lo que se va a liquidar" subtitle="Revisá el período antes de generar la liquidación.">
+                        <Card title="Lo que se va a liquidar">
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--space-4)" }}>
                                 <StatCard label="Total a liquidar" value={formatMoney(previsualizacion.total)} icon="banknote" />
                                 {previsualizacion.anticipos > 0 ? (
@@ -119,16 +123,28 @@ export function NuevaLiquidacionPage() {
                         </Card>
 
                         <Card title="Libros vendidos en el período" padded={false}>
+                            <div style={{ padding: "var(--space-4)" }}>
+                                <Input
+                                    iconStart="search"
+                                    placeholder="Buscar por título o ISBN…"
+                                    value={busquedaLibro}
+                                    onChange={(e) => {
+                                        setBusquedaLibro(e.target.value);
+                                        librosPag.setPage(1);
+                                    }}
+                                />
+                            </div>
                             <Table
                                 columns={[
                                     { header: "Título", key: "titulo", wrap: true },
                                     { header: "ISBN", key: "isbn", mono: true },
-                                    { header: "Cantidad", align: "right", mono: true, key: "cantidad_vendida" },
+                                    { header: "Ejemplares", align: "right", mono: true, key: "cantidad_vendida" },
                                     { header: "Precio unitario", align: "right", mono: true, cell: (l) => formatMoney(l.precio_unitario) },
                                     { header: "Importe", align: "right", mono: true, cell: (l) => <b>{formatMoney(l.importe_total)}</b> }
                                 ]}
                                 rows={librosPag.pageItems}
                                 rowKey={(l) => l.id_libro}
+                                empty="Ningún libro coincide con la búsqueda."
                             />
                             {librosPag.total > 0 ? (
                                 <div style={{ padding: "var(--space-4)" }}>
@@ -141,7 +157,7 @@ export function NuevaLiquidacionPage() {
                             <div style={{ padding: "var(--space-4)" }}>
                                 <Input
                                     iconStart="search"
-                                    placeholder="Buscar por nombre..."
+                                    placeholder="Buscar por nombre…"
                                     value={busquedaPersona}
                                     onChange={(e) => setBusquedaPersona(e.target.value)}
                                 />

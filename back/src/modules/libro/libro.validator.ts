@@ -78,7 +78,8 @@ const filter = z
         buscar: z.string().trim().min(1),
         // `z.coerce.boolean()` convertiría "false" en `true` (cualquier string
         // no vacío es truthy): se parsea explícito desde el string de la query.
-        sin_coleccion: z.enum(["true", "false"]).transform((value) => value === "true")
+        sin_coleccion: z.enum(["true", "false"]).transform((value) => value === "true"),
+        visible: z.enum(["true", "false"]).transform((value) => value === "true")
     })
     .partial();
 const pk = createPkSchema(librosTable).pick({

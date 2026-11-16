@@ -5,7 +5,10 @@ import type { Rol } from "../../api/rol";
 import { formatMoney } from "../../lib/money";
 import { formatFecha } from "../../lib/fecha";
 import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
+import { useImprimirDocumento } from "../../lib/useImprimirDocumento";
 import { porcentajePagado } from "./presentacionLiquidacion";
+import type { ReporteAutor } from "./ReporteAutorDocumento";
+import { ReporteAutorImpresion } from "./ReporteAutorImpresion";
 
 type Props = {
     nombre: string;
@@ -16,27 +19,45 @@ type Props = {
     total: number;
     /** Los pagos ya registrados: sólo los tiene una persona de una liquidación generada. */
     pagos?: Pago[];
+    /** Reporte imprimible de la persona: sólo existe para una liquidación generada. */
+    reporte?: ReporteAutor;
     onClose: () => void;
 };
 
 // Sirve para una persona de la previsualización (reporte, sin pagos) y para una
 // de la ficha generada (con pagos): por eso recibe los campos explícitos en vez
 // de un tipo de persona, que difiere entre las dos formas.
-export function DetallePersonaDialog({ nombre, roles, detalle, totalBruto, anticipo, total, pagos, onClose }: Props) {
+export function DetallePersonaDialog({ nombre, roles, detalle, totalBruto, anticipo, total, pagos, reporte, onClose }: Props) {
     const pagado = pagos?.reduce((suma, pago) => suma + pago.monto, 0) ?? 0;
     const saldo = Math.max(0, total - pagado);
+    const { imprimir } = useImprimirDocumento({ claseDocumento: "reporte-autor-documento" });
+
+    // El título del documento es el nombre de archivo que propone «Guardar como PDF».
+    const descargarPdf = async () => {
+        if (!reporte) return;
+        const anterior = document.title;
+        document.title = `${reporte.liquidacion.codigo} - ${reporte.persona.nombre}`;
+        await imprimir();
+        document.title = anterior;
+    };
 
     return (
         <Dialog
             open
             title={nombre}
-            description="Importe por libro dentro del período liquidado."
-            width={560}
+            width={720}
             onClose={onClose}
             footer={
-                <Button size="sm" onClick={onClose}>
-                    Cerrar
-                </Button>
+                <>
+                    {reporte ? (
+                        <Button variant="secondary" size="sm" iconStart="download" onClick={descargarPdf}>
+                            Descargar PDF
+                        </Button>
+                    ) : null}
+                    <Button size="sm" onClick={onClose}>
+                        Cerrar
+                    </Button>
+                </>
             }
         >
             <div style={{ marginBottom: "var(--space-4)", display: "flex", gap: "var(--space-1)" }}>
@@ -49,19 +70,31 @@ export function DetallePersonaDialog({ nombre, roles, detalle, totalBruto, antic
             <Table
                 columns={[
                     { header: "Libro", key: "titulo", wrap: true },
-                    {
-                        header: "Rol",
-                        cell: (d: PersonaLiquidacionDetalle) => <Badge tone={tonoDeRol(d.rol)}>{nombreVisible(d.rol.nombre)}</Badge>
-                    },
+                    // Con un solo rol ya está en el encabezado: repetirlo por fila sólo suma ancho.
+                    ...(roles.length > 1
+                        ? [
+                              {
+                                  header: "Rol",
+                                  cell: (d: PersonaLiquidacionDetalle) => (
+                                      <Badge tone={tonoDeRol(d.rol)}>{nombreVisible(d.rol.nombre)}</Badge>
+                                  )
+                              }
+                          ]
+                        : []),
+                    { header: "Ejemplares", align: "right", mono: true, key: "cantidad" },
                     { header: "Porcentaje", align: "right", mono: true, cell: (d) => `${d.porcentaje}%` },
                     { header: "Importe", align: "right", mono: true, cell: (d) => formatMoney(d.importe) },
-                    {
-                        header: "Anticipo",
-                        align: "right",
-                        mono: true,
-                        cell: (d) =>
-                            d.anticipo > 0 ? `− ${formatMoney(d.anticipo)}` : <span style={{ color: "var(--text-subtle)" }}>—</span>
-                    }
+                    ...(anticipo > 0
+                        ? [
+                              {
+                                  header: "Anticipo",
+                                  align: "right" as const,
+                                  mono: true,
+                                  cell: (d: PersonaLiquidacionDetalle) =>
+                                      d.anticipo > 0 ? `− ${formatMoney(d.anticipo)}` : <span style={{ color: "var(--text-subtle)" }}>—</span>
+                              }
+                          ]
+                        : [])
                 ]}
                 rows={detalle}
             />
@@ -117,6 +150,7 @@ export function DetallePersonaDialog({ nombre, roles, detalle, totalBruto, antic
                     )}
                 </div>
             ) : null}
+            {reporte ? <ReporteAutorImpresion reporte={reporte} /> : null}
         </Dialog>
     );
 }

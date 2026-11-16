@@ -1,6 +1,7 @@
-import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { mediosPagoTable } from "./medioPago.schema";
 import { medioPagoFilterMap } from "./medioPago.filter";
 
@@ -40,7 +41,7 @@ export function createMedioPagoRepository({ db }: MedioPagoRepositoryDeps) {
             })
             .from(mediosPagoTable)
             .where(and(eq(mediosPagoTable.user, userId), isNull(mediosPagoTable.deletedAt)))
-            .orderBy(asc(mediosPagoTable.id));
+            .orderBy(ordenAlfabetico(mediosPagoTable.nombre));
     };
 
     // Nombre repetido entre medios *activos*: el mismo nombre de uno dado de

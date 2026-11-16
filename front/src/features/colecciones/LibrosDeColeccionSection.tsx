@@ -82,7 +82,7 @@ export function LibrosDeColeccionSection({ libros, loading, onAgregar, onQuitar,
                 ]}
                 rows={libros}
                 onRowClick={(row: ColeccionLibro) => onAbrirLibro(row.isbn)}
-                empty={loading ? "Cargando..." : "Todavía no hay libros en esta colección. Agregalos con el botón de arriba."}
+                empty={loading ? "Cargando…" : "Todavía no hay libros en esta colección. Agregalos con el botón de arriba."}
             />
 
             {showAgregar ? (
@@ -150,7 +150,7 @@ function AgregarLibrosDialog({ onClose, onAgregar }: { onClose: () => void; onAg
         >
             <Input
                 iconStart="search"
-                placeholder="Buscar por título o ISBN completo..."
+                placeholder="Buscar por título o ISBN completo…"
                 value={termino}
                 onChange={(event) => setTermino(event.target.value)}
             />
@@ -180,7 +180,7 @@ function AgregarLibrosDialog({ onClose, onAgregar }: { onClose: () => void; onAg
                             onRowClick={(row: Libro) => toggle(row.isbn)}
                             empty={
                                 loading ? (
-                                    "Buscando..."
+                                    "Buscando…"
                                 ) : (
                                     <EmptyState
                                         icon="search"

@@ -43,7 +43,7 @@ export function IntegracionesSection() {
         setGuardandoId(integracion.id);
         try {
             await revocar(integracion.id);
-            showToast("success", "Integración revocada.");
+            showToast("success", "Integración revocada");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         } finally {
@@ -170,7 +170,7 @@ export function IntegracionesSection() {
                     onCreated={(integracion, clave) => {
                         setCreando(false);
                         setClaveNueva(clave);
-                        showToast("success", `Integración «${integracion.nombre}» creada.`);
+                        showToast("success", `Integración «${integracion.nombre}» creada`);
                     }}
                 />
             ) : null}
@@ -232,7 +232,7 @@ function NuevaIntegracionDialog({
                     {error}
                 </Alert>
             ) : null}
-            <Field label="Nombre" required hint="Para reconocerla en la lista, por ejemplo «Tienda propia».">
+            <Field label="Nombre" required>
                 <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Tienda propia" autoFocus />
             </Field>
             <Field
@@ -260,7 +260,7 @@ function ClaveNuevaDialog({ clave, onClose }: { clave: string; onClose: () => vo
     const copiar = async () => {
         try {
             await navigator.clipboard.writeText(clave);
-            showToast("success", "Clave copiada.");
+            showToast("success", "Clave copiada");
         } catch {
             showToast("error", "No se pudo copiar. Seleccioná la clave y copiala a mano.");
         }

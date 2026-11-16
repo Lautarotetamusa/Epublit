@@ -28,7 +28,7 @@ export function ConsignacionesPage() {
                 ]}
                 rows={pageItems}
                 onRowClick={(row: Operacion) => navigate(`/consignaciones/${row.id}`)}
-                empty={loading ? "Cargando..." : <EmptyState icon="boxes" title="Todavía no hay consignaciones" />}
+                empty={loading ? "Cargando…" : <EmptyState icon="boxes" title="Todavía no hay consignaciones" />}
             />
             {total > 0 ? (
                 <div style={{ padding: "var(--space-4)" }}>

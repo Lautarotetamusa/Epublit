@@ -2,6 +2,10 @@ import { and, asc, eq } from "drizzle-orm";
 import { db } from "../src/db/client";
 import { movimientosTable } from "../src/db/schema";
 import { LiquidacionesService } from "../src/modules/liquidaciones";
+import { LibroPersonaService, LibroService, PublicLibro } from "../src/modules/libro";
+import { PublicPersona } from "../src/modules/persona";
+import { RolService } from "../src/modules/rol";
+import { mesAnterior, mesDeFecha, ultimoDiaDelMes } from "../src/modules/metricas/metricas.periodo";
 import { SeedUser } from "./users.seeder";
 
 const VENTAS_LIQUIDADAS = 3;
@@ -67,5 +71,61 @@ export async function seedLiquidaciones(users: SeedUser[], liquidacionesService:
 
         // Pendiente: sin pagos.
         await liquidacionesService.generar(user.id, fechas[2], fechas[2]);
+    }
+}
+
+const MESES_LIQUIDACION_HISTORICA = 12;
+const PORCENTAJE_PAGO_HISTORICA = 0.4;
+
+// Los `MESES_LIQUIDACION_HISTORICA` meses completos anteriores al mes en curso.
+const periodoHistorico = (): { desde: string; hasta: string } => {
+    const ultimo = mesAnterior(mesDeFecha(new Date()));
+    let primero = ultimo;
+    for (let i = 1; i < MESES_LIQUIDACION_HISTORICA; i++) primero = mesAnterior(primero);
+
+    return { desde: `${primero}-01`, hasta: `${ultimo}-${String(ultimoDiaDelMes(ultimo)).padStart(2, "0")}` };
+};
+
+export type LiquidacionHistoricaDeps = {
+    libros: PublicLibro[];
+    personas: PublicPersona[];
+    libroService: Pick<LibroService, "getPersonas">;
+    libroPersonaService: LibroPersonaService;
+    rolService: Pick<RolService, "findActivos">;
+    liquidacionesService: LiquidacionesService;
+};
+
+// La primera persona de la cuenta pasa a ilustrar todos los libros donde
+// todavía no lo hace: con el reparto de seedLibrosPersonas nadie supera los
+// cuatro libros, y el reporte por autor necesita un caso largo para verse.
+const sumarPersonaProlifica = async (user: SeedUser, deps: LiquidacionHistoricaDeps) => {
+    const persona = deps.personas.find((candidata) => candidata.user === user.id)!;
+    const ilustrador = (await deps.rolService.findActivos(user.id)).find((rol) => rol.nombre === "ilustrador")!;
+
+    for (const libro of deps.libros.filter((candidato) => candidato.user === user.id)) {
+        const actuales = await deps.libroService.getPersonas(libro.id_libro, user.id);
+        const yaIlustra = actuales.some((p) => p.id_persona === persona.id && p.rol.id === ilustrador.id);
+        if (yaIlustra) continue;
+
+        await deps.libroPersonaService.addToLibro(libro.isbn, user.id, [{ id_persona: persona.id, rol: ilustrador.id, porcentaje: 5 }]);
+    }
+};
+
+// Una liquidación con muchas ventas (las de meses anteriores que carga el
+// seeder de métricas), para ver el detalle y el reporte por autor de una
+// persona con varios libros y roles. Corre después de `seedMetricas`.
+export async function seedLiquidacionHistorica(users: SeedUser[], deps: LiquidacionHistoricaDeps): Promise<void> {
+    const { desde, hasta } = periodoHistorico();
+    const { liquidacionesService } = deps;
+
+    for (const user of users) {
+        await sumarPersonaProlifica(user, deps);
+        const liquidacion = await liquidacionesService.generar(user.id, desde, hasta);
+
+        const conMasLibros = [...liquidacion.personas].sort((a, b) => b.detalle.length - a.detalle.length)[0];
+        const monto = round2(conMasLibros.saldo * PORCENTAJE_PAGO_HISTORICA);
+        if (monto > 0) {
+            await liquidacionesService.registrarPago(user.id, liquidacion.id, conMasLibros.id_persona, { monto, fecha: hasta });
+        }
     }
 }

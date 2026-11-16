@@ -18,7 +18,7 @@ export function DepositoFormFields({ values, onChange }: Props) {
             <Field label="Nombre" required>
                 <Input value={values.nombre} onChange={(e) => onChange({ nombre: e.target.value })} />
             </Field>
-            <Field label="Descripción" hint="Opcional. Ayuda a reconocerlo en el listado." style={{ marginTop: "var(--space-4)" }}>
+            <Field label="Descripción" hint="Opcional." style={{ marginTop: "var(--space-4)" }}>
                 <Textarea rows={3} value={values.descripcion} onChange={(e) => onChange({ descripcion: e.target.value })} />
             </Field>
         </>

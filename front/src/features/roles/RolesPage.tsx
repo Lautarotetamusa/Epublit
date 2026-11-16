@@ -14,7 +14,7 @@ export function RolesPage() {
     return (
         <Card
             title="Roles"
-            subtitle="Con qué rol trabaja cada persona en tus libros. Un rol que ya está en uso no se puede dar de baja."
+            subtitle="Un rol que ya está en uso no se puede dar de baja."
             actions={
                 <Button iconStart="plus" onClick={() => navigate("/roles/nuevo")}>
                     Nuevo rol

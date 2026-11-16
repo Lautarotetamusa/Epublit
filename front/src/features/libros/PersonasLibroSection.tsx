@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, Card, Button, IconButton, Input, Field, Select, Dialog, Table, Badge } from "../../design-system";
+import { Alert, Card, Button, IconButton, Input, Field, Select, Combobox, Dialog, Table, Badge } from "../../design-system";
 import type { PersonaEnLibro } from "../../api/libro";
 import type { Rol } from "../../api/rol";
 import type { Persona, CreatePersonaInput } from "../../api/persona";
@@ -250,11 +250,13 @@ function AgregarExistenteDialog({
                 <Select value={String(idRol)} onChange={(e) => handleRolChange(Number(e.target.value))} options={opcionesDeRol(roles)} />
             </Field>
             <Field label="Persona" style={{ marginTop: "var(--space-4)" }}>
-                <Select
+                <Combobox
                     value={String(idPersona)}
-                    onChange={(e) => setIdPersona(Number(e.target.value))}
+                    onChange={(value) => setIdPersona(Number(value))}
                     options={disponibles.map((p) => ({ value: String(p.id), label: p.nombre }))}
-                    placeholder={disponibles.length === 0 ? "No queda nadie con ese rol" : undefined}
+                    placeholder={disponibles.length === 0 ? "Todas las personas ya tienen este rol en el libro" : "Buscar por nombre…"}
+                    emptyMessage="Ninguna persona coincide"
+                    disabled={disponibles.length === 0}
                 />
             </Field>
             <Field label="Porcentaje" style={{ marginTop: "var(--space-4)" }}>
@@ -337,7 +339,7 @@ function AgregarNuevaDialog({
                 <Field label="Nombre" required style={{ marginTop: "var(--space-4)" }}>
                     <Input value={inputs.nombre} onChange={(e) => setInputs((v) => ({ ...v, nombre: e.target.value }))} />
                 </Field>
-                <Field label="Email" style={{ marginTop: "var(--space-4)" }} error={emailInvalid ? "Ingresá un email válido" : undefined}>
+                <Field label="Email" style={{ marginTop: "var(--space-4)" }} error={emailInvalid ? "Ingresá un email válido." : undefined}>
                     <Input
                         type="email"
                         invalid={emailInvalid}

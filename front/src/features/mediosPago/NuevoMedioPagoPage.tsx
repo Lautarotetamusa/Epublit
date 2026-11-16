@@ -19,7 +19,7 @@ export function NuevoMedioPagoPage() {
         event.preventDefault();
         try {
             const medio = await create({ nombre: values.nombre.trim(), comision: comisionDeValor(values.comision) });
-            showToast("success", "Medio de pago creado correctamente");
+            showToast("success", "Medio de pago creado");
             navigate(`/medios-pago/${medio.id}`);
         } catch (err) {
             showToast("error", getErrorMessage(err));

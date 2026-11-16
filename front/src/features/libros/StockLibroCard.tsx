@@ -81,7 +81,7 @@ export function StockLibroCard({ libro }: { libro: Libro }) {
                 onRowClick={abrirFila}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : (
                         <EmptyState
                             icon="boxes"

@@ -21,7 +21,6 @@ export function MovimientosPage() {
     return (
         <Card
             title="Historial de movimientos"
-            subtitle="Del más reciente al más antiguo."
             actions={
                 <Button iconStart="plus" onClick={() => navigate("/movimientos/nuevo")}>
                     Nuevo movimiento
@@ -63,7 +62,7 @@ export function MovimientosPage() {
                 onRowClick={(row: Movimiento) => navigate(`/movimientos/${row.id}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : filtros.hayFiltrosActivos ? (
                         <EmptyState
                             icon="search"

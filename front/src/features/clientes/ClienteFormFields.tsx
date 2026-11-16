@@ -36,7 +36,7 @@ export function ClienteFormFields({ values, onChange, required }: Props) {
             <Field label="Nombre" required={required}>
                 <Input value={values.nombre} onChange={(e) => onChange({ nombre: e.target.value })} />
             </Field>
-            <Field label="Email" error={emailInvalid ? "Ingresá un email válido" : undefined}>
+            <Field label="Email" error={emailInvalid ? "Ingresá un email válido." : undefined}>
                 <Input
                     type="email"
                     invalid={emailInvalid}
@@ -45,7 +45,7 @@ export function ClienteFormFields({ values, onChange, required }: Props) {
                     onBlur={() => setTouched((t) => ({ ...t, email: true }))}
                 />
             </Field>
-            <Field label="CUIT" required={required} error={cuitInvalid ? "El CUIT debe tener 11 dígitos" : undefined}>
+            <Field label="CUIT" required={required} error={cuitInvalid ? "El CUIT tiene que tener 11 dígitos." : undefined}>
                 <Input
                     invalid={cuitInvalid}
                     maxLength={11}

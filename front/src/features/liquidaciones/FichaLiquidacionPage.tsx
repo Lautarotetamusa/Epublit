@@ -14,6 +14,7 @@ import { DetallePersonaDialog } from "./DetallePersonaDialog";
 import { RegistrarPagoDialog } from "./RegistrarPagoDialog";
 import { formatMoney } from "../../lib/money";
 import { etiquetaEstado, porcentajePagado, tonoEstado } from "./presentacionLiquidacion";
+import { useRazonSocial } from "./useRazonSocial";
 
 // La ficha de una liquidación ya generada: cuánto es, cuánto se pagó y cuánto
 // falta, por persona y en total, con el historial de pagos parciales. El pago se
@@ -24,6 +25,7 @@ export function FichaLiquidacionPage() {
     const { showToast } = useToast();
     const confirm = useConfirm();
     const navigate = useNavigate();
+    const razonSocial = useRazonSocial();
 
     const [personaDetalle, setPersonaDetalle] = useState<PersonaAPagar | null>(null);
     // `undefined` = diálogo cerrado; `null` = abierto sin persona elegida; un id = abierto en esa persona.
@@ -37,7 +39,7 @@ export function FichaLiquidacionPage() {
             <Card>
                 <EmptyState
                     icon="percent"
-                    title="La liquidación no existe"
+                    title="No encontramos esta liquidación"
                     description="Puede que el enlace esté mal."
                     action={<Button onClick={() => navigate("/liquidaciones")}>Volver a liquidaciones</Button>}
                 />
@@ -62,7 +64,7 @@ export function FichaLiquidacionPage() {
     const confirmarPago = async (idPersona: number, input: RegistrarPagoInput): Promise<boolean> => {
         try {
             await pagar(idPersona, input);
-            showToast("success", "Pago registrado correctamente");
+            showToast("success", "Pago registrado");
             return true;
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -133,7 +135,7 @@ export function FichaLiquidacionPage() {
                 <div style={{ padding: "var(--space-4)" }}>
                     <Input
                         iconStart="search"
-                        placeholder="Buscar por nombre..."
+                        placeholder="Buscar por nombre…"
                         value={busquedaPersona}
                         onChange={(e) => setBusquedaPersona(e.target.value)}
                     />
@@ -265,6 +267,7 @@ export function FichaLiquidacionPage() {
                     anticipo={personaDetalleActual.anticipo}
                     total={personaDetalleActual.total}
                     pagos={personaDetalleActual.pagos}
+                    reporte={{ emisor: razonSocial, liquidacion, persona: personaDetalleActual }}
                     onClose={() => setPersonaDetalle(null)}
                 />
             ) : null}

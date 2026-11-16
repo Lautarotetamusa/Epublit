@@ -26,7 +26,7 @@ export function FichaPersonaPage() {
     const handleSave = async (input: UpdatePersonaInput) => {
         try {
             await update(input);
-            showToast("success", "Persona actualizada correctamente");
+            showToast("success", "Persona actualizada");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -44,7 +44,7 @@ export function FichaPersonaPage() {
         const ok = await confirm({
             title: "¿Quitar la foto?",
             description: `${persona.nombre} va a quedar sin foto hasta que subas otra.`,
-            confirmLabel: "Quitar"
+            confirmLabel: "Quitar foto"
         });
         if (!ok) return;
         try {
@@ -92,7 +92,10 @@ function EdicionPersonaForm({
 }) {
     const [inputs, setInputs] = useState<PersonaFormValues>({
         nombre: persona.nombre,
-        email: persona.email ?? "",
+        // El email se normaliza acá, en el borde con la API: una persona
+        // cargada vieja puede traer espacios o saltos de línea invisibles que
+        // dejaban el botón de guardar deshabilitado sin explicación.
+        email: persona.email?.trim() ?? "",
         dni: persona.dni,
         bio: persona.bio ?? ""
     });

@@ -25,7 +25,7 @@ export function PerfilPage() {
             title: "¿Actualizar los datos desde AFIP?",
             description:
                 "Se reemplazan la condición frente al IVA, la razón social, el domicilio, Ingresos Brutos y la fecha de inicio por los datos del padrón de AFIP para tu CUIT.",
-            confirmLabel: "Actualizar"
+            confirmLabel: "Actualizar desde AFIP"
         });
         if (!ok) return;
 
@@ -85,7 +85,7 @@ export function PerfilPage() {
                             try {
                                 await update(input);
                                 setShowEdit(false);
-                                showToast("success", "Perfil actualizado correctamente");
+                                showToast("success", "Perfil actualizado");
                             } catch (err) {
                                 showToast("error", getErrorMessage(err));
                             }
@@ -99,7 +99,7 @@ export function PerfilPage() {
                 onSave={async (input) => {
                     try {
                         await update(input);
-                        showToast("success", "Restricciones actualizadas correctamente");
+                        showToast("success", "Restricciones actualizadas");
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
                     }
@@ -213,7 +213,7 @@ function EditarPerfilDialog({
                 </>
             }
         >
-            <Field label="Email" error={emailInvalid ? "Ingresá un email válido" : undefined}>
+            <Field label="Email" error={emailInvalid ? "Ingresá un email válido." : undefined}>
                 <Input
                     type="email"
                     invalid={emailInvalid}

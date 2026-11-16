@@ -26,14 +26,14 @@ export function ClientesPage() {
         const ok = await confirm({
             title: `¿Eliminar a ${cliente.nombre}?`,
             description: "Sólo se puede eliminar un cliente sin ventas ni consignaciones asociadas.",
-            confirmLabel: "Eliminar",
+            confirmLabel: "Eliminar cliente",
             tone: "danger"
         });
         if (!ok) return;
 
         try {
             await remove(cliente.id);
-            showToast("success", "Cliente eliminado correctamente");
+            showToast("success", "Cliente eliminado");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -52,7 +52,7 @@ export function ClientesPage() {
             <div style={{ padding: "var(--space-4)" }}>
                 <Input
                     iconStart="search"
-                    placeholder="Buscar por nombre..."
+                    placeholder="Buscar por nombre…"
                     value={filterText}
                     onChange={(e) => setFilterText(e.target.value)}
                 />
@@ -97,7 +97,7 @@ export function ClientesPage() {
                 onRowClick={(row: Cliente) => navigate(`/clientes/${row.id}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : (
                         <EmptyState icon="store" title="Todavía no hay clientes" description="Creá tu primer cliente con el botón de arriba." />
                     )

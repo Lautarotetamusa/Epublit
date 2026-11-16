@@ -53,7 +53,7 @@ type Pago = { id: number; monto: number; fecha: string; nota: string | null };
 type PersonaFicha = {
     id_persona: number;
     total: number;
-    detalle: { id_libro: number; importe: number }[];
+    detalle: { id_libro: number; importe: number; cantidad: number }[];
     pagado: number;
     saldo: number;
     estado: string;
@@ -147,12 +147,22 @@ beforeAll(async () => {
 });
 
 describe('Seed de liquidaciones', () => {
-    test('deja tres liquidaciones con sus estados (pagada, parcial y pendiente)', async () => {
+    // Tres del mes en curso (pagada, parcial y pendiente) más la histórica de
+    // meses anteriores, con un pago parcial (ver seeders/liquidaciones.seeder.ts).
+    test('deja cuatro liquidaciones con sus estados', async () => {
         const liquidaciones = await listar();
 
-        expect(liquidaciones).toHaveLength(3);
-        expect(liquidaciones.map((l) => l.estado).sort()).toEqual(['pagada', 'parcial', 'pendiente']);
-        expect(liquidaciones.map((l) => l.codigo).sort()).toEqual([`LQ-${anio}-0001`, `LQ-${anio}-0002`, `LQ-${anio}-0003`]);
+        expect(liquidaciones).toHaveLength(4);
+        expect(liquidaciones.map((l) => l.estado).sort()).toEqual(['pagada', 'parcial', 'parcial', 'pendiente']);
+        expect(liquidaciones.map((l) => l.codigo).sort()).toEqual([`LQ-${anio}-0001`, `LQ-${anio}-0002`, `LQ-${anio}-0003`, `LQ-${anio}-0004`]);
+    });
+
+    test('la liquidación histórica tiene una persona con varios libros', async () => {
+        const [historica] = (await listar()).filter((l) => l.codigo === `LQ-${anio}-0004`);
+        const ficha = await auth(request(app).get(`/liquidaciones/${historica.id}`));
+
+        const maxLibros = Math.max(...ficha.body.data.personas.map((p: { detalle: unknown[] }) => p.detalle.length));
+        expect(maxLibros).toBeGreaterThan(1);
     });
 
     test('la previsualización del mes en curso muestra datos y excluye lo ya liquidado', async () => {
@@ -163,10 +173,10 @@ describe('Seed de liquidaciones', () => {
         expect(res.body.data.total_facturado).toBeGreaterThan(0);
     });
 
-    test('generar la liquidación del mes en curso deja LQ-<año>-0004 y no se puede repetir', async () => {
+    test('generar la liquidación del mes en curso deja LQ-<año>-0005 y no se puede repetir', async () => {
         const res = await auth(request(app).post('/liquidaciones/').send({ desde: primerDiaMes(), hasta: ultimoDiaMes() }));
         expectCreated(res);
-        expect(res.body.data.codigo).toBe(`LQ-${anio}-0004`);
+        expect(res.body.data.codigo).toBe(`LQ-${anio}-0005`);
 
         expectConflict(await auth(request(app).post('/liquidaciones/').send({ desde: primerDiaMes(), hasta: ultimoDiaMes() })));
     });
@@ -182,6 +192,9 @@ describe('Generar y cubrir ventas de un período', () => {
         expect(res.body.data.total_facturado).toBe(900);
         expect(res.body.data.ejemplares_vendidos).toBe(7);
         expect(res.body.data.excluidas).toEqual([]);
+
+        const p1 = res.body.data.personas.find((p: { id_persona: number }) => p.id_persona === personaP1.id);
+        expect(p1.detalle.map((d: { cantidad: number }) => d.cantidad).sort()).toEqual([2, 5]);
     });
 
     test('POST /liquidaciones/ persiste con el mismo cálculo del reporte y lo devuelve como ficha', async () => {
@@ -199,6 +212,7 @@ describe('Generar y cubrir ventas de un período', () => {
         const p1 = ficha.personas.find((p) => p.id_persona === personaP1.id)!;
         expect(p1.total).toBe(170); // 500 * 10% + 400 * 30%
         expect(p1.detalle).toHaveLength(2);
+        expect(p1.detalle.map((d) => d.cantidad).sort()).toEqual([2, 5]);
         const p2 = ficha.personas.find((p) => p.id_persona === personaP2.id)!;
         expect(p2.total).toBe(100); // 500 * 20%
     });

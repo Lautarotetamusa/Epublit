@@ -4,7 +4,7 @@ import { LibroPrecioRepository } from "./libroPrecio.repository";
 import { LibroConColeccion, LibroRepository } from "./libro.repository";
 import { Storage } from "../../lib/storage";
 import { UnsupportedMediaType, PayloadTooLarge, ValidationError } from "../../lib/http/errors";
-import { Duplicated } from "bradb";
+import { Duplicated, NotFound } from "bradb";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
 
@@ -155,6 +155,19 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         return { ...toPublic(libro), personas: personas.map(toPersonaPublica) };
     };
 
+    // Para el sitio un libro oculto no existe: mismo 404 que un isbn
+    // inexistente, para no revelar que está cargado (ver
+    // specs/022-libro-edicion-visibilidad-resenas).
+    const asegurarVisible = <T extends { visible: boolean; isbn: string }>(libro: T): T => {
+        if (!libro.visible) throw new NotFound(`No existe un libro con isbn ${libro.isbn}`);
+        return libro;
+    };
+
+    const findOneVisible = async (isbn: string, userId: number) => asegurarVisible(await repository.findOne(isbn, userId));
+
+    const findVisibleWithPersonas = async (isbn: string, userId: number) =>
+        asegurarVisible(await findOneWithPersonas(isbn, userId));
+
     // Catálogo paginado con las personas de cada libro resueltas en una sola
     // query (evita N+1). Lo comparte el catálogo público.
     const findCatalogoPaginated = async (
@@ -270,6 +283,8 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
     return {
         findOne: repository.findOne,
         findOneWithPersonas,
+        findOneVisible,
+        findVisibleWithPersonas,
         exists: repository.exists,
         findAllOrdered: findAllOrderedPublic,
         findAllPaginated: findAllPaginatedPublic,

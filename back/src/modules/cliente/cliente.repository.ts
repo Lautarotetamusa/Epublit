@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { clientesTable } from "./cliente.schema";
 import { clienteFilterMap } from "./cliente.filter";
 import { TipoCliente, tipoCliente } from "./cliente.validator";
@@ -18,7 +19,7 @@ export function createClienteRepository({ db }: ClienteRepositoryDeps) {
     const remove = builder.delete();
 
     // Ordenado por nombre: mismo `ORDER BY nombre ASC` del `Cliente.getAll` actual.
-    const selectOrderedByNombre = () => db.select().from(clientesTable).orderBy(clientesTable.nombre).$dynamic();
+    const selectOrderedByNombre = () => db.select().from(clientesTable).orderBy(ordenAlfabetico(clientesTable.nombre)).$dynamic();
     const findAllRaw = builder.findAll(selectOrderedByNombre, false);
     const findAll = async (userId: number, tipo?: TipoCliente) => {
         return findAllRaw({ user: userId, ...(tipo ? { tipo } : {}) });

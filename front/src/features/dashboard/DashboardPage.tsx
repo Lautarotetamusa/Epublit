@@ -262,7 +262,7 @@ export function DashboardPage() {
                             <StatCard
                                 variant="bare"
                                 label={figura.etiqueta}
-                                value={loading ? "..." : figura.valor}
+                                value={loading ? "…" : figura.valor}
                                 icon={figura.icono}
                                 delta={
                                     loading ? undefined : (

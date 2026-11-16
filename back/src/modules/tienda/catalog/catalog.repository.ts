@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { Database } from "../../../db/client";
 import { librosTable } from "../../libro/libro.schema";
 import { librosPersonasTable } from "../../libro/libroPersona.schema";
@@ -35,7 +35,7 @@ export function createCatalogRepository({ db }: CatalogRepositoryDeps) {
         const filas = await db
             .select({ id: librosTable.id_libro })
             .from(librosTable)
-            .where(and(eq(librosTable.user, userId), isNull(librosTable.deletedAt)))
+            .where(and(eq(librosTable.user, userId), eq(librosTable.visible, true), isNull(librosTable.deletedAt)))
             .orderBy(desc(librosTable.id_libro))
             .limit(cantidad);
 
@@ -68,6 +68,7 @@ export function createCatalogRepository({ db }: CatalogRepositoryDeps) {
                 and(
                     eq(librosTable.id_libro, librosPersonasTable.id_libro),
                     eq(librosTable.user, userId),
+                    eq(librosTable.visible, true),
                     isNull(librosTable.deletedAt)
                 )
             )
@@ -91,10 +92,30 @@ export function createCatalogRepository({ db }: CatalogRepositoryDeps) {
                 asc(rolesTable.nombre)
             );
 
+    // Cantidad de libros por colección que el sitio puede mostrar: el conteo
+    // del panel incluye los ocultos.
+    const countLibrosVisiblesPorColeccion = async (userId: number): Promise<Map<number, number>> => {
+        const filas = await db
+            .select({ coleccion_id: librosTable.coleccion_id, cantidad: count() })
+            .from(librosTable)
+            .where(
+                and(
+                    eq(librosTable.user, userId),
+                    eq(librosTable.visible, true),
+                    isNull(librosTable.deletedAt),
+                    isNotNull(librosTable.coleccion_id)
+                )
+            )
+            .groupBy(librosTable.coleccion_id);
+
+        return new Map(filas.map((fila) => [fila.coleccion_id as number, fila.cantidad]));
+    };
+
     return {
         getConfiguration,
         findUltimosIds,
-        findPersonas
+        findPersonas,
+        countLibrosVisiblesPorColeccion
     };
 }
 

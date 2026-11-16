@@ -1,5 +1,7 @@
-import { Field, Input, Textarea, CoverUpload, Select } from "../../design-system";
+import { Field, Input, Textarea, CoverUpload, Select, Switch } from "../../design-system";
 import type { Coleccion } from "../../api/coleccion";
+import type { TipoEdicion } from "../../api/libro";
+import { TIPOS_EDICION } from "./presentacionLibro";
 import { sanitizeDecimal, sanitizeInteger } from "../../lib/numericInput";
 import { isValidYoutubeUrl } from "../../lib/validation";
 import { useFilePreview } from "../../lib/useFilePreview";
@@ -32,6 +34,8 @@ export type LibroFormValues = {
     // Stock que la tienda online puede vender de más cuando el depósito
     // principal llega a cero.
     stockNegativoPermitido: string;
+    tipoEdicion: TipoEdicion;
+    visible: boolean;
 };
 
 type GrupoProps = {
@@ -74,7 +78,7 @@ export function DatosLibroFields({ values, onChange, colecciones }: GrupoProps &
                 <Field label="Título">
                     <Input value={values.titulo} onChange={(e) => onChange({ titulo: e.target.value })} />
                 </Field>
-                <Field label="Colección" hint="Una colección o ninguna. Podés cambiarla cuando quieras.">
+                <Field label="Colección">
                     <Select
                         value={values.idColeccion}
                         placeholder="Sin colección"
@@ -117,6 +121,12 @@ export function DatosLibroFields({ values, onChange, colecciones }: GrupoProps &
                     onChange={(e) => onChange({ stockNegativoPermitido: sanitizeInteger(e.target.value) })}
                 />
             </Field>
+            <Switch
+                label="Visible en la tienda online"
+                checked={values.visible}
+                onChange={(e) => onChange({ visible: e.target.checked })}
+                style={{ marginTop: "var(--space-4)" }}
+            />
         </>
     );
 }
@@ -126,7 +136,7 @@ export function FichaLibroFields({ values, onChange }: GrupoProps) {
 
     return (
         <>
-            <Field label="Brief" hint="Resumen breve del libro para catálogo y ficha.">
+            <Field label="Brief">
                 <Textarea rows={4} value={values.brief} onChange={(e) => onChange({ brief: e.target.value })} />
             </Field>
             <div
@@ -137,6 +147,13 @@ export function FichaLibroFields({ values, onChange }: GrupoProps) {
                     marginTop: "var(--space-4)"
                 }}
             >
+                <Field label="Tipo de edición">
+                    <Select
+                        value={values.tipoEdicion}
+                        onChange={(e) => onChange({ tipoEdicion: e.target.value as TipoEdicion })}
+                        options={TIPOS_EDICION}
+                    />
+                </Field>
                 <Field label="Cantidad de páginas">
                     <Input
                         type="text"
@@ -172,7 +189,7 @@ export function FichaLibroFields({ values, onChange }: GrupoProps) {
             >
                 <Input
                     type="url"
-                    placeholder="https://www.youtube.com/watch?v=..."
+                    placeholder="https://www.youtube.com/watch?v=…"
                     invalid={bookTrailerInvalid}
                     value={values.bookTrailerUrl}
                     onChange={(e) => onChange({ bookTrailerUrl: e.target.value })}

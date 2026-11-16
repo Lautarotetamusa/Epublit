@@ -1,6 +1,7 @@
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { librosPersonasTable } from "../libro/libroPersona.schema";
 import { librosTable } from "../libro/libro.schema";
 import { personasTable } from "../persona/persona.schema";
@@ -39,7 +40,7 @@ export function createRolRepository({ db }: RolRepositoryDeps) {
             .select({ id: rolesTable.id, nombre: rolesTable.nombre })
             .from(rolesTable)
             .where(and(eq(rolesTable.user, userId), isNull(rolesTable.deletedAt)))
-            .orderBy(asc(rolesTable.id));
+            .orderBy(ordenAlfabetico(rolesTable.nombre));
     };
 
     // Nombre repetido entre roles *activos*, comparando sin distinguir

@@ -45,7 +45,7 @@ export function MercadoPagoSection() {
         const ok = await confirm({
             title: "¿Desconectar MercadoPago?",
             description: "La tienda deja de poder cobrar con Checkout Pro hasta que vuelvas a conectar la cuenta.",
-            confirmLabel: "Desconectar",
+            confirmLabel: "Desconectar MercadoPago",
             tone: "danger"
         });
         if (!ok) return;
@@ -53,7 +53,7 @@ export function MercadoPagoSection() {
         setDesconectando(true);
         try {
             await desconectar();
-            showToast("success", "MercadoPago desconectado.");
+            showToast("success", "MercadoPago desconectado");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         } finally {

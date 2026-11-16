@@ -8,7 +8,7 @@ import { mergeItems } from "./quote.validator";
 import type { QuoteInput } from "./quote.validator";
 
 export type QuoteServiceDeps = {
-    libroService: Pick<LibroService, "findOne">;
+    libroService: Pick<LibroService, "findOneVisible">;
     availabilityService: Pick<AvailabilityService, "getAvailability">;
     shippingConfigService: Pick<ShippingConfigService, "getOperation">;
     micorreoClient: MicorreoClient;
@@ -68,7 +68,7 @@ export function createQuoteService({
 
         const libros = await Promise.all(
             fusionados.map(async (item) => {
-                const libro = await libroService.findOne(item.isbn, userId);
+                const libro = await libroService.findOneVisible(item.isbn, userId);
                 return { libro, cantidad: item.cantidad, subtotal: libro.precio * item.cantidad };
             })
         );

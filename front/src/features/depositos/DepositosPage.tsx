@@ -12,7 +12,6 @@ export function DepositosPage() {
     return (
         <Card
             title="Depósitos"
-            subtitle="El stock de un libro vive en los depósitos: acá se administran."
             actions={
                 <Button iconStart="plus" onClick={() => navigate("/depositos/nuevo")}>
                     Nuevo depósito
@@ -53,7 +52,7 @@ export function DepositosPage() {
                 onRowClick={(row: DepositoConStock) => navigate(`/depositos/${row.id}`)}
                 empty={
                     loading ? (
-                        "Cargando..."
+                        "Cargando…"
                     ) : (
                         <EmptyState
                             icon="building-2"

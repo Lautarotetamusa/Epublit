@@ -28,7 +28,7 @@ export function DevolucionesPage() {
                 ]}
                 rows={pageItems}
                 onRowClick={(row: Operacion) => navigate(`/devoluciones/${row.id}`)}
-                empty={loading ? "Cargando..." : <EmptyState icon="truck" title="Todavía no hay devoluciones" />}
+                empty={loading ? "Cargando…" : <EmptyState icon="truck" title="Todavía no hay devoluciones" />}
             />
             {total > 0 ? (
                 <div style={{ padding: "var(--space-4)" }}>

@@ -164,7 +164,7 @@ export function PaginaContenidoPage() {
         await ejecutar("publicar", async () => {
             const publicadaGuardada = await publicar();
             if (!publicadaGuardada) return;
-            showToast("success", "Página publicada.");
+            showToast("success", "Página publicada");
             if (esNueva) navigate(`/contenido/${publicadaGuardada.id}`, { replace: true });
         });
     };
@@ -183,7 +183,7 @@ export function PaginaContenidoPage() {
         if (!ok) return;
         await ejecutar("despublicar", async () => {
             const despublicada = await despublicar();
-            if (despublicada) showToast("success", "La página quedó como borrador.");
+            if (despublicada) showToast("success", "La página quedó como borrador");
         });
     };
 
@@ -200,7 +200,7 @@ export function PaginaContenidoPage() {
         let eliminada = false;
         await ejecutar("eliminar", async () => {
             eliminada = await eliminar();
-            if (eliminada) showToast("success", "La página se eliminó.");
+            if (eliminada) showToast("success", "Página eliminada");
         });
         if (eliminada) navigate("/contenido");
     };
@@ -313,7 +313,7 @@ export function PaginaContenidoPage() {
                 detalles={detallesPublicacion}
             />
 
-            <Card title="Datos de la página" subtitle="El título y la dirección con los que se encuentra la página.">
+            <Card title="Datos de la página">
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-4)" }}>
                         <Field

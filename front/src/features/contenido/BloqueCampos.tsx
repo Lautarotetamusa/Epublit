@@ -37,7 +37,7 @@ export function BloqueCampos({ bloque, onChange }: BloqueCamposProps) {
 function CamposHero({ bloque, onChange }: { bloque: Extract<Bloque, { tipo: "hero" }>; onChange: (patch: Partial<Bloque>) => void }) {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            <Field label="Título" hint="El título grande de la apertura.">
+            <Field label="Título">
                 <Input value={bloque.titulo} onChange={(e) => onChange({ titulo: e.target.value })} placeholder="Ej.: Libros que se leen con el cuerpo" />
             </Field>
             <Field label="Bajada" hint="Una o dos líneas que acompañan al título.">

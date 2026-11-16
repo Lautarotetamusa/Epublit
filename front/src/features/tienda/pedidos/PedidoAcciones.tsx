@@ -51,7 +51,7 @@ export function PedidoAcciones({ pedido, onUpdated }: { pedido: PedidoDetalle; o
     const handleAceptar = async () => {
         const ok = await confirm({
             title: `¿Aceptar el pedido ${pedido.codigo}?`,
-            description: `Se genera la venta y la Factura B por ${formatMoney(pedido.total)}. El stock reservado pasa a la venta y el comprobante aparece en la ficha.`,
+            description: `Se genera la venta y su factura por ${formatMoney(pedido.total)}. El stock reservado pasa a la venta y el comprobante aparece en la ficha.`,
             confirmLabel: "Aceptar y generar factura"
         });
         if (!ok) return;
@@ -101,7 +101,7 @@ export function PedidoAcciones({ pedido, onUpdated }: { pedido: PedidoDetalle; o
 
         try {
             await entregar();
-            showToast("success", "Pedido marcado como entregado.");
+            showToast("success", "Pedido marcado como entregado");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -109,7 +109,7 @@ export function PedidoAcciones({ pedido, onUpdated }: { pedido: PedidoDetalle; o
 
     const handleRechazar = async (input: RechazarPedidoInput) => {
         await rechazar(input);
-        showToast("success", "Pedido rechazado.");
+        showToast("success", "Pedido rechazado");
     };
 
     const hayAcciones = acciones.aceptar || acciones.rechazar || acciones.enviar || acciones.entregar;

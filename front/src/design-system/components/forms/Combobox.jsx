@@ -2,6 +2,9 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../core/Icon.jsx';
 
+// Sin acentos ni mayúsculas: buscar «perez» tiene que encontrar «Pérez».
+const normalizar = (texto) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 export function Combobox({ value, options=[], placeholder, emptyMessage='Sin resultados', onChange, disabled, invalid, size='md', style, ...rest }) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
@@ -13,8 +16,9 @@ export function Combobox({ value, options=[], placeholder, emptyMessage='Sin res
   const h = size === 'sm' ? 'var(--height-control-sm)' : 'var(--height-control)';
 
   const selected = options.find(o => o.value === value);
-  const filtered = query.trim()
-    ? options.filter(o => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+  const busqueda = normalizar(query.trim());
+  const filtered = busqueda
+    ? options.filter(o => normalizar(o.label).includes(busqueda))
     : options;
 
   const close = () => { setOpen(false); setQuery(''); };

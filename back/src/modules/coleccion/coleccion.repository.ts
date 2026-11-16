@@ -1,6 +1,7 @@
 import { and, asc, count, eq, isNotNull, isNull } from "drizzle-orm";
 import { Pagination, ServiceBuilder } from "bradb";
 import { Database } from "../../db/client";
+import { ordenAlfabetico } from "../../lib/sql/search";
 import { coleccionesTable } from "./coleccion.schema";
 import { librosTable } from "../libro/libro.schema";
 import { coleccionFilterMap } from "./coleccion.filter";
@@ -18,7 +19,9 @@ export function createColeccionRepository({ db }: ColeccionRepositoryDeps) {
     const remove = builder.delete();
     // Sin paginar: el listado de colecciones de un usuario es corto (el plan
     // no lo pagina) y el front lo usa entero para el selector de libro.
-    const findAll = builder.findAll(false);
+    const selectOrderedByTitulo = () =>
+        db.select().from(coleccionesTable).orderBy(ordenAlfabetico(coleccionesTable.titulo)).$dynamic();
+    const findAll = builder.findAll(selectOrderedByTitulo, false);
 
     const countLibros = async (coleccionId: number, userId: number): Promise<number> => {
         const [row] = await db

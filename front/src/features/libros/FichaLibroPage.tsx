@@ -8,7 +8,8 @@ import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 import { useLibro } from "./useLibro";
 import { StockLibroCard } from "./StockLibroCard";
-import { medidasDeLibro, pesoDeLibro, rangoDeEdad } from "./presentacionLibro";
+import { etiquetaTipoEdicion, medidasDeLibro, pesoDeLibro, rangoDeEdad } from "./presentacionLibro";
+import { ResenasLibroCard } from "./ResenasLibroCard";
 
 // Ficha de sólo lectura: qué es el libro, cómo se presenta y cuánto hay en
 // stock. La edición vive en /libros/:isbn/editar para que el detalle se lea de
@@ -25,7 +26,7 @@ export function FichaLibroPage() {
             <Card>
                 <EmptyState
                     icon="library"
-                    title="No se pudo cargar el libro"
+                    title="No pudimos cargar el libro"
                     description={error ?? "Puede que lo hayas eliminado, o que el enlace esté mal."}
                     action={<Button onClick={() => navigate("/libros")}>Volver a libros</Button>}
                 />
@@ -53,7 +54,10 @@ export function FichaLibroPage() {
                     <PortadaLibro libro={libro} />
 
                     <div style={{ flex: "1 1 340px", minWidth: 0 }}>
-                        <Badge tone="neutral">{libro.coleccion_titulo ?? "Sin colección"}</Badge>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                            <Badge tone="neutral">{libro.coleccion_titulo ?? "Sin colección"}</Badge>
+                            {libro.visible ? null : <Badge tone="warning">Oculto en la tienda</Badge>}
+                        </div>
                         <h1
                             style={{
                                 margin: "var(--space-3) 0 0",
@@ -109,7 +113,7 @@ export function FichaLibroPage() {
                 </div>
             </Card>
 
-            <Card title="Descripción" subtitle="El texto que se muestra en el catálogo y en la tienda.">
+            <Card title="Descripción">
                 {libro.brief ? (
                     <p style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: "var(--leading-relaxed)", color: "var(--text-body)" }}>
                         {libro.brief}
@@ -133,7 +137,7 @@ export function FichaLibroPage() {
                 ) : null}
             </Card>
 
-            <Card title="Ficha técnica" subtitle="Formato del libro y edad recomendada.">
+            <Card title="Ficha técnica">
                 <dl
                     style={{
                         display: "grid",
@@ -142,6 +146,7 @@ export function FichaLibroPage() {
                         margin: 0
                     }}
                 >
+                    <Dato label="Tipo de edición" value={etiquetaTipoEdicion(libro.tipo_edicion)} />
                     <Dato label="Páginas" value={libro.paginas ?? "—"} />
                     <Dato label="Edad recomendada" value={rangoDeEdad(libro.edad_min, libro.edad_max)} />
                     <Dato label="Medidas" value={medidasDeLibro(libro)} />
@@ -149,11 +154,12 @@ export function FichaLibroPage() {
                 </dl>
             </Card>
 
+            <ResenasLibroCard isbn={libro.isbn} />
+
             <StockLibroCard libro={libro} />
 
             <Card
                 title="Personas en el libro"
-                subtitle="Quién participó y con qué rol."
                 padded={false}
                 actions={
                     <Button variant="secondary" size="sm" iconStart="pencil" onClick={editar}>
@@ -171,7 +177,7 @@ export function FichaLibroPage() {
                             )
                         },
                         {
-                            header: "Participación",
+                            header: "Porcentaje",
                             align: "right",
                             mono: true,
                             cell: (persona: PersonaEnLibro) => `${persona.porcentaje}%`

@@ -31,7 +31,7 @@ export function FichaDepositoPage() {
             <Card>
                 <EmptyState
                     icon="building-2"
-                    title="El depósito no existe"
+                    title="No encontramos este depósito"
                     description="Puede que lo hayas eliminado, o que el enlace esté mal."
                     action={<Button onClick={() => navigate("/depositos")}>Volver a depósitos</Button>}
                 />
@@ -43,7 +43,7 @@ export function FichaDepositoPage() {
         try {
             await updateDeposito(deposito.id, { nombre: input.nombre, descripcion: input.descripcion.trim() ? input.descripcion : null });
             refetch();
-            showToast("success", "Depósito actualizado correctamente");
+            showToast("success", "Depósito actualizado");
         } catch (err) {
             showToast("error", getErrorMessage(err));
         }
@@ -53,14 +53,14 @@ export function FichaDepositoPage() {
         const ok = await confirm({
             title: `¿Eliminar «${deposito.nombre}»?`,
             description: "El depósito está vacío, así que se elimina sin tocar los libros del catálogo.",
-            confirmLabel: "Eliminar",
+            confirmLabel: "Eliminar depósito",
             tone: "danger"
         });
         if (!ok) return;
 
         try {
             await deleteDeposito(deposito.id);
-            showToast("success", "Depósito eliminado correctamente");
+            showToast("success", "Depósito eliminado");
             navigate("/depositos");
         } catch (err) {
             // El motivo real de un rechazo lo define el backend (principal o con
@@ -81,7 +81,6 @@ export function FichaDepositoPage() {
 
             <Card
                 title="Stock del depósito"
-                subtitle="Los libros que están acá, con su cantidad."
                 padded={false}
                 actions={
                     <Button
@@ -204,7 +203,6 @@ function EdicionDepositoForm({
                     ) : null}
                 </span>
             }
-            subtitle="Nombre y descripción del depósito."
         >
             <form onSubmit={handleSubmit}>
                 <DepositoFormFields values={values} onChange={(patch) => setValues((actual) => ({ ...actual, ...patch }))} />

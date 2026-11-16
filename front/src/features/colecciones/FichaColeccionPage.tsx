@@ -32,15 +32,15 @@ export function FichaColeccionPage() {
     const handleEliminar = async () => {
         const ok = await confirm({
             title: `¿Eliminar «${coleccion.titulo}»?`,
-            description: "Esta acción no se puede deshacer.",
-            confirmLabel: "Eliminar",
+            description: "Sólo se puede eliminar una colección sin libros. Esta acción no se puede deshacer.",
+            confirmLabel: "Eliminar colección",
             tone: "danger"
         });
         if (!ok) return;
 
         try {
             await remove();
-            showToast("success", "Colección eliminada correctamente");
+            showToast("success", "Colección eliminada");
             navigate("/colecciones");
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -72,7 +72,7 @@ export function FichaColeccionPage() {
                 onSave={async (input, portadaFile, quitarPortada) => {
                     try {
                         await update(input, portadaFile, quitarPortada);
-                        showToast("success", "Colección actualizada correctamente");
+                        showToast("success", "Colección actualizada");
                     } catch (err) {
                         showToast("error", getErrorMessage(err));
                     }
@@ -137,7 +137,7 @@ function EdicionColeccionForm({
     };
 
     return (
-        <Card title={coleccion.titulo} subtitle="Portada, título y descripción.">
+        <Card title={coleccion.titulo}>
             <form onSubmit={handleSubmit}>
                 <Field label="Portada">
                     <CoverUpload

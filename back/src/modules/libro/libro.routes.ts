@@ -2,8 +2,13 @@ import express from "express"
 import multer from "multer";
 import { LibroController } from "./libro.controller";
 import { LibroPersonaController } from "./libroPersona.controller";
+import { LibroResenaController } from "./libroResena.controller";
 
-export function createLibroRoutes(libroController: LibroController, libroPersonaController: LibroPersonaController) {
+export function createLibroRoutes(
+    libroController: LibroController,
+    libroPersonaController: LibroPersonaController,
+    libroResenaController: LibroResenaController
+) {
     const router = express.Router();
     // En memoria (mismo patrón que user.routes.ts#uploadCert): el service
     // valida tipo/tamaño exacto (413 si pasa los 5MB del plan) y lo pasa
@@ -34,6 +39,11 @@ export function createLibroRoutes(libroController: LibroController, libroPersona
     router.post('/:isbn/personas', libroPersonaController.addLibroPersonas);
     router.put('/:isbn/personas', libroPersonaController.updateLibroPersonas);
     router.delete('/:isbn/personas', libroPersonaController.deleteLibroPersonas);
+
+    router.get('/:isbn/resenas', libroResenaController.getAll);
+    router.post('/:isbn/resenas', libroResenaController.create);
+    router.put('/:isbn/resenas/:id', libroResenaController.update);
+    router.delete('/:isbn/resenas/:id', libroResenaController.remove);
 
     return router;
 }

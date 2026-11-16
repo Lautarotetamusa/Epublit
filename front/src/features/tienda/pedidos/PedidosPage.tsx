@@ -18,7 +18,6 @@ export function PedidosPage() {
     return (
         <Card
             title="Pedidos"
-            subtitle="Los pedidos de la tienda online, desde el pago hasta la entrega."
             actions={
                 <>
                     <Badge tone="accent" icon="store">

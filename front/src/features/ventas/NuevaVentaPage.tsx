@@ -26,7 +26,7 @@ export function NuevaVentaPage() {
     const { showToast } = useToast();
     const initial = useVentaFormInitial();
     const form = useVentaForm((venta) => {
-        showToast("success", "Venta registrada correctamente");
+        showToast("success", "Venta registrada");
         navigate(`/ventas/${venta.id}`);
     }, initial);
 

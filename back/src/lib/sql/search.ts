@@ -9,3 +9,10 @@ import { sql, type SQL, type SQLWrapper } from "drizzle-orm";
 export function ilikeSinAcentos(column: SQLWrapper, value: string): SQL {
     return sql`unaccent(${column}) ilike unaccent(${`%${value}%`})`;
 }
+
+// Orden alfabético que no distingue mayúsculas ni acentos: «Álvarez» va con las
+// A y «de la Fuente» con las D. El collation de la base no lo garantiza (en `C`
+// las mayúsculas y las letras acentuadas quedan fuera de lugar).
+export function ordenAlfabetico(column: SQLWrapper): SQL {
+    return sql`lower(unaccent(${column}))`;
+}

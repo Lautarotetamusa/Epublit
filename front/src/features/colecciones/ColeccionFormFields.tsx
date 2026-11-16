@@ -22,7 +22,6 @@ export function ColeccionFormFields({ values, onChange }: { values: ColeccionFor
             <Field
                 label="Descripción"
                 style={{ marginTop: "var(--space-4)" }}
-                hint="Se muestra en el catálogo y en el sitio de la editorial."
             >
                 <Textarea rows={4} value={values.descripcion} onChange={(event) => onChange({ descripcion: event.target.value })} />
             </Field>

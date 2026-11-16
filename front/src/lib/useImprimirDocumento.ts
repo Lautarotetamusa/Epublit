@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 
-type UseImprimirComprobanteOptions = {
+type UseImprimirDocumentoOptions = {
+    // Clase CSS del documento: sus imágenes tienen que estar cargadas antes de
+    // abrir el diálogo, o el PDF sale sin ellas.
+    claseDocumento: string;
     // `?print=1` dispara el diálogo una sola vez, después de que el documento
     // y sus imágenes estén listos.
     auto?: boolean;
@@ -29,11 +32,11 @@ function esperarImagen(imagen: HTMLImageElement): Promise<void> {
     });
 }
 
-async function esperarRecursos(): Promise<void> {
+async function esperarRecursos(claseDocumento: string): Promise<void> {
     await document.fonts.ready;
 
     const imagenes = Array.from(
-        document.querySelectorAll<HTMLImageElement>(".comprobante-documento img")
+        document.querySelectorAll<HTMLImageElement>(`.${claseDocumento} img`)
     );
     await Promise.all(imagenes.map(esperarImagen));
 }
@@ -48,23 +51,24 @@ function limpiarParametroPrint(): void {
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
-export function useImprimirComprobante({
+export function useImprimirDocumento({
+    claseDocumento,
     auto = false,
     listoParaImprimir = true
-}: UseImprimirComprobanteOptions = {}) {
+}: UseImprimirDocumentoOptions) {
     const yaImpreso = useRef(false);
 
     const imprimir = useCallback(async () => {
-        await esperarRecursos();
+        await esperarRecursos(claseDocumento);
         window.print();
-    }, []);
+    }, [claseDocumento]);
 
     useEffect(() => {
         if (!auto || !listoParaImprimir || yaImpreso.current) return;
 
         let cancelado = false;
         const ejecutar = async () => {
-            await esperarRecursos();
+            await esperarRecursos(claseDocumento);
             if (cancelado || yaImpreso.current) return;
 
             yaImpreso.current = true;
@@ -77,7 +81,7 @@ export function useImprimirComprobante({
         return () => {
             cancelado = true;
         };
-    }, [auto, listoParaImprimir]);
+    }, [auto, listoParaImprimir, claseDocumento]);
 
     return { imprimir };
 }

@@ -4,6 +4,8 @@ import type { Persona } from "./persona";
 import type { Rol } from "./rol";
 import type { StockEnDeposito } from "./deposito";
 
+export type TipoEdicion = "normal" | "pop_up" | "cartone";
+
 // Refleja back/src/modules/libro/libro.schema.ts.
 export type Libro = {
     id_libro: number;
@@ -49,6 +51,10 @@ export type Libro = {
     // colecciones (ver specs/007-colecciones).
     coleccion_id: number | null;
     coleccion_titulo: string | null;
+    tipo_edicion: TipoEdicion;
+    // `false` = oculto en el sitio (la tienda): el panel lo sigue mostrando y
+    // vendiendo (ver specs/022-libro-edicion-visibilidad-resenas).
+    visible: boolean;
 };
 
 // Lo mínimo de un libro para resolver títulos y cantidades en las pantallas de
@@ -95,6 +101,8 @@ export type CreateLibroInput = {
     // `null` = sin colección; un id asigna/reemplaza la colección del libro
     // (ver specs/007-colecciones, "Pertenencia libro → colección").
     coleccion_id?: number | null;
+    tipo_edicion?: TipoEdicion;
+    visible?: boolean;
 };
 
 export type UpdateLibroInput = Partial<CreateLibroInput>;
@@ -145,3 +153,21 @@ export const deleteLibro = (isbn: string): Promise<{ success: true }> => api.del
 // specs/003-libro-campos-extendidos/design.md.
 export const uploadLibroPortada = (isbn: string, file: File): Promise<{ success: true; data: { portada_url: string } }> =>
     api.postFile(`/libro/${isbn}/portada`, "portada", file);
+
+// Reseña de un libro: un link a una página externa (ver
+// specs/022-libro-edicion-visibilidad-resenas).
+export type Resena = {
+    id: number;
+    url: string;
+    created_at: string;
+};
+
+export const listResenas = (isbn: string): Promise<{ success: true; data: Resena[] }> => api.get(`/libro/${isbn}/resenas`);
+
+export const createResena = (isbn: string, url: string): Promise<{ success: true; data: Resena }> =>
+    api.post(`/libro/${isbn}/resenas`, { url });
+
+export const updateResena = (isbn: string, id: number, url: string): Promise<{ success: true; data: Resena }> =>
+    api.put(`/libro/${isbn}/resenas/${id}`, { url });
+
+export const deleteResena = (isbn: string, id: number): Promise<{ success: true }> => api.del(`/libro/${isbn}/resenas/${id}`);

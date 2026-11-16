@@ -11,7 +11,7 @@ export function NuevaDevolucionPage() {
     const [searchParams] = useSearchParams();
     const form = useDevolucionForm(
         (devolucion) => {
-            showToast("success", "Devolución registrada correctamente");
+            showToast("success", "Devolución registrada");
             navigate(`/devoluciones/${devolucion.id}`);
         },
         parsePrecargaOperacion(searchParams)

@@ -39,7 +39,7 @@ export function SeleccionLibrosField({ librosDisponibles, seleccionados, onAgreg
 
     const handleAgregar = () => {
         if (!isbn) {
-            showToast("warning", "Debés completar libro y cantidad");
+            showToast("warning", "Elegí un libro y una cantidad");
             return;
         }
         const error = onAgregar(isbn, cantidad);

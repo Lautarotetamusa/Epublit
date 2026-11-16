@@ -20,6 +20,8 @@ export type PersonaLiquidacionDetalle = {
     titulo: string;
     rol: Rol;
     porcentaje: number;
+    // Ejemplares del libro vendidos en el período.
+    cantidad: number;
     importe: number;
     // Parte del importe descontada de un anticipo del libro.
     anticipo: number;

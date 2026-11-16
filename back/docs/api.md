@@ -83,6 +83,10 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `POST   /libro/:isbn/personas`
 - `PUT    /libro/:isbn/personas`
 - `DELETE /libro/:isbn/personas`
+- `GET    /libro/:isbn/resenas`
+- `POST   /libro/:isbn/resenas`
+- `PUT    /libro/:isbn/resenas/:id`
+- `DELETE /libro/:isbn/resenas/:id`
 
 ## liquidacion (/liquidacion)
 

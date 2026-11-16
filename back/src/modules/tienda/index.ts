@@ -4,7 +4,7 @@ import { CredentialsCipher } from "../../lib/crypto/credentials";
 import { Storage } from "../../lib/storage/storage";
 import { ClienteRepository } from "../cliente";
 import { DepositoRepository } from "../deposito";
-import { LibroService } from "../libro";
+import { LibroResenaService, LibroService } from "../libro";
 import { ColeccionService } from "../coleccion";
 import { MedioPagoService } from "../medioPago";
 import { UserRepository } from "../user";
@@ -57,6 +57,7 @@ import { createWebhookService } from "./payment/webhook.service";
 export type TiendaModuleDeps = {
     db: Database;
     libroService: LibroService;
+    libroResenaService: Pick<LibroResenaService, "listar">;
     coleccionService: Pick<ColeccionService, "findAll">;
     depositoRepository: Pick<DepositoRepository, "findPrincipal">;
     // El contenedor arma una sola instancia y la comparte con transacción.
@@ -82,6 +83,7 @@ export type TiendaModuleDeps = {
 export function createTiendaModule({
     db,
     libroService,
+    libroResenaService,
     coleccionService,
     depositoRepository,
     availabilityService,
@@ -107,6 +109,7 @@ export function createTiendaModule({
     const catalogRepository = createCatalogRepository({ db });
     const catalogService = createCatalogService({
         libroService,
+        resenas: libroResenaService,
         colecciones: coleccionService,
         repository: catalogRepository,
         storage

@@ -29,6 +29,8 @@ export type DetalleLiquidacion = {
     titulo: string;
     rol: { id: number; nombre: string };
     porcentaje: number;
+    // Ejemplares del libro vendidos en el período.
+    cantidad: number;
     importe: number;
     // Parte del importe que se descontó de un anticipo del libro.
     anticipo: number;
@@ -167,6 +169,7 @@ const agruparPersonas = (
             titulo: libro.titulo,
             rol: { id: fila.rol_id, nombre: fila.rol_nombre },
             porcentaje,
+            cantidad: libro.cantidad_vendida,
             importe,
             anticipo: 0
         });
@@ -302,6 +305,7 @@ export function createLiquidacionesService({ db, repository, anticipoRepository 
                         id_rol: detalle.rol.id,
                         rol_nombre: detalle.rol.nombre,
                         porcentaje: detalle.porcentaje,
+                        cantidad: detalle.cantidad,
                         importe: detalle.importe,
                         anticipo: detalle.anticipo,
                         user: userId
@@ -384,6 +388,7 @@ export function createLiquidacionesService({ db, repository, anticipoRepository 
                 titulo: linea.titulo,
                 rol: { id: linea.id_rol, nombre: linea.rol_nombre },
                 porcentaje: linea.porcentaje,
+                cantidad: linea.cantidad,
                 importe: linea.importe,
                 anticipo: linea.anticipo
             });
