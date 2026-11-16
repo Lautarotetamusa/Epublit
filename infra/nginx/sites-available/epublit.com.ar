@@ -1,0 +1,73 @@
+# ---------------------------------------------------------------------------
+# Vhost de Epublit (epublit.com.ar + app.epublit.com.ar)
+#
+# Cloudflare está en Full (strict): el origen también tiene que escuchar en
+# 443 con un certificado válido para epublit.com.ar y app.epublit.com.ar.
+#
+# El certificado Wildcard de Cloudflare cubre los tres hosts:
+#   epublit.com.ar, *.epublit.com.ar, librossilvestres.epublit.com.ar
+#
+# Se usa una copia propia en /etc/nginx/ssl/epublit.com.ar.* para no depender
+# del certificado del vhost de Libros Silvestres.
+# ---------------------------------------------------------------------------
+
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name epublit.com.ar;
+
+    ssl_certificate     /etc/nginx/ssl/epublit.com.ar.pem;
+    ssl_certificate_key /etc/nginx/ssl/epublit.com.ar.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    location /api {
+        rewrite ^/api/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:3003;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /files/ {
+        proxy_pass http://127.0.0.1:3003/files/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Landing de Epublit.
+    location / {
+        root /home/Epublit/landing;
+    }
+}
+
+# Panel / SPA interna.
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name app.epublit.com.ar;
+
+    ssl_certificate     /etc/nginx/ssl/epublit.com.ar.pem;
+    ssl_certificate_key /etc/nginx/ssl/epublit.com.ar.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    root /home/Epublit/www/front;
+
+    location / {
+        access_log /var/log/nginx/access.log;
+
+        # Cache control headers
+        # add_header Cache-Control "no-cache, no-store, must-revalidate";
+        # add_header Pragma "no-cache";
+        # add_header Expires "0";
+
+        try_files $uri /index.html;
+    }
+}

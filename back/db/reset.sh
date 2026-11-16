@@ -19,6 +19,11 @@ PGPASSWORD=$DB_PASS dropdb -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME
 echo "🟢 Creando la base de datos $DB_NAME..."
 PGPASSWORD=$DB_PASS createdb -h $DB_HOST -p $DB_PORT -U $DB_USER $DB_NAME
 
+# `drizzle-kit push` no corre los .sql de db/migrations: la extensión que
+# instala 0022_unaccent_search.sql (búsquedas y orden sin acentos) se crea acá.
+echo "🔤 Instalando la extensión unaccent..."
+PGPASSWORD=$DB_PASS psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -q -c "CREATE EXTENSION IF NOT EXISTS unaccent;"
+
 # 🔵 Limpiar Drizzle
 rm -rf migrations/local
 mkdir -p migrations/local/meta
