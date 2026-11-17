@@ -6,6 +6,9 @@ import { DepositoRepository } from "../src/modules/deposito";
 import { Client, ClienteStockService } from "../src/modules/cliente";
 import { MovimientoRepository } from "../src/modules/movimiento";
 import { VentaRepository } from "../src/modules/transaccion";
+import { ComprobanteService } from "../src/modules/comprobante";
+import { tipoCliente } from "../src/modules/cliente";
+import { tipoComprobanteFiscal } from "../src/lib/afip/fiscal";
 import { SeedUser } from "./users.seeder";
 
 const VENTAS_POR_USUARIO = 4;
@@ -18,10 +21,19 @@ const findClientesPorDefecto = async (userId: number): Promise<Client[]> => {
         .where(and(eq(clientesTable.user, userId), inArray(clientesTable.tipo, ["particular", "negro"])));
 };
 
+type SeedComprobanteService = Pick<ComprobanteService, "crearFactura" | "crearRemito" | "emitirSiPendiente">;
+
+const lineaDeComprobante = (libro: PublicLibro, cantidad: number) => ({
+    isbn: libro.isbn,
+    titulo: libro.titulo,
+    cantidad,
+    precio: libro.precio
+});
+
 // Una "venta" real: un movimiento de tipo `venta` (principal → exterior) con
 // sus líneas a precio de catálogo y su extensión de venta, moviendo el stock
-// del depósito principal (sin generar comprobante ni tocar AFIP, que no tienen
-// sentido en datos de prueba).
+// del depósito principal. Se factura igual que una venta real (salvo cliente
+// "negro") para tener comprobantes emitidos que ver e imprimir; AFIP es el mock.
 const crearVenta = async (
     user: SeedUser,
     cliente: Client,
@@ -31,9 +43,10 @@ const crearVenta = async (
     idMedioPago: number,
     depositoRepository: DepositoRepository,
     movimientoRepository: MovimientoRepository,
-    ventaRepository: VentaRepository
+    ventaRepository: VentaRepository,
+    comprobanteService: SeedComprobanteService
 ): Promise<void> => {
-    await db.transaction(async (tx) => {
+    const comprobante = await db.transaction(async (tx) => {
         const movimiento = await movimientoRepository.insert(
             {
                 tipo: "venta",
@@ -50,13 +63,39 @@ const crearVenta = async (
             [{ id_libro: libro.id_libro, cantidad, precio: libro.precio }],
             tx
         );
-        await ventaRepository.insert(
+        const venta = await ventaRepository.insert(
             movimiento.id,
-            { id_cliente: cliente.id, descuento: 0, id_medio_pago: idMedioPago, comision: 0, tipo_cbte: 11, total: libro.precio * cantidad },
+            {
+                id_cliente: cliente.id,
+                descuento: 0,
+                id_medio_pago: idMedioPago,
+                comision: 0,
+                tipo_cbte: tipoComprobanteFiscal(user.cond_fiscal, cliente.cond_fiscal),
+                total: libro.precio * cantidad
+            },
             tx
         );
         await depositoRepository.moveStock(principalId, libro.id_libro, user.id, -cantidad, tx);
+
+        if (cliente.tipo === tipoCliente.negro) return null;
+
+        return comprobanteService.crearFactura(
+            {
+                userId: user.id,
+                movimientoId: movimiento.id,
+                venta,
+                cliente,
+                emisor: user,
+                medioPago: { nombre: "efectivo" },
+                lineas: [lineaDeComprobante(libro, cantidad)]
+            },
+            tx
+        );
     });
+
+    if (comprobante) {
+        await comprobanteService.emitirSiPendiente(comprobante.id, user.id);
+    }
 };
 
 // El medio "efectivo" que `createUser` le creó al usuario (comisión 0).
@@ -79,7 +118,8 @@ const crearConsignacion = async (
     principalId: number,
     depositoRepository: DepositoRepository,
     clienteStockService: ClienteStockService,
-    movimientoRepository: MovimientoRepository
+    movimientoRepository: MovimientoRepository,
+    comprobanteService: SeedComprobanteService
 ): Promise<void> => {
     const depositoCliente = await depositoRepository.findClienteDeposito(cliente.id, user.id);
 
@@ -104,6 +144,17 @@ const crearConsignacion = async (
         await depositoRepository.moveStock(principalId, libro.id_libro, user.id, -cantidad, tx);
         await depositoRepository.moveStock(depositoCliente.id, libro.id_libro, user.id, cantidad, tx);
         await clienteStockService.setPrecio(cliente.id, { id_libro: libro.id_libro, isbn: libro.isbn, precio: libro.precio }, tx);
+        await comprobanteService.crearRemito(
+            {
+                userId: user.id,
+                movimientoId: movimiento.id,
+                cliente,
+                emisor: user,
+                lineas: [lineaDeComprobante(libro, cantidad)],
+                fecha: movimiento.fecha
+            },
+            tx
+        );
     });
 };
 
@@ -114,7 +165,8 @@ export async function seedOperaciones(
     depositoRepository: DepositoRepository,
     clienteStockService: ClienteStockService,
     movimientoRepository: MovimientoRepository,
-    ventaRepository: VentaRepository
+    ventaRepository: VentaRepository,
+    comprobanteService: SeedComprobanteService
 ): Promise<void> {
     for (const user of users) {
         const librosDelUsuario = libros.filter((libro) => libro.user === user.id);
@@ -126,13 +178,13 @@ export async function seedOperaciones(
         for (let i = 0; i < VENTAS_POR_USUARIO; i++) {
             const cliente = clientesPorDefecto[i % clientesPorDefecto.length];
             const libro = librosDelUsuario[i % librosDelUsuario.length];
-            await crearVenta(user, cliente, libro, 1 + (i % 3), principal.id, idMedioPago, depositoRepository, movimientoRepository, ventaRepository);
+            await crearVenta(user, cliente, libro, 1 + (i % 3), principal.id, idMedioPago, depositoRepository, movimientoRepository, ventaRepository, comprobanteService);
         }
 
         for (let i = 0; i < CONSIGNACIONES_POR_USUARIO; i++) {
             const cliente = clientesDelUsuario[i % clientesDelUsuario.length];
             const libro = librosDelUsuario[(i + VENTAS_POR_USUARIO) % librosDelUsuario.length];
-            await crearConsignacion(user, cliente, libro, 2, principal.id, depositoRepository, clienteStockService, movimientoRepository);
+            await crearConsignacion(user, cliente, libro, 2, principal.id, depositoRepository, clienteStockService, movimientoRepository, comprobanteService);
         }
     }
 }

@@ -33,7 +33,9 @@ import {
     paymentsTable,
     webhookEventsTable,
     shipmentsTable,
-    shipmentEventsTable
+    shipmentEventsTable,
+    comprobantesTable,
+    facturasTable
 } from "../src/db/schema";
 
 const TABLAS_SEEDEADAS = [
@@ -56,6 +58,8 @@ const TABLAS_SEEDEADAS = [
     liquidacionPersonasTable,
     liquidacionesTable,
     anticiposTable,
+    facturasTable,
+    comprobantesTable,
     movimientosLibrosTable,
     movimientosTable,
     depositoLibrosTable,

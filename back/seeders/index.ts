@@ -37,9 +37,8 @@ async function main(): Promise<void> {
     await resetSeedData();
 
     // Mock, no el real: un seeder de desarrollo no puede depender de una
-    // llamada de red real a AFIP (ver seeders/clientes.seeder.ts).
-    // `seedOperaciones` inserta directo por repository y nunca dispara la
-    // emisión de comprobantes, pero los módulos igual necesitan la instancia.
+    // llamada de red real a AFIP (ver seeders/clientes.seeder.ts). Con el mock
+    // `seedOperaciones` deja facturas emitidas para ver e imprimir.
     const afipService = createMockAfipService();
     const storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST });
     const cipher = createCredentialsCipher(env.CREDENTIALS_ENCRYPTION_KEY);
@@ -90,7 +89,8 @@ async function main(): Promise<void> {
         deposito.repository,
         cliente.stockService,
         movimiento.repository,
-        transaccion.ventaRepository
+        transaccion.ventaRepository,
+        comprobante.service
     );
 
     await seedAnticipos(users, libros, deposito.repository, movimiento.repository, anticipo.service);
