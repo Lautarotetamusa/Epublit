@@ -134,18 +134,21 @@
     color: #111 !important;
 }
 
+/* En producción esta hoja queda en el bundle global: las reglas de impresión se
+   condicionan a que el reporte esté montado para no vaciar otras impresiones. */
 @media print {
-    @page {
+    @page reporte-autor {
         size: A4;
         margin: 0;
     }
 
-    body > :not(.reporte-autor-impresion) {
+    body:has(> .reporte-autor-impresion) > :not(.reporte-autor-impresion) {
         display: none !important;
     }
 
     .reporte-autor-impresion {
         display: block;
+        page: reporte-autor;
     }
 
     .reporte-autor-documento {
