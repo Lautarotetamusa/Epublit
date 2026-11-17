@@ -583,6 +583,15 @@ function getCSRPath(cuit: string) {
     return join(afipKeysPath, cuit, "cert.csr");
 }
 
+// `null` si no existe: un usuario creado sin pasar por el alta (ej. el seed)
+// no tiene CSR, y eso es un 404 para quien lo pide, no un error de I/O.
+export async function readCSR(cuit: string): Promise<Buffer | null> {
+    const csrPath = getCSRPath(cuit);
+    if (!fs.existsSync(csrPath)) return null;
+
+    return fs.promises.readFile(csrPath);
+}
+
 function getKeyPath(cuit: string) {
     return join(afipKeysPath, cuit, "private_key.key");
 }

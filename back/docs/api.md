@@ -201,5 +201,6 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `POST   /user/login`
 - `PUT    /user`
 - `POST   /user/uploadCert`
+- `GET    /user/csr`
 - `PUT    /user/afip`
 - `GET    /user/`

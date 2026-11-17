@@ -354,3 +354,38 @@ describe('Certificado', () => {
         expect(fs.existsSync(join(userPath, "cert.pem"))).toBe(true);
     });
 });
+
+describe('GET /user/csr', () => {
+    test("sin auth da 403", async () => {
+        const res = await request(app).get('/user/csr');
+
+        expect(res.status).toBe(403);
+    });
+
+    test("descarga el CSR generado en el alta", async () => {
+        const res = await request(app)
+            .get('/user/csr')
+            .set('Authorization', `Bearer ${token}`)
+            .buffer(true)
+            .parse((response, callback) => {
+                const chunks: Buffer[] = [];
+                response.on('data', (chunk: Buffer) => chunks.push(chunk));
+                response.on('end', () => callback(null, Buffer.concat(chunks)));
+            });
+
+        expect(res.status).toBe(200);
+        expect(res.headers['content-type']).toBe('application/pkcs10');
+        expect(res.headers['content-disposition']).toBe(`attachment; filename="${cuit}.csr"`);
+        expect(res.body).toEqual(fs.readFileSync(join(userPath, "cert.csr")));
+    });
+
+    test("si el usuario no tiene CSR da 404", async () => {
+        fs.rmSync(join(userPath, "cert.csr"));
+
+        const res = await request(app)
+            .get('/user/csr')
+            .set('Authorization', `Bearer ${token}`);
+
+        expectNotFound(res);
+    });
+});

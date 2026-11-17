@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { Database } from "../../db/client";
 import { UserRepository } from "./user.repository";
 import { UserInsert, UserUpdate, User, CreateUserInput } from "./user.validator";
-import { Unauthorized } from "bradb";
+import { NotFound, Unauthorized } from "bradb";
 import { ValidationError } from "../../lib/http/errors";
 import { DepositoRepository, NOMBRE_DEPOSITO_PRINCIPAL } from "../deposito";
 import { MedioPagoRepository } from "../medioPago";
@@ -11,6 +11,7 @@ import {
     createUserFolder,
     createKey,
     createCSR,
+    readCSR,
     getCertPath,
     isValidCert,
     saveCert,
@@ -153,6 +154,15 @@ export function createUserService({ db, repository, afipService, depositoReposit
         }
     };
 
+    // El usuario lo necesita para generar su certificado en ARCA, que después
+    // sube con `uploadCert`.
+    const getCSR = async (cuit: string): Promise<{ data: Buffer; filename: string }> => {
+        const data = await readCSR(cuit);
+        if (!data) throw new NotFound("No hay un CSR generado para este usuario");
+
+        return { data, filename: `${cuit}.csr` };
+    };
+
     return {
         findOne: repository.findOne,
         createUser,
@@ -161,6 +171,7 @@ export function createUserService({ db, repository, afipService, depositoReposit
         refreshAfipData,
         authenticate,
         uploadCert,
+        getCSR,
         remove
     };
 }

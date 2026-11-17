@@ -63,6 +63,14 @@ export function createUserController({ service }: UserControllerDeps) {
         created(res, undefined, "Certificado subido correctamente");
     }
 
+    const downloadCSR: RequestHandler = async (req, res) => {
+        const csr = await service.getCSR(res.locals.user.cuit);
+
+        res.setHeader("Content-Type", "application/pkcs10");
+        res.setHeader("Content-Disposition", `attachment; filename="${csr.filename}"`);
+        res.status(200).send(csr.data);
+    }
+
     const getOne: RequestHandler = async (req, res) => {
         const user = await service.findOne({ id: res.locals.user.id });
 
@@ -75,6 +83,7 @@ export function createUserController({ service }: UserControllerDeps) {
         update,
         getOne,
         uploadCert,
+        downloadCSR,
         updateAfipData
     }
 }

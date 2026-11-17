@@ -15,6 +15,8 @@ export function createUserRoutes(controller: UserController) {
 
     router.post('/uploadCert', auth, upload.single("cert"), controller.uploadCert);
 
+    router.get('/csr', auth, controller.downloadCSR);
+
     router.put('/afip', auth, controller.updateAfipData);
 
     router.get('/', auth, controller.getOne);
