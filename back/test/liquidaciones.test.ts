@@ -487,3 +487,38 @@ describe('Anticipos en la liquidación', () => {
         expect(fila).toMatchObject({ total_bruto: 100, anticipo: 0, total_a_pagar: 100 });
     });
 });
+
+describe('Personas dadas de baja', () => {
+    const ISBN_BAJA = isbn(9956);
+    const PERIODO_BAJA = { desde: '2099-11-01', hasta: '2099-11-30' };
+    let personaBorrada: { id: number };
+    let personaVigente: { id: number };
+
+    beforeAll(async () => {
+        await crearLibro(ISBN_BAJA, 100);
+        personaBorrada = await crearPersona('Persona dada de baja', dni(9943));
+        personaVigente = await crearPersona('Persona vigente', dni(9944));
+
+        await auth(request(app).post(`/libro/${ISBN_BAJA}/personas`).send({ id_persona: personaBorrada.id, rol: rolAutor, porcentaje: 10 }));
+        await auth(request(app).post(`/libro/${ISBN_BAJA}/personas`).send({ id_persona: personaVigente.id, rol: rolIlustrador, porcentaje: 20 }));
+
+        expect((await auth(request(app).delete(`/persona/${personaBorrada.id}`))).status).toBe(200);
+        await moverFecha(await vender(ISBN_BAJA, 1), '2099-11-10');
+    });
+
+    const idsPersonas = (personas: { id_persona: number }[]) => personas.map((p) => p.id_persona);
+
+    test('el reporte del período no incluye a una persona borrada', async () => {
+        const preview = await auth(request(app).get(`/liquidacion?desde=${PERIODO_BAJA.desde}&hasta=${PERIODO_BAJA.hasta}`));
+
+        expect(preview.status).toBe(200);
+        expect(idsPersonas(preview.body.data.personas)).toEqual([personaVigente.id]);
+    });
+
+    test('la liquidación generada no incluye a una persona borrada', async () => {
+        const res = await auth(request(app).post('/liquidaciones/').send(PERIODO_BAJA));
+        expectCreated(res);
+
+        expect(idsPersonas((res.body.data as FichaLiquidacion).personas)).toEqual([personaVigente.id]);
+    });
+});

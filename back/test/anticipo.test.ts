@@ -247,3 +247,17 @@ describe('El anticipo está separado de las regalías', () => {
         expect(fichaDespues.estado).toBe(fichaAntes.estado);
     });
 });
+
+describe('Persona dada de baja antes del lanzamiento', () => {
+    test('lanzar el libro no genera anticipo para una persona borrada', async () => {
+        const isbnLibro = isbn(9957);
+        await crearLibro(isbnLibro);
+        const personaId = await crearPersona();
+        expectCreated(await asignar(isbnLibro, personaId, 20000));
+
+        expect((await auth(request(app).delete(`/persona/${personaId}`))).status).toBe(200);
+        expect((await cargarStockPrincipal(app, token, isbnLibro, 5)).status).toBe(201);
+
+        expect(anticipoDe(await listarAnticipos(), isbnLibro)).toHaveLength(0);
+    });
+});

@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gt, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { Database, Tx } from "../../db/client";
 import { anticiposTable } from "./anticipo.schema";
 import { movimientosTable, movimientosLibrosTable } from "../movimiento/movimiento.schema";
@@ -77,7 +77,14 @@ export function createAnticipoRepository({ db }: AnticipoRepositoryDeps) {
                 librosTable,
                 and(eq(librosTable.id_libro, librosPersonasTable.id_libro), eq(librosTable.user, userId))
             )
-            .where(and(eq(librosPersonasTable.id_libro, idLibro), isNotNull(librosPersonasTable.monto_acordado)));
+            .innerJoin(personasTable, eq(personasTable.id, librosPersonasTable.id_persona))
+            .where(
+                and(
+                    eq(librosPersonasTable.id_libro, idLibro),
+                    isNotNull(librosPersonasTable.monto_acordado),
+                    isNull(personasTable.deletedAt)
+                )
+            );
     };
 
     // Idempotente por la unique (libro, persona, rol, user): reintentar la

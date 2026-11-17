@@ -395,7 +395,7 @@ describe('GET /liquidacion: agregado de libros/personas del período', () => {
 });
 
 describe('GET /liquidacion: rol de la cuenta por línea de detalle', () => {
-    test('incluye un rol creado por el usuario, refleja el renombre y sobrevive la baja del rol', async () => {
+    test('incluye un rol creado por el usuario, refleja el renombre y excluye a la persona dada de baja', async () => {
         const altaRol = await request(app).post('/rol').set('Authorization', `Bearer ${token}`).send({ nombre: 'corrector-liq' });
         expectDataResponse(altaRol, 201);
         const rolId = altaRol.body.data.id;
@@ -432,14 +432,11 @@ describe('GET /liquidacion: rol de la cuenta por línea de detalle', () => {
         const segunda = personaDe(await getLiquidacion());
         expect(segunda.detalle[0].rol).toMatchObject({ id: rolId, nombre: 'correctora-liq' });
 
-        // Una persona dada de baja deja de contar para el bloqueo de la baja del
-        // rol: el rol se da de baja, pero la línea histórica sigue mostrando su
-        // nombre.
+        // Una persona dada de baja sale de la liquidación y deja de contar para
+        // el bloqueo de la baja del rol.
         expect((await request(app).delete(`/persona/${personaId}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
+        expect(personaDe(await getLiquidacion())).toBeUndefined();
         expect((await request(app).delete(`/rol/${rolId}`).set('Authorization', `Bearer ${token}`)).status).toBe(200);
-
-        const tercera = personaDe(await getLiquidacion());
-        expect(tercera.detalle[0].rol).toMatchObject({ id: rolId, nombre: 'correctora-liq' });
     });
 });
 

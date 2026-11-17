@@ -86,7 +86,13 @@ export function createLiquidacionesRepository({ db }: LiquidacionesRepositoryDep
             // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
             // su nombre en las líneas históricas que lo referencian.
             .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
-            .where(and(inArray(librosPersonasTable.id_libro, idLibros), eq(personasTable.user, userId)));
+            .where(
+                and(
+                    inArray(librosPersonasTable.id_libro, idLibros),
+                    eq(personasTable.user, userId),
+                    isNull(personasTable.deletedAt)
+                )
+            );
     };
 
     // Ventas del período ya cubiertas, agrupadas por la liquidación que las

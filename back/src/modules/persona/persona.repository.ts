@@ -118,14 +118,15 @@ export function createPersonaRepository({ db }: PersonaRepositoryDeps) {
                 rol_nombre: rolesTable.nombre
             })
             .from(librosTable)
-            .innerJoin(librosPersonasTable, eq(librosTable.isbn, librosPersonasTable.isbn))
+            .innerJoin(librosPersonasTable, eq(librosTable.id_libro, librosPersonasTable.id_libro))
             // Sin filtrar por `deleted_at`: un rol dado de baja sigue mostrando
             // su nombre en las relaciones históricas que lo referencian.
             .innerJoin(rolesTable, and(eq(rolesTable.id, librosPersonasTable.id_rol), eq(rolesTable.user, userId)))
             .where(
                 and(
                     eq(librosPersonasTable.id_persona, personaId),
-                    eq(librosTable.user, userId)
+                    eq(librosTable.user, userId),
+                    isNull(librosTable.deletedAt)
                 )
             );
 

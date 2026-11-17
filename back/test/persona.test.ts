@@ -12,7 +12,7 @@ import { app, server } from '../src/index';
 import { db } from '../src/db/client';
 import { expectBadRequest, expectCreated, expectUpdated, expectNotFound, expectConflict, expectList, getRolId, expectOrdenAlfabetico } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
-import { dni, email } from '../seeders/data';
+import { dni, email, isbn } from '../seeders/data';
 
 // Recipe fija de `seeders/personas.seeder.ts`: 6 personas por usuario,
 // dni(índice global). `libreria_sur` es el primer usuario seedeado, así
@@ -254,6 +254,37 @@ describe('PUT /persona/:id', () => {
 
         expectUpdated(res);
         expect(res.body.data.nombre).toEqual('Otro nombre');
+    });
+});
+
+describe('GET /persona/:id con un libro recreado', () => {
+    // El soft-delete del libro deja libre su ISBN: una relación nueva con el
+    // libro recreado no tiene que traer también al libro borrado.
+    it('lista sólo el libro vigente, no el borrado con el mismo ISBN', async () => {
+        const isbnRecreado = isbn(9958);
+        const auth = (req: request.Test) => req.set('Authorization', `Bearer ${token}`);
+        const crearLibro = async () => {
+            const res = await auth(request(app).post('/libro/').send({ isbn: isbnRecreado, titulo: 'Libro recreado', fecha_edicion: '2020-01-01', precio: 100 }));
+            expectCreated(res);
+            return res.body.data as { id_libro: number };
+        };
+        const asignar = async (idPersona: number) =>
+            expectCreated(await auth(request(app).post(`/libro/${isbnRecreado}/personas`).send({ id_persona: idPersona, rol: rolAutor, porcentaje: 10 })));
+
+        const persona = await auth(request(app).post('/persona/').send({ nombre: 'Persona libro recreado', dni: dni(9945) }));
+        expectCreated(persona);
+        const idPersona = persona.body.data.id;
+
+        await crearLibro();
+        await asignar(idPersona);
+        expect((await auth(request(app).delete(`/libro/${isbnRecreado}`))).status).toEqual(200);
+
+        const recreado = await crearLibro();
+        await asignar(idPersona);
+
+        const res = await auth(request(app).get(`/persona/${idPersona}`));
+        expect(res.status).toEqual(200);
+        expect(res.body.data.libros.map((l: { id_libro: number }) => l.id_libro)).toEqual([recreado.id_libro]);
     });
 });
 
