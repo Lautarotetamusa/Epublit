@@ -1,0 +1,4 @@
+{{{ @content }}}
+
+--
+Epublit · Gestión para editoriales independientes

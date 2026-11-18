@@ -26,6 +26,9 @@ type ProductionConfig = {
     MP_REDIRECT_URI: string;
     MP_WEBHOOK_SECRET: string;
     MP_PANEL_URL: string;
+    POSTMARK_SERVER_TOKEN: string;
+    EMAIL_FROM: string;
+    PANEL_URL: string;
 };
 
 const isPublicHttpsUrl = (value: string): boolean => {
@@ -74,6 +77,12 @@ const productionIssues = (env: ProductionConfig): ProductionIssue[] => {
     check("MP_WEBHOOK_SECRET", !missing(env.MP_WEBHOOK_SECRET), "falta la clave secreta de Webhooks (modo productivo)");
     check("MP_REDIRECT_URI", isPublicHttpsUrl(env.MP_REDIRECT_URI), "tiene que ser una URL https pública");
     check("MP_PANEL_URL", isPublicHttpsUrl(env.MP_PANEL_URL), "tiene que ser una URL https pública");
+    // Sin token los mails no salen (quedan en el log): recién con Postmark
+    // configurado hace falta un remitente y links públicos.
+    if (!missing(env.POSTMARK_SERVER_TOKEN)) {
+        check("EMAIL_FROM", !missing(env.EMAIL_FROM), "falta el remitente verificado en Postmark");
+        check("PANEL_URL", isPublicHttpsUrl(env.PANEL_URL), "tiene que ser una URL https pública (los links de los mails apuntan ahí)");
+    }
 
     return issues;
 };
@@ -126,6 +135,13 @@ const schema = z
         // A dónde vuelve el navegador al terminar el OAuth.
         MP_PANEL_URL: z.string().default("http://localhost:5173"),
 
+        // Postmark: vacío = los mails no se envían, se loguean. El remitente
+        // tiene que estar verificado en el server de Postmark.
+        POSTMARK_SERVER_TOKEN: z.string().default(""),
+        POSTMARK_MESSAGE_STREAM: z.string().default("outbound"),
+        EMAIL_FROM: z.string().default(""),
+        // Base pública del panel (el front): los links de los mails apuntan ahí.
+        PANEL_URL: z.string().default("http://localhost:5173"),
         // Correo Argentino: base de cada API (producción por defecto; QA se
         // configura por entorno sin tocar código).
         MICORREO_BASE_URL: z.string().default("https://api.correoargentino.com.ar/micorreo/v1"),

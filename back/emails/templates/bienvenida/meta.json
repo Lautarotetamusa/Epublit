@@ -1,0 +1,14 @@
+{
+  "Name": "Bienvenida",
+  "Alias": "bienvenida",
+  "Subject": "Te damos la bienvenida a Epublit",
+  "TemplateType": "Standard",
+  "LayoutTemplate": "base",
+  "TestRenderModel": {
+    "nombre": "libreria_sur",
+    "cuit": "20300000013",
+    "url_panel": "http://localhost:5173/",
+    "url_perfil": "http://localhost:5173/perfil",
+    "url_guia_certificado": "http://localhost:5173/ayuda/certificado-arca"
+  }
+}

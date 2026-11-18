@@ -1,0 +1,11 @@
+¡Hola, {{nombre}}! Tu cuenta ya está creada
+
+Ya podés cargar tu catálogo, tus clientes y tu stock en Epublit.
+
+Para emitir facturas electrónicas te falta un paso: generar el certificado de ARCA de tu cuenta. Lleva unos 10 minutos y lo podés revocar cuando quieras.
+
+Te adjuntamos el archivo {{cuit}}.csr, que ARCA te va a pedir en el trámite. También lo podés descargar cuando quieras desde tu perfil.
+
+Guía paso a paso: {{url_guia_certificado}}
+
+Cuando tengas el certificado, subilo en tu perfil ({{url_perfil}}), en la tarjeta Facturación electrónica. Ahí vas a ver si tu cuenta ya está lista para facturar.
