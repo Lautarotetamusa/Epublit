@@ -14,14 +14,18 @@ const S = {
   lg:{ h:'var(--height-control-lg)', px:20, fs:'var(--text-base)', gap:9, ic:18 },
 };
 
-export function Button({ variant='primary', size='md', iconStart, iconEnd, fullWidth, disabled, loading, children, style, ...rest }) {
+export function Button({ variant='primary', size='md', iconStart, iconEnd, fullWidth, disabled, loading, href, children, style, ...rest }) {
   const v = V[variant] || V.primary, s = S[size] || S.md;
   const [h,setH] = React.useState(false), [a,setA] = React.useState(false);
   const deshabilitado = Boolean(disabled);
   const cargando = Boolean(loading);
   const off = deshabilitado || cargando;
+  // Con href navega: un <button> dentro de un <a> es HTML inválido, así que
+  // el mismo estilo se monta sobre el ancla en lugar de anidar.
+  const Tag = href ? 'a' : 'button';
+  const tagProps = href ? { href } : { type:'button', disabled:off };
   return (
-    <button type="button" disabled={off} aria-busy={cargando || undefined}
+    <Tag {...tagProps} aria-busy={cargando || undefined}
       onMouseEnter={()=>setH(true)} onMouseLeave={()=>{setH(false);setA(false);}}
       onMouseDown={()=>setA(true)} onMouseUp={()=>setA(false)}
       {...rest}
@@ -40,12 +44,12 @@ export function Button({ variant='primary', size='md', iconStart, iconEnd, fullW
         boxShadow: variant==='secondary' && !deshabilitado ? 'var(--shadow-xs)' : 'none',
         cursor: cargando ? 'progress' : deshabilitado ? 'not-allowed' : 'pointer',
         opacity: deshabilitado ? 0.65 : 1,
-        transition:'var(--transition-control)', ...style,
+        transition:'var(--transition-control)', textDecoration:'none', boxSizing:'border-box', ...style,
       }}>
       {loading ? <Icon name="loader-circle" size={s.ic} style={{animation:'epublit-spin 900ms linear infinite'}} />
         : iconStart ? <Icon name={iconStart} size={s.ic} /> : null}
       {children}
       {iconEnd && !loading ? <Icon name={iconEnd} size={s.ic} /> : null}
-    </button>
+    </Tag>
   );
 }

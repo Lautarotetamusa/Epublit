@@ -13,6 +13,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   fullWidth?: boolean;
   loading?: boolean;
   disabled?: boolean;
+  /** Si viene, renderiza un <a> con el mismo estilo (navegación, no acción). */
+  href?: string;
   children?: React.ReactNode;
 }
 export function Button(props: ButtonProps): JSX.Element;

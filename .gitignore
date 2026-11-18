@@ -29,3 +29,7 @@ backup*.sql.gz
 # back/.claude/ o front/.claude/ en vez de la raíz si el agente que la
 # dispara corre con ese cwd — hace falta que matchee en cualquier nivel.
 **/.claude/skills/impeccable
+
+# Material de demo (capturas y videos crudos)
+demo/
+.impeccable/review/

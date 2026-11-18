@@ -191,6 +191,9 @@ mano con `workflow_dispatch`):
 
 1. **Front**: `npm ci && npm run build` con la URL derivada de `PUBLIC_URL`
    (del `.env`) y copia `front/dist` a `www/front` (reemplazo atómico).
+   **Landing**: `landing/` se buildea (HTML prerenderizado) y `landing/dist`
+   reemplaza `landing/` en el servidor, que es lo que sirve el nginx del host
+   en `epublit.com.ar`. Reemplaza al repo `epublit-landing-page`.
 2. **Infra**: copia `docker-compose.yml`, `nginx/templates/` y el `.env`.
 3. **Deploy**: login a GHCR, `docker compose pull`, migraciones
    (`--profile tools run --rm migrate`), `up -d --remove-orphans` y limpieza

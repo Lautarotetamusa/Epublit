@@ -69,10 +69,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: front/package-lock.json
+          cache-dependency-path: |
+            front/package-lock.json
+            landing/package-lock.json
 
       - name: Build del SPA
         working-directory: front
+        run: |
+          npm ci
+          npm run build
+
+      # La landing importa el sistema de diseño desde ../front/src: se buildea
+      # dentro del repo completo, no como carpeta suelta.
+      - name: Build de la landing
+        working-directory: landing
         run: |
           npm ci
           npm run build
@@ -83,6 +93,7 @@ jobs:
           rm -rf .deploy deploy.tar.gz
           mkdir -p .deploy/infra/nginx/templates .deploy/afipkeys/20434919798
           cp -r front/dist .deploy/front
+          cp -r landing/dist .deploy/landing
           cp infra/docker-compose.yml .deploy/infra/docker-compose.yml
           cp infra/nginx/templates/default.conf.template .deploy/infra/nginx/templates/
           cp .env .deploy/.env
@@ -146,7 +157,15 @@ jobs:
             mv .deploy/front www/front-new
             if [ -d www/front ]; then mv www/front www/front-old; fi
             mv www/front-new www/front
-            rm -rf www/front-old .deploy deploy.tar.gz
+            rm -rf www/front-old
+
+            # Landing: la sirve el nginx del host desde landing/ (ver
+            # infra/nginx/sites-available/epublit.com.ar). Mismo reemplazo atómico.
+            rm -rf landing-new landing-old
+            mv .deploy/landing landing-new
+            if [ -d landing ]; then mv landing landing-old; fi
+            mv landing-new landing
+            rm -rf landing-old .deploy deploy.tar.gz
 
             # El back corre como `node` (uid 1000).
             sudo -n chown -R 1000:1000 files afipkeys 2>/dev/null || true
