@@ -1,3 +1,5 @@
+import { createEmailService, createTransporteLog, createTransportePostmark } from "./lib/email";
+import type { TransporteEmail } from "./lib/email";
 import { db } from "./db/client";
 import { env } from "./env";
 import { createAfipService, AfipService } from "./lib/afip/Afip";
@@ -42,12 +44,16 @@ export type TiendaOverrides = {
 
 export type CreateContainerDeps = {
     afipService?: AfipService;
+    emailTransporte?: TransporteEmail;
     storage?: Storage;
     tienda?: TiendaOverrides;
 };
 
 export function createContainer({
     afipService = createAfipService({ cuitProd: env.AFIP_CUIT_PROD }),
+    emailTransporte = env.POSTMARK_SERVER_TOKEN
+        ? createTransportePostmark({ serverToken: env.POSTMARK_SERVER_TOKEN, from: env.EMAIL_FROM, messageStream: env.POSTMARK_MESSAGE_STREAM })
+        : createTransporteLog(),
     storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST }),
     tienda: tiendaOverrides = {}
 }: CreateContainerDeps = {}) {
@@ -84,7 +90,8 @@ export function createContainer({
     // lanzamiento de un libro es la primera incorporación de stock, ver
     // specs/012-liquidaciones-pagos).
     const anticipo = createAnticipoModule({ db });
-    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
+    const emailService = createEmailService({ transporte: emailTransporte, panelUrl: env.PANEL_URL });
+    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
     const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });

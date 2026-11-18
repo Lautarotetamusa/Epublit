@@ -13,7 +13,7 @@ export const usersTable = pgTable("users", {
     cond_fiscal: varchar("cond_fiscal", { length: 50 }).notNull(),
     razon_social: varchar("razon_social", { length: 255 }).notNull(),
     domicilio: varchar("domicilio", { length: 100 }).notNull(),
-    production: boolean("production").default(false),
+    production: boolean("production").notNull().default(false),
     email: varchar("email", { length: 255 }).default(""),
     ingresos_brutos: boolean("ingresos_brutos").notNull().default(false),
     fecha_inicio: varchar("fecha_inicio", { length: 10 }).notNull(),

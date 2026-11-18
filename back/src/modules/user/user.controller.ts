@@ -58,13 +58,17 @@ export function createUserController({ service }: UserControllerDeps) {
     const uploadCert: RequestHandler = async (req, res) => {
         if (!req.file) throw new ValidationError("El campo 'cert' es necesario")
 
-        await service.uploadCert(res.locals.user.cuit, req.file);
+        await service.uploadCert(res.locals.user.id, res.locals.user.cuit, req.file.buffer);
 
         created(res, undefined, "Certificado subido correctamente");
     }
 
+    const getFacturacion: RequestHandler = async (req, res) => {
+        ok(res, await service.getEstadoFacturacion(res.locals.user.id));
+    }
+
     const downloadCSR: RequestHandler = async (req, res) => {
-        const csr = await service.getCSR(res.locals.user.cuit);
+        const csr = await service.getCSR(res.locals.user.id);
 
         res.setHeader("Content-Type", "application/pkcs10");
         res.setHeader("Content-Disposition", `attachment; filename="${csr.filename}"`);
@@ -84,6 +88,7 @@ export function createUserController({ service }: UserControllerDeps) {
         getOne,
         uploadCert,
         downloadCSR,
+        getFacturacion,
         updateAfipData
     }
 }

@@ -3,6 +3,7 @@ import { createMockAfipService } from "../src/lib/afip/Afip.mock";
 import { createLocalStorage } from "../src/lib/storage";
 import { createCredentialsCipher } from "../src/lib/crypto/credentials";
 import { env } from "../src/env";
+import { createEmailService, createTransporteLog } from "../src/lib/email";
 import { createPersonaModule } from "../src/modules/persona";
 import { createColeccionModule } from "../src/modules/coleccion";
 import { createDepositoModule } from "../src/modules/deposito";
@@ -30,6 +31,7 @@ import { seedAnticipos } from "./anticipos.seeder";
 import { seedLiquidacionHistorica, seedLiquidaciones } from "./liquidaciones.seeder";
 import { seedMetricas } from "./metricas.seeder";
 import { seedTienda } from "./tienda.seeder";
+import { seedCertificados } from "./certificados.seeder";
 
 // Orden fijo por dependencia de FKs: cada seeder recibe lo que ya generaron
 // los anteriores (DI por parámetros, no un estado global compartido).
@@ -47,7 +49,9 @@ async function main(): Promise<void> {
     const medioPago = createMedioPagoModule({ db });
     const rol = createRolModule({ db });
     const anticipo = createAnticipoModule({ db });
-    const user = createUserModule({ db, afipService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
+    // El seed no pasa por `register`, así que nunca manda la bienvenida.
+    const emailService = createEmailService({ transporte: createTransporteLog(), panelUrl: env.PANEL_URL });
+    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
     const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
@@ -126,9 +130,16 @@ async function main(): Promise<void> {
         cipher
     });
 
+    const certificados = await seedCertificados(users);
+
     console.log(`Seed listo: ${users.length} usuarios, password de todos: "${PASSWORD_SEED}"`);
     for (const u of users) {
         console.log(`  - ${u.username} (cuit ${u.cuit})`);
+    }
+    console.log("Certificados de prueba para subir desde Perfil › Facturación electrónica:");
+    for (const c of certificados) {
+        console.log(`  - ${c.username}: ${c.vigente}`);
+        console.log(`    por vencer: ${c.porVencer}`);
     }
 }
 

@@ -4,14 +4,18 @@ import request from "supertest";
 import * as dotenv from 'dotenv';
 import { join } from "path";
 import fs from "fs";
+import { eq } from "drizzle-orm";
 
 const path = join(__dirname, "../.env");
 dotenv.config({path: path});
 
 import {db} from '../src/db/client';
+import { usersTable } from '../src/db/schema';
+import { firmarCertificadoDePrueba } from '../src/lib/afip/certificadoDePrueba';
 import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
+import type { EnvioTemplate, TransporteEmail } from '../src/lib/email';
 import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
 import { NotFound } from 'bradb';
 
@@ -28,7 +32,15 @@ const afipService = createMockAfipService({
         };
     }
 });
-const container = createContainer({ afipService });
+// Transporte de mail propio del test: guarda lo que se habría mandado y se
+// puede forzar a fallar para probar que el alta no depende del envío.
+const enviados: EnvioTemplate[] = [];
+let fallarEnvio = false;
+const transporteEmail: TransporteEmail = async (envio) => {
+    if (fallarEnvio) throw new Error("Postmark caído");
+    enviados.push(envio);
+};
+const container = createContainer({ afipService, emailTransporte: transporteEmail });
 const app = createApp(container);
 
 // Este archivo prueba el flujo de alta de usuario en sí (AFIP + generación
@@ -85,11 +97,49 @@ describe('POST user/register', () => {
         expect(fs.existsSync(join(userPath, "cert.csr"))).toBe(true);
     });
 
+    test('manda el mail de bienvenida con el CSR adjunto y el link a la guía', async () => {
+        expect(enviados).toHaveLength(1);
+        const [bienvenida] = enviados;
+
+        expect(bienvenida).toMatchObject({
+            alias: "bienvenida",
+            para: user.email,
+            modelo: {
+                nombre: user.username,
+                cuit,
+                url_guia_certificado: expect.stringMatching(/\/ayuda\/certificado-arca$/),
+                url_perfil: expect.stringMatching(/\/perfil$/)
+            }
+        });
+        expect(bienvenida.adjuntos).toEqual([
+            { nombre: `${cuit}.csr`, contenido: fs.readFileSync(join(userPath, "cert.csr")), tipo: "application/pkcs10" }
+        ]);
+    });
+
     it('Crear usuario con el mismo cuit', async () => {
         const res = await request(app)
             .post('/user/register').send(user)
         
         expectBadRequest(res);
+    });
+});
+
+describe('POST user/register con el mail caído', () => {
+    const cuitSinMail = "20279723369";
+
+    afterAll(() => {
+        fallarEnvio = false;
+        fs.rmSync(join(__dirname, "../afipkeys/", cuitSinMail), { recursive: true, force: true });
+    });
+
+    test('si el envío de la bienvenida falla, el alta se completa igual', async () => {
+        fallarEnvio = true;
+
+        const res = await request(app)
+            .post('/user/register')
+            .send({ username: "sin-mail", password: "ANASHEEEEEEE", email: "sin-mail@test.com", cuit: cuitSinMail });
+
+        expectCreated(res);
     });
 });
 
@@ -312,6 +362,39 @@ describe('PUT /user/afip', () => {
     });
 });
 
+const subirCertificado = (archivo: string) =>
+    request(app)
+        .post('/user/uploadCert')
+        .set('Authorization', `Bearer ${token}`)
+        .attach('cert', archivo);
+
+const getFacturacion = () =>
+    request(app)
+        .get('/user/facturacion')
+        .set('Authorization', `Bearer ${token}`);
+
+const codigosPendientes = (res: request.Response) =>
+    res.body.data.pendientes.map((p: { codigo: string }) => p.codigo);
+
+describe('GET /user/facturacion antes del certificado', () => {
+    test("sin auth da 403", async () => {
+        expect((await request(app).get('/user/facturacion')).status).toBe(403);
+    });
+
+    test("una cuenta recién creada no está habilitada y le falta el certificado", async () => {
+        const res = await getFacturacion();
+
+        expectDataResponse(res, 200);
+        expect(res.body.data).toMatchObject({
+            habilitado: false,
+            entorno: "homologacion",
+            punto_venta: 5,
+            certificado: { estado: "faltante", vence: null }
+        });
+        expect(codigosPendientes(res)).toEqual(["certificado"]);
+    });
+});
+
 describe('Certificado', () => {
     test("subir certificado sin auth debe dar error", async () => {
         const res = await request(app)
@@ -329,29 +412,66 @@ describe('Certificado', () => {
         expect(res.status).toBe(400);
         expect(res.body.errors.length).toBe(1);
         expect(res.body.errors[0].message).toEqual("El campo 'cert' es necesario");
-        expect(fs.existsSync(join(userPath, "cert.pem"))).toBe(false);
+        expect(fs.existsSync(join(userPath, "cert.crt"))).toBe(false);
     });
 
     test("Certificado invalido no se debe guardar", async () => {
-        const res = await request(app)
-            .post('/user/uploadCert')
-            .set('Authorization', `Bearer ${token}`)
-            .attach('cert', "./test/invalid_cert.pem");
+        const res = await subirCertificado("./test/invalid_cert.pem");
 
         expect(res.status).toBe(400);
-        expect(res.body.errors.length).toBe(1);
-        expect(res.body.errors[0].message).toEqual("El certificado no es valido");
-        expect(fs.existsSync(join(userPath, "cert.pem"))).toBe(false);
+        expect(res.body.errors[0].message).toEqual("El archivo no es un certificado válido");
+        expect(fs.existsSync(join(userPath, "cert.crt"))).toBe(false);
     });
 
-    test("Subir certificado pem", async () => {
-        const res = await request(app)
-            .post('/user/uploadCert')
-            .set('Authorization', `Bearer ${token}`)
-            .attach('cert', "./test/test_cert.pem");
+    test("un certificado de otra cuenta no se guarda", async () => {
+        const res = await subirCertificado("./test/test_cert.pem");
+
+        expect(res.status).toBe(400);
+        expect(res.body.errors[0].message).toEqual(
+            "El certificado no corresponde a tu cuenta: generalo en ARCA con el CSR que descargás desde tu perfil"
+        );
+        expect(fs.existsSync(join(userPath, "cert.crt"))).toBe(false);
+    });
+
+    test("un certificado de la cuenta se guarda y la pasa a producción", async () => {
+        const res = await subirCertificado(await firmarCertificadoDePrueba(cuit, 730));
 
         expect(res.status).toBe(201);
-        expect(fs.existsSync(join(userPath, "cert.pem"))).toBe(true);
+        expect(fs.existsSync(join(userPath, "cert.crt"))).toBe(true);
+
+        const me = await request(app).get('/user').set('Authorization', `Bearer ${token}`);
+        expect(me.body.data.production).toBe(true);
+    });
+});
+
+describe('GET /user/facturacion con el certificado', () => {
+    test("con certificado vigente, punto de venta y datos fiscales está habilitada", async () => {
+        const res = await getFacturacion();
+
+        expectDataResponse(res, 200);
+        expect(res.body.data).toMatchObject({
+            habilitado: true,
+            entorno: "produccion",
+            certificado: { estado: "vigente", vence: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }
+        });
+        expect(res.body.data.pendientes).toEqual([]);
+    });
+
+    test("un certificado que vence en menos de 30 días avisa pero sigue habilitada", async () => {
+        expect((await subirCertificado(await firmarCertificadoDePrueba(cuit, 10))).status).toBe(201);
+
+        const res = await getFacturacion();
+        expect(res.body.data).toMatchObject({ habilitado: true, certificado: { estado: "por_vencer" } });
+    });
+
+    test("sin punto de venta deja de estar habilitada", async () => {
+        await db.update(usersTable).set({ punto_venta: null }).where(eq(usersTable.cuit, cuit));
+
+        const res = await getFacturacion();
+        expect(res.body.data.habilitado).toBe(false);
+        expect(codigosPendientes(res)).toEqual(["punto_venta"]);
+
+        await db.update(usersTable).set({ punto_venta: 5 }).where(eq(usersTable.cuit, cuit));
     });
 });
 
@@ -379,13 +499,50 @@ describe('GET /user/csr', () => {
         expect(res.body).toEqual(fs.readFileSync(join(userPath, "cert.csr")));
     });
 
-    test("si el usuario no tiene CSR da 404", async () => {
+    test("si falta el CSR lo regenera con la clave existente", async () => {
+        const claveAntes = fs.readFileSync(join(userPath, "private_key.key"));
         fs.rmSync(join(userPath, "cert.csr"));
 
         const res = await request(app)
             .get('/user/csr')
             .set('Authorization', `Bearer ${token}`);
 
-        expectNotFound(res);
+        expect(res.status).toBe(200);
+        expect(fs.existsSync(join(userPath, "cert.csr"))).toBe(true);
+        expect(fs.readFileSync(join(userPath, "private_key.key"))).toEqual(claveAntes);
+    });
+});
+
+describe('Cuenta sin clave privada', () => {
+    beforeAll(() => {
+        fs.rmSync(join(userPath, "private_key.key"));
+        fs.rmSync(join(userPath, "cert.csr"));
+    });
+
+    test("el estado de facturación marca el certificado como que no corresponde", async () => {
+        const res = await getFacturacion();
+
+        expectDataResponse(res, 200);
+        expect(res.body.data.certificado.estado).toBe("no_corresponde");
+        expect(res.body.data.habilitado).toBe(false);
+    });
+
+    test("subir un certificado da 400 y pide generarlo con el CSR del perfil", async () => {
+        const res = await subirCertificado("./test/test_cert.pem");
+
+        expect(res.status).toBe(400);
+        expect(res.body.errors[0].message).toEqual(
+            "El certificado no corresponde a tu cuenta: generalo en ARCA con el CSR que descargás desde tu perfil"
+        );
+    });
+
+    test("descargar el CSR genera la clave y el CSR de la cuenta", async () => {
+        const res = await request(app)
+            .get('/user/csr')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(res.status).toBe(200);
+        expect(fs.existsSync(join(userPath, "private_key.key"))).toBe(true);
+        expect(fs.existsSync(join(userPath, "cert.csr"))).toBe(true);
     });
 });

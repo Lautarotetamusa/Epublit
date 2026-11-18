@@ -7,8 +7,8 @@ import { Client as Cliente } from '../../modules/cliente/cliente.validator';
 import { discriminaIva, esExento, esMonotributo, esResponsableInscripto, normalizarCondicionFiscal } from './fiscal';
 
 import fs from "fs";
+import { X509Certificate, createPrivateKey } from "crypto";
 import { join } from 'path';
-import { assert } from "console";
 import { spawn } from "child_process";
 
 // Ruta a las credenciales AFIP. Se resuelve desde el cwd (no desde
@@ -481,16 +481,13 @@ export function createAfipService({ cuitProd }: CreateAfipServiceDeps): AfipServ
     });
 
     const getClient = (user: User): IAfip => {
-        assert(user.production !== undefined, "El usuario no tiene seteada la variable 'production'");
-
         const path = join(afipKeysPath, user.cuit);
-        const certFileName = user.production ? 'cert.crt' : 'cert.pem';
         const privateFileName = 'private_key.key';
 
         if (!(fs.existsSync(join(path, privateFileName)))){
             throw new BadRequest(`El usuario ${user.username} no tiene la clave de afip`);
         }
-        if (!(fs.existsSync(join(path, certFileName)))){
+        if (!(fs.existsSync(getCertPath(user.cuit, user.production)))){
             throw new BadRequest(`El usuario ${user.username} no tiene el certificado de afip`);
         }
 
@@ -499,8 +496,8 @@ export function createAfipService({ cuitProd }: CreateAfipServiceDeps): AfipServ
             ta_folder: join(path, 'Tokens'),
             res_folder: path,
             key: privateFileName,
-            cert: certFileName,
-            production: user.production === true,
+            cert: certFileName(user.production),
+            production: user.production,
         });
 
         return client.ElectronicBilling as IAfip;
@@ -575,24 +572,68 @@ export function createAfipService({ cuitProd }: CreateAfipServiceDeps): AfipServ
     return { getAfipData, getClient, getServerStatus, facturar, proximoNumero, consultarComprobante };
 }
 
-export function getCertPath(cuit: string) {
-    return join(afipKeysPath, cuit, "cert.pem");
+// Un archivo por entorno: las cuentas de producción ya tienen su `cert.crt`
+// en el volumen, y el par de homologación (`cert.pem`) lo instala el deploy.
+const certFileName = (production: boolean) => (production ? "cert.crt" : "cert.pem");
+
+function getCertPath(cuit: string, production: boolean) {
+    return join(afipKeysPath, cuit, certFileName(production));
 }
 
-function getCSRPath(cuit: string) {
+// `null` si el contenido no es un X.509: el constructor de Node tira en ese
+// caso y es la única forma de validarlo sin escribirlo a disco.
+export function parseCertificado(contenido: Buffer): X509Certificate | null {
+    try {
+        return new X509Certificate(contenido);
+    } catch {
+        return null;
+    }
+}
+
+// Sin clave no hay certificado que pueda corresponderle: el usuario lo
+// resuelve descargando el CSR, que genera la clave.
+export async function certificadoCorrespondeALaCuenta(certificado: X509Certificate, cuit: string): Promise<boolean> {
+    if (!fs.existsSync(getKeyPath(cuit))) return false;
+
+    const clave = createPrivateKey(await fs.promises.readFile(getKeyPath(cuit)));
+    return certificado.checkPrivateKey(clave);
+}
+
+// Lo que se sube desde el perfil es siempre un certificado de producción
+// (el instructivo de ARCA genera ese).
+export async function guardarCertificadoProduccion(cuit: string, contenido: Buffer): Promise<void> {
+    await fs.promises.writeFile(getCertPath(cuit, true), contenido);
+}
+
+export async function leerCertificado(cuit: string, production: boolean): Promise<X509Certificate | null> {
+    const certPath = getCertPath(cuit, production);
+    if (!fs.existsSync(certPath)) return null;
+
+    return parseCertificado(await fs.promises.readFile(certPath));
+}
+
+export function getCSRPath(cuit: string) {
     return join(afipKeysPath, cuit, "cert.csr");
 }
 
-// `null` si no existe: un usuario creado sin pasar por el alta (ej. el seed)
-// no tiene CSR, y eso es un 404 para quien lo pide, no un error de I/O.
-export async function readCSR(cuit: string): Promise<Buffer | null> {
-    const csrPath = getCSRPath(cuit);
-    if (!fs.existsSync(csrPath)) return null;
-
-    return fs.promises.readFile(csrPath);
+export function readCSR(cuit: string): Promise<Buffer> {
+    return fs.promises.readFile(getCSRPath(cuit));
 }
 
-function getKeyPath(cuit: string) {
+// Una cuenta puede no tener clave (creada sin pasar por el alta, o con la
+// carpeta perdida): se genera al pedir el CSR. Si falta sólo el CSR, se
+// regenera con la clave existente para no invalidar un certificado vigente.
+export async function asegurarCSR(user: Pick<User, 'cuit' | 'razon_social'>): Promise<void> {
+    if (!fs.existsSync(getKeyPath(user.cuit))) {
+        await createUserFolder(user.cuit);
+        await createKey(user.cuit);
+    }
+    if (!fs.existsSync(getCSRPath(user.cuit))) {
+        await createCSR(user);
+    }
+}
+
+export function getKeyPath(cuit: string) {
     return join(afipKeysPath, cuit, "private_key.key");
 }
 
@@ -605,31 +646,6 @@ export function createUserFolder(cuit: string) {
             return res(path);
         });
     });
-}
-
-export function saveCert(certPath: string, buf: Buffer) {
-    return new Promise((res, rej) => {
-        fs.writeFile(certPath, buf, null, (err) => {
-            if (err) rej(err);
-            res(0);
-        });
-    });
-}
-
-export function removeCert(certPath: string) {
-    return new Promise((res, rej) => {
-        fs.rm(certPath, (err) => {
-            if (err) rej(err);
-            res(0);
-        });
-    });
-}
-
-// openssl x509 -noout -modulus -in cert.pem
-export function isValidCert(certPath: string) {
-    const parameters = ["x509", "-noout", "-modulus", "-in", certPath];
-
-    return openssl(parameters).then(() => true).catch(() => false);
 }
 
 // openssl genrsa -traditional -out keytest 2048

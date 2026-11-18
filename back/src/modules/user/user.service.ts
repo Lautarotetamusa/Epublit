@@ -2,7 +2,9 @@ import bcrypt from "bcrypt";
 import { Database } from "../../db/client";
 import { UserRepository } from "./user.repository";
 import { UserInsert, UserUpdate, User, CreateUserInput } from "./user.validator";
-import { NotFound, Unauthorized } from "bradb";
+import type { EmailService } from "../../lib/email";
+import { CertificadoDeLaCuenta, EstadoFacturacion, evaluarFacturacion } from "./user.facturacion";
+import { Unauthorized } from "bradb";
 import { ValidationError } from "../../lib/http/errors";
 import { DepositoRepository, NOMBRE_DEPOSITO_PRINCIPAL } from "../deposito";
 import { MedioPagoRepository } from "../medioPago";
@@ -12,10 +14,11 @@ import {
     createKey,
     createCSR,
     readCSR,
-    getCertPath,
-    isValidCert,
-    saveCert,
-    removeCert,
+    asegurarCSR,
+    parseCertificado,
+    certificadoCorrespondeALaCuenta,
+    guardarCertificadoProduccion,
+    leerCertificado,
     AfipService
 } from "../../lib/afip/Afip";
 
@@ -23,6 +26,7 @@ export type UserServiceDeps = {
     db: Database;
     repository: UserRepository;
     afipService: AfipService;
+    emailService: Pick<EmailService, "enviarBienvenida">;
     // Sólo escritura: crea el depósito principal del usuario en el mismo alta
     // (ver specs/008-movimientos-deposito).
     depositoRepository: Pick<DepositoRepository, "insert">;
@@ -34,7 +38,7 @@ export type UserServiceDeps = {
     rolRepository: Pick<RolRepository, "insertDefaults">;
 };
 
-export function createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository }: UserServiceDeps) {
+export function createUserService({ db, repository, afipService, emailService, depositoRepository, medioPagoRepository, rolRepository }: UserServiceDeps) {
     // Alta completa del usuario, sus clientes por defecto (MOSTRADOR,
     // CONSUMIDOR FINAL), su depósito principal, sus medios de pago por
     // defecto y sus roles por defecto en una única transacción Postgres: la
@@ -106,7 +110,19 @@ export function createUserService({ db, repository, afipService, depositoReposit
             throw err;
         }
 
+        await enviarBienvenida(user);
+
         return user;
+    };
+
+    // El alta ya está confirmada: si el mail no sale, se loguea y se sigue.
+    // El CSR también se puede bajar desde el perfil.
+    const enviarBienvenida = async (user: User): Promise<void> => {
+        if (!user.email) return;
+
+        await emailService
+            .enviarBienvenida({ para: user.email, nombre: user.username, cuit: user.cuit, csr: await readCSR(user.cuit) })
+            .catch((error: unknown) => console.error("[email] no se pudo enviar la bienvenida", { userId: user.id, error }));
     };
 
     // `changed` en `false` cuando no hay nada que actualizar (bradb tira si
@@ -139,28 +155,45 @@ export function createUserService({ db, repository, afipService, depositoReposit
         return user;
     };
 
-    const uploadCert = async (cuit: string, file: { buffer: Buffer; mimetype: string }): Promise<void> => {
-        if (file.mimetype !== "application/x-x509-ca-cert") {
-            throw new ValidationError("El tipo de archivo del certificado es invalido");
+    // Se valida el contenido y no el mimetype: según el navegador, un `.crt`
+    // o `.pem` llega con tipos distintos. El certificado que genera el
+    // instructivo es de producción, así que subirlo pasa la cuenta a producción.
+    const uploadCert = async (id: number, cuit: string, contenido: Buffer): Promise<void> => {
+        const certificado = parseCertificado(contenido);
+        if (!certificado) throw new ValidationError("El archivo no es un certificado válido");
+
+        if (!(await certificadoCorrespondeALaCuenta(certificado, cuit))) {
+            throw new ValidationError(
+                "El certificado no corresponde a tu cuenta: generalo en ARCA con el CSR que descargás desde tu perfil"
+            );
+        }
+        if (new Date(certificado.validTo) <= new Date()) {
+            throw new ValidationError("El certificado está vencido: generá uno nuevo en ARCA");
         }
 
-        const certPath = getCertPath(cuit);
-        await saveCert(certPath, file.buffer);
+        await guardarCertificadoProduccion(cuit, contenido);
+        await repository.persistUpdate({ id }, { production: true });
+    };
 
-        const isValid = await isValidCert(certPath);
-        if (!isValid) {
-            await removeCert(certPath);
-            throw new ValidationError("El certificado no es valido");
-        }
+    const certificadoDe = async (user: User): Promise<CertificadoDeLaCuenta | null> => {
+        const certificado = await leerCertificado(user.cuit, user.production);
+        if (!certificado) return null;
+
+        return { certificado, correspondeALaCuenta: await certificadoCorrespondeALaCuenta(certificado, user.cuit) };
+    };
+
+    const getEstadoFacturacion = async (id: number): Promise<EstadoFacturacion> => {
+        const user = await repository.findOne({ id });
+        return evaluarFacturacion(user, await certificadoDe(user), new Date());
     };
 
     // El usuario lo necesita para generar su certificado en ARCA, que después
     // sube con `uploadCert`.
-    const getCSR = async (cuit: string): Promise<{ data: Buffer; filename: string }> => {
-        const data = await readCSR(cuit);
-        if (!data) throw new NotFound("No hay un CSR generado para este usuario");
+    const getCSR = async (id: number): Promise<{ data: Buffer; filename: string }> => {
+        const user = await repository.findOne({ id });
+        await asegurarCSR(user);
 
-        return { data, filename: `${cuit}.csr` };
+        return { data: await readCSR(user.cuit), filename: `${user.cuit}.csr` };
     };
 
     return {
@@ -171,6 +204,7 @@ export function createUserService({ db, repository, afipService, depositoReposit
         refreshAfipData,
         authenticate,
         uploadCert,
+        getEstadoFacturacion,
         getCSR,
         remove
     };

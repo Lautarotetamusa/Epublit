@@ -17,6 +17,8 @@ export function createUserRoutes(controller: UserController) {
 
     router.get('/csr', auth, controller.downloadCSR);
 
+    router.get('/facturacion', auth, controller.getFacturacion);
+
     router.put('/afip', auth, controller.updateAfipData);
 
     router.get('/', auth, controller.getOne);

@@ -183,6 +183,13 @@
       "when": 1794851969810,
       "tag": "0025_liquidacion_lineas_cantidad",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794932150896,
+      "tag": "0026_users_production_not_null",
+      "breakpoints": true
     }
   ]
 }
