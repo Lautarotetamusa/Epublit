@@ -33,7 +33,11 @@ const NAV_ITEMS = [
     // El contenido institucional es del sitio, no del catálogo ni del canal de
     // venta: tiene su propia sección aunque en Fase 1 viva sólo en el panel.
     { section: "Sitio web" },
-    { value: "contenido", label: "Contenido", icon: "file-text" }
+    { value: "contenido", label: "Contenido", icon: "file-text" },
+    // La ayuda sale del panel a su propia página pública (es la misma que se
+    // linkea desde el mail de bienvenida); desde ahí se vuelve con la cabecera.
+    { section: "Soporte" },
+    { value: "ayuda", label: "Centro de ayuda", icon: "circle-help" }
 ];
 
 // Debajo de este ancho la barra lateral deja de tener sentido: se convierte

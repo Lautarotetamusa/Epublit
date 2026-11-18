@@ -1,0 +1,529 @@
+/* Centro de ayuda: superficie de lectura pública. Mismos tokens que el panel,
+   pero con medida de lectura y cuerpo de texto un paso más grande, porque se
+   lee con ARCA abierta al lado y hay que encontrar el paso de un vistazo. */
+
+.ayuda {
+  min-height: 100vh;
+  background: var(--surface-page);
+}
+
+/* ---- Cabecera ---- */
+.ayuda-cabecera {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--pino-900);
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+.ayuda-cabecera__contenido {
+  max-width: var(--width-content);
+  margin: 0 auto;
+  height: 64px;
+  padding: 0 var(--gutter-page);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+.ayuda-cabecera a {
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.ayuda-cabecera a:focus-visible {
+  outline: 2px solid var(--violeta-300);
+  outline-offset: 4px;
+}
+.ayuda-cabecera__marca {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.ayuda-cabecera__marca img {
+  display: block;
+  width: auto;
+}
+.ayuda-cabecera__seccion {
+  padding-left: var(--space-4);
+  border-left: 1px solid rgba(255, 255, 255, .16);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--pino-100);
+}
+.ayuda-cabecera__salida {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--pino-200);
+}
+.ayuda-cabecera__salida:hover {
+  color: var(--papel-0);
+}
+
+.ayuda-principal {
+  max-width: var(--width-content);
+  margin: 0 auto;
+  padding: var(--space-12) var(--gutter-page) var(--space-24);
+}
+
+/* ---- Piezas compartidas ---- */
+.ayuda h1 {
+  font-size: var(--text-4xl);
+  text-wrap: balance;
+}
+.ayuda-bajada {
+  margin-top: var(--space-4);
+  max-width: var(--width-prose);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.ayuda-meta {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+.ayuda-meta--consejo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+}
+.ayuda-meta--consejo > span {
+  color: var(--pino-600);
+}
+
+/* ---- Índice ---- */
+.ayuda-indice {
+  max-width: 52rem;
+  margin: 0 auto;
+}
+.ayuda-indice__tema {
+  margin-top: var(--space-12);
+}
+.ayuda-indice__tema h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-4);
+}
+.ayuda-indice__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.ayuda-indice__lista li + li {
+  border-top: 1px solid var(--border-subtle);
+}
+.ayuda-indice__entrada {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  color: inherit;
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.ayuda-indice__entrada:hover {
+  background: var(--surface-hover);
+  color: inherit;
+}
+.ayuda-indice__texto {
+  display: grid;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+.ayuda-indice__titulo {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+}
+.ayuda-indice__entrada:hover .ayuda-indice__titulo {
+  color: var(--pino-700);
+}
+.ayuda-indice__resumen {
+  max-width: var(--width-prose);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+  text-wrap: pretty;
+}
+.ayuda-indice__flecha {
+  color: var(--pino-600);
+}
+
+/* ---- Artículo ---- */
+.ayuda-articulo {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 46rem);
+  justify-content: center;
+  gap: var(--space-16);
+  align-items: start;
+}
+.ayuda-articulo__lateral {
+  position: sticky;
+  top: calc(64px + var(--space-8));
+  padding-top: var(--space-16);
+}
+.ayuda-articulo__encabezado h1 {
+  font-size: var(--text-3xl);
+}
+.ayuda-articulo__encabezado .ayuda-bajada + .ayuda-meta {
+  margin-top: var(--space-5);
+}
+.ayuda-volver {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+/* Índice lateral del artículo */
+.ayuda-indice-articulo__rotulo {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.ayuda-indice-articulo ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--border-subtle);
+}
+.ayuda-indice-articulo a {
+  display: grid;
+  gap: 2px;
+  margin-left: -1px;
+  padding: var(--space-2) var(--space-3);
+  border-left: 1px solid transparent;
+  color: var(--text-body);
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-standard);
+}
+.ayuda-indice-articulo a:hover {
+  background: var(--surface-hover);
+  border-left-color: var(--pino-600);
+  color: var(--text-body);
+}
+.ayuda-indice-articulo__titulo {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+}
+.ayuda-indice-articulo__pasos {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+.ayuda-indice-articulo .es-completa .ayuda-indice-articulo__pasos {
+  color: var(--pino-600);
+  font-weight: var(--weight-semibold);
+}
+.ayuda-indice-articulo__avance {
+  margin-top: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Antes de empezar */
+.ayuda-requisitos {
+  margin-top: var(--space-8);
+}
+.ayuda-requisitos ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.ayuda-requisitos li {
+  display: flex;
+  gap: var(--space-3);
+  line-height: var(--leading-relaxed);
+}
+.ayuda-requisitos li > span:first-child {
+  margin-top: 4px;
+  color: var(--pino-600);
+}
+
+/* Secciones y pasos */
+.ayuda-seccion {
+  margin-top: var(--space-16);
+  scroll-margin-top: calc(64px + var(--space-6));
+}
+.ayuda-seccion h2 {
+  font-size: var(--text-2xl);
+  text-wrap: balance;
+}
+.ayuda-seccion__intro {
+  margin-top: var(--space-3);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+.ayuda-pasos {
+  list-style: none;
+  margin: var(--space-8) 0 0;
+  padding: 0;
+}
+.ayuda-paso {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--space-5);
+  padding-bottom: var(--space-10);
+}
+/* El hilo vertical une los números: se lee como un recorrido, no como una
+   lista suelta. El último paso de la sección no lo dibuja. */
+.ayuda-paso:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 44px;
+  bottom: var(--space-2);
+  width: 1px;
+  background: var(--border-default);
+}
+.ayuda-paso__numero {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-xs);
+  color: var(--pino-700);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard), color var(--dur-fast) var(--ease-standard);
+}
+.ayuda-paso__numero:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+.ayuda-paso__numero:focus-visible {
+  outline: none;
+  border-color: var(--pino-500);
+  box-shadow: var(--ring-focus);
+}
+.ayuda-paso.es-hecho .ayuda-paso__numero {
+  background: var(--pino-600);
+  border-color: var(--pino-600);
+  color: var(--papel-0);
+}
+.ayuda-paso.es-hecho .ayuda-paso__numero:hover {
+  background: var(--pino-700);
+  border-color: var(--pino-700);
+}
+.ayuda-paso__cuerpo {
+  padding-top: 5px;
+}
+.ayuda-paso__texto {
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  text-wrap: pretty;
+}
+.ayuda-paso.es-hecho .ayuda-paso__texto {
+  color: var(--text-muted);
+}
+
+/* Texto de pantalla, rutas y archivos dentro de un paso */
+.ayuda-etiqueta {
+  padding: 1px 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  background: var(--surface-card);
+  font-weight: var(--weight-semibold);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.ayuda-ruta__separador {
+  margin: 0 var(--space-1);
+  vertical-align: -2px;
+  color: var(--text-subtle);
+}
+.ayuda-archivo {
+  font-size: .88em;
+  color: var(--pino-800);
+  white-space: nowrap;
+}
+.ayuda-nota {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+.ayuda-nota > span:first-child {
+  margin-top: 3px;
+  color: var(--info-600);
+}
+.ayuda-opciones {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-4) 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+.ayuda-opciones dt {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-muted);
+  line-height: 1.9;
+}
+.ayuda-opciones dd {
+  margin: 0;
+}
+
+/* Capturas */
+.ayuda-capturas {
+  display: grid;
+  gap: var(--space-6);
+  margin-top: var(--space-5);
+}
+.ayuda-captura {
+  margin: 0;
+}
+.ayuda-captura a {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+}
+.ayuda-captura img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  cursor: zoom-in;
+  transition: border-color var(--dur-fast) var(--ease-standard);
+}
+.ayuda-captura a:hover img {
+  border-color: var(--border-strong);
+}
+.ayuda-captura figcaption {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* Cierre */
+.ayuda-cierre {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+.ayuda-cierre__icono {
+  margin-top: 4px;
+  color: var(--pino-600);
+}
+.ayuda-cierre h2 {
+  font-size: var(--text-xl);
+}
+.ayuda-cierre p {
+  margin-top: var(--space-2);
+  line-height: var(--leading-relaxed);
+  color: var(--text-muted);
+}
+.ayuda-cierre__accion {
+  margin-top: var(--space-4);
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 960px) {
+  .ayuda-articulo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* En pantallas chicas el índice lateral no tiene dónde quedarse fijo; el
+     avance sigue visible en los números de cada paso. */
+  .ayuda-articulo__lateral {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ayuda-cabecera__contenido {
+    padding: 0 var(--gutter-page-narrow);
+  }
+  .ayuda-cabecera__seccion {
+    display: none;
+  }
+  .ayuda-principal {
+    padding: var(--space-8) var(--gutter-page-narrow) var(--space-16);
+  }
+  .ayuda h1,
+  .ayuda-articulo__encabezado h1 {
+    font-size: var(--text-2xl);
+  }
+  .ayuda-seccion h2 {
+    font-size: var(--text-xl);
+  }
+  .ayuda-paso {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .ayuda-paso__numero {
+    width: 32px;
+    height: 32px;
+    font-size: var(--text-base);
+  }
+  .ayuda-paso:not(:last-child)::before {
+    left: 15px;
+    top: 40px;
+  }
+  .ayuda-paso__texto {
+    font-size: var(--text-base);
+  }
+  /* En el celular las capturas ganan el ancho de la columna de números: a
+     ese tamaño cada píxel cuenta para leer la pantalla de ARCA. */
+  .ayuda-capturas {
+    position: relative;
+    margin-left: calc(-32px - var(--space-3));
+  }
+  .ayuda-indice__entrada {
+    padding: var(--space-4);
+    gap: var(--space-3);
+  }
+  .ayuda-opciones {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+  .ayuda-opciones dd + dt {
+    margin-top: var(--space-2);
+  }
+}

@@ -7,5 +7,6 @@ export interface IconProps {
   /** Any CSS color; defaults to currentColor. */
   color?: string;
   style?: React.CSSProperties;
+  className?: string;
 }
 export function Icon(props: IconProps): JSX.Element;

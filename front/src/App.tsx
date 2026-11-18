@@ -51,11 +51,23 @@ import { NuevaDevolucionPage } from "./features/consignaciones/NuevaDevolucionPa
 import { FichaDevolucionPage } from "./features/consignaciones/FichaDevolucionPage";
 import { PerfilPage } from "./features/perfil/PerfilPage";
 import { ComprobantePage } from "./features/comprobantes/ComprobantePage";
+import { AyudaLayout } from "./features/ayuda/AyudaLayout";
+import { AyudaIndexPage } from "./features/ayuda/AyudaIndexPage";
+import { ArticuloPage } from "./features/ayuda/ArticuloPage";
 
 function RedirectToPersona() {
     const { id = "" } = useParams();
     return <Navigate to={`/personas/${id}`} replace />;
 }
+
+// El centro de ayuda se abre desde el mail de bienvenida, con o sin sesión:
+// las mismas rutas se montan en los dos árboles.
+const rutasAyuda = (
+    <Route element={<AyudaLayout />}>
+        <Route path="/ayuda" element={<AyudaIndexPage />} />
+        <Route path="/ayuda/:slug" element={<ArticuloPage />} />
+    </Route>
+);
 
 function AppRoutes() {
     const { user, loading } = useAuth();
@@ -66,6 +78,7 @@ function AppRoutes() {
         return (
             <Routes>
                 <Route path="/register" element={<RegisterPage />} />
+                {rutasAyuda}
                 <Route path="*" element={<LoginPage />} />
             </Routes>
         );
@@ -76,6 +89,7 @@ function AppRoutes() {
             {/* La vista del comprobante es de lectura/impresión, no una pantalla
                 de gestión: queda fuera del layout con navegación lateral. */}
             <Route path="/comprobantes/:id" element={<ComprobantePage />} />
+            {rutasAyuda}
             <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/libros" element={<CatalogoPage />} />
