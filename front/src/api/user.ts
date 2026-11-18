@@ -1,4 +1,5 @@
 import { api } from "./client";
+import type { BlobFile } from "./client";
 
 // Refleja back/src/modules/user/user.schema.ts (sin `password`, la tabla
 // nunca la devuelve) + user.validator.ts#select.
@@ -47,3 +48,27 @@ export const getMe = (): Promise<{ success: true; data: User }> => api.get("/use
 export const updateMe = (input: UpdateUserInput): Promise<{ success: true; data: User }> => api.put("/user", input);
 
 export const refreshAfipData = (): Promise<{ success: true; data: User }> => api.put("/user/afip");
+
+// El CSR lo genera el backend en el alta: el usuario lo necesita para pedir su
+// certificado en ARCA.
+export const getCSR = (): Promise<BlobFile> => api.getBlob("/user/csr");
+
+// Refleja back/src/modules/user/user.facturacion.ts#EstadoFacturacion.
+export type EstadoCertificado = "faltante" | "no_corresponde" | "vencido" | "por_vencer" | "vigente";
+
+export type PendienteFacturacion = {
+    codigo: "certificado" | "punto_venta" | "datos_fiscales" | "entorno";
+    mensaje: string;
+};
+
+export type EstadoFacturacion = {
+    habilitado: boolean;
+    entorno: "produccion" | "homologacion";
+    punto_venta: number | null;
+    certificado: { estado: EstadoCertificado; vence: string | null };
+    pendientes: PendienteFacturacion[];
+};
+
+export const getFacturacion = (): Promise<{ success: true; data: EstadoFacturacion }> => api.get("/user/facturacion");
+
+export const uploadCertificado = (file: File): Promise<{ success: true }> => api.postFile("/user/uploadCert", "cert", file);

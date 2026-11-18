@@ -1,7 +1,9 @@
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { Card, Avatar, Button, Badge, Checkbox, Dialog, Field, Input, Select } from "../../design-system";
 import { usePerfil } from "./usePerfil";
+import { useFacturacion } from "./useFacturacion";
+import { FacturacionElectronicaCard } from "./FacturacionElectronicaCard";
+import { Detalle } from "./Detalle";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../notifications/ToastProvider";
 import { useConfirm } from "../../notifications/ConfirmProvider";
@@ -12,6 +14,7 @@ import { isValidEmail } from "../../lib/validation";
 
 export function PerfilPage() {
     const { user, loading, update, refreshFromAfip } = usePerfil();
+    const facturacion = useFacturacion();
     const { logout } = useAuth();
     const { showToast } = useToast();
     const confirm = useConfirm();
@@ -32,6 +35,7 @@ export function PerfilPage() {
         setRefreshing(true);
         try {
             await refreshFromAfip();
+            await facturacion.refetch();
             showToast("success", "Datos actualizados desde AFIP");
         } catch (err) {
             showToast("error", getErrorMessage(err));
@@ -72,7 +76,6 @@ export function PerfilPage() {
                     <Detalle label="Condición fiscal" value={<Badge tone="brand">{user.cond_fiscal}</Badge>} />
                     <Detalle label="Domicilio" value={user.domicilio} />
                     <Detalle label="Email" value={user.email || "-"} />
-                    <Detalle label="Punto de venta" value={user.punto_venta ? <Badge tone="brand">{user.punto_venta}</Badge> : "-"} />
                     <Detalle label="Ingresos brutos" value={user.ingresos_brutos ? "Sí" : "No"} />
                     <Detalle label="Inicio de actividades" value={user.fecha_inicio || "-"} />
                 </dl>
@@ -84,6 +87,7 @@ export function PerfilPage() {
                         onSave={async (input) => {
                             try {
                                 await update(input);
+                                await facturacion.refetch();
                                 setShowEdit(false);
                                 showToast("success", "Perfil actualizado");
                             } catch (err) {
@@ -93,6 +97,36 @@ export function PerfilPage() {
                     />
                 ) : null}
             </Card>
+
+            {facturacion.estado ? (
+                <FacturacionElectronicaCard
+                    estado={facturacion.estado}
+                    onDescargarCSR={async () => {
+                        try {
+                            await facturacion.descargarCSR();
+                        } catch (err) {
+                            showToast("error", getErrorMessage(err));
+                        }
+                    }}
+                    onSubirCertificado={async (file) => {
+                        try {
+                            await facturacion.subirCertificado(file);
+                            showToast("success", "Certificado cargado");
+                        } catch (err) {
+                            showToast("error", getErrorMessage(err));
+                        }
+                    }}
+                    onGuardarPuntoVenta={async (puntoVenta) => {
+                        try {
+                            await update({ punto_venta: puntoVenta });
+                            await facturacion.refetch();
+                            showToast("success", "Punto de venta actualizado");
+                        } catch (err) {
+                            showToast("error", getErrorMessage(err));
+                        }
+                    }}
+                />
+            ) : null}
 
             <RestriccionesFotoCard
                 user={user}
@@ -105,17 +139,6 @@ export function PerfilPage() {
                     }
                 }}
             />
-        </div>
-    );
-}
-
-function Detalle({ label, value }: { label: string; value: ReactNode }) {
-    return (
-        <div>
-            <dt style={{ fontSize: "var(--text-2xs)", textTransform: "uppercase", letterSpacing: "var(--tracking-caps)", color: "var(--text-muted)" }}>
-                {label}
-            </dt>
-            <dd style={{ margin: "4px 0 0" }}>{value}</dd>
         </div>
     );
 }
@@ -143,7 +166,6 @@ const condicionCanonica = (actual: string): string =>
 
 type DatosEmisor = {
     email: string | null;
-    punto_venta: number | null;
     cond_fiscal: string;
     razon_social: string;
     domicilio: string;
@@ -160,7 +182,6 @@ function EditarPerfilDialog({
     onClose: () => void;
     onSave: (input: {
         email: string;
-        punto_venta: number;
         cond_fiscal: string;
         razon_social: string;
         domicilio: string;
@@ -169,7 +190,6 @@ function EditarPerfilDialog({
     }) => Promise<void>;
 }) {
     const [email, setEmail] = useState(user.email ?? "");
-    const [puntoVenta, setPuntoVenta] = useState(String(user.punto_venta ?? ""));
     const [condFiscal, setCondFiscal] = useState(condicionCanonica(user.cond_fiscal));
     const [razonSocial, setRazonSocial] = useState(user.razon_social);
     const [domicilio, setDomicilio] = useState(user.domicilio);
@@ -186,7 +206,6 @@ function EditarPerfilDialog({
         setSaving(true);
         await onSave({
             email,
-            punto_venta: Number(puntoVenta),
             cond_fiscal: condFiscal,
             razon_social: razonSocial,
             domicilio,
@@ -221,9 +240,6 @@ function EditarPerfilDialog({
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={() => setEmailTouched(true)}
                 />
-            </Field>
-            <Field label="Punto de venta" style={{ marginTop: "var(--space-4)" }}>
-                <Input type="text" inputMode="numeric" value={puntoVenta} onChange={(e) => setPuntoVenta(sanitizeInteger(e.target.value))} />
             </Field>
 
             <hr style={{ margin: "var(--space-5) 0", border: 0, borderTop: "1px solid var(--border-subtle)" }} />
