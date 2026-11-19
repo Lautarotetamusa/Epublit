@@ -70,6 +70,12 @@ export function createMedioPagoRepository({ db }: MedioPagoRepositoryDeps) {
         return rows.length > 0;
     };
 
+    // Borrado físico, sólo para dar de baja una cuenta que nunca se usó (ver
+    // specs/026-registro-email): la baja de un día a día es lógica.
+    const removeAllOfUser = async (userId: number, tx: Tx) => {
+        await tx.delete(mediosPagoTable).where(eq(mediosPagoTable.user, userId));
+    };
+
     return {
         findOne,
         insert,
@@ -78,7 +84,8 @@ export function createMedioPagoRepository({ db }: MedioPagoRepositoryDeps) {
         insertDefaults,
         findActivos,
         findByNombreActivo,
-        existsEnCuenta
+        existsEnCuenta,
+        removeAllOfUser
     };
 }
 

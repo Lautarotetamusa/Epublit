@@ -29,7 +29,7 @@ let stockGeneralInicial: number;
 beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
 
     const resClientes = await request(app).get('/cliente?tipo=inscripto&pageSize=100').set('Authorization', `Bearer ${token}`);

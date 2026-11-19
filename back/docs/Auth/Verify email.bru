@@ -1,0 +1,29 @@
+meta {
+  name: Verify email
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{host}}/user/verify-email
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "<token del link /verificar-email>"
+  }
+}
+
+docs {
+  Confirma el email de una cuenta nueva con el token del link. Prioridad:
+  ya confirmado > registro vencido > token vencido.
+
+  - 200 `{ success, status: "verified", message, token }` (sesión, igual que
+    el login): confirmó ahora y sale la bienvenida con el CSR.
+  - 200 `{ success, status: "already_verified" }`
+  - 410 `registration_expired`: la cuenta venció sin confirmar y se borra.
+  - 410 `token_expired` (+ `email`): hay un link más nuevo vigente.
+  - 404 `token_invalid`: vacío, inexistente o de una cuenta que ya no existe.
+}

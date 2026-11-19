@@ -205,6 +205,12 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
             });
     };
 
+    // Borrado físico, sólo para dar de baja una cuenta que nunca se usó (ver
+    // specs/026-registro-email): la baja de un día a día es lógica.
+    const removeAllOfUser = async (userId: number, tx: Tx) => {
+        await tx.delete(depositosTable).where(eq(depositosTable.user, userId));
+    };
+
     return {
         insert,
         update,
@@ -218,7 +224,8 @@ export function createDepositoRepository({ db }: DepositoRepositoryDeps) {
         getLibros,
         getDesgloseLibro,
         getCantidades,
-        moveStock
+        moveStock,
+        removeAllOfUser
     };
 }
 

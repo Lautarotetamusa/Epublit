@@ -1,6 +1,9 @@
 import {expect} from 'vitest';
 import request, { Response } from 'supertest';
 import type { Express } from 'express';
+import { eq } from 'drizzle-orm';
+import { db } from '../src/db/client';
+import { usersTable } from '../src/db/schema';
 
 export function expectNotFound(res: Response){
     expectErrorResponse(res, 404);
@@ -107,4 +110,24 @@ const sinAcentos = (valor: string) => valor.normalize("NFD").replace(/\p{Diacrit
 export function expectOrdenAlfabetico(valores: string[]) {
     const ordenados = [...valores].sort((a, b) => (sinAcentos(a) < sinAcentos(b) ? -1 : sinAcentos(a) > sinAcentos(b) ? 1 : 0));
     expect(valores).toEqual(ordenados);
+}
+
+export type DatosDeRegistro = { email: string; password: string; cuit: string };
+
+// Las cuentas nuevas no entran hasta confirmar el email (ver
+// specs/026-registro-email): los tests que sólo necesitan una cuenta nueva
+// la confirman directo en la base en vez de seguir el link del mail.
+export async function registrarCuentaConfirmada(app: Express, datos: DatosDeRegistro): Promise<{ token: string; userId: number }> {
+    const alta = await request(app).post('/user/register').send(datos);
+    expectCreated(alta);
+
+    const [user] = await db
+        .update(usersTable)
+        .set({ email_confirmado: true })
+        .where(eq(usersTable.email, alta.body.data.email))
+        .returning({ id: usersTable.id });
+    const login = await request(app).post('/user/login').send({ identifier: datos.email, password: datos.password });
+    expect(login.status).toBe(200);
+
+    return { token: login.body.token, userId: user.id };
 }

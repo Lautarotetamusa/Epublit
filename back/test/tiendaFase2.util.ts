@@ -162,7 +162,7 @@ export function crearEntorno(mocks = crearMocks(), overrides: EntornoOverrides =
 export async function login(app: Express, username = "libreria_sur"): Promise<string> {
     const res = await request(app)
         .post("/user/login")
-        .send({ username, password: PASSWORD_SEED });
+        .send({ identifier: username, password: PASSWORD_SEED });
 
     return res.body.token;
 }

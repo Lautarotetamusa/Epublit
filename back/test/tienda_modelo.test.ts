@@ -31,7 +31,7 @@ let integracionA2: number;
 let integracionB: number;
 
 const login = async (username: string) =>
-    (await request(app).post('/user/login').send({ username, password: PASSWORD_SEED })).body.token;
+    (await request(app).post('/user/login').send({ identifier: username, password: PASSWORD_SEED })).body.token;
 
 const crearIntegracion = async (nombre: string, origen: string, token: string) => {
     const res = await request(app)

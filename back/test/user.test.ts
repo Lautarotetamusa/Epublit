@@ -16,12 +16,13 @@ import { createContainer } from '../src/container';
 import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import type { EnvioTemplate, TransporteEmail } from '../src/lib/email';
-import {expectErrorResponse, expectDataResponse, expectBadRequest, expectCreated, expectNotFound} from './util';
+import {expectErrorResponse, expectDataResponse, expectBadRequest, expectConflict, expectCreated} from './util';
 import { NotFound } from 'bradb';
 
+const CUIT_FUERA_DEL_PADRON = "20123456786";
 const afipService = createMockAfipService({
     getAfipData: async (cuitConsultado) => {
-        if (cuitConsultado === "12345") throw new NotFound("El cuit no valido");
+        if (cuitConsultado === CUIT_FUERA_DEL_PADRON) throw new NotFound("El cuit no valido");
 
         return {
             ingresos_brutos: false,
@@ -45,15 +46,17 @@ const app = createApp(container);
 
 // Este archivo prueba el flujo de alta de usuario en sí (AFIP + generación
 // de clave/CSR en el filesystem + clientes por defecto): no hay forma de
-// "usarlo seedeado", el alta es lo que se está probando. `cuit`/`username`
+// "usarlo seedeado", el alta es lo que se está probando. `cuit`/`email`
 // no colisionan con los usuarios fijos del seed (`libreria_sur`/`editorial_norte`).
+// El detalle del registro con confirmación de email está en
+// user_acceso.test.ts; acá se confirma la cuenta para probar el perfil.
 const cuit = "20173080329"
 const userPath = join(__dirname, "../afipkeys/", cuit);
 let user: any = {
-    username: "testing",
     password: "ANASHEEEEEEE",
     email: "lauti@gmail.com"
 };
+const tokenDelLink = (url: string) => new URL(url).searchParams.get("token");
 
 let token: string;
 
@@ -74,11 +77,11 @@ describe('POST user/register', () => {
     });
 
     it('User no está en AFIP', async () => {
-        user.cuit = "12345";
+        user.cuit = CUIT_FUERA_DEL_PADRON;
         const res = await request(app)
             .post('/user/register').send(user)
         
-        expectNotFound(res);
+        expectErrorResponse(res, 422);
     });
 
     it('Creado con exito', async () => {
@@ -97,15 +100,20 @@ describe('POST user/register', () => {
         expect(fs.existsSync(join(userPath, "cert.csr"))).toBe(true);
     });
 
-    test('manda el mail de bienvenida con el CSR adjunto y el link a la guía', async () => {
-        expect(enviados).toHaveLength(1);
-        const [bienvenida] = enviados;
+    test('al confirmar el email manda la bienvenida con el CSR adjunto y el link a la guía', async () => {
+        expect(enviados.map((envio) => envio.alias)).toEqual(["confirmar-email"]);
 
+        const confirmacion = await request(app)
+            .post('/user/verify-email')
+            .send({ token: tokenDelLink(enviados[0].modelo.url_confirmar) });
+        expect(confirmacion.body.status).toBe("verified");
+
+        const bienvenida = enviados[1];
         expect(bienvenida).toMatchObject({
             alias: "bienvenida",
             para: user.email,
             modelo: {
-                nombre: user.username,
+                nombre: "CLIENTE DE PRUEBA",
                 cuit,
                 url_guia_certificado: expect.stringMatching(/\/ayuda\/certificado-arca$/),
                 url_perfil: expect.stringMatching(/\/perfil$/)
@@ -118,9 +126,10 @@ describe('POST user/register', () => {
 
     it('Crear usuario con el mismo cuit', async () => {
         const res = await request(app)
-            .post('/user/register').send(user)
+            .post('/user/register').send({ ...user, email: "otro-lauti@gmail.com" })
         
-        expectBadRequest(res);
+        expectConflict(res);
+        expect(res.body.errors[0]).toMatchObject({ code: "cuit_taken", field: "cuit" });
     });
 });
 
@@ -132,12 +141,12 @@ describe('POST user/register con el mail caído', () => {
         fs.rmSync(join(__dirname, "../afipkeys/", cuitSinMail), { recursive: true, force: true });
     });
 
-    test('si el envío de la bienvenida falla, el alta se completa igual', async () => {
+    test('si el envío del mail de confirmación falla, el alta se completa igual', async () => {
         fallarEnvio = true;
 
         const res = await request(app)
             .post('/user/register')
-            .send({ username: "sin-mail", password: "ANASHEEEEEEE", email: "sin-mail@test.com", cuit: cuitSinMail });
+            .send({ password: "ANASHEEEEEEE", email: "sin-mail@test.com", cuit: cuitSinMail });
 
         expectCreated(res);
     });
@@ -148,17 +157,17 @@ describe('POST /login', () => {
         user.password = "mala contraseña";
 
         const res = await request(app)
-            .post('/user/login').send(user)
+            .post('/user/login').send({ identifier: user.email, password: user.password })
         
         expectErrorResponse(res, 401);
-        expect(res.body.errors[0].message).toEqual("Contraseña incorrecta");
+        expect(res.body.errors[0].code).toEqual("invalid_credentials");
     });
 
     it('Login exitoso', async () => {
         user.password = "ANASHEEEEEEE";
 
         const res = await request(app)
-            .post('/user/login').send(user)
+            .post('/user/login').send({ identifier: user.email, password: user.password })
         
         expect(res.status).toBe(200);
         expect(res.body.message).toEqual("login exitoso");
@@ -201,7 +210,9 @@ describe('POST /login', () => {
         expectDataResponse(res, 200);
         const expected = {
             cuit: cuit,
-            username: "testing",
+            email: user.email,
+            username_interno: true,
+            email_confirmado: true,
             //email: "lauti@gmail.com",
             //ingresos_brutos: false,
             //fecha_inicio: "10/02/2025",

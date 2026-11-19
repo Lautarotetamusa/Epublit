@@ -1,0 +1,9 @@
+Elegí una contraseña nueva
+
+Pediste restablecer la contraseña de la cuenta de {{cuenta}} en Epublit. Para elegir una nueva, abrí este link:
+
+{{url_restablecer}}
+
+El link vence en 1 hora y sirve una sola vez.
+
+Si no lo pediste vos, ignorá este mail: tu contraseña sigue siendo la misma y nadie puede cambiarla sin este link.

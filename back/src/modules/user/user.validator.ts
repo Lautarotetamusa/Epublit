@@ -3,6 +3,21 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
 import { createPkSchema } from 'bradb';
 import { usersTable } from './user.schema';
 import {z} from 'zod';
+import { isValidCuit } from '../../lib/cuit';
+
+export const PASSWORD_MIN_LENGTH = 8;
+
+// Se compara y se guarda siempre así: el índice único del email no distingue
+// mayúsculas y el login por email tampoco.
+export const normalizarEmail = (email: string): string => email.trim().toLowerCase();
+
+const emailValido = z.string().transform(normalizarEmail).pipe(z.email());
+const passwordNueva = z.string().min(PASSWORD_MIN_LENGTH);
+// Se acepta pegado con guiones, espacios o puntos, como lo muestra ARCA.
+const cuitValido = z
+    .string()
+    .transform((cuit) => cuit.replace(/[\s.-]/g, ""))
+    .refine(isValidCuit);
 
 // Validators nuevos (Postgres/Drizzle), usados por user.controller.ts/user.service.ts.
 // `select` excluye siempre `password`: estructuralmente imposible devolver el
@@ -17,7 +32,7 @@ const insert = createInsertSchema(usersTable);
 // el usuario vuelve a dejarlo "sin límite", a diferencia de omitirlo (que
 // deja el valor previo intacto).
 const update = z.object({
-    email: z.string().min(1),
+    email: z.string().transform(normalizarEmail).pipe(z.string().min(1)),
     punto_venta: z.number().gte(0),
     // Datos fiscales del emisor (ver specs/019-ajustes-liquidaciones-fiscales-edad): antes sólo
     // se podían cambiar por el padrón de AFIP (`PUT /user/afip`), así que una
@@ -46,18 +61,32 @@ export const userValidator = {
     pk
 };
 
+// `identifier` es un email o un username: con `@` se busca por email
+// normalizado, sin `@` por username exacto (ver user.acceso.service.ts).
 export const loginUserValidator = z.object({
-    username: z.string(),
+    identifier: z.string(),
     password: z.string(),
 });
 
-export const createUserValidator = insert.pick({
-    username: true,
-    password: true,
-    cuit: true,
-    email: true,
+export const registroValidator = z.object({
+    email: emailValido,
+    password: passwordNueva,
+    cuit: cuitValido
 });
-export type CreateUserInput = z.infer<typeof createUserValidator>;
+export type RegistroInput = z.infer<typeof registroValidator>;
+
+export const emailValidator = z.object({ email: emailValido });
+
+// Un token vacío o ausente es un link inválido (404), no un 400: el front
+// muestra lo mismo en los dos casos.
+const tokenOpcional = z.string().catch("");
+
+export const tokenValidator = z.object({ token: tokenOpcional });
+
+export const restablecerContrasenaValidator = z.object({
+    password: passwordNueva,
+    token: tokenOpcional
+});
 
 // Validator viejo, todavía usado sólo por `lib/auth/auth.ts` (`TokenUser`):
 // `models/user.model.ts` (mysql2) se borró en la migración de

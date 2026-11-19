@@ -1,0 +1,11 @@
+{
+  "Name": "Confirmar email",
+  "Alias": "confirmar-email",
+  "Subject": "Confirmá tu email para usar Epublit",
+  "TemplateType": "Standard",
+  "LayoutTemplate": "base",
+  "TestRenderModel": {
+    "nombre": "Ediciones del Sur S.R.L.",
+    "url_confirmar": "http://localhost:5173/verificar-email?token=ok"
+  }
+}

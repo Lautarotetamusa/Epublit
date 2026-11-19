@@ -1,0 +1,28 @@
+meta {
+  name: Resend verification
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{host}}/user/resend-verification
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "ana@editorial.com"
+  }
+}
+
+docs {
+  Manda otro link de confirmación si el email es de una cuenta nueva sin
+  confirmar y vigente; si no, no manda nada y responde igual. Cada reenvío
+  corre 24 h el plazo de borrado de la cuenta.
+
+  - 202 `{ success, data: {} }`
+  - 400 `invalid_email` (`field: email`)
+  - 429 `too_many_requests`: menos de 60 s desde el último mail de la cuenta,
+    o ya hubo 3 reenvíos en 15 minutos.
+}

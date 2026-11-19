@@ -637,6 +637,12 @@ export function getKeyPath(cuit: string) {
     return join(afipKeysPath, cuit, "private_key.key");
 }
 
+// Sólo para una cuenta que se borra antes de haber facturado (ver
+// specs/026-registro-email): con la clave se va también su certificado.
+export async function eliminarClaves(cuit: string): Promise<void> {
+    await fs.promises.rm(join(afipKeysPath, cuit), { recursive: true, force: true });
+}
+
 export function createUserFolder(cuit: string) {
     const userPath = join(afipKeysPath, cuit);
 

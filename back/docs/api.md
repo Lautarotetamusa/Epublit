@@ -199,6 +199,11 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 
 - `POST   /user/register`
 - `POST   /user/login`
+- `POST   /user/verify-email`
+- `POST   /user/resend-verification`
+- `POST   /user/forgot-password`
+- `GET    /user/reset-password/:token`
+- `POST   /user/reset-password`
 - `PUT    /user`
 - `POST   /user/uploadCert`
 - `GET    /user/csr`

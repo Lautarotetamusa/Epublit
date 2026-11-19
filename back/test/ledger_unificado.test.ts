@@ -51,7 +51,7 @@ const stockDeCliente = async (clienteId: number) =>
     (await auth(request(app).get(`/cliente/${clienteId}/stock`))).body.data as { isbn: string; stock: number; precio: number }[];
 
 beforeAll(async () => {
-    const res = await request(app).post('/user/login').send({ username: 'libreria_sur', password: PASSWORD_SEED });
+    const res = await request(app).post('/user/login').send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
     efectivoId = await getMedioPagoId(app, token, 'efectivo');
 });

@@ -50,4 +50,31 @@ describe('Templates de Postmark', () => {
         expect(envio.modelo.url_guia_certificado).toBe("https://panel.epublit.test/ayuda/certificado-arca");
         expect(envio.modelo.url_perfil).toBe("https://panel.epublit.test/perfil");
     });
+
+    test('la confirmación de email manda todas las variables de su template y el link al panel', async () => {
+        const envio = await capturarEnvio((service) =>
+            service.enviarConfirmacionEmail({ para: "a@b.com", nombre: "Ediciones del Sur S.R.L.", token: "abc_123-x" })
+        );
+
+        expect(envio.alias).toBe("confirmar-email");
+        expect(envio.para).toBe("a@b.com");
+        for (const variable of variablesDe("confirmar-email")) {
+            expect(envio.modelo, `falta "${variable}" en el modelo`).toHaveProperty(variable);
+        }
+        expect(envio.modelo.nombre).toBe("Ediciones del Sur S.R.L.");
+        expect(envio.modelo.url_confirmar).toBe("https://panel.epublit.test/verificar-email?token=abc_123-x");
+    });
+
+    test('el restablecimiento de contraseña manda todas las variables de su template y el link al panel', async () => {
+        const envio = await capturarEnvio((service) =>
+            service.enviarRestablecimientoContrasena({ para: "a@b.com", cuenta: "Librería Sur S.A. (usuario libreria_sur)", token: "abc_123-x" })
+        );
+
+        expect(envio.alias).toBe("restablecer-contrasena");
+        for (const variable of variablesDe("restablecer-contrasena")) {
+            expect(envio.modelo, `falta "${variable}" en el modelo`).toHaveProperty(variable);
+        }
+        expect(envio.modelo.cuenta).toBe("Librería Sur S.A. (usuario libreria_sur)");
+        expect(envio.modelo.url_restablecer).toBe("https://panel.epublit.test/restablecer-contrasena?token=abc_123-x");
+    });
 });

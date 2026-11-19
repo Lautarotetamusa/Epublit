@@ -1,7 +1,9 @@
 import type { AdjuntoEmail, TransporteEmail } from "./email.types";
 
 export const TEMPLATES = {
-    bienvenida: "bienvenida"
+    bienvenida: "bienvenida",
+    confirmarEmail: "confirmar-email",
+    restablecerContrasena: "restablecer-contrasena"
 } as const;
 
 export type EmailServiceDeps = {
@@ -17,7 +19,27 @@ export type Bienvenida = {
     csr: Buffer;
 };
 
+export type ConfirmacionEmail = {
+    para: string;
+    nombre: string;
+    token: string;
+};
+
+export type RestablecimientoContrasena = {
+    para: string;
+    // Llega armada (razón social, más el usuario en cuentas viejas) para no
+    // depender de condicionales de Mustachio en el template.
+    cuenta: string;
+    token: string;
+};
+
 const urlEn = (base: string, ruta: string) => new URL(ruta, base).toString();
+
+const urlConToken = (base: string, ruta: string, token: string) => {
+    const url = new URL(ruta, base);
+    url.searchParams.set("token", token);
+    return url.toString();
+};
 
 // Un método tipado por mail (no un `enviar(alias, any)`): si un template pide
 // un dato nuevo, el compilador marca a quién le falta.
@@ -39,7 +61,25 @@ export function createEmailService({ transporte, panelUrl }: EmailServiceDeps) {
         });
     };
 
-    return { enviarBienvenida };
+    const enviarConfirmacionEmail = async ({ para, nombre, token }: ConfirmacionEmail): Promise<void> => {
+        await transporte({
+            alias: TEMPLATES.confirmarEmail,
+            para,
+            modelo: { nombre, url_confirmar: urlConToken(panelUrl, "/verificar-email", token) },
+            adjuntos: []
+        });
+    };
+
+    const enviarRestablecimientoContrasena = async ({ para, cuenta, token }: RestablecimientoContrasena): Promise<void> => {
+        await transporte({
+            alias: TEMPLATES.restablecerContrasena,
+            para,
+            modelo: { cuenta, url_restablecer: urlConToken(panelUrl, "/restablecer-contrasena", token) },
+            adjuntos: []
+        });
+    };
+
+    return { enviarBienvenida, enviarConfirmacionEmail, enviarRestablecimientoContrasena };
 }
 
 export type EmailService = ReturnType<typeof createEmailService>;

@@ -10,7 +10,7 @@ import { createColeccionModule } from "./modules/coleccion";
 import { createDepositoModule } from "./modules/deposito";
 import { createMovimientoModule } from "./modules/movimiento";
 import { createLibroModule } from "./modules/libro";
-import { createUserModule } from "./modules/user";
+import { createUserModule, UserModuleDeps } from "./modules/user";
 import { createClienteModule } from "./modules/cliente";
 import { createRolModule } from "./modules/rol";
 import { createMedioPagoModule } from "./modules/medioPago";
@@ -42,8 +42,11 @@ export type TiendaOverrides = {
     rateLimits?: PublicRateLimitConfig;
 };
 
+export type UserOverrides = Pick<UserModuleDeps, "ahora" | "generarUsernameInterno">;
+
 export type CreateContainerDeps = {
     afipService?: AfipService;
+    user?: UserOverrides;
     emailTransporte?: TransporteEmail;
     storage?: Storage;
     tienda?: TiendaOverrides;
@@ -55,7 +58,8 @@ export function createContainer({
         ? createTransportePostmark({ serverToken: env.POSTMARK_SERVER_TOKEN, from: env.EMAIL_FROM, messageStream: env.POSTMARK_MESSAGE_STREAM })
         : createTransporteLog(),
     storage = createLocalStorage({ basePath: env.FILES_PATH, host: env.HOST }),
-    tienda: tiendaOverrides = {}
+    tienda: tiendaOverrides = {},
+    user: userOverrides = {}
 }: CreateContainerDeps = {}) {
     const cipher = tiendaOverrides.cipher ?? createCredentialsCipher(env.CREDENTIALS_ENCRYPTION_KEY);
     const mercadoPagoConfig: MercadoPagoConfig = {
@@ -91,7 +95,7 @@ export function createContainer({
     // specs/012-liquidaciones-pagos).
     const anticipo = createAnticipoModule({ db });
     const emailService = createEmailService({ transporte: emailTransporte, panelUrl: env.PANEL_URL });
-    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
+    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository, ...userOverrides });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
     const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });

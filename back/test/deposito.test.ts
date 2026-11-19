@@ -12,7 +12,7 @@ import { createApp } from '../src/app';
 import { createMockAfipService } from '../src/lib/afip/Afip.mock';
 import { isbn } from '../seeders/data';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
-import { expectBadRequest, expectCreated, expectNotFound, expectUpdated } from './util';
+import { expectBadRequest, expectCreated, expectNotFound, expectUpdated, registrarCuentaConfirmada } from './util';
 import { depositosTable } from '../src/modules/deposito/deposito.schema';
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
 import { movimientosTable } from '../src/modules/movimiento/movimiento.schema';
@@ -59,8 +59,8 @@ async function ingreso(depositoId: number, libros: { isbn: string; cantidad: num
 
 beforeAll(async () => {
     const [res, otroRes] = await Promise.all([
-        request(app).post('/user/login').send({ username: 'libreria_sur', password: PASSWORD_SEED }),
-        request(app).post('/user/login').send({ username: 'editorial_norte', password: PASSWORD_SEED })
+        request(app).post('/user/login').send({ identifier: 'libreria_sur', password: PASSWORD_SEED }),
+        request(app).post('/user/login').send({ identifier: 'editorial_norte', password: PASSWORD_SEED })
     ]);
 
     token = res.body.token;
@@ -72,21 +72,14 @@ afterAll(() => {
 });
 
 describe('depósito principal de un usuario nuevo', () => {
-    const username = 'deposito_nuevo';
-    const cuitNuevo = '20400000011';
+    const cuitNuevo = '20400000019';
     const password = 'seed12345';
     let tokenNuevo: string;
 
     beforeAll(async () => {
         fs.rmSync(join(__dirname, '../afipkeys/', cuitNuevo), { recursive: true, force: true });
 
-        const registro = await request(app)
-            .post('/user/register')
-            .send({ username, password, cuit: cuitNuevo, email: 'deposito_nuevo@test.com' });
-        expectCreated(registro);
-
-        const login = await request(app).post('/user/login').send({ username, password });
-        tokenNuevo = login.body.token;
+        ({ token: tokenNuevo } = await registrarCuentaConfirmada(app, { password, cuit: cuitNuevo, email: 'deposito_nuevo@test.com' }));
     });
 
     it('registrar un usuario nuevo le crea exactamente un depósito principal, vacío', async () => {

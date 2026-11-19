@@ -40,7 +40,7 @@ afterAll(() => {
 beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
 });

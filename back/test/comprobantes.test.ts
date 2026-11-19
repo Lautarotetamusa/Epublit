@@ -102,12 +102,12 @@ const crearVenta = async (
 beforeAll(async () => {
     const login = await request(app)
         .post("/user/login")
-        .send({ username: "libreria_sur", password: PASSWORD_SEED });
+        .send({ identifier: "libreria_sur", password: PASSWORD_SEED });
     token = login.body.token;
 
     const loginOtro = await request(app)
         .post("/user/login")
-        .send({ username: "editorial_norte", password: PASSWORD_SEED });
+        .send({ identifier: "editorial_norte", password: PASSWORD_SEED });
     otroToken = loginOtro.body.token;
 
     const [user] = await db
@@ -523,7 +523,7 @@ describe("constraints de la base", () => {
         const isbnOtro = isbn(8511);
         const loginOtro = await request(app)
             .post("/user/login")
-            .send({ username: "editorial_norte", password: PASSWORD_SEED });
+            .send({ identifier: "editorial_norte", password: PASSWORD_SEED });
         const libroOtro = await request(app)
             .post("/libro/")
             .set("Authorization", `Bearer ${loginOtro.body.token}`)

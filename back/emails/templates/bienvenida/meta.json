@@ -5,7 +5,7 @@
   "TemplateType": "Standard",
   "LayoutTemplate": "base",
   "TestRenderModel": {
-    "nombre": "libreria_sur",
+    "nombre": "Librería Sur S.A.",
     "cuit": "20300000013",
     "url_panel": "http://localhost:5173/",
     "url_perfil": "http://localhost:5173/perfil",

@@ -16,3 +16,10 @@ body:json {
     "punto_venta": 5
   }
 }
+
+docs {
+  `email` se normaliza (trim + minúsculas). Si ya es de otra cuenta (sin
+  distinguir mayúsculas): 409 `email_taken` con `field: email`. Guardar el
+  propio email con otras mayúsculas no es error. El username no se edita
+  desde acá.
+}

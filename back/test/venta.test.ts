@@ -35,7 +35,7 @@ let venta: any = {};
 beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
 
     token = res.body.token;
     efectivoId = await getMedioPagoId(app, token, 'efectivo');
@@ -315,7 +315,7 @@ describe('VENTA', () => {
             test('cliente de otro usuario: 200 con lista vacía', async () => {
                 const loginOtro = await request(app)
                     .post('/user/login')
-                    .send({ username: 'editorial_norte', password: PASSWORD_SEED });
+                    .send({ identifier: 'editorial_norte', password: PASSWORD_SEED });
                 const clientesOtro = await request(app)
                     .get('/cliente')
                     .set('Authorization', `Bearer ${loginOtro.body.token}`);
@@ -586,7 +586,7 @@ describe('POST /venta con deposito_id (specs/018)', () => {
         const ingresoPrincipal = await cargarStockPrincipal(app, token, isbnLibro, 3);
         expect(ingresoPrincipal.status).toBe(201);
 
-        const loginOtro = await request(app).post('/user/login').send({ username: 'editorial_norte', password: PASSWORD_SEED });
+        const loginOtro = await request(app).post('/user/login').send({ identifier: 'editorial_norte', password: PASSWORD_SEED });
         const ajeno = await auth(request(app).post('/deposito/').send({ nombre: 'Depósito 018 ajeno' }), loginOtro.body.token);
         depositoAjenoId = ajeno.body.data.id;
     });

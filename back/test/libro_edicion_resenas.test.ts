@@ -35,8 +35,8 @@ const crearLibro = async (isbnLibro: string, titulo: string, extra: Record<strin
 };
 
 beforeAll(async () => {
-    token = (await request(app).post('/user/login').send({ username: 'libreria_sur', password: PASSWORD_SEED })).body.token;
-    otroToken = (await request(app).post('/user/login').send({ username: 'editorial_norte', password: PASSWORD_SEED })).body.token;
+    token = (await request(app).post('/user/login').send({ identifier: 'libreria_sur', password: PASSWORD_SEED })).body.token;
+    otroToken = (await request(app).post('/user/login').send({ identifier: 'editorial_norte', password: PASSWORD_SEED })).body.token;
 
     const integracion = await auth(request(app).post('/integraciones').send({ nombre: 'Visibilidad', origen: ORIGEN }));
     expectCreated(integracion);

@@ -94,6 +94,12 @@ export function createRolRepository({ db }: RolRepositoryDeps) {
         return rows.length > 0;
     };
 
+    // Borrado físico, sólo para dar de baja una cuenta que nunca se usó (ver
+    // specs/026-registro-email): la baja de un día a día es lógica.
+    const removeAllOfUser = async (userId: number, tx: Tx) => {
+        await tx.delete(rolesTable).where(eq(rolesTable.user, userId));
+    };
+
     return {
         findOne,
         insert,
@@ -103,7 +109,8 @@ export function createRolRepository({ db }: RolRepositoryDeps) {
         findActivos,
         findByNombreActivo,
         existsEnCuenta,
-        enUso
+        enUso,
+        removeAllOfUser
     };
 }
 

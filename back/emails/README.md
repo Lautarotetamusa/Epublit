@@ -23,3 +23,12 @@ Si `POSTMARK_SERVER_TOKEN` está vacío, los mails no se envían: quedan en el
 log del back (`[email] sin POSTMARK_SERVER_TOKEN`). En producción, al cargar el
 token también hacen falta `EMAIL_FROM` (remitente verificado) y `PANEL_URL`
 (https, base de los links).
+
+## Logo
+
+El layout `base` muestra `https://epublit.com.ar/email/logo.png`, que se
+publica con el deploy de la landing (`landing/public/email/logo.png`). Los
+clientes de correo no muestran SVG ni `data:` de forma confiable, por eso es un
+PNG hosteado: está a 2x (192×56) y se muestra a 96×28 para que se vea nítido en
+pantallas retina. Hasta que esa URL exista en producción, se ve el `alt`
+("Epublit" en blanco, con el estilo del encabezado).

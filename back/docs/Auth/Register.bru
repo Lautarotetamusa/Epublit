@@ -12,15 +12,24 @@ post {
 
 body:json {
   {
-    "username": "testing",
+    "email": "ana@editorial.com",
     "password": "Test1234.",
-    "cuit": "20173080329",
-    "email": "test@gmail.com"
+    "cuit": "20-17308032-9"
   }
 }
 
 docs {
-  Migrado a Postgres. Consulta AFIP con el `cuit`, crea el usuario y genera
-  clave privada + CSR. No requiere autores/ilustradores ni nada de otro
-  módulo. `password` nunca se devuelve en la respuesta.
+  Sin username: el back genera uno interno. `email` se normaliza (trim +
+  minúsculas); `cuit` acepta guiones, espacios o puntos. Crea la cuenta sin
+  confirmar (clave privada + CSR incluidos) y manda el mail
+  `confirmar-email`; la bienvenida sale al confirmar. Una cuenta sin
+  confirmar no retiene su email ni su CUIT: registrarse de nuevo la reemplaza.
+
+  - 201 `{ data: { email } }`
+  - 400 `invalid_email` / `password_too_short` / `invalid_cuit` (con `field`)
+  - 409 `email_taken` / `cuit_taken` (con `field`)
+  - 422 `cuit_not_in_padron` (`field: cuit`)
+  - 502 `padron_unavailable`
+
+  Orden: formato, email/CUIT tomados, padrón.
 }

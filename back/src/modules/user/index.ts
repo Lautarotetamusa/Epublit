@@ -5,39 +5,61 @@
 // el ciclo contra `createUserService`, mismo motivo que en Persona/Libro.
 import { Database } from "../../db/client";
 import { AfipService } from "../../lib/afip/Afip";
-import type { EmailService } from "../../lib/email";
-import { DepositoRepository } from "../deposito";
-import { MedioPagoRepository } from "../medioPago";
-import { RolRepository } from "../rol";
+import { createLimiteDeEnvios } from "../../lib/limiteDeEnvios";
 import { createUserRepository } from "./user.repository";
-import { createUserService } from "./user.service";
+import { createTokenCuentaRepository } from "./tokenCuenta.repository";
+import { createUserService, UserServiceDeps } from "./user.service";
+import { createAccesoService, AccesoServiceDeps } from "./user.acceso.service";
+import { ESPERA_ENTRE_ENVIOS_MS, MAXIMO_ENVIOS_EN_VENTANA, VENTANA_DE_ENVIOS_MS } from "./user.acceso";
+import { generarUsernameInterno } from "./user.username";
 import { createUserController } from "./user.controller";
 import { createUserRoutes } from "./user.routes";
 
-export type { User, UserInsert, UserUpdate, CreateUserInput, TokenUser } from "./user.validator";
+export type { User, UserInsert, UserUpdate, RegistroInput, TokenUser } from "./user.validator";
 export type { UserService } from "./user.service";
+export type { AccesoService } from "./user.acceso.service";
+export { startLimpiezaCuentasPendientes } from "./user.limpieza";
 export type { UserRepository } from "./user.repository";
 
-export type UserModuleDeps = {
+export type UserModuleDeps = Pick<UserServiceDeps, "depositoRepository" | "medioPagoRepository" | "rolRepository"> & {
     db: Database;
     afipService: AfipService;
-    // Sólo la bienvenida, que se manda al registrarse.
-    emailService: Pick<EmailService, "enviarBienvenida">;
-    // Sólo inserción del depósito principal en el alta del usuario.
-    depositoRepository: Pick<DepositoRepository, "insert">;
-    // Sólo inserción de los medios de pago por defecto en el alta.
-    medioPagoRepository: Pick<MedioPagoRepository, "insertDefaults">;
-    // Sólo inserción de los roles por defecto en el alta.
-    rolRepository: Pick<RolRepository, "insertDefaults">;
+    emailService: AccesoServiceDeps["emailService"];
+    // Los tests inyectan un reloj y un generador propios (ver test/user_acceso.test.ts).
+    ahora?: () => Date;
+    generarUsernameInterno?: () => string;
 };
 
-export function createUserModule({ db, afipService, emailService, depositoRepository, medioPagoRepository, rolRepository }: UserModuleDeps) {
+export function createUserModule({
+    db,
+    afipService,
+    emailService,
+    depositoRepository,
+    medioPagoRepository,
+    rolRepository,
+    ahora = () => new Date(),
+    generarUsernameInterno: generarUsername = generarUsernameInterno
+}: UserModuleDeps) {
     const repository = createUserRepository({ db });
-    const service = createUserService({ db, repository, afipService, emailService, depositoRepository, medioPagoRepository, rolRepository });
-    const controller = createUserController({ service });
+    const tokenRepository = createTokenCuentaRepository({ db });
+    const service = createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository });
+    const limitesDeEnvio = { ahora, esperaMinimaMs: ESPERA_ENTRE_ENVIOS_MS, ventanaMs: VENTANA_DE_ENVIOS_MS, maximoEnVentana: MAXIMO_ENVIOS_EN_VENTANA };
+    const accesoService = createAccesoService({
+        db,
+        repository,
+        tokenRepository,
+        userService: service,
+        afipService,
+        emailService,
+        ahora,
+        generarUsernameInterno: generarUsername,
+        limiteDeReenvios: createLimiteDeEnvios(limitesDeEnvio),
+        limiteDeRestablecimientos: createLimiteDeEnvios(limitesDeEnvio)
+    });
+    const controller = createUserController({ service, accesoService });
     const router = createUserRoutes(controller);
 
-    return { service, repository, router };
+    return { service, accesoService, repository, router };
 }
 
 export type UserModule = ReturnType<typeof createUserModule>;

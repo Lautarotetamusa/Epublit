@@ -76,12 +76,12 @@ const crearRol = async (nombre: string) => {
 beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
 
     const otro = await request(app)
         .post('/user/login')
-        .send({ username: 'editorial_norte', password: PASSWORD_SEED });
+        .send({ identifier: 'editorial_norte', password: PASSWORD_SEED });
     otroToken = otro.body.token;
 
     apiKey = await crearIntegracion('Catálogo', ORIGEN);

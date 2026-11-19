@@ -80,7 +80,7 @@ const disponibilidad = (libro: { id_libro: number; isbn: string; titulo: string 
 beforeAll(async () => {
     const login = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
     token = login.body.token;
 
     const [user] = await db

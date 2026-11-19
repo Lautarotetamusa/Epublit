@@ -15,7 +15,7 @@ import { movimientosTable, movimientosLibrosTable } from '../src/modules/movimie
 import { depositoLibrosTable } from '../src/modules/deposito/depositoLibros.schema';
 import { librosTable } from '../src/modules/libro/libro.schema';
 import { diaDeFecha, inicioDelMes, mesAnterior, mesDeFecha, resolverPeriodo, ultimoDiaDelMes, ultimosMeses } from '../src/modules/metricas/metricas.periodo';
-import { expectBadRequest, expectDataResponse, getMedioPagoId } from './util';
+import { expectBadRequest, expectDataResponse, getMedioPagoId, registrarCuentaConfirmada } from './util';
 import { cuit, isbn } from '../seeders/data';
 
 const container = createContainer({ afipService: createMockAfipService() });
@@ -33,8 +33,8 @@ const dosDigitos = (n: number): string => String(n).padStart(2, "0");
 const formatearDia = (mes: string, dia: number): string => `${mes}-${dosDigitos(dia)}`;
 const redondear2 = (n: number): number => Math.round(n * 100) / 100;
 
-const USUARIO = { username: "metricas_test", password: "metricas123", cuit: "20480000031", email: "metricas@test.com" };
-const USUARIO_VACIO = { username: "metricas_vacio", password: "metricas123", cuit: "20480000032", email: "metricas-vacio@test.com" };
+const USUARIO = { password: "metricas123", cuit: "20480000049", email: "metricas@test.com" };
+const USUARIO_VACIO = { password: "metricas123", cuit: "20480000057", email: "metricas-vacio@test.com" };
 
 let token: string;
 let tokenVacio: string;
@@ -51,14 +51,12 @@ let libro3: any;
 const auth = () => ({ Authorization: `Bearer ${token}` });
 
 const registrar = async (usuario: typeof USUARIO): Promise<{ token: string; userId: number }> => {
-    const alta = await request(app).post('/user/register').send(usuario);
-    expectDataResponse(alta, 201);
+    const cuenta = await registrarCuentaConfirmada(app, usuario);
     // Punto de venta obligatorio para poder vender (ver operacion.service.ts).
-    const actualizado = await container.user.service.update(alta.body.data.id, { punto_venta: 1 });
+    const actualizado = await container.user.service.update(cuenta.userId, { punto_venta: 1 });
     expect(actualizado.changed).toBe(true);
 
-    const login = await request(app).post('/user/login').send({ username: usuario.username, password: usuario.password });
-    return { token: login.body.token, userId: alta.body.data.id };
+    return cuenta;
 };
 
 const crearLibro = async (isbnLibro: string, precio: number) => {

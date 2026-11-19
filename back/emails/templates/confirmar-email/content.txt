@@ -1,0 +1,11 @@
+Confirmá tu email
+
+Recibimos el registro de {{nombre}} en Epublit. Para terminar de crear la cuenta, confirmá que este email es tuyo abriendo este link:
+
+{{url_confirmar}}
+
+Cuando lo confirmes vas a poder ingresar, y te mandamos la bienvenida con el pedido de certificado para la facturación electrónica en ARCA.
+
+El link vence en 24 horas.
+
+Si no creaste una cuenta en Epublit, ignorá este mail: sin confirmar, la cuenta no se puede usar.

@@ -62,7 +62,7 @@ async function moverFechaTransaccion(idMovimiento: number, fecha: Date) {
 beforeAll(async () => {
     const res = await request(app)
         .post('/user/login')
-        .send({ username: 'libreria_sur', password: PASSWORD_SEED });
+        .send({ identifier: 'libreria_sur', password: PASSWORD_SEED });
     token = res.body.token;
     efectivoId = await getMedioPagoId(app, token, 'efectivo');
     rolAutor = await getRolId(app, token, 'autor');
@@ -449,7 +449,7 @@ describe('GET /liquidacion: aislamiento por usuario', () => {
 
         const resLoginOtro = await request(app)
             .post('/user/login')
-            .send({ username: 'editorial_norte', password: PASSWORD_SEED });
+            .send({ identifier: 'editorial_norte', password: PASSWORD_SEED });
         const tokenOtro = resLoginOtro.body.token;
         const efectivoIdOtro = await getMedioPagoId(app, tokenOtro, 'efectivo');
 

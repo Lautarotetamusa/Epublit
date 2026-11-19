@@ -1,0 +1,11 @@
+{
+  "Name": "Restablecer contraseña",
+  "Alias": "restablecer-contrasena",
+  "Subject": "Restablecé tu contraseña de Epublit",
+  "TemplateType": "Standard",
+  "LayoutTemplate": "base",
+  "TestRenderModel": {
+    "cuenta": "Librería Sur S.A. (usuario libreria_sur)",
+    "url_restablecer": "http://localhost:5173/restablecer-contrasena?token=ok-usuario"
+  }
+}

@@ -134,8 +134,8 @@ async function imagenDe(uso: "portada" | "bloque", ancho: number, alto: number, 
 
 beforeAll(async () => {
     const [res, otro] = await Promise.all([
-        request(app).post('/user/login').send({ username: 'libreria_sur', password: PASSWORD_SEED }),
-        request(app).post('/user/login').send({ username: 'editorial_norte', password: PASSWORD_SEED })
+        request(app).post('/user/login').send({ identifier: 'libreria_sur', password: PASSWORD_SEED }),
+        request(app).post('/user/login').send({ identifier: 'editorial_norte', password: PASSWORD_SEED })
     ]);
 
     token = res.body.token;

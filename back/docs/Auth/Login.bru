@@ -12,7 +12,7 @@ post {
 
 body:json {
   {
-    "username": "testing",
+    "identifier": "ana@editorial.com",
     "password": "Test1234."
   }
 }
@@ -28,7 +28,15 @@ script:post-response {
 }
 
 docs {
-  Migrado a Postgres. El JWT tiene la misma forma que antes de la migración
-  (`{id, cuit}`), así que sigue siendo válido para los módulos que todavía
-  no migraron.
+  `identifier` es un email o un username: con `@` se busca por email
+  (normalizado, sin distinguir mayúsculas), sin `@` por username exacto (las
+  cuentas viejas siguen entrando con su usuario).
+
+  - 200 `{ success, message, token }`. El JWT es `{id, cuit}`.
+  - 401 `invalid_credentials`: no existe, contraseña incorrecta o cuenta
+    pendiente vencida (se borra en ese momento).
+  - 403 `email_not_verified` (+ `email`): contraseña correcta pero la cuenta
+    nueva todavía no confirmó el email. Las cuentas viejas nunca lo reciben.
+
+  Errores: `{ success: false, errors: [{ code, message, field?, email? }] }`.
 }

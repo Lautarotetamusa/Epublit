@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 import { ServiceBuilder } from "bradb";
 import { Database, Tx } from "../../db/client";
 import { usersTable } from "./user.schema";
@@ -33,7 +33,10 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
                 punto_venta: usersTable.punto_venta,
                 foto_persona_max_size_mb: usersTable.foto_persona_max_size_mb,
                 foto_persona_min_ancho_px: usersTable.foto_persona_min_ancho_px,
-                foto_persona_min_alto_px: usersTable.foto_persona_min_alto_px
+                foto_persona_min_alto_px: usersTable.foto_persona_min_alto_px,
+                email_confirmado: usersTable.email_confirmado,
+                username_interno: usersTable.username_interno,
+                confirmacion_enviada_en: usersTable.confirmacion_enviada_en
             })
             .from(usersTable)
             .$dynamic();
@@ -48,25 +51,35 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
     // eslint-disable-next-line local/no-redundant-wrapper
     const stripPassword = (row: typeof usersTable.$inferSelect): User => userValidator.select.parse(row);
 
+    // Sin distinguir mayúsculas, igual que el índice único del username.
     const existsByUsername = async (username: string): Promise<boolean> => {
         const rows = await db
             .select({ id: usersTable.id })
             .from(usersTable)
-            .where(eq(usersTable.username, username))
+            .where(sql`lower(${usersTable.username}) = lower(${username})`)
             .limit(1);
 
         return rows.length > 0;
     };
 
-    const existsByCuit = async (cuit: string): Promise<boolean> => {
-        const rows = await db
-            .select({ id: usersTable.id })
-            .from(usersTable)
-            .where(eq(usersTable.cuit, cuit))
-            .limit(1);
-
-        return rows.length > 0;
+    // `email` ya normalizado (ver `normalizarEmail`).
+    const findByEmail = async (email: string): Promise<User | undefined> => {
+        const [user] = await selectWithoutPassword().where(sql`lower(${usersTable.email}) = ${email}`);
+        return user;
     };
+
+    // No hay índice único sobre el CUIT: una cuenta vieja duplicada no se
+    // descarta.
+    const findByCuit = async (cuit: string): Promise<User[]> => selectWithoutPassword().where(eq(usersTable.cuit, cuit));
+
+    const findPendientesVencidas = async (enviadaAntesDe: Date): Promise<User[]> =>
+        selectWithoutPassword().where(
+            and(
+                eq(usersTable.username_interno, true),
+                eq(usersTable.email_confirmado, false),
+                lt(usersTable.confirmacion_enviada_en, enviadaAntesDe)
+            )
+        );
 
     const getPasswordHash = async (id: number): Promise<string> => {
         const rows = await db
@@ -80,12 +93,10 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
         return rows[0].password;
     };
 
-    const findByUsername = async (username: string): Promise<User> => {
-        const rows = await selectWithoutPassword().where(eq(usersTable.username, username));
-
-        if (rows.length === 0) throw new NotFound(`No existe un usuario con username ${username}`);
-
-        return rows[0];
+    // Exacto: ninguna cuenta vieja cambia cómo entra.
+    const findByUsername = async (username: string): Promise<User | undefined> => {
+        const [user] = await selectWithoutPassword().where(eq(usersTable.username, username));
+        return user;
     };
 
     const insertUser = async (data: UserInsert, tx?: Tx) => {
@@ -132,7 +143,9 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
         persistUpdate,
         stripPassword,
         existsByUsername,
-        existsByCuit,
+        findByEmail,
+        findByCuit,
+        findPendientesVencidas,
         getPasswordHash,
         findByUsername,
         insertUser,
