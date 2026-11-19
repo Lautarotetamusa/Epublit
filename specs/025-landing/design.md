@@ -54,7 +54,8 @@ landing anterior:
      inicio). Muestras con datos de ejemplo rotuladas en consignaciones
      (remito), facturación (factura A) y tienda (pedido), porque no había
      captura publicable sin datos personales.
-  6. Planes (3, mismos precios y límites), preguntas frecuentes, cierre verde
+  6. Plan único (2026-11-19: $ 49.000/mes, anual $ 490.000, un mes de
+     prueba, ajuste cada 4 meses por IPC, soporte por mail y WhatsApp), preguntas frecuentes, cierre verde
      con CTA, pie con enlaces (crear cuenta, iniciar sesión, centro de ayuda,
      Thorque).
 - Material: capturas en `landing/public/capturas/` (webp, 11 a 35 KB cada
@@ -119,16 +120,8 @@ provea nada nuevo.
    publicar? (spec 020 muestra que Libros Silvestres usa Epublit). Por ahora
    no aparece. La cita de la landing vieja comparaba con otro sistema; si
    vuelve, haría falta una cita nueva aprobada por ella.
-2. **"Contactar ventas"** (plan Empresarial): no hay mail, WhatsApp ni
-   formulario publicado. Hoy lleva al registro, igual que antes. ¿Cuál es el
-   canal?
-3. **Qué distingue a los planes**: en la app nada se limita por plan (ni
-   cantidad de títulos ni facturación). Se dejaron los textos de la landing
-   anterior tal cual. ¿"Reportes personalizados" son las métricas, el reporte
-   por autor, o algo más? ¿La facturación electrónica es sólo del
-   Profesional para arriba? Si es para todos, conviene sacarla de ahí.
-4. **Nombre del plan superior**: en la landing vieja se llama "Empresarial";
-   se mantuvo.
+2–4. ~~Contactar ventas, qué distingue a los planes, nombre del plan
+   superior~~: resueltas el 2026-11-19 con el plan único.
 5. **Tienda online**: la pregunta frecuente dice "Si no tenés sitio,
    escribinos y lo vemos". ¿Thorque ofrece hacer la tienda a medida (como la
    de Libros Silvestres)? Si no, se saca esa frase.

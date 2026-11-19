@@ -123,40 +123,26 @@ export const FUNCIONALIDADES: Funcionalidad[] = [
 ];
 
 export interface Plan {
-    nombre: string;
-    precio: string;
-    para: string;
+    precioMensual: string;
+    precioAnual: string;
+    ahorroAnual: string;
     incluye: string[];
-    accion: { texto: string; destino: "registrarse" | "contactarVentas" };
-    destacado?: boolean;
+    ajuste: string;
 }
 
-// Precios, límites y features tal cual la landing anterior: son decisiones
-// comerciales, no se tocan desde acá (preguntas abiertas en design.md).
-export const PLANES: Plan[] = [
-    {
-        nombre: "Básico",
-        precio: "$ 0",
-        para: "Para editoriales chicas o independientes.",
-        incluye: ["Hasta 30 títulos", "Gestión de stock"],
-        accion: { texto: "Crear cuenta", destino: "registrarse" }
-    },
-    {
-        nombre: "Profesional",
-        precio: "$ 27.000",
-        para: "Para editoriales en crecimiento.",
-        incluye: ["Todo lo del plan Básico", "Hasta 200 títulos", "Reportes personalizados", "Facturación automática"],
-        accion: { texto: "Crear cuenta", destino: "registrarse" },
-        destacado: true
-    },
-    {
-        nombre: "Empresarial",
-        precio: "$ 49.000",
-        para: "Para editoriales con catálogo grande.",
-        incluye: ["Todo lo del plan Profesional", "Títulos ilimitados", "Soporte prioritario"],
-        accion: { texto: "Contactar ventas", destino: "contactarVentas" }
-    }
-];
+// Plan único (decisión comercial del 2026-11-19): todo incluido, un mes de
+// prueba y el anual con dos meses de regalo (10 × el mensual).
+export const PLAN: Plan = {
+    precioMensual: "$ 49.000",
+    precioAnual: "$ 490.000",
+    ahorroAnual: "dos meses gratis",
+    incluye: [
+        "Un mes de prueba gratis",
+        "Todas las funcionalidades: catálogo, stock, consignaciones, facturación ante ARCA, liquidaciones y tienda online",
+        "Soporte por mail y WhatsApp"
+    ],
+    ajuste: "El precio se ajusta cada 4 meses por IPC."
+};
 
 export interface Pregunta {
     pregunta: string;
@@ -170,9 +156,9 @@ export const PREGUNTAS: Pregunta[] = [
             "No. Epublit funciona en el navegador, desde la computadora de la oficina o la del depósito. Entrás con tu usuario y tu editorial está ahí."
     },
     {
-        pregunta: "¿El plan Básico es gratis?",
+        pregunta: "¿Cuánto cuesta?",
         respuesta:
-            "Sí, cuesta $ 0 por mes y alcanza para un catálogo de hasta 30 títulos. Para crear la cuenta no te pedimos tarjeta."
+            "Hay un solo plan con todo incluido: $ 49.000 por mes, o $ 490.000 si pagás el año entero (dos meses gratis). El primer mes es de prueba y no se paga. El precio se ajusta cada 4 meses por IPC."
     },
     {
         pregunta: "¿Qué necesito para facturar electrónicamente?",

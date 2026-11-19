@@ -14,14 +14,14 @@ export function Tapa() {
                 </p>
                 <div className="l-acciones">
                     <Button href={ENLACES.registrarse} size="lg" iconEnd="arrow-right">
-                        Crear cuenta gratis
+                        Probar gratis un mes
                     </Button>
                     <Button href="#planes" variant="secondary" size="lg">
                         Ver planes
                     </Button>
                 </div>
                 <p className="l-tapa-nota">
-                    Plan Básico a $ 0 por mes, hasta 30 títulos. ¿Ya tenés cuenta? <a href={ENLACES.iniciarSesion}>Iniciá sesión</a>.
+                    Un mes de prueba gratis, con todo incluido. ¿Ya tenés cuenta? <a href={ENLACES.iniciarSesion}>Iniciá sesión</a>.
                 </p>
             </div>
             <div className="l-contenedor l-tapa-captura">

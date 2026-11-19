@@ -83,8 +83,9 @@ plan aplicados por el sistema.
 
 - Logos: `front/src/design-system/assets/`, y los de la landing anterior
   (`epublit_logo.png`, `epublit_logo_oscuro.png`).
-- Precios de planes de la landing anterior (Básico $0, Profesional
-  $27.000/mes, Empresarial $49.000/mes).
+- Plan único (2026-11-19): $49.000/mes o $490.000/año (dos meses gratis),
+  un mes de prueba gratis, todo incluido, ajuste cada 4 meses por IPC,
+  soporte por mail y WhatsApp.
 - No hay testimonios confirmados. No hay clientes, cifras de uso ni prensa
   publicables. No inventarlos.
 
