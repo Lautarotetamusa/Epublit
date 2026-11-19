@@ -2,7 +2,7 @@ import React from 'react';
 import { Icon } from '../core/Icon.jsx';
 import { FieldContext } from './fieldContext.js';
 
-export function Input({ iconStart, suffix, invalid, size='md', mono, style, id, ...rest }) {
+export function Input({ iconStart, suffix, trailing, invalid, size='md', mono, style, id, ...rest }) {
   const [f,setF] = React.useState(false);
   const field = React.useContext(FieldContext);
   const h = size === 'sm' ? 'var(--height-control-sm)' : size === 'lg' ? 'var(--height-control-lg)' : 'var(--height-control)';
@@ -16,13 +16,14 @@ export function Input({ iconStart, suffix, invalid, size='md', mono, style, id, 
       transition:'var(--transition-control)', ...style,
     }}>
       {iconStart ? <Icon name={iconStart} size={16} color="var(--text-subtle)" /> : null}
-      <input id={id ?? field?.id} aria-required={field?.required || undefined} {...rest} onFocus={e=>{setF(true);rest.onFocus?.(e);}} onBlur={e=>{setF(false);rest.onBlur?.(e);}}
+      <input id={id ?? field?.id} aria-required={field?.required || undefined} aria-invalid={invalid || undefined} aria-describedby={field?.messageId} {...rest} onFocus={e=>{setF(true);rest.onFocus?.(e);}} onBlur={e=>{setF(false);rest.onBlur?.(e);}}
         style={{
           flex:1, minWidth:0, border:'none', outline:'none', background:'transparent',
           fontFamily: mono ? 'var(--font-mono)' : 'var(--font-body)', fontSize: size==='sm' ? 'var(--text-xs)' : 'var(--text-sm)',
           color:'var(--text-body)', caretColor:'var(--pino-600)',
         }} />
       {suffix ? <span style={{fontSize:'var(--text-xs)',color:'var(--text-subtle)',fontFamily:'var(--font-mono)'}}>{suffix}</span> : null}
+      {trailing ? <span style={{display:'flex',marginRight:-6}}>{trailing}</span> : null}
     </div>
   );
 }

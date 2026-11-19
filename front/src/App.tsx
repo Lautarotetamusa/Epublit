@@ -6,6 +6,10 @@ import { FullscreenSpinner } from "./components/FullscreenSpinner";
 import { AppLayout } from "./layout/AppLayout";
 import { LoginPage } from "./features/auth/LoginPage";
 import { RegisterPage } from "./features/auth/RegisterPage";
+import { RevisarCorreoPage } from "./features/auth/RevisarCorreoPage";
+import { VerificarEmailPage } from "./features/auth/VerificarEmailPage";
+import { OlvideContrasenaPage } from "./features/auth/OlvideContrasenaPage";
+import { RestablecerContrasenaPage } from "./features/auth/RestablecerContrasenaPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { CatalogoPage } from "./features/libros/CatalogoPage";
 import { NuevoLibroPage } from "./features/libros/NuevoLibroPage";
@@ -69,6 +73,15 @@ const rutasAyuda = (
     </Route>
 );
 
+// Los links de los mails pueden abrirse en un navegador que ya tiene otra
+// sesión abierta: confirmar o restablecer no depende de con quién se está logueado.
+const rutasDeLinksDelMail = (
+    <>
+        <Route path="/verificar-email" element={<VerificarEmailPage />} />
+        <Route path="/restablecer-contrasena" element={<RestablecerContrasenaPage />} />
+    </>
+);
+
 function AppRoutes() {
     const { user, loading } = useAuth();
 
@@ -78,6 +91,9 @@ function AppRoutes() {
         return (
             <Routes>
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/revisar-correo" element={<RevisarCorreoPage />} />
+                <Route path="/olvide-contrasena" element={<OlvideContrasenaPage />} />
+                {rutasDeLinksDelMail}
                 {rutasAyuda}
                 <Route path="*" element={<LoginPage />} />
             </Routes>
@@ -89,6 +105,7 @@ function AppRoutes() {
             {/* La vista del comprobante es de lectura/impresión, no una pantalla
                 de gestión: queda fuera del layout con navegación lateral. */}
             <Route path="/comprobantes/:id" element={<ComprobantePage />} />
+            {rutasDeLinksDelMail}
             {rutasAyuda}
             <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />

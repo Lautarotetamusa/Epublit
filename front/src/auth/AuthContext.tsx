@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { login as loginRequest } from "../api/auth";
 import type { LoginInput } from "../api/auth";
 import { setAuthToken } from "../api/client";
+import { getMe, getNombreDeCuenta } from "../api/user";
 
 type Session = {
     username: string;
@@ -13,6 +14,7 @@ type AuthContextValue = {
     user: Session | null;
     loading: boolean;
     login: (input: LoginInput) => Promise<void>;
+    startSessionWithToken: (token: string) => Promise<void>;
     logout: () => void;
 };
 
@@ -55,14 +57,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
     }, []);
 
-    const login = useCallback(async (input: LoginInput) => {
-        const response = await loginRequest(input);
-        const session: Session = { username: input.username, token: response.token };
-
+    const startSession = useCallback((session: Session) => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
         setAuthToken(session.token);
         setUser(session);
     }, []);
+
+    // `username` guarda lo que se tipeó para entrar (email o usuario): es sólo
+    // el nombre que muestra la barra superior.
+    const login = useCallback(
+        async (input: LoginInput) => {
+            const response = await loginRequest(input);
+            startSession({ username: input.identificador, token: response.token });
+        },
+        [startSession]
+    );
+
+    // Confirmar el email o restablecer la contraseña devuelven sólo el token,
+    // sin decir de qué cuenta es: el nombre a mostrar se pide con ese token.
+    const startSessionWithToken = useCallback(
+        async (token: string) => {
+            const { data } = await getMe({ token });
+            startSession({ username: getNombreDeCuenta(data), token });
+        },
+        [startSession]
+    );
 
     const logout = useCallback(() => {
         localStorage.removeItem(STORAGE_KEY);
@@ -70,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     }, []);
 
-    return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={{ user, loading, login, startSessionWithToken, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {

@@ -13,9 +13,13 @@ export type ListEnvelope<T> = {
     items: T[];
 };
 
+// `field`/`email` los agregan las rutas de acceso (registro, login, links del
+// mail): ubican el error en un campo o dicen a qué email ofrecer un link nuevo.
 export type ApiErrorItem = {
     code: string;
     message: string;
+    field?: string;
+    email?: string | null;
 };
 
 // Detalle de validación del sobre `{error:{codigo,mensaje,detalles}}` (hoy lo
@@ -69,6 +73,9 @@ export type RequestOptions = {
     // Algunos endpoints devuelven un resultado de negocio con status no-2xx
     // (ej. probar la conexión de envíos responde 422 con `{api,ok,mensaje}`).
     allowedStatuses?: number[];
+    // Para consultar con un token recién emitido antes de adoptarlo como la
+    // sesión (que puede ser otra cuenta abierta en este navegador).
+    token?: string;
 };
 
 export type BlobFile = {
@@ -149,9 +156,10 @@ function parseErrors(data: unknown): ParsedErrors {
     return { errors: [{ code: "Error", message: "Error desconocido" }], codigo: null, detalles: [] };
 }
 
-function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+function authHeaders(extra: Record<string, string> = {}, tokenOverride?: string): Record<string, string> {
     const headers: Record<string, string> = { ...extra };
-    if (token) headers.Authorization = `Bearer ${token}`;
+    const bearer = tokenOverride ?? token;
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     return headers;
 }
 
@@ -161,7 +169,7 @@ async function request<T>(
     body?: unknown,
     options?: RequestOptions
 ): Promise<T> {
-    const headers = authHeaders({ "Content-Type": "application/json" });
+    const headers = authHeaders({ "Content-Type": "application/json" }, options?.token);
 
     const res = await fetch(`${API_URL}${path}`, {
         method,

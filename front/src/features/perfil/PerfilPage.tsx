@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Card, Avatar, Button, Badge, Checkbox, Dialog, Field, Input, Select } from "../../design-system";
 import { usePerfil } from "./usePerfil";
+import { getNombreDeCuenta } from "../../api/user";
 import { useFacturacion } from "./useFacturacion";
 import { FacturacionElectronicaCard } from "./FacturacionElectronicaCard";
 import { Detalle } from "./Detalle";
 import { useAuth } from "../../auth/AuthContext";
 import { useToast } from "../../notifications/ToastProvider";
 import { useConfirm } from "../../notifications/ConfirmProvider";
-import { getErrorMessage } from "../../lib/errors";
+import { getApiErrorDetail, getErrorMessage } from "../../lib/errors";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { sanitizeInteger, sanitizeDecimal } from "../../lib/numericInput";
 import { isValidEmail } from "../../lib/validation";
@@ -66,7 +67,7 @@ export function PerfilPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginBottom: "var(--space-5)" }}>
                     <Avatar name={user.razon_social || user.username} size="lg" />
                     <div>
-                        <h2 style={{ margin: 0, fontFamily: "var(--font-display)" }}>{user.username}</h2>
+                        <h2 style={{ margin: 0, fontFamily: "var(--font-display)" }}>{getNombreDeCuenta(user)}</h2>
                         <p style={{ margin: 0, color: "var(--text-muted)" }}>{user.razon_social}</p>
                     </div>
                 </div>
@@ -85,14 +86,10 @@ export function PerfilPage() {
                         user={user}
                         onClose={() => setShowEdit(false)}
                         onSave={async (input) => {
-                            try {
-                                await update(input);
-                                await facturacion.refetch();
-                                setShowEdit(false);
-                                showToast("success", "Perfil actualizado");
-                            } catch (err) {
-                                showToast("error", getErrorMessage(err));
-                            }
+                            await update(input);
+                            await facturacion.refetch();
+                            setShowEdit(false);
+                            showToast("success", "Perfil actualizado");
                         }}
                     />
                 ) : null}
@@ -197,22 +194,34 @@ function EditarPerfilDialog({
     const [fechaInicio, setFechaInicio] = useState(user.fecha_inicio);
     const [saving, setSaving] = useState(false);
     const [emailTouched, setEmailTouched] = useState(false);
+    const [emailServerError, setEmailServerError] = useState<string | null>(null);
+    const { showToast } = useToast();
     const emailInvalid = emailTouched && email !== "" && !isValidEmail(email);
+    const emailError = emailInvalid ? "Ingresá un email válido." : emailServerError;
     const opcionesCondicion = CONDICIONES_IVA.includes(condFiscal as (typeof CONDICIONES_IVA)[number])
         ? CONDICIONES_IVA
         : [condFiscal, ...CONDICIONES_IVA];
 
-    const handleSave = async () => {
+    // Un email que ya usa otra cuenta se corrige en el mismo campo; el resto
+    // de los errores no tiene un campo donde mostrarse.
+    const showSaveError = (err: unknown) => {
+        const detalle = getApiErrorDetail(err);
+        if (detalle?.field === "email") setEmailServerError(detalle.message);
+        else showToast("error", getErrorMessage(err));
+    };
+
+    const handleSave = () => {
         setSaving(true);
-        await onSave({
+        onSave({
             email,
             cond_fiscal: condFiscal,
             razon_social: razonSocial,
             domicilio,
             ingresos_brutos: ingresosBrutos,
             fecha_inicio: fechaInicio
-        });
-        setSaving(false);
+        })
+            .catch(showSaveError)
+            .finally(() => setSaving(false));
     };
 
     return (
@@ -232,12 +241,15 @@ function EditarPerfilDialog({
                 </>
             }
         >
-            <Field label="Email" error={emailInvalid ? "Ingresá un email válido." : undefined}>
+            <Field label="Email" error={emailError ?? undefined}>
                 <Input
                     type="email"
-                    invalid={emailInvalid}
+                    invalid={Boolean(emailError)}
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        setEmailServerError(null);
+                    }}
                     onBlur={() => setEmailTouched(true)}
                 />
             </Field>

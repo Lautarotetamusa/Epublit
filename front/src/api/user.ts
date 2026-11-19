@@ -1,11 +1,14 @@
 import { api } from "./client";
-import type { BlobFile } from "./client";
+import type { BlobFile, RequestOptions } from "./client";
 
 // Refleja back/src/modules/user/user.schema.ts (sin `password`, la tabla
 // nunca la devuelve) + user.validator.ts#select.
 export type User = {
     id: number;
     username: string;
+    // Las cuentas registradas por email tienen un username generado que no
+    // eligió nadie: se identifican por su email.
+    username_interno: boolean;
     cuit: string;
     cond_fiscal: string;
     razon_social: string;
@@ -41,7 +44,11 @@ export type UpdateUserInput = Partial<{
     fotoPersonaMinAltoPx: number | null;
 }>;
 
-export const getMe = (): Promise<{ success: true; data: User }> => api.get("/user");
+export function getNombreDeCuenta(user: Pick<User, "username" | "username_interno" | "email">): string {
+    return user.username_interno && user.email ? user.email : user.username;
+}
+
+export const getMe = (options?: RequestOptions): Promise<{ success: true; data: User }> => api.get("/user", options);
 
 // Sin `:id` en la ruta (PUT /user a secas): el backend resuelve el usuario
 // por el token, no por un id en la URL (ver back/src/modules/user/user.routes.ts).
