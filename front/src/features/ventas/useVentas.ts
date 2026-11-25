@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { listVentas } from "../../api/operaciones";
 import type { Venta } from "../../api/operaciones";
 
-// `GET /venta` no pagina (devuelve todo envuelto en `{success,data}`, ver
-// back/src/modules/transaccion/transaccion.controller.ts): se pagina acá
-// mismo del lado del cliente (ver useClientPagination).
+// `GET /venta` pagina en el servidor; pedimos una página grande y terminamos
+// de paginar del lado del cliente (ver useClientPagination).
 export function useVentas() {
     const [ventas, setVentas] = useState<Venta[]>([]);
     const [loading, setLoading] = useState(true);

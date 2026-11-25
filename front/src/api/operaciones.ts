@@ -96,9 +96,12 @@ export const getMediosPago = (): Promise<MedioPago[]> => api.get("/venta/medios_
 // Las 4 rutas de operaciones (`/venta`, `/consignacion`, `/devolucion`,
 // `/ventaConsignacion`) comparten forma: `listar`/`obtener` envuelven en
 // `{success,data}` (NO en `{pagination,items}` — a diferencia de
-// libro/persona/cliente, acá no hay paginación real, ver
-// back/src/modules/transaccion/transaccion.controller.ts).
-export const listVentas = (): Promise<{ success: true; data: Venta[] }> => api.get("/venta");
+// libro/persona/cliente, ver back/src/modules/transaccion/transaccion.controller.ts).
+// `GET /venta` pagina en el servidor, pero VentasPage pagina del lado del
+// cliente: pedimos una página grande para que el filtro y el paginado local
+// trabajen sobre todo el historial, no sólo sobre los primeros 10.
+export const listVentas = (): Promise<{ success: true; data: Venta[] }> =>
+    api.get("/venta?page=1&pageSize=1000");
 export const getVenta = (id: number): Promise<{ success: true; data: VentaDetalle }> => api.get(`/venta/${id}`);
 export const createVenta = (input: CreateVentaInput): Promise<{ success: true; data: VentaDetalle }> => api.post("/venta", input);
 
