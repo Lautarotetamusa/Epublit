@@ -4,6 +4,7 @@ const APP_URL = (import.meta.env.VITE_APP_URL as string | undefined) ?? "https:/
 
 export const ENLACES = {
     iniciarSesion: `${APP_URL}/`,
+    demo: `${APP_URL}/?demo=1`,
     registrarse: `${APP_URL}/register`,
     ayuda: `${APP_URL}/ayuda`,
     guiaCertificadoArca: `${APP_URL}/ayuda/certificado-arca`,

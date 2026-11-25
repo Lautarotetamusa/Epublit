@@ -23,6 +23,9 @@ export function Encabezado() {
                     <a href={ENLACES.ayuda}>Ayuda</a>
                 </nav>
                 <div className="l-encabezado-acciones">
+                    <a href={ENLACES.demo} className="l-demo">
+                        Demo
+                    </a>
                     <a href={ENLACES.iniciarSesion} className="l-ingresar">
                         Iniciar sesión
                     </a>

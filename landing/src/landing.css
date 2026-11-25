@@ -50,10 +50,10 @@ main h2 { font-size: clamp(28px, 3.4vw, 38px); line-height: 1.15; text-wrap: bal
 .l-logo { display: inline-flex; }
 .l-logo img { height: 30px; width: auto; display: block; }
 .l-nav { display: flex; gap: var(--space-8); flex: 1; }
-.l-nav a, .l-ingresar {
+.l-nav a, .l-ingresar, .l-demo {
   color: var(--tinta); text-decoration: none; font-size: 15px; font-weight: var(--weight-medium);
 }
-.l-nav a:hover, .l-ingresar:hover { color: var(--marca); }
+.l-nav a:hover, .l-ingresar:hover, .l-demo:hover { color: var(--marca); }
 .l-encabezado-acciones { display: flex; align-items: center; gap: var(--space-5); margin-left: auto; }
 
 /* ---------- Tapa ---------- */

@@ -24,6 +24,7 @@ export function Colofon() {
                     <ul>
                         <li><a href={ENLACES.registrarse}>Crear cuenta</a></li>
                         <li><a href={ENLACES.iniciarSesion}>Iniciar sesión</a></li>
+                        <li><a href={ENLACES.demo}>Cuenta demo</a></li>
                         <li><a href={ENLACES.ayuda}>Centro de ayuda</a></li>
                     </ul>
                 </nav>
