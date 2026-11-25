@@ -1,0 +1,378 @@
+[
+  {
+    "persona": "domingo-faustino-sarmiento",
+    "nombre": "Domingo Faustino Sarmiento",
+    "archivo": "imagenes/personas/domingo-faustino-sarmiento.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Sarmiento.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "jose-marmol",
+    "nombre": "José Mármol",
+    "archivo": "imagenes/personas/jose-marmol.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_M%C3%A1rmol.png",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido (archivo de Claudio Elias)"
+  },
+  {
+    "persona": "miguel-cane",
+    "nombre": "Miguel Cané",
+    "archivo": "imagenes/personas/miguel-cane.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Miguel_Can%C3%A9_(1892).jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "lucio-v-mansilla",
+    "nombre": "Lucio V. Mansilla",
+    "archivo": "imagenes/personas/lucio-v-mansilla.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Luciovmansilla.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "eugenio-cambaceres",
+    "nombre": "Eugenio Cambaceres",
+    "archivo": "imagenes/personas/eugenio-cambaceres.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:EugenioCambaceres.JPG",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido (carga de Claudio Elias)"
+  },
+  {
+    "persona": "julian-martel",
+    "nombre": "Julián Martel",
+    "archivo": "imagenes/personas/julian-martel.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:1893-1894,_Almanaque_Sud-americano,_Jos%C3%A9_Mir%C3%B3_(Juli%C3%A1n_Martel)_(cropped).jpg",
+    "licencia": "CC BY 4.0",
+    "credito": "Paciano Ross / Josep Thomas i Bigas"
+  },
+  {
+    "persona": "ricardo-guiraldes",
+    "nombre": "Ricardo Güiraldes",
+    "archivo": "imagenes/personas/ricardo-guiraldes.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:RicardoGuiraldes.JPG",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "benito-lynch",
+    "nombre": "Benito Lynch",
+    "archivo": "imagenes/personas/benito-lynch.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Benito_Lynch.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "roberto-payro",
+    "nombre": "Roberto J. Payró",
+    "archivo": "imagenes/personas/roberto-payro.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Roberto_J._Payr%C3%B3.png",
+    "licencia": "Public domain",
+    "credito": "Revista Plus Ultra, 1928"
+  },
+  {
+    "persona": "horacio-quiroga",
+    "nombre": "Horacio Quiroga",
+    "archivo": "imagenes/personas/horacio-quiroga.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Horacio_Quiroga.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "leopoldo-lugones",
+    "nombre": "Leopoldo Lugones",
+    "archivo": "imagenes/personas/leopoldo-lugones.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Fotograf%C3%ADa_de_Leopoldo_Lugones.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "esteban-echeverria",
+    "nombre": "Esteban Echeverría",
+    "archivo": "imagenes/personas/esteban-echeverria.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:EstebanEcheverria.jpg",
+    "licencia": "Public domain",
+    "credito": "Ernest Charton"
+  },
+  {
+    "persona": "godofredo-daireaux",
+    "nombre": "Godofredo Daireaux",
+    "archivo": "imagenes/personas/godofredo-daireaux.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Godo1.jpg",
+    "licencia": "Public domain",
+    "credito": "Sívori"
+  },
+  {
+    "persona": "jose-marti",
+    "nombre": "José Martí",
+    "archivo": "imagenes/personas/jose-marti.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_Mart%C3%AD_retrato_hecho_en_M%C3%A9xico_1875.jpg",
+    "licencia": "CC0",
+    "credito": "Secretaría de Instrucción Pública y Bellas Artes de Cuba"
+  },
+  {
+    "persona": "alfonsina-storni",
+    "nombre": "Alfonsina Storni",
+    "archivo": "imagenes/personas/alfonsina-storni.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:AlfosinaStorni.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "almafuerte",
+    "nombre": "Almafuerte",
+    "archivo": "imagenes/personas/almafuerte.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Almafuerte_sello.png",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "baldomero-fernandez-moreno",
+    "nombre": "Baldomero Fernández Moreno",
+    "archivo": "imagenes/personas/baldomero-fernandez-moreno.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:BaldomeroFMoreno.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido (carga de Claudio Elias)"
+  },
+  {
+    "persona": "jose-ingenieros",
+    "nombre": "José Ingenieros",
+    "archivo": "imagenes/personas/jose-ingenieros.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_Ingenieros.jpg",
+    "licencia": "CC BY-SA 4.0",
+    "credito": "McLovin2511"
+  },
+  {
+    "persona": "jose-enrique-rodo",
+    "nombre": "José Enrique Rodó",
+    "archivo": "imagenes/personas/jose-enrique-rodo.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_Enrique_Rod%C3%B3_(Almanaque_Sudamericano_1898).jpg",
+    "licencia": "Public domain",
+    "credito": "Casimiro Prieto Valdés"
+  },
+  {
+    "persona": "eduardo-wilde",
+    "nombre": "Eduardo Wilde",
+    "archivo": "imagenes/personas/eduardo-wilde.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Eduardo_Wilde_(Nombrado_Ministro_-_11_de_febrero_de_1882)_(page_49_crop).jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "jose-maria-ramos-mejia",
+    "nombre": "José María Ramos Mejía",
+    "archivo": "imagenes/personas/jose-maria-ramos-mejia.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:JM_Ramos_Mej%C3%ADa.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "ruben-dario",
+    "nombre": "Rubén Darío",
+    "archivo": "imagenes/personas/ruben-dario.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Rub%C3%A9n_Dar%C3%ADo.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "delmira-agustini",
+    "nombre": "Delmira Agustini",
+    "archivo": "imagenes/personas/delmira-agustini.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Delmira_Agustini.png",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "jose-eustasio-rivera",
+    "nombre": "José Eustasio Rivera",
+    "archivo": "imagenes/personas/jose-eustasio-rivera.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Joseeustaciorivera1.png",
+    "licencia": "Public domain",
+    "credito": "Autor anónimo, Nueva York, ca. 1928"
+  },
+  {
+    "persona": "manuel-gonzalez-prada",
+    "nombre": "Manuel González Prada",
+    "archivo": "imagenes/personas/manuel-gonzalez-prada.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Manuel_Gonz%C3%A1lez_Prada_1902_(cropped_and_edited).jpg",
+    "licencia": "Public domain",
+    "credito": "Adolfo Dubreuil"
+  },
+  {
+    "persona": "miguel-de-cervantes",
+    "nombre": "Miguel de Cervantes",
+    "archivo": "imagenes/personas/miguel-de-cervantes.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Cervantes_J%C3%A1uregui.jpg",
+    "licencia": "Public domain",
+    "credito": "Atribuido a Juan de Jáuregui"
+  },
+  {
+    "persona": "gustavo-adolfo-becquer",
+    "nombre": "Gustavo Adolfo Bécquer",
+    "archivo": "imagenes/personas/gustavo-adolfo-becquer.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Portrait_of_Gustavo_Adolfo_B%C3%A9cquer,_by_his_brother_Valeriano_(1862).jpg",
+    "licencia": "Public domain",
+    "credito": "Valeriano Bécquer"
+  },
+  {
+    "persona": "benito-perez-galdos",
+    "nombre": "Benito Pérez Galdós",
+    "archivo": "imagenes/personas/benito-perez-galdos.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Benito_Perez_Galdos_-_Kaulak_(4.3).jpg",
+    "licencia": "CC BY 4.0",
+    "credito": "Kaulak"
+  },
+  {
+    "persona": "clarin",
+    "nombre": "Clarín",
+    "archivo": "imagenes/personas/clarin.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:LeopoldoAlasClarin.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "miguel-de-unamuno",
+    "nombre": "Miguel de Unamuno",
+    "archivo": "imagenes/personas/miguel-de-unamuno.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Miguel_de_Unamuno_Meurisse_1925.jpg",
+    "licencia": "Public domain",
+    "credito": "Agence de presse Meurisse"
+  },
+  {
+    "persona": "ramon-del-valle-inclan",
+    "nombre": "Ramón del Valle-Inclán",
+    "archivo": "imagenes/personas/ramon-del-valle-inclan.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Ram%C3%B3n_Mar%C3%ADa_del_Valle_Incl%C3%A1n,_de_Audouard.jpg",
+    "licencia": "Public domain",
+    "credito": "Pau Audouard Deglaire"
+  },
+  {
+    "persona": "federico-garcia-lorca",
+    "nombre": "Federico García Lorca",
+    "archivo": "imagenes/personas/federico-garcia-lorca.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Federico_Garc%C3%ADa_Lorca._Huerta_de_San_Vicente,_Granada.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "antonio-machado",
+    "nombre": "Antonio Machado",
+    "archivo": "imagenes/personas/antonio-machado.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Antonio_Machado_-_Poes%C3%ADas_completas_-_bdh0000252161_(page_8_crop).jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "juan-valera",
+    "nombre": "Juan Valera",
+    "archivo": "imagenes/personas/juan-valera.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Juan_Valera.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "felix-maria-samaniego",
+    "nombre": "Félix María Samaniego",
+    "archivo": "imagenes/personas/felix-maria-samaniego.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Samaniego.jpg",
+    "licencia": "Public domain",
+    "credito": "Torquemada"
+  },
+  {
+    "persona": "ricardo-palma",
+    "nombre": "Ricardo Palma",
+    "archivo": "imagenes/personas/ricardo-palma.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Palma1.jpg",
+    "licencia": "Public domain",
+    "credito": "Manuel Moral y Vega"
+  },
+  {
+    "persona": "fray-mocho",
+    "nombre": "Fray Mocho",
+    "archivo": "imagenes/personas/fray-mocho.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:FrayMocho.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "jose-hernandez",
+    "nombre": "José Hernández",
+    "archivo": "imagenes/personas/jose-hernandez.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_Hern%C3%A1ndez_restored.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "evaristo-carriego",
+    "nombre": "Evaristo Carriego",
+    "archivo": "imagenes/personas/evaristo-carriego.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Evaristo_Carriego.png",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "tomas-de-iriarte",
+    "nombre": "Tomás de Iriarte",
+    "archivo": "imagenes/personas/tomas-de-iriarte.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Tomas_de_Iriarte_Joaquin_Inza.jpg",
+    "licencia": "Public domain",
+    "credito": "Joaquín Inza"
+  },
+  {
+    "persona": "roberto-arlt",
+    "nombre": "Roberto Arlt",
+    "archivo": "imagenes/personas/roberto-arlt.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:RobertoArlt.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido (carga de Claudio Elias)"
+  },
+  {
+    "persona": "macedonio-fernandez",
+    "nombre": "Macedonio Fernández",
+    "archivo": "imagenes/personas/macedonio-fernandez.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:MacedonioFernandez.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido (carga de Claudio Elias)"
+  },
+  {
+    "persona": "cesar-vallejo",
+    "nombre": "César Vallejo",
+    "archivo": "imagenes/personas/cesar-vallejo.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Cesar_Vallejo_(1930)_-_Restored.jpg",
+    "licencia": "Public domain",
+    "credito": "Prefectura de Policía de París"
+  },
+  {
+    "persona": "vicente-huidobro",
+    "nombre": "Vicente Huidobro",
+    "archivo": "imagenes/personas/vicente-huidobro.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Vicente_huidobro.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "jose-carlos-mariategui",
+    "nombre": "José Carlos Mariátegui",
+    "archivo": "imagenes/personas/jose-carlos-mariategui.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Jos%C3%A9_Carlos_Mari%C3%A1tegui_in_1929.jpg",
+    "licencia": "Public domain",
+    "credito": "José Malanca"
+  },
+  {
+    "persona": "pedro-henriquez-urena",
+    "nombre": "Pedro Henríquez Ureña",
+    "archivo": "imagenes/personas/pedro-henriquez-urena.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:PHU.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  },
+  {
+    "persona": "manuel-ugarte",
+    "nombre": "Manuel Ugarte",
+    "archivo": "imagenes/personas/manuel-ugarte.jpg",
+    "fuente": "https://commons.wikimedia.org/wiki/File:Manuel_Ugarte_1908.jpg",
+    "licencia": "Public domain",
+    "credito": "Autor desconocido"
+  }
+]

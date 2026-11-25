@@ -1,0 +1,496 @@
+{
+  "personas": [
+    {
+      "slug": "jose-hernandez",
+      "nombre": "José Hernández",
+      "wiki": "José Hernández (poeta)",
+      "nacimiento": 1834,
+      "muerte": 1886,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta y periodista",
+      "bio": "Poeta y periodista bonaerense, federal y adversario de Mitre. Escribió el Martín Fierro en la frontera entre la literatura culta y la lengua del gaucho."
+    },
+    {
+      "slug": "domingo-faustino-sarmiento",
+      "nombre": "Domingo Faustino Sarmiento",
+      "wiki": "Domingo Faustino Sarmiento",
+      "nacimiento": 1811,
+      "muerte": 1888,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Maestro, periodista y presidente",
+      "bio": "Maestro, periodista y presidente de la Nación. Su obra combina la educación pública, la polémica y una prosa que no deja indiferente a nadie."
+    },
+    {
+      "slug": "jose-marmol",
+      "nombre": "José Mármol",
+      "wiki": "José Mármol",
+      "nacimiento": 1817,
+      "muerte": 1871,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta y político",
+      "bio": "Poeta y político romántico, exiliado durante el rosismo. Amalia es su novela más conocida y uno de los primeros grandes relatos argentinos."
+    },
+    {
+      "slug": "miguel-cane",
+      "nombre": "Miguel Cané",
+      "wiki": "Miguel Cané",
+      "nacimiento": 1851,
+      "muerte": 1905,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Abogado, diplomático y escritor",
+      "bio": "Abogado, diplomático y escritor. Juvenilia nació de sus recuerdos del colegio y se convirtió en un clásico de la memoria escolar."
+    },
+    {
+      "slug": "lucio-v-mansilla",
+      "nombre": "Lucio V. Mansilla",
+      "wiki": "Lucio Victorio Mansilla",
+      "nacimiento": 1831,
+      "muerte": 1913,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Militar, político y cronista",
+      "bio": "Militar, político y cronista. Su excursión al territorio ranquel es uno de los grandes relatos de viaje de la literatura argentina."
+    },
+    {
+      "slug": "eugenio-cambaceres",
+      "nombre": "Eugenio Cambaceres",
+      "wiki": "Eugenio Cambaceres",
+      "nacimiento": 1843,
+      "muerte": 1888,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Estanciero y escritor",
+      "bio": "Estanciero y escritor, autor de una narrativa áspera sobre el deseo, el dinero y la decadencia de la élite porteña."
+    },
+    {
+      "slug": "julian-martel",
+      "nombre": "Julián Martel",
+      "wiki": "Julián Martel",
+      "nacimiento": 1867,
+      "muerte": 1896,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Periodista y novelista",
+      "bio": "Periodista y novelista. La bolsa retrató la especulación de 1890 y quedó como la primera gran novela financiera argentina."
+    },
+    {
+      "slug": "ricardo-guiraldes",
+      "nombre": "Ricardo Güiraldes",
+      "wiki": "Ricardo Güiraldes",
+      "nacimiento": 1886,
+      "muerte": 1927,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta y narrador",
+      "bio": "Poeta y narrador, criado entre la ciudad y el campo. Don Segundo Sombra es su obra mayor y un clásico de la pampa."
+    },
+    {
+      "slug": "benito-lynch",
+      "nombre": "Benito Lynch",
+      "wiki": "Benito Lynch",
+      "nacimiento": 1880,
+      "muerte": 1951,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Novelista",
+      "bio": "Novelista bonaerense, maestro del retrato rural. Escribió sobre la soledad del campo y las distancias que no se pueden cruzar."
+    },
+    {
+      "slug": "roberto-payro",
+      "nombre": "Roberto J. Payró",
+      "wiki": "Roberto Payró",
+      "nacimiento": 1867,
+      "muerte": 1928,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Periodista, dramaturgo y narrador",
+      "bio": "Periodista, dramaturgo y narrador. Inventó una voz picaresca para contar la política y los negocios de la Buenos Aires del 900."
+    },
+    {
+      "slug": "horacio-quiroga",
+      "nombre": "Horacio Quiroga",
+      "wiki": "Horacio Quiroga",
+      "nacimiento": 1878,
+      "muerte": 1937,
+      "nacionalidad": "Uruguay",
+      "ocupacion": "Narrador",
+      "bio": "Narrador uruguayo radicado en Misiones. Renovó el cuento latinoamericano con historias de selva, enfermedad y muerte."
+    },
+    {
+      "slug": "leopoldo-lugones",
+      "nombre": "Leopoldo Lugones",
+      "wiki": "Leopoldo Lugones",
+      "nacimiento": 1874,
+      "muerte": 1938,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta y ensayista",
+      "bio": "Poeta, ensayista y polemista. Fue una de las figuras centrales del modernismo y del nacionalismo cultural argentino."
+    },
+    {
+      "slug": "esteban-echeverria",
+      "nombre": "Esteban Echeverría",
+      "wiki": "Esteban Echeverría",
+      "nacimiento": 1805,
+      "muerte": 1851,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta y pensador",
+      "bio": "Poeta y pensador romántico, exiliado por el rosismo. Escribió La cautiva y El matadero, dos textos fundacionales."
+    },
+    {
+      "slug": "godofredo-daireaux",
+      "nombre": "Godofredo Daireaux",
+      "wiki": "Godofredo Daireaux",
+      "nacimiento": 1849,
+      "muerte": 1916,
+      "nacionalidad": "Francia",
+      "ocupacion": "Escritor y funcionario",
+      "bio": "Escritor francés radicado en la Argentina. Observó la campaña bonaerense y la convirtió en fábulas para lectores jóvenes."
+    },
+    {
+      "slug": "jose-marti",
+      "nombre": "José Martí",
+      "wiki": "José Martí",
+      "nacimiento": 1853,
+      "muerte": 1895,
+      "nacionalidad": "Cuba",
+      "ocupacion": "Poeta, periodista y revolucionario",
+      "bio": "Poeta, periodista y revolucionario cubano. Vivió años en Nueva York y escribió una obra que es a la vez política y poesía."
+    },
+    {
+      "slug": "alfonsina-storni",
+      "nombre": "Alfonsina Storni",
+      "wiki": "Alfonsina Storni",
+      "nacimiento": 1892,
+      "muerte": 1938,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta",
+      "bio": "Poeta argentina de origen suizo. Habló del deseo, del trabajo y de la condición de las mujeres con una franqueza inédita."
+    },
+    {
+      "slug": "evaristo-carriego",
+      "nombre": "Evaristo Carriego",
+      "wiki": "Evaristo Carriego",
+      "nacimiento": 1883,
+      "muerte": 1912,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Poeta",
+      "bio": "Poeta del barrio de Palermo. Sus versos sobre patios, compadres y tardes de domingo fundaron la mitología del arrabal."
+    },
+    {
+      "slug": "almafuerte",
+      "nombre": "Almafuerte",
+      "wiki": "Pedro Bonifacio Palacios",
+      "nacimiento": 1854,
+      "muerte": 1917,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Maestro y poeta",
+      "bio": "Maestro y poeta. Escribió una poesía social, vehemente y popular, siempre del lado de los que no tienen nada."
+    },
+    {
+      "slug": "baldomero-fernandez-moreno",
+      "nombre": "Baldomero Fernández Moreno",
+      "wiki": "Baldomero Fernández Moreno",
+      "nacimiento": 1886,
+      "muerte": 1950,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Médico y poeta",
+      "bio": "Médico y poeta. Cultivó una poesía de lo cotidiano, atenta a las cosas pequeñas y a la luz de las tardes."
+    },
+    {
+      "slug": "jose-ingenieros",
+      "nombre": "José Ingenieros",
+      "wiki": "José Ingenieros",
+      "nacimiento": 1877,
+      "muerte": 1925,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Médico, sociólogo y ensayista",
+      "bio": "Médico, sociólogo y ensayista. El hombre mediocre fue una crítica moral que se leyó en toda América Latina."
+    },
+    {
+      "slug": "jose-enrique-rodo",
+      "nombre": "José Enrique Rodó",
+      "wiki": "José Enrique Rodó",
+      "nacimiento": 1871,
+      "muerte": 1917,
+      "nacionalidad": "Uruguay",
+      "ocupacion": "Ensayista",
+      "bio": "Ensayista uruguayo. Ariel planteó el conflicto entre la utilidad y la belleza, y se volvió una referencia del pensamiento latinoamericano."
+    },
+    {
+      "slug": "eduardo-wilde",
+      "nombre": "Eduardo Wilde",
+      "wiki": "Eduardo Wilde",
+      "nacimiento": 1844,
+      "muerte": 1913,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Médico, político y escritor",
+      "bio": "Médico, político y escritor. Sus crónicas y memorias retratan la sociedad argentina de fin de siglo con humor y sin solemnidad."
+    },
+    {
+      "slug": "jose-maria-ramos-mejia",
+      "nombre": "José María Ramos Mejía",
+      "wiki": "José María Ramos Mejía",
+      "nacimiento": 1849,
+      "muerte": 1914,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Médico y político",
+      "bio": "Médico y político. Aplicó la mirada de la medicina social al estudio de las multitudes y la política argentina."
+    },
+    {
+      "slug": "ruben-dario",
+      "nombre": "Rubén Darío",
+      "wiki": "Rubén Darío",
+      "nacimiento": 1867,
+      "muerte": 1916,
+      "nacionalidad": "Nicaragua",
+      "ocupacion": "Poeta y periodista",
+      "bio": "Poeta nicaragüense, iniciador del modernismo. Renovó la métrica y el lenguaje de la poesía en español."
+    },
+    {
+      "slug": "delmira-agustini",
+      "nombre": "Delmira Agustini",
+      "wiki": "Delmira Agustini",
+      "nacimiento": 1886,
+      "muerte": 1914,
+      "nacionalidad": "Uruguay",
+      "ocupacion": "Poeta",
+      "bio": "Poeta uruguaya. Escribió sobre el deseo y el cuerpo con una libertad que escandalizó a sus contemporáneos."
+    },
+    {
+      "slug": "jose-eustasio-rivera",
+      "nombre": "José Eustasio Rivera",
+      "wiki": "José Eustasio Rivera",
+      "nacimiento": 1888,
+      "muerte": 1928,
+      "nacionalidad": "Colombia",
+      "ocupacion": "Escritor y abogado",
+      "bio": "Escritor colombiano. La vorágine es su única novela y una de las grandes denuncias de la explotación del caucho."
+    },
+    {
+      "slug": "manuel-gonzalez-prada",
+      "nombre": "Manuel González Prada",
+      "wiki": "Manuel González Prada",
+      "nacimiento": 1844,
+      "muerte": 1918,
+      "nacionalidad": "Perú",
+      "ocupacion": "Ensayista y político",
+      "bio": "Ensayista y político peruano. Combatió el colonialismo cultural y defendió una literatura nacional y popular."
+    },
+    {
+      "slug": "miguel-de-cervantes",
+      "nombre": "Miguel de Cervantes",
+      "wiki": "Miguel de Cervantes",
+      "nacimiento": 1547,
+      "muerte": 1616,
+      "nacionalidad": "España",
+      "ocupacion": "Novelista, poeta y dramaturgo",
+      "bio": "Soldado, cautivo y escritor. El Quijote cambió para siempre la manera de contar historias en Occidente."
+    },
+    {
+      "slug": "gustavo-adolfo-becquer",
+      "nombre": "Gustavo Adolfo Bécquer",
+      "wiki": "Gustavo Adolfo Bécquer",
+      "nacimiento": 1836,
+      "muerte": 1870,
+      "nacionalidad": "España",
+      "ocupacion": "Poeta y narrador",
+      "bio": "Poeta y narrador sevillano. Sus Rimas y leyendas son una de las puertas de entrada al romanticismo español."
+    },
+    {
+      "slug": "benito-perez-galdos",
+      "nombre": "Benito Pérez Galdós",
+      "wiki": "Benito Pérez Galdós",
+      "nacimiento": 1843,
+      "muerte": 1920,
+      "nacionalidad": "España",
+      "ocupacion": "Novelista",
+      "bio": "Novelista canario, cronista de Madrid. Sus novelas construyen un mapa social del siglo XIX español."
+    },
+    {
+      "slug": "clarin",
+      "nombre": "Clarín",
+      "wiki": "Leopoldo Alas",
+      "nacimiento": 1852,
+      "muerte": 1901,
+      "nacionalidad": "España",
+      "ocupacion": "Crítico y novelista",
+      "bio": "Crítico y novelista asturiano. La Regenta es su obra mayor y uno de los retratos más sutiles de la vida de provincia."
+    },
+    {
+      "slug": "miguel-de-unamuno",
+      "nombre": "Miguel de Unamuno",
+      "wiki": "Miguel de Unamuno",
+      "nacimiento": 1864,
+      "muerte": 1936,
+      "nacionalidad": "España",
+      "ocupacion": "Filósofo, poeta y novelista",
+      "bio": "Filósofo, poeta y novelista vasco. Escribió sobre la fe, la muerte y la identidad con una intensidad que no admite tibiezas."
+    },
+    {
+      "slug": "ramon-del-valle-inclan",
+      "nombre": "Ramón del Valle-Inclán",
+      "wiki": "Ramón María del Valle-Inclán",
+      "nacimiento": 1866,
+      "muerte": 1936,
+      "nacionalidad": "España",
+      "ocupacion": "Narrador, poeta y dramaturgo",
+      "bio": "Narrador, poeta y dramaturgo gallego. Inventó el esperpento, una forma de mirar la realidad desde su deformación."
+    },
+    {
+      "slug": "federico-garcia-lorca",
+      "nombre": "Federico García Lorca",
+      "wiki": "Federico García Lorca",
+      "nacimiento": 1898,
+      "muerte": 1936,
+      "nacionalidad": "España",
+      "ocupacion": "Poeta y dramaturgo",
+      "bio": "Poeta y dramaturgo granadino. Su teatro y su poesía convirtieron el deseo, la muerte y el pueblo en lenguaje universal."
+    },
+    {
+      "slug": "antonio-machado",
+      "nombre": "Antonio Machado",
+      "wiki": "Antonio Machado",
+      "nacimiento": 1875,
+      "muerte": 1939,
+      "nacionalidad": "España",
+      "ocupacion": "Poeta",
+      "bio": "Poeta sevillano. Escribió una obra austera y honda sobre el paisaje, la memoria y el paso del tiempo."
+    },
+    {
+      "slug": "juan-valera",
+      "nombre": "Juan Valera",
+      "wiki": "Juan Valera",
+      "nacimiento": 1824,
+      "muerte": 1905,
+      "nacionalidad": "España",
+      "ocupacion": "Diplomático y novelista",
+      "bio": "Diplomático y novelista cordobés. Pepita Jiménez combina ironía, costumbrismo y una mirada piadosa sobre el deseo."
+    },
+    {
+      "slug": "felix-maria-samaniego",
+      "nombre": "Félix María Samaniego",
+      "wiki": "Félix María Samaniego",
+      "nacimiento": 1745,
+      "muerte": 1801,
+      "nacionalidad": "España",
+      "ocupacion": "Escritor y fabulista",
+      "bio": "Escritor vasco del siglo XVIII. Sus fábulas, en verso sencillo, siguen siendo una puerta de entrada a la lectura."
+    },
+    {
+      "slug": "tomas-de-iriarte",
+      "nombre": "Tomás de Iriarte",
+      "wiki": "Tomás de Iriarte",
+      "nacimiento": 1750,
+      "muerte": 1791,
+      "nacionalidad": "España",
+      "ocupacion": "Poeta y fabulista",
+      "bio": "Poeta y fabulista canario. Usó la fábula para burlarse de los escritores y enseñar, sin pedantería, a leer."
+    },
+    {
+      "slug": "ricardo-palma",
+      "nombre": "Ricardo Palma",
+      "wiki": "Ricardo Palma",
+      "nacimiento": 1833,
+      "muerte": 1919,
+      "nacionalidad": "Perú",
+      "ocupacion": "Escritor y periodista",
+      "bio": "Escritor peruano, autor de las Tradiciones peruanas. Mezcló historia, leyenda y humor para contar el pasado colonial."
+    },
+    {
+      "slug": "fray-mocho",
+      "nombre": "Fray Mocho",
+      "wiki": "José Sixto Álvarez",
+      "nacimiento": 1858,
+      "muerte": 1903,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Periodista y narrador",
+      "bio": "Periodista y narrador. Retrató la Buenos Aires popular de fin de siglo con oído para el habla de la calle."
+    },
+    {
+      "slug": "roberto-arlt",
+      "nombre": "Roberto Arlt",
+      "wiki": "Roberto Arlt",
+      "nacimiento": 1900,
+      "muerte": 1942,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Novelista, cuentista y periodista",
+      "bio": "Inventó una lengua para la Buenos Aires de los inmigrantes: la ciudad moderna, el delito y el deseo de ascenso."
+    },
+    {
+      "slug": "macedonio-fernandez",
+      "nombre": "Macedonio Fernández",
+      "wiki": "Macedonio Fernández",
+      "nacimiento": 1874,
+      "muerte": 1952,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Escritor y filósofo",
+      "bio": "Autor de una obra inclasificable, hecha de humor, metafísica y una prosa que discute con la novela tradicional."
+    },
+    {
+      "slug": "cesar-vallejo",
+      "nombre": "César Vallejo",
+      "wiki": "César Vallejo",
+      "nacimiento": 1892,
+      "muerte": 1938,
+      "nacionalidad": "Perú",
+      "ocupacion": "Poeta",
+      "bio": "Poeta peruano, una de las voces centrales de la vanguardia latinoamericana. Escribió sobre el dolor, la cárcel y la condición humana."
+    },
+    {
+      "slug": "vicente-huidobro",
+      "nombre": "Vicente Huidobro",
+      "wiki": "Vicente Huidobro",
+      "nacimiento": 1893,
+      "muerte": 1948,
+      "nacionalidad": "Chile",
+      "ocupacion": "Poeta",
+      "bio": "Poeta chileno, fundador del creacionismo. Escribió una obra experimental que quiso inventar el mundo en cada poema."
+    },
+    {
+      "slug": "jose-carlos-mariategui",
+      "nombre": "José Carlos Mariátegui",
+      "wiki": "José Carlos Mariátegui",
+      "nacimiento": 1894,
+      "muerte": 1930,
+      "nacionalidad": "Perú",
+      "ocupacion": "Ensayista y político",
+      "bio": "Pensador peruano, autor de una de las primeras lecturas marxistas de la realidad latinoamericana."
+    },
+    {
+      "slug": "pedro-henriquez-urena",
+      "nombre": "Pedro Henríquez Ureña",
+      "wiki": "Pedro Henríquez Ureña",
+      "nacimiento": 1884,
+      "muerte": 1946,
+      "nacionalidad": "República Dominicana",
+      "ocupacion": "Ensayista y crítico",
+      "bio": "Crítico y humanista dominicano. Pensó la identidad cultural de América Latina y la lengua común como proyecto."
+    },
+    {
+      "slug": "manuel-ugarte",
+      "nombre": "Manuel Ugarte",
+      "wiki": "Manuel Ugarte",
+      "nacimiento": 1875,
+      "muerte": 1951,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Escritor y político",
+      "bio": "Socialista y americanista. Escribió contra el imperialismo y a favor de una unidad latinoamericana."
+    },
+    {
+      "slug": "nora-vidal",
+      "nombre": "Nora Vidal",
+      "wiki": null,
+      "nacimiento": null,
+      "muerte": null,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Ilustradora",
+      "ficticio": true,
+      "bio": "Ilustradora y diseñadora. Trabaja en libros para chicos y en la construcción de series visuales para editoriales independientes."
+    },
+    {
+      "slug": "emilio-sosa",
+      "nombre": "Emilio Sosa",
+      "wiki": null,
+      "nacimiento": null,
+      "muerte": null,
+      "nacionalidad": "Argentina",
+      "ocupacion": "Editor y prologuista",
+      "ficticio": true,
+      "bio": "Editor y prologuista. Escribe sobre literatura argentina del siglo XIX y sobre el oficio de editar clásicos."
+    }
+  ]
+}

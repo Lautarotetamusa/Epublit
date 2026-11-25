@@ -1,0 +1,39 @@
+{
+  "colecciones": [
+    {
+      "slug": "clasicos-argentinos",
+      "titulo": "Clásicos argentinos",
+      "descripcion": "La narrativa que fundó una literatura nacional, en ediciones cuidadas y con prólogo."
+    },
+    {
+      "slug": "poesia-rioplatense",
+      "titulo": "Poesía rioplatense",
+      "descripcion": "Voces que cambiaron el sonido del español en el Río de la Plata."
+    },
+    {
+      "slug": "cuentos-y-fantasia",
+      "titulo": "Cuentos y fantasía",
+      "descripcion": "Relatos breves, extraños y memorables: del matadero a la selva."
+    },
+    {
+      "slug": "ensayo-y-memorias",
+      "titulo": "Ensayo y memorias",
+      "descripcion": "Ideas, viajes y retratos de una Argentina que se estaba inventando."
+    },
+    {
+      "slug": "voces-latinoamericanas",
+      "titulo": "Voces latinoamericanas",
+      "descripcion": "Modernismo, deseo y paisaje en una lengua común."
+    },
+    {
+      "slug": "clasicos-universales",
+      "titulo": "Clásicos universales",
+      "descripcion": "Obras fundamentales de la lengua española, sin traducción de por medio."
+    },
+    {
+      "slug": "infantil-y-juvenil",
+      "titulo": "Infantil y juvenil",
+      "descripcion": "Primeras lecturas y clásicos para chicos, con ilustraciones."
+    }
+  ]
+}

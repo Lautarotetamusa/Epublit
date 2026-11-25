@@ -1,0 +1,34 @@
+{
+  "resenas": {
+    "martin-fierro": [
+      "https://es.wikipedia.org/wiki/Mart%C3%ADn_Fierro"
+    ],
+    "facundo": [
+      "https://es.wikipedia.org/wiki/Facundo_o_civilizaci%C3%B3n_y_barbarie"
+    ],
+    "amalia": [
+      "https://es.wikipedia.org/wiki/Amalia_(novela)"
+    ],
+    "don-segundo-sombra": [
+      "https://es.wikipedia.org/wiki/Don_Segundo_Sombra"
+    ],
+    "cuentos-de-la-selva": [
+      "https://es.wikipedia.org/wiki/Cuentos_de_la_selva"
+    ],
+    "la-voragine": [
+      "https://es.wikipedia.org/wiki/La_vor%C3%A1gine"
+    ],
+    "don-quijote-de-la-mancha": [
+      "https://es.wikipedia.org/wiki/Don_Quijote_de_la_Mancha"
+    ],
+    "la-regenta": [
+      "https://es.wikipedia.org/wiki/La_Regenta"
+    ],
+    "la-casa-de-bernarda-alba": [
+      "https://es.wikipedia.org/wiki/La_casa_de_Bernarda_Alba"
+    ],
+    "el-hombre-mediocre": [
+      "https://es.wikipedia.org/wiki/El_hombre_mediocre"
+    ]
+  }
+}

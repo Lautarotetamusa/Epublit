@@ -1,0 +1,28 @@
+{
+  "anio_demo": 2026,
+  "fechas_iniciales": {
+    "clasicos-argentinos": "2026-06-15",
+    "poesia-rioplatense": "2026-10-10",
+    "cuentos-y-fantasia": "2026-08-20",
+    "ensayo-y-memorias": "2026-07-15",
+    "voces-latinoamericanas": "2026-11-15",
+    "clasicos-universales": "2026-08-25",
+    "infantil-y-juvenil": "2026-10-15"
+  },
+  "comisiones": {
+    "efectivo": 0,
+    "debito": 1.5,
+    "credito": 3,
+    "mercadopago": 4.5,
+    "transferencia": 0
+  },
+  "medios": [
+    "efectivo",
+    "debito",
+    "credito",
+    "mercadopago",
+    "transferencia"
+  ],
+  "punto_venta": 1,
+  "semilla": 20261125
+}

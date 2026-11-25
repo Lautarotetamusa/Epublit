@@ -1,0 +1,16 @@
+{
+  "roles": [
+    {
+      "nombre": "Autor",
+      "descripcion": "Autor o autora de la obra."
+    },
+    {
+      "nombre": "Ilustrador",
+      "descripcion": "Ilustración de tapa e interior."
+    },
+    {
+      "nombre": "Prólogo",
+      "descripcion": "Prólogo o estudio preliminar."
+    }
+  ]
+}

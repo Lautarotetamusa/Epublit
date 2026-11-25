@@ -1,0 +1,80 @@
+{
+  "paginas": [
+    {
+      "id": 9007001,
+      "titulo": "Sobre la editorial",
+      "slug": "sobre-la-editorial",
+      "descripcion": "Quiénes somos y cómo elegimos los títulos del catálogo.",
+      "visible_en_menu": true,
+      "orden": 1,
+      "estado": "publicada",
+      "bloques": [
+        {
+          "tipo": "hero",
+          "titulo": "Leer el país en sus libros",
+          "bajada": "Una editorial independiente que vuelve a poner en circulación los clásicos de la lengua, en ediciones cuidadas y con mirada contemporánea.",
+          "imagen": null
+        },
+        {
+          "tipo": "texto",
+          "titulo": "Una editorial de clásicos",
+          "contenido": "Empezamos con una pregunta simple: qué libros siguen diciendo algo cuando cambia el siglo. De ahí salió nuestro catálogo, organizado en colecciones que cruzan la narrativa argentina, la poesía rioplatense, el ensayo latinoamericano y los clásicos universales.\n\nCada edición lleva un trabajo de selección, corrección y diseño. No reeditamos facsímiles: armamos libros nuevos para lectores nuevos."
+        },
+        {
+          "tipo": "datos",
+          "titulo": "La editorial en números",
+          "items": [
+            { "valor": "62", "etiqueta": "títulos publicados" },
+            { "valor": "49", "etiqueta": "autores y colaboradores" },
+            { "valor": "7", "etiqueta": "colecciones" },
+            { "valor": "2026", "etiqueta": "año de la primera edición" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9007002,
+      "titulo": "Catálogo",
+      "slug": "catalogo",
+      "descripcion": "Cómo está organizado el catálogo y qué vas a encontrar en cada colección.",
+      "visible_en_menu": true,
+      "orden": 2,
+      "estado": "publicada",
+      "bloques": [
+        {
+          "tipo": "hero",
+          "titulo": "Siete colecciones, una misma idea de edición",
+          "bajada": "Del Martín Fierro a Altazor, del ensayo político a los libros para chicos.",
+          "imagen": null
+        },
+        {
+          "tipo": "texto",
+          "titulo": "Clásicos argentinos",
+          "contenido": "La colección reúne las obras que fundaron la literatura argentina, desde el poema gauchesco hasta la novela urbana de los años veinte. Cada título incluye un prólogo que ayuda a leerlo en su contexto y una nota sobre la edición."
+        },
+        {
+          "tipo": "cita",
+          "texto": "Un clásico no es un libro que se lee una vez: es un libro que vuelve cuando cambia la época.",
+          "autor": "Nota editorial",
+          "fuente": "Catálogo 2026"
+        },
+        {
+          "tipo": "enlaces",
+          "titulo": "Seguí explorando",
+          "enlaces": [
+            {
+              "nombre": "Ver colecciones",
+              "destino": "/colecciones",
+              "descripcion": "Las siete series del catálogo."
+            },
+            {
+              "nombre": "Conocer a los autores",
+              "destino": "/personas",
+              "descripcion": "Fichas, biografías y fotos."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "clientes": [
+    {
+      "slug": "libreria-del-sur",
+      "nombre": "Librería del Sur",
+      "razon_social": "Librería del Sur S.R.L.",
+      "cuit": "30712345671",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Av. Caseros 1234, Ciudad Autónoma de Buenos Aires",
+      "email": "compras@libreriadelsur.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Librería del Sur"
+    },
+    {
+      "slug": "libreria-norte",
+      "nombre": "Librería Norte",
+      "razon_social": "Librería Norte S.A.",
+      "cuit": "30723456785",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Av. Colón 450, Córdoba",
+      "email": "compras@librerianorte.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Librería Norte"
+    },
+    {
+      "slug": "libros-del-puerto",
+      "nombre": "Libros del Puerto",
+      "razon_social": "Libros del Puerto S.R.L.",
+      "cuit": "30734567899",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Córdoba 1450, Rosario",
+      "email": "pedidos@librosdelpuerto.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Libros del Puerto"
+    },
+    {
+      "slug": "el-faro-libros",
+      "nombre": "El Faro Libros",
+      "razon_social": "El Faro Libros",
+      "cuit": "30745678900",
+      "cond_fiscal": "Monotributo",
+      "domicilio": "Calle 50 780, La Plata",
+      "email": "hola@elfarolibros.demo.test",
+      "tipo": "inscripto",
+      "deposito": "El Faro Libros"
+    },
+    {
+      "slug": "rayuela-libreria",
+      "nombre": "Rayuela Librería",
+      "razon_social": "Rayuela Librería S.R.L.",
+      "cuit": "30756789011",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "San Martín 1120, Mendoza",
+      "email": "ventas@rayuelalibreria.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Rayuela Librería"
+    },
+    {
+      "slug": "la-brujula",
+      "nombre": "La Brújula",
+      "razon_social": "La Brújula Libros",
+      "cuit": "30767890121",
+      "cond_fiscal": "Monotributo",
+      "domicilio": "Caseros 620, Salta",
+      "email": "pedidos@labrujula.demo.test",
+      "tipo": "inscripto",
+      "deposito": "La Brújula"
+    },
+    {
+      "slug": "distribuidora-andina",
+      "nombre": "Distribuidora Andina",
+      "razon_social": "Distribuidora Andina S.A.",
+      "cuit": "30778901230",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Rivadavia 340, Neuquén",
+      "email": "compras@distribuidoraandina.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Distribuidora Andina"
+    },
+    {
+      "slug": "el-aleph-libros",
+      "nombre": "El Aleph Libros",
+      "razon_social": "El Aleph Libros S.R.L.",
+      "cuit": "30789012349",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Av. Corrientes 2345, Ciudad Autónoma de Buenos Aires",
+      "email": "compras@elalephlibros.demo.test",
+      "tipo": "inscripto",
+      "deposito": "El Aleph Libros"
+    },
+    {
+      "slug": "papel-y-tinta",
+      "nombre": "Papel & Tinta",
+      "razon_social": "Papel & Tinta S.R.L.",
+      "cuit": "30790123456",
+      "cond_fiscal": "IVA Responsable Inscripto",
+      "domicilio": "Alsina 210, Bahía Blanca",
+      "email": "ventas@papelytinta.demo.test",
+      "tipo": "inscripto",
+      "deposito": "Papel & Tinta"
+    },
+    {
+      "slug": "circulo-de-lectores",
+      "nombre": "Círculo de Lectores",
+      "razon_social": "Círculo de Lectores",
+      "cuit": null,
+      "cond_fiscal": "Consumidor Final",
+      "domicilio": "Av. Roca 890, San Miguel de Tucumán",
+      "email": "club@circulodelectores.demo.test",
+      "tipo": "particular",
+      "deposito": "Círculo de Lectores"
+    }
+  ],
+  "especiales": [
+    {
+      "slug": "consumidor-final",
+      "nombre": "CONSUMIDOR FINAL",
+      "razon_social": "CONSUMIDOR FINAL",
+      "tipo": "particular",
+      "cond_fiscal": "Consumidor Final",
+      "cuit": null,
+      "domicilio": "",
+      "email": "",
+      "id": 9000001,
+      "deposito_id": 9000002,
+      "deposito_key": null
+    },
+    {
+      "slug": "mostrador",
+      "nombre": "MOSTRADOR",
+      "razon_social": "MOSTRADOR",
+      "tipo": "negro",
+      "cond_fiscal": "",
+      "cuit": null,
+      "domicilio": "",
+      "email": "",
+      "id": 9000002,
+      "deposito_id": 9000003,
+      "deposito_key": null
+    }
+  ]
+}

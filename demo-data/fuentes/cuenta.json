@@ -1,0 +1,15 @@
+{
+  "username": "demo",
+  "razon_social": "Editorial Sur Demo S.A.",
+  "cuit": "30000000007",
+  "cond_fiscal": "Responsable Inscripto",
+  "domicilio": "Av. Corrientes 1234, Ciudad Autónoma de Buenos Aires",
+  "email": "demo@epublit.test",
+  "telefono": "+54 11 5555-0101",
+  "fecha_inicio": "2024-02-01",
+  "punto_venta": 1,
+  "ingresos_brutos": true,
+  "production": false,
+  "nota": "Cuenta ficticia para la demo. El CUIT es sintético y no corresponde a ninguna persona jurídica real. `production: false` deja AFIP en homologación: la demo no debe emitir comprobantes reales. El nombre y el domicilio se pueden reemplazar sin tocar el catálogo.",
+  "password_hash": "$2b$10$JVkemi2XmFo/1PgfuWRX2OgyEqxbRkKqyyq28SwsuUBYb59OkpPW."
+}

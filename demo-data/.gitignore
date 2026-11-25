@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Imágenes, copias para la app y hojas de contacto (se regeneran)
+/imagenes/
+/previews/
+/files/
+
+# SQL generado; el README de sql/ sí se versiona
+/sql/*.sql
+
+# JSON generado por los scripts
+/catalogo.json
+/movimientos.json
+/ventas.json
+/liquidaciones.json
+/tienda.json
+
+# CSV viejos: las fuentes ahora son JSON
+/*.csv
+
+# Este documento se genera, pero se conserva para no perder la trazabilidad
+# de licencias. Si preferís no versionarlo, descomentá la línea siguiente.
+# /ATRIBUCIONES.md
