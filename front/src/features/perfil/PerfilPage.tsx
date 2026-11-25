@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Avatar, Button, Badge, Checkbox, Dialog, Field, Input, Select } from "../../design-system";
+import { Card, Avatar, Button, Badge, Checkbox, Dialog, Field, Input, Select, EmptyState } from "../../design-system";
 import { usePerfil } from "./usePerfil";
 import { getNombreDeCuenta } from "../../api/user";
 import { useFacturacion } from "./useFacturacion";
@@ -14,7 +14,7 @@ import { sanitizeInteger, sanitizeDecimal } from "../../lib/numericInput";
 import { isValidEmail } from "../../lib/validation";
 
 export function PerfilPage() {
-    const { user, loading, update, refreshFromAfip } = usePerfil();
+    const { user, loading, error, update, refreshFromAfip } = usePerfil();
     const facturacion = useFacturacion();
     const { logout } = useAuth();
     const { showToast } = useToast();
@@ -45,7 +45,20 @@ export function PerfilPage() {
         }
     };
 
-    if (loading || !user) return <FullscreenSpinner />;
+    if (loading) return <FullscreenSpinner />;
+
+    if (!user) {
+        return (
+            <Card>
+                <EmptyState
+                    icon="circle-alert"
+                    title="Tu sesión ya no es válida"
+                    description={error ?? "Volvé a iniciar sesión para continuar."}
+                    action={<Button onClick={logout}>Iniciar sesión</Button>}
+                />
+            </Card>
+        );
+    }
 
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)", maxWidth: 640 }}>

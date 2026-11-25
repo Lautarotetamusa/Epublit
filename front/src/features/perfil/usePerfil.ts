@@ -1,20 +1,38 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ApiError } from "../../api/client";
 import { getMe, updateMe, refreshAfipData } from "../../api/user";
 import type { User, UpdateUserInput } from "../../api/user";
+import { useAuth } from "../../auth/AuthContext";
+import { getErrorMessage } from "../../lib/errors";
 
 export function usePerfil() {
+    const { logout } = useAuth();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const fetchUser = async () => {
-        const response = await getMe();
-        setUser(response.data);
-        setLoading(false);
-    };
+    const fetchUser = useCallback(async () => {
+        try {
+            const response = await getMe();
+            setUser(response.data);
+            setError(null);
+        } catch (err) {
+            // La sesión apunta a una cuenta que ya no existe: el cliente HTTP
+            // ya avisó al AuthProvider; cerramos acá también por si el evento
+            // llegó antes de montar el listener.
+            if (err instanceof ApiError && err.sessionInvalid) {
+                logout();
+                return;
+            }
+            setError(getErrorMessage(err));
+        } finally {
+            setLoading(false);
+        }
+    }, [logout]);
 
     useEffect(() => {
-        fetchUser();
-    }, []);
+        void fetchUser();
+    }, [fetchUser]);
 
     const update = async (input: UpdateUserInput) => {
         const response = await updateMe(input);
@@ -28,5 +46,5 @@ export function usePerfil() {
         setUser(response.data);
     };
 
-    return { user, loading, update, refreshFromAfip };
+    return { user, loading, error, update, refreshFromAfip };
 }

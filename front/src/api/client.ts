@@ -44,15 +44,46 @@ export class ApiError extends Error {
     // `archivo_demasiado_grande`…). `null` en las rutas viejas que no lo mandan.
     codigo: string | null;
     detalles: ApiErrorDetalle[];
+    // La sesión ya no sirve: token inválido o el usuario del token fue borrado.
+    // AuthProvider la usa para cerrar sesión en vez de dejar la app rota.
+    sessionInvalid: boolean;
 
-    constructor(status: number, errors: ApiErrorItem[], codigo: string | null = null, detalles: ApiErrorDetalle[] = []) {
+    constructor(
+        status: number,
+        errors: ApiErrorItem[],
+        codigo: string | null = null,
+        detalles: ApiErrorDetalle[] = [],
+        sessionInvalid = false
+    ) {
         super(errors.map((e) => e.message).join("\n") || "Error desconocido");
         this.status = status;
         this.errors = errors;
         this.codigo = codigo;
         this.detalles = detalles;
+        this.sessionInvalid = sessionInvalid;
     }
 }
+
+// Evento global: el cliente HTTP no conoce React ni el AuthProvider, así que
+// avisa por acá y el provider limpia la sesión.
+export const SESSION_INVALID_EVENT = "epublit:session-invalid";
+
+const esSesionInvalida = (status: number, path: string, errors: ApiErrorItem[]): boolean => {
+    if (status === 401 || status === 403) return true;
+
+    const mensaje = errors.map((error) => error.message).join(" ");
+    // El backend tira `users with id N not found` cuando el token apunta a una
+    // cuenta que ya no existe (por ejemplo, después de resetear la base).
+    if (status === 404 && (path === "/user" || /users with id .* not found/i.test(mensaje))) {
+        return true;
+    }
+
+    return false;
+};
+
+const avisarSesionInvalida = (): void => {
+    if (typeof window !== "undefined") window.dispatchEvent(new Event(SESSION_INVALID_EVENT));
+};
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -184,7 +215,11 @@ async function request<T>(
 
     if (!res.ok && !options?.allowedStatuses?.includes(res.status)) {
         const parsed = parseErrors(data);
-        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
+        // Un token explícito (`getMe({ token })` al confirmar un mail) no es
+        // todavía la sesión de este navegador: no debe cerrar la sesión actual.
+        const invalid = options?.token === undefined && esSesionInvalida(res.status, path, parsed.errors);
+        if (invalid) avisarSesionInvalida();
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles, invalid);
     }
 
     return data as T;
@@ -202,7 +237,9 @@ async function getBlob(path: string): Promise<BlobFile> {
     if (!res.ok) {
         const text = await res.text();
         const parsed = parseErrors(parseJson(text));
-        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
+        const invalid = esSesionInvalida(res.status, path, parsed.errors);
+        if (invalid) avisarSesionInvalida();
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles, invalid);
     }
 
     const disposition = res.headers.get("Content-Disposition");
@@ -241,7 +278,9 @@ async function postFile<T>(
 
     if (!res.ok) {
         const parsed = parseErrors(data);
-        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles);
+        const invalid = esSesionInvalida(res.status, path, parsed.errors);
+        if (invalid) avisarSesionInvalida();
+        throw new ApiError(res.status, parsed.errors, parsed.codigo, parsed.detalles, invalid);
     }
 
     return data as T;
