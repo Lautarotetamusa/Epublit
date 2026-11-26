@@ -7,6 +7,7 @@ import { ValidationError } from "../../lib/http/errors";
 import { DepositoRepository, NOMBRE_DEPOSITO_PRINCIPAL } from "../deposito";
 import { MedioPagoRepository } from "../medioPago";
 import { RolRepository } from "../rol";
+import { TipoEdicionRepository } from "../tipoEdicion";
 import {
     createUserFolder,
     createKey,
@@ -34,9 +35,12 @@ export type UserServiceDeps = {
     // Alta y baja definitiva de los roles por defecto (autor, ilustrador; ver
     // specs/011-roles).
     rolRepository: Pick<RolRepository, "insertDefaults" | "removeAllOfUser">;
+    // Alta y baja definitiva de los tipos de edición por defecto (Normal,
+    // Pop up, Cartoné; ver módulo TipoEdición).
+    tipoEdicionRepository: Pick<TipoEdicionRepository, "insertDefaults" | "removeAllOfUser">;
 };
 
-export function createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository }: UserServiceDeps) {
+export function createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository, tipoEdicionRepository }: UserServiceDeps) {
     // Alta completa del usuario, sus clientes por defecto (MOSTRADOR,
     // CONSUMIDOR FINAL), su depósito principal, sus medios de pago por
     // defecto y sus roles por defecto en una única transacción Postgres: la
@@ -52,6 +56,7 @@ export function createUserService({ db, repository, afipService, depositoReposit
             );
             await medioPagoRepository.insertDefaults(user.id, tx);
             await rolRepository.insertDefaults(user.id, tx);
+            await tipoEdicionRepository.insertDefaults(user.id, tx);
 
             // Cada cliente tiene su depósito real propio (ver
             // specs/009-ledger-unificado).
@@ -76,6 +81,7 @@ export function createUserService({ db, repository, afipService, depositoReposit
             await repository.removeDefaultClientes(user.id, tx);
             await medioPagoRepository.removeAllOfUser(user.id, tx);
             await rolRepository.removeAllOfUser(user.id, tx);
+            await tipoEdicionRepository.removeAllOfUser(user.id, tx);
             await repository.removeUser(user.id, tx);
         });
 

@@ -35,6 +35,8 @@ FECHA_INICIO = "/".join(reversed(CUENTA["fecha_inicio"].split("-")))
 
 USER_ID = 9_000_001
 ROLE_IDS = {"Autor": 9_000_001, "Ilustrador": 9_000_002, "Prólogo": 9_000_003}
+TIPO_EDICION_NOMBRE = {"normal": "Normal", "pop_up": "Pop up", "cartone": "Cartoné"}
+TIPO_EDICION_IDS = {nombre: 9_000_001 + i for i, nombre in enumerate(("Normal", "Pop up", "Cartoné"))}
 MEDIO_IDS = {nombre: 9_000_001 + i for i, nombre in enumerate(MEDIOS)}
 DEPOSITO_PRINCIPAL = 9_000_001
 DEPOSITO_CONSUMIDOR = ESPECIALES["consumidor-final"]["deposito_id"]
@@ -223,6 +225,11 @@ def main() -> None:
         [str(ROLE_IDS["Prólogo"]), q("Prólogo"), str(USER_ID)],
     ]))
 
+    lineas.append("-- Tipos de edición")
+    lineas.append(insert("tipos_edicion", ["id", "nombre", "user"], [
+        [str(TIPO_EDICION_IDS[nombre]), q(nombre), str(USER_ID)] for nombre in ("Normal", "Pop up", "Cartoné")
+    ]))
+
     lineas.append("-- Clientes por defecto")
     lineas.append(insert("clientes", [
         "id", "nombre", "email", "cuit", "cond_fiscal", "razon_social", "domicilio", "tipo", "user",
@@ -287,13 +294,13 @@ def main() -> None:
             q(libro["edad_max"]) if libro["edad_max"] is not None else "NULL",
             "NULL", q(portada_key), str(COLECCION_ID[libro["coleccion"]]),
             str(libro["stock_negativo_permitido"]), str(libro["peso_kg"]),
-            q(libro["tipo_edicion"]), q(libro["visible"]), str(USER_ID),
+            str(TIPO_EDICION_IDS[TIPO_EDICION_NOMBRE[libro["tipo_edicion"]]]), q(libro["visible"]), str(USER_ID),
         ])
     lineas.append(insert("libros", [
         "id_libro", "isbn", "titulo", "fecha_edicion", "precio", "stock",
         "alto", "ancho", "largo", "paginas", "brief", "edad_min", "edad_max",
         "book_trailer_url", "portada_key", "coleccion_id",
-        "stock_negativo_permitido", "peso_kg", "tipo_edicion", "visible", "user",
+        "stock_negativo_permitido", "peso_kg", "tipo_edicion_id", "visible", "user",
     ], filas_libros))
 
     lineas.append("-- Precio inicial en el historial")
@@ -912,6 +919,8 @@ WHERE "user" = (SELECT id FROM users WHERE username = {username});
 DELETE FROM medios_pago
 WHERE "user" = (SELECT id FROM users WHERE username = {username});
 DELETE FROM roles
+WHERE "user" = (SELECT id FROM users WHERE username = {username});
+DELETE FROM tipos_edicion
 WHERE "user" = (SELECT id FROM users WHERE username = {username});
 DELETE FROM envio_config
 WHERE "user" = (SELECT id FROM users WHERE username = {username});

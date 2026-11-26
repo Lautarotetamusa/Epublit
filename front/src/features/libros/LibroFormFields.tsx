@@ -1,7 +1,6 @@
 import { Field, Input, Textarea, CoverUpload, Select, Switch } from "../../design-system";
 import type { Coleccion } from "../../api/coleccion";
-import type { TipoEdicion } from "../../api/libro";
-import { TIPOS_EDICION } from "./presentacionLibro";
+import type { TipoEdicion } from "../../api/tipoEdicion";
 import { sanitizeDecimal, sanitizeInteger } from "../../lib/numericInput";
 import { isValidYoutubeUrl } from "../../lib/validation";
 import { useFilePreview } from "../../lib/useFilePreview";
@@ -34,7 +33,9 @@ export type LibroFormValues = {
     // Stock que la tienda online puede vender de más cuando el depósito
     // principal llega a cero.
     stockNegativoPermitido: string;
-    tipoEdicion: TipoEdicion;
+    // Tipo de edición elegido, como string para que el Select use el id de la
+    // cuenta (ver api/tipoEdicion.ts).
+    tipoEdicionId: string;
     visible: boolean;
 };
 
@@ -45,6 +46,7 @@ type GrupoProps = {
 
 type Props = GrupoProps & {
     colecciones: Coleccion[];
+    tiposEdicion: TipoEdicion[];
     // El ISBN sólo se puede cargar al crear el libro: una vez creado es su
     // identificador (ver back/src/modules/libro/libro.routes.ts, la ficha
     // navega por isbn), así que en la edición no tiene sentido mostrarlo acá.
@@ -131,7 +133,7 @@ export function DatosLibroFields({ values, onChange, colecciones }: GrupoProps &
     );
 }
 
-export function FichaLibroFields({ values, onChange }: GrupoProps) {
+export function FichaLibroFields({ values, onChange, tiposEdicion }: GrupoProps & { tiposEdicion: TipoEdicion[] }) {
     const bookTrailerInvalid = values.bookTrailerUrl !== "" && !isValidYoutubeUrl(values.bookTrailerUrl);
 
     return (
@@ -149,9 +151,9 @@ export function FichaLibroFields({ values, onChange }: GrupoProps) {
             >
                 <Field label="Tipo de edición">
                     <Select
-                        value={values.tipoEdicion}
-                        onChange={(e) => onChange({ tipoEdicion: e.target.value as TipoEdicion })}
-                        options={TIPOS_EDICION}
+                        value={values.tipoEdicionId}
+                        onChange={(e) => onChange({ tipoEdicionId: e.target.value })}
+                        options={tiposEdicion.map((tipo) => ({ value: String(tipo.id), label: tipo.nombre }))}
                     />
                 </Field>
                 <Field label="Cantidad de páginas">
@@ -246,7 +248,7 @@ export function MedidasLibroFields({ values, onChange }: GrupoProps) {
 }
 
 // Alta de libro: los tres grupos apilados en una sola tarjeta.
-export function LibroFormFields({ values, onChange, colecciones, isbnEditable }: Props) {
+export function LibroFormFields({ values, onChange, colecciones, tiposEdicion, isbnEditable }: Props) {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {isbnEditable ? (
@@ -255,7 +257,7 @@ export function LibroFormFields({ values, onChange, colecciones, isbnEditable }:
                 </Field>
             ) : null}
             <DatosLibroFields values={values} onChange={onChange} colecciones={colecciones} />
-            <FichaLibroFields values={values} onChange={onChange} />
+            <FichaLibroFields values={values} onChange={onChange} tiposEdicion={tiposEdicion} />
             <MedidasLibroFields values={values} onChange={onChange} />
             <PortadaLibroFields values={values} onChange={onChange} />
         </div>

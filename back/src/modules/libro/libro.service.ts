@@ -7,6 +7,7 @@ import { UnsupportedMediaType, PayloadTooLarge, ValidationError } from "../../li
 import { Duplicated, NotFound } from "bradb";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
+import { TipoEdicionRepository } from "../tipoEdicion";
 
 // Sólo estos dos tipos de imagen (ver plan specs/003-libro-campos-extendidos).
 const ALLOWED_PORTADA_MIME: Record<string, string> = {
@@ -45,10 +46,13 @@ export type LibroServiceDeps = {
     // specs/008-movimientos-deposito). El stock del libro ya no es propio.
     // `findPropio` se usa para validar `deposito_id` en los listados (ver specs/018).
     depositoRepository: Pick<DepositoRepository, "getDesgloseLibro" | "findPropio">;
+    // Sólo lectura: validar el tipo de edición elegido y resolver el default
+    // de la cuenta cuando el alta no lo manda (ver módulo TipoEdición).
+    tipoEdicionRepository: Pick<TipoEdicionRepository, "findOne" | "findDefault">;
     storage: Storage;
 };
 
-export function createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, storage }: LibroServiceDeps) {
+export function createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, tipoEdicionRepository, storage }: LibroServiceDeps) {
     // Shape público de un libro: cambia `portada_key` (detalle de storage)
     // por `portada_url` (utilizable directo por el front), igual que
     // `operacion.service.ts` con los comprobantes.
@@ -84,6 +88,23 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         await coleccionRepository.findOne({ id: coleccionId, user: userId });
     };
 
+    // El tipo es obligatorio en la base, pero el alta puede omitirlo: ahí se
+    // usa el "Normal" de la cuenta (o el primero alfabético). Si la cuenta
+    // todavía no cargó ninguno, no hay con qué crear el libro.
+    const resolverTipoEdicion = async (tipoEdicionId: number | undefined, userId: number): Promise<number> => {
+        if (tipoEdicionId !== undefined) {
+            await tipoEdicionRepository.findOne({ id: tipoEdicionId, user: userId });
+            return tipoEdicionId;
+        }
+
+        const porDefecto = await tipoEdicionRepository.findDefault(userId);
+        if (!porDefecto) {
+            throw new ValidationError("Cargá un tipo de edición antes de dar de alta un libro");
+        }
+
+        return porDefecto.id;
+    };
+
     const create = async (data: LibroInsert, userId: number) => {
         const datos = redondearPeso(data);
         if (await repository.exists(datos.isbn, userId)) {
@@ -91,9 +112,10 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         }
 
         await assertColeccionDelUsuario(data.coleccion_id, userId);
+        const tipoEdicionId = await resolverTipoEdicion(data.tipo_edicion_id, userId);
 
         await db.transaction(async (tx) => {
-            const libro = await repository.insert({ ...datos, user: userId }, tx);
+            const libro = await repository.insert({ ...datos, tipo_edicion_id: tipoEdicionId, user: userId }, tx);
 
             await libroPrecioRepository.insert(
                 {
@@ -122,6 +144,9 @@ export function createLibroService({ db, repository, libroPrecioRepository, cole
         }
 
         await assertColeccionDelUsuario(body.coleccion_id, userId);
+        if (body.tipo_edicion_id !== undefined) {
+            await tipoEdicionRepository.findOne({ id: body.tipo_edicion_id, user: userId });
+        }
 
         // Sólo se agrega un registro nuevo al historial si el precio realmente
         // cambió (ver spec, "Casos borde").

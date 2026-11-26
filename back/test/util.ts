@@ -101,6 +101,15 @@ export async function getRolId(app: Express, token: string, nombre: string): Pro
 
     return rol.id;
 }
+
+// Id del tipo de edición de la cuenta (Normal, Pop up y Cartoné se crean al
+// registrar el usuario): los tests de libro referencian el tipo por id.
+export async function getTipoEdicionId(app: Express, token: string, nombre: string): Promise<number> {
+    const res = await request(app).get('/tipo_edicion').set({ Authorization: `Bearer ${token}` });
+    const tipo = res.body.find((t: { nombre: string }) => t.nombre === nombre);
+
+    return tipo.id;
+}
  
 
 // Misma normalización que `ordenAlfabetico` (src/lib/sql/search.ts): sin

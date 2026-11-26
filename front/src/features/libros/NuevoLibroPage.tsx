@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Button, Breadcrumb, Alert } from "../../design-system";
@@ -10,6 +10,7 @@ import { useTodasLasPersonas } from "./useTodasLasPersonas";
 import { usePersonasPendientes } from "./usePersonasPendientes";
 import { useColecciones } from "../colecciones/useColecciones";
 import { useRoles } from "../roles/useRoles";
+import { useTiposEdicion } from "../tiposEdicion/useTiposEdicion";
 import { addLibroPersonas } from "../../api/libroPersona";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
@@ -19,6 +20,7 @@ export function NuevoLibroPage() {
     const { personas, setPersonas } = useTodasLasPersonas();
     const { colecciones } = useColecciones();
     const { roles } = useRoles();
+    const { tipos: tiposEdicion } = useTiposEdicion();
     const { pendientes, agregarExistente, agregarNueva, actualizarRelacion, quitar } = usePersonasPendientes(personas, (persona) =>
         setPersonas((current) => [...current, persona])
     );
@@ -43,9 +45,18 @@ export function NuevoLibroPage() {
         bookTrailerUrl: "",
         idColeccion: "",
         stockNegativoPermitido: "0",
-        tipoEdicion: "normal",
+        tipoEdicionId: "",
         visible: true
     });
+
+    // El tipo por defecto es "Normal" (el que tenían los libros antes del
+    // CRUD) o, si no está activo, el primero alfabético de la cuenta.
+    useEffect(() => {
+        if (inputs.tipoEdicionId !== "" || tiposEdicion.length === 0) return;
+
+        const porDefecto = tiposEdicion.find((tipo) => tipo.nombre.toLowerCase() === "normal") ?? tiposEdicion[0];
+        setInputs((current) => ({ ...current, tipoEdicionId: String(porDefecto.id) }));
+    }, [inputs.tipoEdicionId, tiposEdicion]);
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
@@ -66,7 +77,7 @@ export function NuevoLibroPage() {
                     edad_min: inputs.edadMin ? Number(inputs.edadMin) : null,
                     edad_max: inputs.edadMax ? Number(inputs.edadMax) : null,
                     book_trailer_url: inputs.bookTrailerUrl || undefined,
-                    tipo_edicion: inputs.tipoEdicion,
+                    tipo_edicion_id: inputs.tipoEdicionId ? Number(inputs.tipoEdicionId) : undefined,
                     visible: inputs.visible
                 },
                 inputs.portadaFile,
@@ -95,7 +106,13 @@ export function NuevoLibroPage() {
             <Breadcrumb items={["Libros", "Nuevo libro"]} onNavigate={(_item, index) => index === 0 && navigate("/libros")} />
             <Card title="Nuevo libro">
                 <form onSubmit={handleSubmit}>
-                    <LibroFormFields values={inputs} onChange={(patch) => setInputs((v) => ({ ...v, ...patch }))} colecciones={colecciones} isbnEditable />
+                    <LibroFormFields
+                        values={inputs}
+                        onChange={(patch) => setInputs((v) => ({ ...v, ...patch }))}
+                        colecciones={colecciones}
+                        tiposEdicion={tiposEdicion}
+                        isbnEditable
+                    />
                     {/* El stock dejó de ser un dato del libro (ver specs/008):
                         va justo donde estaba el campo, que es donde el ojo lo
                         busca, explicando cómo se carga ahora. */}

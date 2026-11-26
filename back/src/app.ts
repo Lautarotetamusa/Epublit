@@ -81,6 +81,8 @@ export function createApp(container: Container): Express {
 
     app.use('/rol', auth, container.rol.router);
 
+    app.use('/tipo_edicion', auth, container.tipoEdicion.router);
+
     // `GET /venta/medios_pago` vive dentro del router de transacciones (se
     // registra antes de `/venta/:id`, ver transaccion.routes.ts).
     app.use('/', container.transaccion.router);

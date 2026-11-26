@@ -13,6 +13,7 @@ import { createUserModule } from "../src/modules/user";
 import { createClienteModule } from "../src/modules/cliente";
 import { createMedioPagoModule } from "../src/modules/medioPago";
 import { createRolModule } from "../src/modules/rol";
+import { createTipoEdicionModule } from "../src/modules/tipoEdicion";
 import { createAnticipoModule } from "../src/modules/anticipo";
 import { createComprobanteModule } from "../src/modules/comprobante";
 import { createTransaccionModule } from "../src/modules/transaccion";
@@ -48,13 +49,14 @@ async function main(): Promise<void> {
     const deposito = createDepositoModule({ db });
     const medioPago = createMedioPagoModule({ db });
     const rol = createRolModule({ db });
+    const tipoEdicion = createTipoEdicionModule({ db });
     const anticipo = createAnticipoModule({ db });
     // El seed no pasa por `register`, así que nunca manda la bienvenida.
     const emailService = createEmailService({ transporte: createTransporteLog(), panelUrl: env.PANEL_URL });
-    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository });
+    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository, tipoEdicionRepository: tipoEdicion.repository });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, tipoEdicionRepository: tipoEdicion.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
     const comprobante = createComprobanteModule({
         db,

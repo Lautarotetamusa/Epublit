@@ -13,6 +13,7 @@ const NAV_ITEMS = [
     { value: "colecciones", label: "Colecciones", icon: "book-open" },
     { value: "personas", label: "Personas", icon: "user-round" },
     { value: "roles", label: "Roles", icon: "tag" },
+    { value: "tipos-edicion", label: "Tipos de edición", icon: "book-marked" },
     // Depósito es su propia sección: es otro trabajo (dónde están los libros)
     // distinto del catálogo (qué libros hay).
     { section: "Depósito" },

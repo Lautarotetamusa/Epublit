@@ -188,6 +188,13 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `GET    /pedidos/:codigo/envio`
 - `POST   /pedidos/:codigo/envio/refrescar`
 
+## tipoEdicion (/tipo_edicion)
+
+- `GET    /tipo_edicion/`
+- `POST   /tipo_edicion/`
+- `PUT    /tipo_edicion/:id`
+- `DELETE /tipo_edicion/:id`
+
 ## transaccion ()
 
 - `GET    /venta/medios_pago`

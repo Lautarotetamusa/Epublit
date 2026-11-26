@@ -11,6 +11,7 @@ import { PersonaRepository } from "../persona";
 import { ColeccionRepository } from "../coleccion";
 import { DepositoRepository } from "../deposito";
 import { RolRepository } from "../rol";
+import { TipoEdicionRepository } from "../tipoEdicion";
 import { createLibroPrecioRepository } from "./libroPrecio.repository";
 import { createLibroRepository } from "./libro.repository";
 import { createLibroPersonaRepository } from "./libroPersona.repository";
@@ -41,6 +42,9 @@ export type LibroModuleDeps = {
     // specs/008-movimientos-deposito. `findPropio` valida `deposito_id` en
     // listados (ver specs/018).
     depositoRepository: Pick<DepositoRepository, "getDesgloseLibro" | "findPropio">;
+    // Sólo lectura del tipo de edición de la cuenta (ownership + default del
+    // alta), ver módulo TipoEdición.
+    tipoEdicionRepository: Pick<TipoEdicionRepository, "findOne" | "findDefault">;
     // Sólo lectura de roles (ownership + vigencia) para validar la asignación
     // de personas a un libro (ver specs/011-roles).
     rolRepository: Pick<RolRepository, "findOne">;
@@ -50,13 +54,13 @@ export type LibroModuleDeps = {
     storage: Storage;
 };
 
-export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, rolRepository, anticipoService, storage }: LibroModuleDeps) {
+export function createLibroModule({ db, personaRepository, coleccionRepository, depositoRepository, rolRepository, tipoEdicionRepository, anticipoService, storage }: LibroModuleDeps) {
     const repository = createLibroRepository({ db });
     const libroPrecioRepository = createLibroPrecioRepository({ db });
     const libroPersonaRepository = createLibroPersonaRepository({ db });
     const libroResenaRepository = createLibroResenaRepository({ db });
 
-    const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, storage });
+    const service = createLibroService({ db, repository, libroPrecioRepository, coleccionRepository, depositoRepository, tipoEdicionRepository, storage });
     const personaService = createLibroPersonaService({
         db,
         repository: libroPersonaRepository,

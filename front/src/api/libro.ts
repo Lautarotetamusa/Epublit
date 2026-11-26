@@ -4,8 +4,6 @@ import type { Persona } from "./persona";
 import type { Rol } from "./rol";
 import type { StockEnDeposito } from "./deposito";
 
-export type TipoEdicion = "normal" | "pop_up" | "cartone";
-
 // Refleja back/src/modules/libro/libro.schema.ts.
 export type Libro = {
     id_libro: number;
@@ -51,7 +49,10 @@ export type Libro = {
     // colecciones (ver specs/007-colecciones).
     coleccion_id: number | null;
     coleccion_titulo: string | null;
-    tipo_edicion: TipoEdicion;
+    // Tipo de edición de la cuenta (ver api/tipoEdicion.ts): el id es lo que se
+    // manda al editar; el nombre viene resuelto por el backend para mostrar.
+    tipo_edicion_id: number;
+    tipo_edicion: string;
     // `false` = oculto en el sitio (la tienda): el panel lo sigue mostrando y
     // vendiendo (ver specs/022-libro-edicion-visibilidad-resenas).
     visible: boolean;
@@ -101,7 +102,7 @@ export type CreateLibroInput = {
     // `null` = sin colección; un id asigna/reemplaza la colección del libro
     // (ver specs/007-colecciones, "Pertenencia libro → colección").
     coleccion_id?: number | null;
-    tipo_edicion?: TipoEdicion;
+    tipo_edicion_id?: number;
     visible?: boolean;
 };
 

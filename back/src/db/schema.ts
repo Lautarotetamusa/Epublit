@@ -1,6 +1,7 @@
 export * from "../modules/user/user.schema";
 export * from "../modules/rol/rol.schema";
 export * from "../modules/medioPago/medioPago.schema";
+export * from "../modules/tipoEdicion/tipoEdicion.schema";
 export * from "../modules/coleccion/coleccion.schema";
 export * from "../modules/deposito/deposito.schema";
 export * from "../modules/deposito/depositoLibros.schema";

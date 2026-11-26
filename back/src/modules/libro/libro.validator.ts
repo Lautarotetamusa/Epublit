@@ -29,6 +29,11 @@ const stockNegativoPermitido = z.number().int().min(0).max(2147483647);
 // persistir; `null` limpia el valor y `undefined` lo conserva al editar.
 const pesoKg = z.number().positive().max(1_000_000).nullable().optional();
 
+// Tipo de edición opcional: si el alta no lo manda, el service usa el
+// "Normal" activo de la cuenta (ver libro.service.ts). El update parcial lo
+// deja como está cuando se omite.
+const tipoEdicionId = z.number().int().positive().optional();
+
 // Validators nuevos (Postgres/Drizzle), usados por libro.controller.ts/libro.service.ts.
 const select = createSelectSchema(librosTable);
 const insertBase = createInsertSchema(librosTable, {
@@ -40,7 +45,8 @@ const insertBase = createInsertSchema(librosTable, {
     edad_max: nonNegativeInt,
     book_trailer_url: bookTrailerUrl,
     stock_negativo_permitido: stockNegativoPermitido.optional(),
-    peso_kg: pesoKg
+    peso_kg: pesoKg,
+    tipo_edicion_id: tipoEdicionId
 }).omit({
     user: true,
     deletedAt: true,

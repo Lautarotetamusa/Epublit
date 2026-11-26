@@ -7,6 +7,7 @@ import { librosPersonasTable } from "./libroPersona.schema";
 import { personasTable } from "../persona/persona.schema";
 import { rolesTable } from "../rol/rol.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
+import { tiposEdicionTable } from "../tipoEdicion/tipoEdicion.schema";
 import { libroFilterMap } from "./libro.filter";
 import { disponibleEnPrincipal, stockDeLibro, cantidadEnDeposito } from "./libro.stock";
 import { Libro } from "./libro.validator";
@@ -16,14 +17,18 @@ export type LibroRepositoryDeps = {
     db: Database;
 };
 
-// Fila de libro con el título de su colección y su stock ya resueltos por
-// join: `stock` es la suma de sus cantidades en todos los depósitos y
-// `disponible_principal` la de su depósito principal (ver
+// Fila de libro con el título de su colección, su tipo de edición y su stock
+// ya resueltos por join: `stock` es la suma de sus cantidades en todos los
+// depósitos y `disponible_principal` la de su depósito principal (ver
 // specs/008-movimientos-deposito). El libro ya no tiene stock propio.
 export type LibroConColeccion = Omit<Libro, "stock"> & {
     stock: number;
     disponible_principal: number;
     coleccion_titulo: string | null;
+    // Nombre del tipo de edición resuelto desde `tipos_edicion`. Se lee sin
+    // filtrar `deletedAt`: un tipo dado de baja sigue mostrando su nombre en
+    // los libros que ya lo usaban.
+    tipo_edicion: string | null;
 };
 
 export function createLibroRepository({ db }: LibroRepositoryDeps) {
@@ -42,7 +47,8 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                 // Disponibilidad operativa: físico del principal menos
                 // reservas activas del ecommerce (puede ser negativa).
                 disponible_principal: disponibleEnPrincipal(),
-                coleccion_titulo: coleccionesTable.titulo
+                coleccion_titulo: coleccionesTable.titulo,
+                tipo_edicion: tiposEdicionTable.nombre
             })
             .from(librosTable)
             .leftJoin(
@@ -51,6 +57,13 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                     eq(coleccionesTable.id, librosTable.coleccion_id),
                     eq(coleccionesTable.user, librosTable.user),
                     isNull(coleccionesTable.deletedAt)
+                )
+            )
+            .leftJoin(
+                tiposEdicionTable,
+                and(
+                    eq(tiposEdicionTable.id, librosTable.tipo_edicion_id),
+                    eq(tiposEdicionTable.user, librosTable.user)
                 )
             )
             .$dynamic();
@@ -66,6 +79,7 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                 stock: stockDeLibro(),
                 disponible_principal: disponibleEnPrincipal(),
                 coleccion_titulo: coleccionesTable.titulo,
+                tipo_edicion: tiposEdicionTable.nombre,
                 disponible_en_deposito: cantidadEnDeposito(depositoId)
             })
             .from(librosTable)
@@ -75,6 +89,13 @@ export function createLibroRepository({ db }: LibroRepositoryDeps) {
                     eq(coleccionesTable.id, librosTable.coleccion_id),
                     eq(coleccionesTable.user, librosTable.user),
                     isNull(coleccionesTable.deletedAt)
+                )
+            )
+            .leftJoin(
+                tiposEdicionTable,
+                and(
+                    eq(tiposEdicionTable.id, librosTable.tipo_edicion_id),
+                    eq(tiposEdicionTable.user, librosTable.user)
                 )
             )
             .$dynamic();

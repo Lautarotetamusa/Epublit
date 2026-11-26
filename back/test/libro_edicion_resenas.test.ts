@@ -8,7 +8,7 @@ dotenv.config({ path: join(__dirname, "../.env") });
 
 import { app, server } from '../src/index';
 import { db } from '../src/db/client';
-import { expectBadRequest, expectCreated, expectNotFound, expectUpdated, getRolId } from './util';
+import { expectBadRequest, expectCreated, expectNotFound, expectUpdated, getRolId, getTipoEdicionId } from './util';
 import { PASSWORD_SEED } from '../seeders/users.seeder';
 import { dni, isbn } from '../seeders/data';
 
@@ -43,7 +43,10 @@ beforeAll(async () => {
     apiKey = integracion.body.data.apiKey;
 
     await crearLibro(ISBN_VISIBLE, 'Libro visible en el sitio');
-    await crearLibro(ISBN_OCULTO, 'Libro oculto en el sitio', { visible: false, tipo_edicion: 'pop_up' });
+    await crearLibro(ISBN_OCULTO, 'Libro oculto en el sitio', {
+        visible: false,
+        tipo_edicion_id: await getTipoEdicionId(app, token, 'Pop up')
+    });
 
     const autora = await auth(request(app).post('/persona/').send({ nombre: 'Autora Solo Oculta', dni: dni(9640) }));
     expectCreated(autora);
@@ -61,20 +64,21 @@ afterAll(async () => {
 });
 
 describe('tipo de edición y visibilidad', () => {
-    it('por defecto un libro es normal y visible', async () => {
+    it('por defecto un libro es Normal y visible', async () => {
         const res = await auth(request(app).get(`/libro/${ISBN_VISIBLE}`));
-        expect(res.body.data.tipo_edicion).toEqual('normal');
+        expect(res.body.data.tipo_edicion).toEqual('Normal');
         expect(res.body.data.visible).toEqual(true);
     });
 
     it('acepta cambiar el tipo de edición', async () => {
-        const res = await auth(request(app).put(`/libro/${ISBN_VISIBLE}`).send({ tipo_edicion: 'cartone' }));
+        const cartone = await getTipoEdicionId(app, token, 'Cartoné');
+        const res = await auth(request(app).put(`/libro/${ISBN_VISIBLE}`).send({ tipo_edicion_id: cartone }));
         expectUpdated(res);
-        expect(res.body.data.tipo_edicion).toEqual('cartone');
+        expect(res.body.data.tipo_edicion).toEqual('Cartoné');
     });
 
-    it('un tipo de edición desconocido es 400', async () => {
-        expectBadRequest(await auth(request(app).put(`/libro/${ISBN_VISIBLE}`).send({ tipo_edicion: 'tapa_dura' })));
+    it('un tipo de edición inexistente es 404', async () => {
+        expectNotFound(await auth(request(app).put(`/libro/${ISBN_VISIBLE}`).send({ tipo_edicion_id: 999999 })));
     });
 
     it('el panel sigue listando el libro oculto', async () => {
@@ -120,7 +124,7 @@ describe('reseñas', () => {
     it('el detalle público expone las reseñas y el tipo de edición', async () => {
         const res = await publica(`/libros/${ISBN_VISIBLE}`);
         expect(res.body.resenas).toEqual([{ url: 'https://diario.test/resena-1' }]);
-        expect(res.body.tipoEdicion).toEqual('cartone');
+        expect(res.body.tipoEdicion).toEqual('Cartoné');
     });
 
     it('edita la reseña', async () => {

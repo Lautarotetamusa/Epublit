@@ -1,10 +1,8 @@
-import { pgTable, pgEnum, integer, varchar, date, real, text, timestamp, boolean, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, date, real, text, timestamp, boolean, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
-
-export const TIPOS_EDICION = ["normal", "pop_up", "cartone"] as const;
-export const libroTipoEdicionEnum = pgEnum("libro_tipo_edicion", TIPOS_EDICION);
+import { tiposEdicionTable } from "../tipoEdicion/tipoEdicion.schema";
 
 export const librosTable = pgTable(
     "libros",
@@ -50,9 +48,12 @@ export const librosTable = pgTable(
         // Peso opcional del libro en kg (resolución de gramos), usado para
         // cotizar envíos. Si falta, se usa el promedio de la cuenta.
         peso_kg: real("peso_kg"),
-        // Default `normal`/`true`: los libros cargados antes de
-        // specs/022-libro-edicion-visibilidad-resenas quedan así sin backfill.
-        tipo_edicion: libroTipoEdicionEnum("tipo_edicion").notNull().default("normal"),
+        // Tipo de edición de la cuenta (ver módulo TipoEdición): reemplaza al
+        // enum fijo normal/pop_up/cartone. Un libro siempre tiene uno; si el
+        // alta no lo elige, el service usa el "Normal" de la cuenta.
+        tipo_edicion_id: integer("tipo_edicion_id")
+            .notNull()
+            .references(() => tiposEdicionTable.id),
         // Sólo afecta al sitio (API pública de la tienda): el panel sigue
         // viendo y vendiendo el libro.
         visible: boolean("visible").notNull().default(true),

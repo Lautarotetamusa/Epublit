@@ -21,7 +21,7 @@ export type { AccesoService } from "./user.acceso.service";
 export { startLimpiezaCuentasPendientes } from "./user.limpieza";
 export type { UserRepository } from "./user.repository";
 
-export type UserModuleDeps = Pick<UserServiceDeps, "depositoRepository" | "medioPagoRepository" | "rolRepository"> & {
+export type UserModuleDeps = Pick<UserServiceDeps, "depositoRepository" | "medioPagoRepository" | "rolRepository" | "tipoEdicionRepository"> & {
     db: Database;
     afipService: AfipService;
     emailService: AccesoServiceDeps["emailService"];
@@ -37,12 +37,13 @@ export function createUserModule({
     depositoRepository,
     medioPagoRepository,
     rolRepository,
+    tipoEdicionRepository,
     ahora = () => new Date(),
     generarUsernameInterno: generarUsername = generarUsernameInterno
 }: UserModuleDeps) {
     const repository = createUserRepository({ db });
     const tokenRepository = createTokenCuentaRepository({ db });
-    const service = createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository });
+    const service = createUserService({ db, repository, afipService, depositoRepository, medioPagoRepository, rolRepository, tipoEdicionRepository });
     const limitesDeEnvio = { ahora, esperaMinimaMs: ESPERA_ENTRE_ENVIOS_MS, ventanaMs: VENTANA_DE_ENVIOS_MS, maximoEnVentana: MAXIMO_ENVIOS_EN_VENTANA };
     const accesoService = createAccesoService({
         db,

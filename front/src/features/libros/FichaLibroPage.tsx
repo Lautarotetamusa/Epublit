@@ -8,7 +8,7 @@ import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { nombreVisible, tonoDeRol } from "../roles/presentacionRol";
 import { useLibro } from "./useLibro";
 import { StockLibroCard } from "./StockLibroCard";
-import { etiquetaTipoEdicion, medidasDeLibro, pesoDeLibro, rangoDeEdad } from "./presentacionLibro";
+import { medidasDeLibro, pesoDeLibro, rangoDeEdad } from "./presentacionLibro";
 import { ResenasLibroCard } from "./ResenasLibroCard";
 
 // Ficha de sólo lectura: qué es el libro, cómo se presenta y cuánto hay en
@@ -146,7 +146,7 @@ export function FichaLibroPage() {
                         margin: 0
                     }}
                 >
-                    <Dato label="Tipo de edición" value={etiquetaTipoEdicion(libro.tipo_edicion)} />
+                    <Dato label="Tipo de edición" value={libro.tipo_edicion} />
                     <Dato label="Páginas" value={libro.paginas ?? "—"} />
                     <Dato label="Edad recomendada" value={rangoDeEdad(libro.edad_min, libro.edad_max)} />
                     <Dato label="Medidas" value={medidasDeLibro(libro)} />

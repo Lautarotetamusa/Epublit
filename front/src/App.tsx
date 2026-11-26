@@ -36,6 +36,9 @@ import { FichaMedioPagoPage } from "./features/mediosPago/FichaMedioPagoPage";
 import { RolesPage } from "./features/roles/RolesPage";
 import { NuevoRolPage } from "./features/roles/NuevoRolPage";
 import { FichaRolPage } from "./features/roles/FichaRolPage";
+import { TiposEdicionPage } from "./features/tiposEdicion/TiposEdicionPage";
+import { NuevoTipoEdicionPage } from "./features/tiposEdicion/NuevoTipoEdicionPage";
+import { FichaTipoEdicionPage } from "./features/tiposEdicion/FichaTipoEdicionPage";
 import { VentasPage } from "./features/ventas/VentasPage";
 import { NuevaVentaPage } from "./features/ventas/NuevaVentaPage";
 import { FichaVentaPage } from "./features/ventas/FichaVentaPage";
@@ -143,6 +146,9 @@ function AppRoutes() {
                 <Route path="/roles" element={<RolesPage />} />
                 <Route path="/roles/nuevo" element={<NuevoRolPage />} />
                 <Route path="/roles/:id" element={<FichaRolPage />} />
+                <Route path="/tipos-edicion" element={<TiposEdicionPage />} />
+                <Route path="/tipos-edicion/nuevo" element={<NuevoTipoEdicionPage />} />
+                <Route path="/tipos-edicion/:id" element={<FichaTipoEdicionPage />} />
                 <Route path="/ventas" element={<VentasPage />} />
                 <Route path="/ventas/nueva" element={<NuevaVentaPage />} />
                 <Route path="/ventas/:id" element={<FichaVentaPage />} />

@@ -14,6 +14,7 @@ import { createUserModule, UserModuleDeps } from "./modules/user";
 import { createClienteModule } from "./modules/cliente";
 import { createRolModule } from "./modules/rol";
 import { createMedioPagoModule } from "./modules/medioPago";
+import { createTipoEdicionModule } from "./modules/tipoEdicion";
 import { createAnticipoModule } from "./modules/anticipo";
 import { createComprobanteModule } from "./modules/comprobante";
 import { createTransaccionModule } from "./modules/transaccion";
@@ -90,15 +91,18 @@ export function createContainer({
     // Medio de pago antes de user: el alta de usuario crea sus 5 medios por
     // defecto, y transaccion los resuelve al vender.
     const medioPago = createMedioPagoModule({ db });
+    // Tipo de edición antes de user: el alta de usuario crea sus 3 tipos por
+    // defecto, y libro los resuelve al crear/editar un libro.
+    const tipoEdicion = createTipoEdicionModule({ db });
     // Anticipos antes de libro/movimiento: ambos disparan su generación (el
     // lanzamiento de un libro es la primera incorporación de stock, ver
     // specs/012-liquidaciones-pagos).
     const anticipo = createAnticipoModule({ db });
     const emailService = createEmailService({ transporte: emailTransporte, panelUrl: env.PANEL_URL });
-    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository, ...userOverrides });
+    const user = createUserModule({ db, afipService, emailService, depositoRepository: deposito.repository, medioPagoRepository: medioPago.repository, rolRepository: rol.repository, tipoEdicionRepository: tipoEdicion.repository, ...userOverrides });
     const persona = createPersonaModule({ db, storage, userRepository: user.repository, rolRepository: rol.repository });
     const coleccion = createColeccionModule({ db, storage });
-    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, anticipoService: anticipo.service, storage });
+    const libro = createLibroModule({ db, personaRepository: persona.repository, coleccionRepository: coleccion.repository, depositoRepository: deposito.repository, rolRepository: rol.repository, tipoEdicionRepository: tipoEdicion.repository, anticipoService: anticipo.service, storage });
     const cliente = createClienteModule({ db, afipService, depositoRepository: deposito.repository });
     // Comprobantes antes de movimiento/transacción/tienda: esos módulos
     // persisten la fila y consultan el resumen para los detalles.
@@ -158,7 +162,7 @@ export function createContainer({
         integrationService: tienda.integrationService
     });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, metricas, tienda, comprobante, contenido };
+    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, tipoEdicion, metricas, tienda, comprobante, contenido };
 }
 
 export type Container = ReturnType<typeof createContainer>;

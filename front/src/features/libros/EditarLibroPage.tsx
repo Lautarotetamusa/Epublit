@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Breadcrumb, Button, Card, EmptyState } from "../../design-system";
 import type { Coleccion } from "../../api/coleccion";
-import type { TipoEdicion } from "../../api/libro";
+import type { TipoEdicion } from "../../api/tipoEdicion";
 import { FullscreenSpinner } from "../../components/FullscreenSpinner";
 import { useToast } from "../../notifications/ToastProvider";
 import { getErrorMessage } from "../../lib/errors";
 import { useFichaLibro } from "./useFichaLibro";
+import { useTiposEdicion } from "../tiposEdicion/useTiposEdicion";
 import { PersonasLibroSection } from "./PersonasLibroSection";
 import { DatosLibroFields, FichaLibroFields, MedidasLibroFields, PortadaLibroFields } from "./LibroFormFields";
 import type { LibroFormValues } from "./LibroFormFields";
@@ -30,10 +31,11 @@ export function EditarLibroPage() {
         actualizarRelacion,
         quitarPersona
     } = useFichaLibro(isbn);
+    const { tipos: tiposEdicion, loading: loadingTipos } = useTiposEdicion();
     const { showToast } = useToast();
     const navigate = useNavigate();
 
-    if (loading) return <FullscreenSpinner />;
+    if (loading || loadingTipos) return <FullscreenSpinner />;
 
     if (!libro) {
         return (
@@ -64,6 +66,7 @@ export function EditarLibroPage() {
                 key={libro.isbn}
                 libro={libro}
                 colecciones={colecciones}
+                tiposEdicion={tiposEdicion}
                 idColeccion={idColeccion}
                 onCancel={volverAlDetalle}
                 onSave={async (input, portadaFile, idColeccionElegida) => {
@@ -93,6 +96,7 @@ export function EditarLibroPage() {
 function EdicionLibroForm({
     libro,
     colecciones,
+    tiposEdicion,
     idColeccion,
     onSave,
     onCancel
@@ -113,10 +117,12 @@ function EdicionLibroForm({
         edad_max: number | null;
         portada_url: string | null;
         book_trailer_url: string | null;
-        tipo_edicion: TipoEdicion;
+        tipo_edicion_id: number;
+        tipo_edicion: string;
         visible: boolean;
     };
     colecciones: Coleccion[];
+    tiposEdicion: TipoEdicion[];
     idColeccion: number | null;
     onSave: (
         input: {
@@ -133,7 +139,7 @@ function EdicionLibroForm({
             edad_min?: number | null;
             edad_max?: number | null;
             book_trailer_url?: string;
-            tipo_edicion: TipoEdicion;
+            tipo_edicion_id: number;
             visible: boolean;
         },
         portadaFile: File | null,
@@ -159,7 +165,7 @@ function EdicionLibroForm({
         bookTrailerUrl: libro.book_trailer_url ?? "",
         idColeccion: idColeccion !== null ? String(idColeccion) : "",
         stockNegativoPermitido: String(libro.stock_negativo_permitido),
-        tipoEdicion: libro.tipo_edicion,
+        tipoEdicionId: String(libro.tipo_edicion_id),
         visible: libro.visible
     });
     const [saving, setSaving] = useState(false);
@@ -188,7 +194,7 @@ function EdicionLibroForm({
                 edad_min: inputs.edadMin ? Number(inputs.edadMin) : null,
                 edad_max: inputs.edadMax ? Number(inputs.edadMax) : null,
                 book_trailer_url: inputs.bookTrailerUrl || undefined,
-                tipo_edicion: inputs.tipoEdicion,
+                tipo_edicion_id: Number(inputs.tipoEdicionId),
                 visible: inputs.visible
             },
             inputs.portadaFile,
@@ -222,7 +228,7 @@ function EdicionLibroForm({
             </Card>
 
             <Card title="Ficha del libro">
-                <FichaLibroFields values={inputs} onChange={actualizar} />
+                <FichaLibroFields values={inputs} onChange={actualizar} tiposEdicion={tiposEdicion} />
             </Card>
 
             <Card title="Medidas y envío" subtitle="Las medidas y el peso se usan para cotizar el envío.">

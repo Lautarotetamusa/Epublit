@@ -1,5 +1,3 @@
-import type { TipoEdicion } from "../../api/libro";
-
 // Textos de la ficha del libro: la interfaz nunca muestra los campos crudos
 // (null, números sueltos) sino el dato tal como se lee en el catálogo.
 
@@ -22,15 +20,4 @@ export function medidasDeLibro(libro: { alto: number | null; ancho: number | nul
 
 export function pesoDeLibro(pesoKg: number | null): string {
     return pesoKg === null ? "—" : `${pesoKg.toLocaleString("es-AR")} kg`;
-}
-
-// Orden fijo (no alfabético): «Normal» es el caso habitual y va primero.
-export const TIPOS_EDICION: { value: TipoEdicion; label: string }[] = [
-    { value: "normal", label: "Normal" },
-    { value: "pop_up", label: "Pop up" },
-    { value: "cartone", label: "Cartoné" }
-];
-
-export function etiquetaTipoEdicion(tipo: TipoEdicion): string {
-    return TIPOS_EDICION.find((opcion) => opcion.value === tipo)?.label ?? tipo;
 }
