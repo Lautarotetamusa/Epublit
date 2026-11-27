@@ -30,6 +30,8 @@ export const integrationsTable = pgTable(
         // único en toda la base porque la búsqueda de auth es sólo por hash.
         uniqueIndex("integraciones_clave_hash_idx").on(table.clave_hash),
         index("integraciones_user_prefijo_idx").on(table.user, table.prefijo),
-        index("integraciones_user_idx").on(table.user)
+        index("integraciones_user_idx").on(table.user),
+        // Evidencia de alta de la cuenta para el backfill del panel.
+        index("integraciones_user_creada_en_idx").on(table.user, table.creada_en)
     ]
 );

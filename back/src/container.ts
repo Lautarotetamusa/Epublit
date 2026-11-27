@@ -21,6 +21,7 @@ import { createTransaccionModule } from "./modules/transaccion";
 import { createLiquidacionesModule } from "./modules/liquidaciones";
 import { createLiquidacionModule } from "./modules/liquidacion";
 import { createMetricasModule } from "./modules/metricas";
+import { createAdminModule } from "./modules/admin";
 import { createTiendaModule } from "./modules/tienda";
 import { createContenidoModule } from "./modules/contenido";
 import { createAvailabilityService } from "./modules/tienda/stock/availability.service";
@@ -154,6 +155,9 @@ export function createContainer({
     const liquidaciones = createLiquidacionesModule({ db, anticipoRepository: anticipo.repository });
     const liquidacion = createLiquidacionModule({ liquidacionesService: liquidaciones.service });
     const metricas = createMetricasModule({ db });
+    // Panel de administración cross-tenant: lee el rol de la base en cada
+    // request a través del repository de user (ver specs/028).
+    const admin = createAdminModule({ db, userRepository: user.repository });
     // El CMS de la landing reutiliza la API key y el control de origen de la
     // tienda: es otro consumidor de la misma integración.
     const contenido = createContenidoModule({
@@ -162,7 +166,7 @@ export function createContainer({
         integrationService: tienda.integrationService
     });
 
-    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, tipoEdicion, metricas, tienda, comprobante, contenido };
+    return { persona, libro, user, cliente, transaccion, liquidacion, liquidaciones, anticipo, coleccion, deposito, movimiento, medioPago, rol, tipoEdicion, metricas, tienda, comprobante, contenido, admin };
 }
 
 export type Container = ReturnType<typeof createContainer>;

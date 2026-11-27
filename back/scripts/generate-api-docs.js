@@ -63,6 +63,17 @@ function extractRoutes(routesFile) {
     return routes;
 }
 
+function extractNotes(routesFile) {
+    const src = fs.readFileSync(routesFile, "utf8");
+    const notes = [];
+    const re = /@note\s+([^\n]+)/g;
+    let match;
+    while ((match = re.exec(src))) {
+        notes.push(match[1].trim());
+    }
+    return notes;
+}
+
 function main() {
     const mounts = readMountPrefixes();
     const moduleDirs = fs.readdirSync(MODULES_DIR).filter((name) =>
@@ -96,6 +107,11 @@ function main() {
             return mountRoutesFiles.flatMap((f) => extractRoutes(path.join(moduleDir, f)));
         };
 
+        const pushNotes = (files) => {
+            const notes = [...new Set(files.flatMap((f) => extractNotes(path.join(moduleDir, f))))];
+            for (const note of notes) lines.push(`> ${note}`, "");
+        };
+
         const pushRoutes = (mount, allRoutes) => {
             for (const { method, path: routePath } of allRoutes) {
                 const fullPath = mount.prefix === "/" ? routePath : `${mount.prefix}${routePath}`.replace(/\/+/g, "/");
@@ -109,12 +125,14 @@ function main() {
             if (allRoutes.length === 0) continue;
 
             lines.push(`## ${moduleName} (${mount.prefix === "/" ? "" : mount.prefix})`, "");
+            pushNotes(routesFiles);
             pushRoutes(mount, allRoutes);
             lines.push("");
             continue;
         }
 
         lines.push(`## ${moduleName}`, "");
+        pushNotes(routesFiles);
         for (const mount of moduleMounts) {
             const allRoutes = routesForMount(mount);
             if (allRoutes.length === 0) continue;

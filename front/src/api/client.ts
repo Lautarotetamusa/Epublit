@@ -69,6 +69,10 @@ export class ApiError extends Error {
 export const SESSION_INVALID_EVENT = "epublit:session-invalid";
 
 const esSesionInvalida = (status: number, path: string, errors: ApiErrorItem[]): boolean => {
+    // Un 403 `admin_required` es falta de permiso de una sesión válida (ej. una
+    // cuenta `editorial` entrando a `/admin`): la pantalla muestra "Acceso
+    // restringido" y la sesión sigue viva. El resto de 401/403 sí la invalida.
+    if (status === 403 && errors.some((error) => error.code === "admin_required")) return false;
     if (status === 401 || status === 403) return true;
 
     const mensaje = errors.map((error) => error.message).join(" ");

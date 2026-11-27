@@ -1,6 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatMoney } from "../../lib/money";
-import { ESTILO_TOOLTIP } from "./estiloTooltip";
+import { ESTILO_TOOLTIP } from "../../lib/estiloTooltip";
 import type { PuntoMensual } from "./tipos";
 
 // Un solo matiz de marca (pino-600) para todas las series: cada gráfico tiene

@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatMoney } from "../../lib/money";
-import { ESTILO_TOOLTIP } from "./estiloTooltip";
+import { ESTILO_TOOLTIP } from "../../lib/estiloTooltip";
 import { PINO_600 } from "./GraficoIngresoMensual";
 import type { PuntoMedioPago } from "./tipos";
 

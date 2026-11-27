@@ -7,7 +7,7 @@ export function formatFecha(iso: string): string {
     // local (un pedido de las 22:30 en Argentina puede caer al día siguiente
     // en UTC).
     const fecha = iso.includes("T") ? new Date(iso) : new Date(`${iso}T00:00:00`);
-    return fecha.toLocaleDateString("es-AR");
+    return fecha.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 // Rango de un período, con guion medio: "01/06/2026 – 30/06/2026".
@@ -26,6 +26,25 @@ export function formatFechaHora(iso: string): string {
         minute: "2-digit",
         hour12: false
     });
+}
+
+// Fecha relativa para la actividad de una cuenta: el panel mide "hace cuánto"
+// y no una fecha de calendario. El valor absoluto se muestra al lado o en el
+// título del dato, así no se pierde la precisión.
+export function formatFechaRelativa(iso: string, referencia = new Date()): string {
+    const fecha = iso.includes("T") ? new Date(iso) : new Date(`${iso}T00:00:00`);
+    const inicioDelDia = (valor: Date) => new Date(valor.getFullYear(), valor.getMonth(), valor.getDate());
+    const dias = Math.round((inicioDelDia(referencia).getTime() - inicioDelDia(fecha).getTime()) / 86_400_000);
+
+    if (dias <= 0) return "hoy";
+    if (dias === 1) return "ayer";
+    if (dias < 30) return `hace ${dias} días`;
+
+    const meses = Math.floor(dias / 30);
+    if (meses < 12) return meses === 1 ? "hace 1 mes" : `hace ${meses} meses`;
+
+    const anios = Math.floor(dias / 365);
+    return anios === 1 ? "hace 1 año" : `hace ${anios} años`;
 }
 
 // Un mes se representa con `yyyy-mm`, que es la unidad de período del panel de

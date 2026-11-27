@@ -57,6 +57,10 @@ export function createApp(container: Container): Express {
     app.use('/liquidaciones', auth, container.liquidaciones.router);
     app.use('/metricas', auth, container.metricas.router);
 
+    // Panel de administración cross-tenant: el router aplica su propio auth que
+    // además exige rol `admin` leído de la base (ver specs/028).
+    app.use('/admin', container.admin.router);
+
     // CMS de contenido de la landing: el router valida la sesión y devuelve
     // sus propios errores con el sobre `{ error: { codigo, mensaje } }`.
     app.use('/contenido', container.contenido.adminRouter);

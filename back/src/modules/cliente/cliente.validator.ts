@@ -19,6 +19,9 @@ const insert = createInsertSchema(clientesTable)
     .omit({
         user: true,
         deletedAt: true,
+        // La fecha de alta la pone la base al crear y no se edita desde el
+        // body (ver specs/028-panel-admin-metricas).
+        created_at: true,
         cond_fiscal: true,
         razon_social: true,
         domicilio: true,

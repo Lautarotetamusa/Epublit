@@ -1,4 +1,4 @@
-import { boolean, date, integer, pgTable, primaryKey, real, text, timestamp, uniqueIndex, varchar, foreignKey } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, primaryKey, real, text, timestamp, uniqueIndex, varchar, foreignKey } from "drizzle-orm/pg-core";
 import { usersTable } from "../user/user.schema";
 import { personasTable } from "../persona/persona.schema";
 import { movimientosTable } from "../movimiento/movimiento.schema";
@@ -24,7 +24,9 @@ export const liquidacionesTable = pgTable(
         // así una cuenta nunca toca una liquidación ajena aunque adivine el id.
         primaryKey({ columns: [table.id, table.user] }),
         // El código es correlativo por año y único por cuenta.
-        uniqueIndex("liquidaciones_codigo_por_usuario_idx").on(table.user, table.codigo)
+        uniqueIndex("liquidaciones_codigo_por_usuario_idx").on(table.user, table.codigo),
+        // Liquidaciones generadas por cuenta y fecha para el panel.
+        index("liquidaciones_user_fecha_generacion_idx").on(table.user, table.fecha_generacion)
     ]
 );
 

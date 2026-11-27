@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, date, real, text, timestamp, boolean, primaryKey, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, date, real, text, timestamp, boolean, primaryKey, uniqueIndex, index, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { coleccionesTable } from "../coleccion/coleccion.schema";
@@ -57,6 +57,10 @@ export const librosTable = pgTable(
         // Sólo afecta al sitio (API pública de la tienda): el panel sigue
         // viendo y vendiendo el libro.
         visible: boolean("visible").notNull().default(true),
+        // Alta del título para el panel de administración. Los libros
+        // existentes se completan desde su primer precio; los que no tienen
+        // historial quedan en NULL. Editar el precio o dar de baja no lo tocan.
+        created_at: timestamp("created_at").defaultNow(),
         // bradb (ServiceBuilder) detecta soft-delete por la columna `deleted_at`.
         deletedAt: timestamp("deleted_at"),
         user: integer("user")
@@ -78,6 +82,8 @@ export const librosTable = pgTable(
         check("libros_peso_kg_positivo", sql`${table.peso_kg} is null or ${table.peso_kg} > 0`),
         check("libros_edad_min_no_negativa", sql`${table.edad_min} is null or ${table.edad_min} >= 0`),
         check("libros_edad_max_no_negativa", sql`${table.edad_max} is null or ${table.edad_max} >= 0`),
-        check("libros_edad_rango_valido", sql`${table.edad_min} is null or ${table.edad_max} is null or ${table.edad_max} >= ${table.edad_min}`)
+        check("libros_edad_rango_valido", sql`${table.edad_min} is null or ${table.edad_max} is null or ${table.edad_max} >= ${table.edad_min}`),
+        // Cuenta de títulos y primera fecha de libro por cuenta.
+        index("libros_user_created_at_idx").on(table.user, table.created_at)
     ]
 );

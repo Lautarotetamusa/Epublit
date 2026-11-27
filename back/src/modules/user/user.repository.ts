@@ -36,7 +36,10 @@ export function createUserRepository({ db }: UserRepositoryDeps) {
                 foto_persona_min_alto_px: usersTable.foto_persona_min_alto_px,
                 email_confirmado: usersTable.email_confirmado,
                 username_interno: usersTable.username_interno,
-                confirmacion_enviada_en: usersTable.confirmacion_enviada_en
+                confirmacion_enviada_en: usersTable.confirmacion_enviada_en,
+                created_at: usersTable.created_at,
+                last_login_at: usersTable.last_login_at,
+                role: usersTable.role
             })
             .from(usersTable)
             .$dynamic();

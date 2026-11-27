@@ -159,6 +159,11 @@ export function createAccesoService({
         if (!user || !(await passwordCorrecta(user, password))) throw erroresDeAcceso.credencialesInvalidas();
         if (esPendiente(user)) throw erroresDeAcceso.emailSinConfirmar(user.email);
 
+        // El último ingreso se registra recién con la sesión ya habilitada:
+        // fallos, confirmación de email y restablecimiento de contraseña no
+        // cuentan como ingreso (ver specs/028-panel-admin-metricas).
+        await repository.persistUpdate({ id: user.id }, { last_login_at: ahora() });
+
         return user;
     };
 

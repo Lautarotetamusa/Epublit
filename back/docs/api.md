@@ -7,6 +7,15 @@ Generado por `scripts/generate-api-docs.js`. No editar a mano.
 - `GET    /files/...` (portadas, fotos y logos): público.
 - `GET    /files/facturas/...`, `/files/remitos/...`, `/files/etiquetas/...`: **404** (bloqueados; los comprobantes ya no se generan como PDF y las etiquetas se bajan por su ruta autenticada).
 
+## admin (/admin)
+
+> Requiere sesión con rol `admin`; una cuenta `editorial` recibe `403` (admin_required) y sin sesión `401` (unauthorized).
+
+- `GET    /admin/resumen`
+- `GET    /admin/embudo`
+- `GET    /admin/serie`
+- `GET    /admin/cuentas`
+
 ## anticipo (/anticipos)
 
 - `GET    /anticipos/`

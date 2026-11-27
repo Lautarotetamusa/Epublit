@@ -1,6 +1,11 @@
 import { pgTable, integer, varchar, boolean, real, timestamp, uniqueIndex, index, pgEnum } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
+// Rol de acceso al panel de administración cross-tenant (ver
+// specs/028-panel-admin-metricas). `editorial` es el rol de todas las cuentas
+// existentes y el valor por defecto; `admin` se asigna a mano.
+export const userRoleEnum = pgEnum("user_role", ["editorial", "admin"]);
+
 // Sin `deletedAt`: no hay soft delete de usuarios hoy (bajas de cuenta no
 // están en el spec), a diferencia de `personas`/`libros` que sí lo usan.
 // PK simple `id`, no compuesta como `personas` (id, user): una fila de
@@ -33,8 +38,23 @@ export const usersTable = pgTable("users", {
     username_interno: boolean("username_interno").notNull().default(false),
     // Una cuenta nueva sin confirmar se borra 24 h después del último link,
     // no del registro: cada reenvío corre el plazo.
-    confirmacion_enviada_en: timestamp("confirmacion_enviada_en", { withTimezone: true })
+    confirmacion_enviada_en: timestamp("confirmacion_enviada_en", { withTimezone: true }),
+    // Alta de la cuenta, usada por el panel de administración. Las cuentas
+    // existentes se completan desde su evidencia más antigua (migración 0029)
+    // y las que no tienen evidencia quedan en NULL: no se inventa la fecha de
+    // la migración. `timestamp` sin zona, igual que las fechas de operaciones.
+    created_at: timestamp("created_at").defaultNow(),
+    // Último login exitoso. Los intentos fallidos, la confirmación de email y
+    // el restablecimiento de contraseña no lo tocan.
+    last_login_at: timestamp("last_login_at"),
+    // default editorial: ninguna cuenta existente queda como administradora
+    // por efecto de la migración.
+    role: userRoleEnum("role").notNull().default("editorial")
 }, (table) => [
+    // Soportan el universo confirmado y los filtros del panel (alta, ARCA).
+    index("users_email_confirmado_created_at_idx").on(table.email_confirmado, table.created_at),
+    index("users_email_confirmado_production_idx").on(table.email_confirmado, table.production),
+    index("users_role_idx").on(table.role),
     // Sin distinguir mayúsculas: "Caro" y "caro" son indistinguibles para
     // una persona y una cuenta podría hacerse pasar por otra.
     uniqueIndex("users_username_lower_idx").on(sql`lower(${table.username})`),

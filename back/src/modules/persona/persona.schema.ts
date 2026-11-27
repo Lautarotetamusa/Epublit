@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, text, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, text, timestamp, primaryKey, index } from "drizzle-orm/pg-core";
 import { usersTable } from "../user/user.schema";
 
 export const personasTable = pgTable(
@@ -21,12 +21,18 @@ export const personasTable = pgTable(
         user: integer("user")
             .notNull()
             .references(() => usersTable.id),
+        // Alta de la persona para el panel de administración. Las existentes
+        // quedan en NULL (no se cuenta retroactivamente); editar o dar de baja
+        // no la cambia.
+        created_at: timestamp("created_at").defaultNow(),
         deletedAt: timestamp("deleted_at")
     },
     (table) => [
         // PK compuesta (id, user): bradb arma el WHERE de findOne/update/delete
         // a partir de todas las columnas de la PK, así que esto hace que no se
         // pueda traer/editar/borrar una persona de otro usuario ni por error.
-        primaryKey({ columns: [table.id, table.user] })
+        primaryKey({ columns: [table.id, table.user] }),
+        // Altas y primera fecha por cuenta.
+        index("personas_user_created_at_idx").on(table.user, table.created_at)
     ]
 );

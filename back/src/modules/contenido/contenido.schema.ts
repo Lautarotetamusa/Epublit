@@ -89,6 +89,9 @@ export const contenidoPaginasTable = pgTable(
             .on(table.user, table.slug)
             .where(sql`${table.deleted_at} is null and ${table.slug} is not null`),
         index("contenido_paginas_user_orden_idx").on(table.user, table.orden),
+        // Contenido editado por cuenta y fecha para el panel (una operación por
+        // página, fechada en su última edición).
+        index("contenido_paginas_user_actualizada_en_idx").on(table.user, table.actualizada_en),
         check("contenido_paginas_estado_valido", sql`${table.estado} in ('borrador', 'publicada')`),
         check("contenido_paginas_orden_no_negativo", sql`${table.orden} >= 0`)
     ]

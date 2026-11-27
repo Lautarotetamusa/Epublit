@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, timestamp, primaryKey, index } from "drizzle-orm/pg-core";
 import { usersTable } from "../user/user.schema";
 import { librosTable } from "./libro.schema";
 
@@ -18,5 +18,9 @@ export const libroResenasTable = pgTable(
             .notNull()
             .references(() => usersTable.id)
     },
-    (table) => [primaryKey({ columns: [table.id, table.user] })]
+    (table) => [
+        primaryKey({ columns: [table.id, table.user] }),
+        // Reseñas por cuenta y fecha para el panel de administración.
+        index("libro_resenas_user_created_at_idx").on(table.user, table.created_at)
+    ]
 );

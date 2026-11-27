@@ -50,6 +50,9 @@ const insertBase = createInsertSchema(librosTable, {
 }).omit({
     user: true,
     deletedAt: true,
+    // La fecha de alta la pone la base al crear; editar precio o dar de baja
+    // no la cambia (ver specs/028-panel-admin-metricas).
+    created_at: true,
     // `portada_key` es interno (key de storage): se setea sólo desde
     // `service.uploadPortada`, nunca desde el body de create/update.
     portada_key: true,

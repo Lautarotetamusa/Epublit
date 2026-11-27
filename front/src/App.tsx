@@ -4,6 +4,7 @@ import { ToastProvider } from "./notifications/ToastProvider";
 import { ConfirmProvider } from "./notifications/ConfirmProvider";
 import { FullscreenSpinner } from "./components/FullscreenSpinner";
 import { AppLayout } from "./layout/AppLayout";
+import { AdminLayout } from "./layout/AdminLayout";
 import { LoginPage } from "./features/auth/LoginPage";
 import { RegisterPage } from "./features/auth/RegisterPage";
 import { RevisarCorreoPage } from "./features/auth/RevisarCorreoPage";
@@ -61,6 +62,7 @@ import { ComprobantePage } from "./features/comprobantes/ComprobantePage";
 import { AyudaLayout } from "./features/ayuda/AyudaLayout";
 import { AyudaIndexPage } from "./features/ayuda/AyudaIndexPage";
 import { ArticuloPage } from "./features/ayuda/ArticuloPage";
+import { PanelAdminPage } from "./features/admin/PanelAdminPage";
 
 function RedirectToPersona() {
     const { id = "" } = useParams();
@@ -110,6 +112,11 @@ function AppRoutes() {
             <Route path="/comprobantes/:id" element={<ComprobantePage />} />
             {rutasDeLinksDelMail}
             {rutasAyuda}
+            {/* El panel de administración es del operador del SaaS, no de la
+                editorial: tiene su propia navegación y queda fuera de AppLayout. */}
+            <Route element={<AdminLayout />}>
+                <Route path="/admin" element={<PanelAdminPage />} />
+            </Route>
             <Route element={<AppLayout />}>
                 <Route path="/" element={<DashboardPage />} />
                 <Route path="/libros" element={<CatalogoPage />} />

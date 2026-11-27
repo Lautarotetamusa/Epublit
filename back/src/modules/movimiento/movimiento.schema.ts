@@ -1,4 +1,4 @@
-import { pgTable, integer, varchar, timestamp, real, boolean, primaryKey, foreignKey, pgEnum, check } from "drizzle-orm/pg-core";
+import { pgTable, integer, varchar, timestamp, real, boolean, primaryKey, foreignKey, pgEnum, index, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { usersTable } from "../user/user.schema";
 import { depositosTable } from "../deposito/deposito.schema";
@@ -50,6 +50,8 @@ export const movimientosTable = pgTable(
     },
     (table) => [
         primaryKey({ columns: [table.id, table.user] }),
+        // Operaciones, ventas y primeras fechas por cuenta.
+        index("movimientos_user_fecha_idx").on(table.user, table.fecha),
         foreignKey({
             columns: [table.origen_deposito_id, table.user],
             foreignColumns: [depositosTable.id, depositosTable.user]
